@@ -1,0 +1,73 @@
+/* app/globals.css */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Nunito:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --forest:     #1a4731;
+  --forest-mid: #2d6a4f;
+  --leaf:       #52b788;
+  --sky:        #1d6fa4;
+  --river:      #48a9d4;
+  --sand:       #f8f3e8;
+  --bark:       #3d2b1f;
+}
+
+@layer base {
+  body {
+    @apply bg-stone-50 text-stone-800;
+    font-family: 'Nunito', sans-serif;
+  }
+  h1, h2, h3 {
+    font-family: 'Playfair Display', serif;
+  }
+}
+
+@layer utilities {
+  .text-forest      { color: var(--forest); }
+  .text-leaf        { color: var(--leaf); }
+  .text-river       { color: var(--river); }
+  .bg-forest        { background-color: var(--forest); }
+  .bg-forest-mid    { background-color: var(--forest-mid); }
+  .bg-leaf          { background-color: var(--leaf); }
+  .bg-river         { background-color: var(--river); }
+  .bg-sand          { background-color: var(--sand); }
+  .border-leaf      { border-color: var(--leaf); }
+  .border-river     { border-color: var(--river); }
+
+  .hero-gradient {
+    background: linear-gradient(
+      135deg,
+      var(--forest) 0%,
+      var(--forest-mid) 40%,
+      var(--sky) 100%
+    );
+  }
+
+  .card-glass {
+    backdrop-filter: blur(12px);
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+
+  .animate-fade-up {
+    animation: fadeUp 0.7s ease both;
+  }
+  .delay-100 { animation-delay: 0.1s; }
+  .delay-200 { animation-delay: 0.2s; }
+  .delay-300 { animation-delay: 0.3s; }
+  .delay-400 { animation-delay: 0.4s; }
+
+  .spin-slow { animation: spin-slow 1.4s linear infinite; }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spin-slow {
+  to { transform: rotate(360deg); }
+}
