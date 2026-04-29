@@ -1,15 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Esta configuração ignora erros de Linting (como variáveis não usadas e aspas)
   eslint: {
+    // Isso diz à Vercel: "Ignore os erros de aspas e variáveis, eu sei o que estou a fazer"
     ignoreDuringBuilds: true,
   },
-  // Esta configuração ignora erros de TypeScript se existirem
   typescript: {
+    // Evita que o build trave por erros de tipos
     ignoreBuildErrors: true,
   },
-  // Opcional: Se usares imagens externas, podes precisar de configurar os domínios
   images: {
+    // Necessário para carregar as imagens do Pexels que usaste no roteiro
     remotePatterns: [
       {
         protocol: 'https',
