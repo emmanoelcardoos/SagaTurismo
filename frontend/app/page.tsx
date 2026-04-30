@@ -257,7 +257,7 @@ function GaleriaVerao() {
 }
 
 // ==========================================
-// COMPONENTE: AGENDA CULTURAL
+// COMPONENTE 1: AGENDA CULTURAL
 // ==========================================
 function AgendaCultural() {
   const [eventos, setEventos] = useState<Evento[]>([]);
@@ -429,7 +429,7 @@ function AgendaCultural() {
 }
 
 // ==========================================
-// COMPONENTE: SECÇÃO DE HOTÉIS
+// COMPONENTE 2: SECÇÃO DE HOTÉIS
 // ==========================================
 function SeccaoHoteis() {
   const [hoteis, setHoteis] = useState<HotelData[]>([]);
@@ -686,10 +686,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* NOVAS SECÇÕES ADICIONADAS AQUI */}
-      <DestaquesVerao />
-      <GaleriaVerao />
-
       {/* ATRAÇÕES */}
       <section id="atracoes" className="mx-auto max-w-7xl px-5 py-24">
         <div className="mb-14 max-w-3xl">
@@ -782,8 +778,12 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* AGENDA CULTURAL LIGADA À SUPABASE */}
+      {/* AGENDA CULTURAL */}
       <AgendaCultural />
+
+      {/* NOVAS SECÇÕES DE VERÃO */}
+      <DestaquesVerao />
+      <GaleriaVerao />
 
       {/* HOTÉIS LIGADOS À SUPABASE */}
       <SeccaoHoteis />
@@ -873,45 +873,32 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* FOOTER INSTITUCIONAL COMPLETO */}
-      <footer className="py-20 px-8 border-t border-slate-100 bg-white">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-16 mb-20">
-            <div className="space-y-8">
-               <img src="/logop.png" alt="Prefeitura SGA" className="h-20 object-contain" />
-               <p className="text-sm text-slate-400 font-bold uppercase tracking-widest leading-relaxed">São Geraldo do Araguaia <br/> "Cidade Amada, seguindo em frente"</p>
-            </div>
-            
-            <div className="space-y-6">
-              <h5 className="font-black text-slate-900 text-xs uppercase tracking-widest border-b border-slate-100 pb-4">Gestão Executiva</h5>
-              <ul className="text-sm text-slate-500 space-y-3 font-medium">
-                <li>Prefeito: <br/><b>Jefferson Douglas de Jesus Oliveira</b></li>
-                <li>Vice-Prefeito: <br/><b>Marcos Antônio Candido de Lucena</b></li>
-              </ul>
+      {/* FOOTER */}
+      <footer className="border-t border-slate-200 bg-white">
+        <div className="mx-auto flex max-w-7xl flex-col gap-8 px-5 py-12 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="relative h-14 w-40">
+              <Image
+                src="/logop.png"
+                alt="Prefeitura de São Geraldo do Araguaia"
+                fill
+                className="object-contain object-left"
+              />
             </div>
 
-            <div className="space-y-6">
-              <h5 className="font-black text-slate-900 text-xs uppercase tracking-widest border-b border-slate-100 pb-4">Turismo (SEMTUR)</h5>
-              <ul className="text-sm text-slate-500 space-y-3 font-medium">
-                <li>Secretária: <br/><b>Micheli Stephany de Souza</b></li>
-                <li>Contato: <b>(94) 98145-2067</b></li>
-                <li>Email: <b>setursaga@gmail.com</b></li>
-              </ul>
+            <div className="border-l border-slate-200 pl-4">
+              <p className={`${jakarta.className} text-2xl font-bold text-[#00577C]`}>
+                SagaTurismo
+              </p>
+              <p className="mt-1 text-sm text-slate-500">
+                Plataforma oficial de turismo
+              </p>
             </div>
+          </div>
 
-            <div className="space-y-6">
-              <h5 className="font-black text-slate-900 text-xs uppercase tracking-widest border-b border-slate-100 pb-4">Equipe Técnica</h5>
-              <ul className="text-sm text-slate-500 space-y-2 font-medium">
-                <li>• Adriana da Luz Lima</li>
-                <li>• Carmelita Luz da Silva</li>
-                <li>• Diego Silva Costa</li>
-              </ul>
-            </div>
-          </div>
-          
-          <div className="text-center pt-10 border-t border-slate-50">
-            <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.4em]">© 2026 Secretaria Municipal de Turismo - São Geraldo do Araguaia (PA)</p>
-          </div>
+          <p className="text-sm text-slate-400">
+            © {new Date().getFullYear()} · Prefeitura Municipal de São Geraldo do Araguaia · Pará
+          </p>
         </div>
       </footer>
     </main>
