@@ -22,6 +22,12 @@ import {
   Ticket,
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
+import { createClient } from '@supabase/supabase-js';
+
+// Inicializa a ligação ao teu Supabase usando as variáveis de ambiente que já tens
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -136,13 +142,30 @@ const mockEventos: Evento[] = [
   }
 ];
 
-// ==========================================
-// COMPONENTE 1: AGENDA CULTURAL (Separado)
-// ==========================================
+// --- COMPONENTE DA AGENDA CULTURAL ---
 function AgendaCultural() {
-  const [eventos, setEventos] = useState<Evento[]>(mockEventos);
+  // Começamos com um array vazio, os dados virão do Supabase!
+  const [eventos, setEventos] = useState<Evento[]>([]);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+
+  // NOVO: Busca os dados na tabela 'eventos' do Supabase quando a página carrega
+  useEffect(() => {
+    async function fetchEventos() {
+      const { data, error } = await supabase
+        .from('eventos')
+        .select('*')
+        .order('data', { ascending: true }); // Ordena do mais próximo ao mais distante
+
+      if (error) {
+        console.error('Erro ao buscar eventos no Supabase:', error);
+      } else if (data) {
+        setEventos(data);
+      }
+    }
+
+    fetchEventos();
+  }, []);
 
   const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
   const getFirstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
@@ -156,7 +179,8 @@ function AgendaCultural() {
   const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
   const filteredEventos = eventos.filter(ev => {
-    const evDate = new Date(ev.data);
+    // É importante garantir que a data que vem do Supabase é lida corretamente
+    const evDate = new Date(ev.data + 'T00:00:00'); // Força fuso horário neutro
     if (selectedDate) {
       return evDate.toDateString() === selectedDate.toDateString();
     }
@@ -164,7 +188,7 @@ function AgendaCultural() {
   });
 
   return (
-    <section id="eventos" className="py-24 px-5 bg-slate-50 relative overflow-hidden border-t border-slate-200">
+    <section id="eventos" className="py-24 px-5 bg-slate-50 relative overflow-hidden border-b border-slate-200">
       <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#00577C]/5 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/3 pointer-events-none" />
       
       <div className="mx-auto max-w-7xl relative z-10">
@@ -181,7 +205,7 @@ function AgendaCultural() {
         </div>
 
         <div className="grid lg:grid-cols-[400px_1fr] gap-10 items-start">
-          {/* LADO ESQUERDO: CALENDÁRIO */}
+          {/* CALENDÁRIO */}
           <div className="bg-white rounded-[2.5rem] p-8 shadow-xl border border-slate-100">
             <div className="flex items-center justify-between mb-8">
               <button onClick={prevMonth} className="p-2 bg-slate-50 rounded-full hover:bg-slate-100 text-[#00577C] transition">
@@ -209,7 +233,7 @@ function AgendaCultural() {
               {Array.from({ length: daysInMonth }).map((_, i) => {
                 const day = i + 1;
                 const dateOfThisCell = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
-                const hasEvent = eventos.some(ev => new Date(ev.data).toDateString() === dateOfThisCell.toDateString());
+                const hasEvent = eventos.some(ev => new Date(ev.data + 'T00:00:00').toDateString() === dateOfThisCell.toDateString());
                 const isSelected = selectedDate?.toDateString() === dateOfThisCell.toDateString();
 
                 return (
@@ -240,7 +264,7 @@ function AgendaCultural() {
             )}
           </div>
 
-          {/* LADO DIREITO: LISTA DE EVENTOS */}
+          {/* LISTA DE EVENTOS */}
           <div className="space-y-6">
             {filteredEventos.length === 0 ? (
               <div className="bg-white rounded-[2.5rem] p-12 text-center border border-slate-100 border-dashed flex flex-col items-center justify-center h-full min-h-[300px]">
@@ -250,7 +274,7 @@ function AgendaCultural() {
               </div>
             ) : (
               filteredEventos.map((evento) => {
-                const evDate = new Date(evento.data);
+                const evDate = new Date(evento.data + 'T00:00:00');
                 const dia = String(evDate.getDate()).padStart(2, '0');
                 const mes = monthNames[evDate.getMonth()].slice(0, 3);
 
@@ -272,7 +296,7 @@ function AgendaCultural() {
                       <span className="inline-block px-3 py-1 bg-[#F9C400]/20 text-[#00577C] rounded-md text-[10px] font-black uppercase tracking-widest mb-2">
                         {evento.categoria || 'Evento'}
                       </span>
-                      <h4 className={`${jakarta.className} text-xl font-bold text-slate-900 line-clamp-1 mt-1`}>{evento.titulo}</h4>
+                      <h4 className={`${jakarta.className} text-xl font-bold text-slate-900 line-clamp-1`}>{evento.titulo}</h4>
                       <div className="flex items-center justify-center sm:justify-start gap-2 mt-2 text-sm text-slate-500 font-medium">
                         <MapPin size={14} className="text-[#009640]" />
                         <span className="line-clamp-1">{evento.local}</span>
