@@ -20,11 +20,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Ticket,
+  Loader2
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
-
-
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -36,7 +35,9 @@ const inter = Inter({
   weight: ['400', '500', '600', '700', '800'],
 });
 
-// --- TIPOS ---
+// ==========================================
+// TIPAGENS
+// ==========================================
 type Evento = {
   id: string;
   titulo: string;
@@ -47,7 +48,18 @@ type Evento = {
   categoria: string;
 };
 
-// --- DADOS ESTÁTICOS ---
+type HotelData = {
+  id: string;
+  nome: string;
+  tipo: string;
+  descricao: string;
+  estrelas: number;
+  imagem_url: string;
+};
+
+// ==========================================
+// DADOS ESTÁTICOS
+// ==========================================
 const heroSlides = [
   {
     image: 'https://images.unsplash.com/photo-1442850473887-0fb77cd0b337?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0',
@@ -84,75 +96,20 @@ const atracoes = [
   },
 ];
 
-const hoteis = [
-  {
-    nome: 'Hotel Rio Araguaia',
-    tipo: 'Hotel',
-    desc: 'Hospedagem confortável para visitantes que desejam explorar a cidade e o Rio Araguaia.',
-    estrelas: 4,
-    link: '#',
-  },
-  {
-    nome: 'Pousada Serra Verde',
-    tipo: 'Pousada',
-    desc: 'Ambiente acolhedor, ideal para quem busca tranquilidade e contato com a natureza.',
-    estrelas: 4,
-    link: '#',
-  },
-  {
-    nome: 'Hotel Central',
-    tipo: 'Hotel urbano',
-    desc: 'Opção prática no centro da cidade, próxima ao comércio e aos serviços locais.',
-    estrelas: 3,
-    link: '#',
-  },
-];
-
-// Dados Mockados de Eventos (Enquanto a sua tabela do Supabase não envia os reais)
-const mockEventos: Evento[] = [
-  {
-    id: '1',
-    titulo: 'Festival de Veraneio da Ilha de Campo',
-    descricao: 'O maior festival de verão do Araguaia com shows, desporto e culinária.',
-    data: new Date(new Date().getFullYear(), new Date().getMonth(), 15).toISOString(),
-    local: 'Praia da Ilha de Campo',
-    imagem_url: 'https://images.unsplash.com/photo-1544943971-d861676462bb?q=80&w=1887',
-    categoria: 'Festividades'
-  },
-  {
-    id: '2',
-    titulo: 'Feira de Artesanato em Barro',
-    descricao: 'Exposição e venda de artesanato local replicando as escrituras rupestres.',
-    data: new Date(new Date().getFullYear(), new Date().getMonth(), 22).toISOString(),
-    local: 'Praça da Matriz',
-    imagem_url: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=1887',
-    categoria: 'Cultura'
-  },
-  {
-    id: '3',
-    titulo: 'Trilha Guiada: Roteiro Quelônios',
-    descricao: 'Expedição ecológica pela Serra das Andorinhas e Caverna do Morcego.',
-    data: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 5).toISOString(),
-    local: 'Serra das Andorinhas',
-    imagem_url: 'https://images.unsplash.com/photo-1621535492451-b844101e40c4?q=80&w=1887',
-    categoria: 'Natureza'
-  }
-];
-
-// --- COMPONENTE DA AGENDA CULTURAL ---
+// ==========================================
+// COMPONENTE 1: AGENDA CULTURAL
+// ==========================================
 function AgendaCultural() {
-  // Começamos com um array vazio, os dados virão do Supabase!
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
-  // NOVO: Busca os dados na tabela 'eventos' do Supabase quando a página carrega
   useEffect(() => {
     async function fetchEventos() {
       const { data, error } = await supabase
         .from('eventos')
         .select('*')
-        .order('data', { ascending: true }); // Ordena do mais próximo ao mais distante
+        .order('data', { ascending: true });
 
       if (error) {
         console.error('Erro ao buscar eventos no Supabase:', error);
@@ -160,7 +117,6 @@ function AgendaCultural() {
         setEventos(data);
       }
     }
-
     fetchEventos();
   }, []);
 
@@ -176,8 +132,7 @@ function AgendaCultural() {
   const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
   const filteredEventos = eventos.filter(ev => {
-    // É importante garantir que a data que vem do Supabase é lida corretamente
-    const evDate = new Date(ev.data + 'T00:00:00'); // Força fuso horário neutro
+    const evDate = new Date(ev.data + 'T00:00:00'); 
     if (selectedDate) {
       return evDate.toDateString() === selectedDate.toDateString();
     }
@@ -202,7 +157,6 @@ function AgendaCultural() {
         </div>
 
         <div className="grid lg:grid-cols-[400px_1fr] gap-10 items-start">
-          {/* CALENDÁRIO */}
           <div className="bg-white rounded-[2.5rem] p-8 shadow-xl border border-slate-100">
             <div className="flex items-center justify-between mb-8">
               <button onClick={prevMonth} className="p-2 bg-slate-50 rounded-full hover:bg-slate-100 text-[#00577C] transition">
@@ -261,7 +215,6 @@ function AgendaCultural() {
             )}
           </div>
 
-          {/* LISTA DE EVENTOS */}
           <div className="space-y-6">
             {filteredEventos.length === 0 ? (
               <div className="bg-white rounded-[2.5rem] p-12 text-center border border-slate-100 border-dashed flex flex-col items-center justify-center h-full min-h-[300px]">
@@ -277,7 +230,6 @@ function AgendaCultural() {
 
                 return (
                   <div key={evento.id} className="group bg-white rounded-[2rem] p-4 pr-6 flex flex-col sm:flex-row items-center gap-6 shadow-sm border border-slate-100 hover:shadow-xl transition-all">
-                    
                     <div className="shrink-0 w-24 h-24 rounded-3xl bg-[#F0F7FF] flex flex-col items-center justify-center text-[#00577C] border border-[#00577C]/10">
                       <span className="text-3xl font-black leading-none">{dia}</span>
                       <span className="text-xs font-bold uppercase tracking-widest mt-1">{mes}</span>
@@ -317,7 +269,108 @@ function AgendaCultural() {
 }
 
 // ==========================================
-// COMPONENTE 2: HOMEPAGE PRINCIPAL
+// COMPONENTE 2: SECÇÃO DE HOTÉIS
+// ==========================================
+function SeccaoHoteis() {
+  const [hoteis, setHoteis] = useState<HotelData[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchHoteis() {
+      const { data, error } = await supabase
+        .from('hoteis')
+        .select('*')
+        .order('nome');
+
+      if (data) {
+        setHoteis(data);
+      }
+      setLoading(false);
+    }
+    fetchHoteis();
+  }, []);
+
+  return (
+    <section id="hoteis" className="bg-white py-24 border-t border-slate-100">
+      <div className="mx-auto max-w-7xl px-5">
+        <div className="mb-14 text-center">
+          <p className="mb-3 text-sm font-extrabold uppercase tracking-[0.22em] text-[#009640]">
+            Onde ficar
+          </p>
+          <h2 className={`${jakarta.className} text-4xl font-bold text-slate-950 md:text-6xl tracking-tight`}>
+            Hotéis e hospedagens
+          </h2>
+          <p className="mx-auto mt-5 max-w-2xl text-slate-600 text-lg">
+            Espaços para receber turistas, famílias, visitantes e moradores que desejam aproveitar melhor a cidade.
+          </p>
+        </div>
+
+        {loading ? (
+          <div className="flex justify-center items-center py-12 text-[#00577C]">
+            <Loader2 className="w-10 h-10 animate-spin" />
+          </div>
+        ) : (
+          <div className="grid gap-7 md:grid-cols-3">
+            {hoteis.map((hotel) => (
+              <article
+                key={hotel.id}
+                className="group overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl flex flex-col"
+              >
+                <div className="relative h-48 w-full bg-slate-50 flex items-center justify-center text-slate-400 overflow-hidden shrink-0">
+                  {hotel.imagem_url ? (
+                    <Image
+                      src={hotel.imagem_url}
+                      alt={hotel.nome}
+                      fill
+                      className="object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
+                  ) : (
+                    <Hotel className="h-14 w-14" />
+                  )}
+                </div>
+
+                <div className="p-7 flex flex-col flex-1">
+                  <div className="mb-4 flex items-center justify-between">
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+                      {hotel.tipo}
+                    </span>
+
+                    <div className="flex gap-1">
+                      {Array.from({ length: hotel.estrelas }).map((_, i) => (
+                        <Star key={i} className="h-4 w-4 fill-[#F9C400] text-[#F9C400]" />
+                      ))}
+                    </div>
+                  </div>
+
+                  <h3 className={`${jakarta.className} text-2xl font-bold text-slate-950 mb-3 line-clamp-1`}>
+                    {hotel.nome}
+                  </h3>
+
+                  <p className="leading-relaxed text-slate-600 flex-1 line-clamp-3">
+                    {hotel.descricao}
+                  </p>
+
+                  <div className="mt-6 pt-4 border-t border-slate-100">
+                    <Link
+                      href={`/hoteis/${hotel.id}`}
+                      className="inline-flex items-center gap-2 font-bold text-[#00577C] hover:text-[#004766] transition-colors"
+                    >
+                      Ver detalhes
+                      <ExternalLink className="h-4 w-4" />
+                    </Link>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+// ==========================================
+// COMPONENTE PRINCIPAL: HOMEPAGE
 // ==========================================
 export default function HomePage() {
   const [currentImage, setCurrentImage] = useState(0);
@@ -384,6 +437,10 @@ export default function HomePage() {
               Eventos
             </a>
 
+            <a href="#hoteis" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
+              Hotéis
+            </a>
+
             <a href="#historia" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
               História
             </a>
@@ -401,7 +458,7 @@ export default function HomePage() {
               href="/cadastro"
               className="rounded-full bg-[#F9C400] px-5 py-3 text-sm font-bold text-[#00577C] shadow-lg transition hover:bg-[#ffd633]"
             >
-              Cartão Residente
+              Cartão do Residente
             </Link>
           </nav>
 
@@ -511,7 +568,7 @@ export default function HomePage() {
               className="absolute inset-0 bg-cover bg-center"
               style={{
                 backgroundImage:
-                  "url('https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=1600&auto=format&fit=crop')",
+                  "url('https://images.pexels.com/photos/31780330/pexels-photo-31780330.jpeg?_gl=1*139yaog*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzc1NjYxODMkbzI4JGcxJHQxNzc3NTY3MjY2JGoyMCRsMCRoMA..')",
               }}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-[#00577C]/75 via-[#00577C]/20 to-transparent" />
@@ -561,68 +618,11 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* AQUI ESTÁ A NOSSA NOVA SECÇÃO DE EVENTOS BEM INTEGRADA */}
+      {/* AGENDA CULTURAL LIGADA À SUPABASE */}
       <AgendaCultural />
 
-      {/* HOTÉIS */}
-      <section id="hoteis" className="bg-white py-24">
-        <div className="mx-auto max-w-7xl px-5">
-          <div className="mb-14 text-center">
-            <p className="mb-3 text-sm font-extrabold uppercase tracking-[0.22em] text-[#009640]">
-              Onde ficar
-            </p>
-
-            <h2 className={`${jakarta.className} text-4xl font-bold text-slate-950 md:text-6xl`}>
-              Hotéis e hospedagens
-            </h2>
-
-            <p className="mx-auto mt-5 max-w-2xl text-slate-600">
-              Espaços para receber turistas, famílias, visitantes e moradores que desejam aproveitar melhor a cidade.
-            </p>
-          </div>
-
-          <div className="grid gap-7 md:grid-cols-3">
-            {hoteis.map(({ nome, tipo, desc, estrelas, link }) => (
-              <article
-                key={nome}
-                className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
-              >
-                <div className="flex h-48 items-center justify-center bg-slate-50 text-slate-400">
-                  <Hotel className="h-14 w-14" />
-                </div>
-
-                <div className="p-7">
-                  <div className="mb-3 flex items-center justify-between">
-                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
-                      {tipo}
-                    </span>
-
-                    <div className="flex gap-1">
-                      {Array.from({ length: estrelas }).map((_, i) => (
-                        <Star key={i} className="h-4 w-4 fill-[#F9C400] text-[#F9C400]" />
-                      ))}
-                    </div>
-                  </div>
-
-                  <h3 className={`${jakarta.className} text-2xl font-bold text-slate-950`}>
-                    {nome}
-                  </h3>
-
-                  <p className="mt-3 leading-relaxed text-slate-600">{desc}</p>
-
-                  <a
-                    href={link}
-                    className="mt-6 inline-flex items-center gap-2 font-bold text-[#00577C] hover:text-[#004766]"
-                  >
-                    Ver detalhes
-                    <ExternalLink className="h-4 w-4" />
-                  </a>
-                </div>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* HOTÉIS LIGADOS À SUPABASE */}
+      <SeccaoHoteis />
 
       {/* HISTÓRIA */}
       <section id="historia" className="bg-slate-50 py-24">
@@ -709,32 +709,45 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer className="border-t border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl flex-col gap-8 px-5 py-12 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-4">
-            <div className="relative h-14 w-40">
-              <Image
-                src="/logop.png"
-                alt="Prefeitura de São Geraldo do Araguaia"
-                fill
-                className="object-contain object-left"
-              />
+      {/* FOOTER INSTITUCIONAL COMPLETO */}
+      <footer className="py-20 px-8 border-t border-slate-100 bg-white">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-16 mb-20">
+            <div className="space-y-8">
+               <img src="/logop.png" alt="Prefeitura SGA" className="h-20 object-contain" />
+               <p className="text-sm text-slate-400 font-bold uppercase tracking-widest leading-relaxed">São Geraldo do Araguaia <br/> "Cidade Amada, seguindo em frente"</p>
+            </div>
+            
+            <div className="space-y-6">
+              <h5 className="font-black text-slate-900 text-xs uppercase tracking-widest border-b border-slate-100 pb-4">Gestão Executiva</h5>
+              <ul className="text-sm text-slate-500 space-y-3 font-medium">
+                <li>Prefeito: <br/><b>Jefferson Douglas de Jesus Oliveira</b></li>
+                <li>Vice-Prefeito: <br/><b>Marcos Antônio Candido de Lucena</b></li>
+              </ul>
             </div>
 
-            <div className="border-l border-slate-200 pl-4">
-              <p className={`${jakarta.className} text-2xl font-bold text-[#00577C]`}>
-                SagaTurismo
-              </p>
-              <p className="mt-1 text-sm text-slate-500">
-                Plataforma oficial de turismo
-              </p>
+            <div className="space-y-6">
+              <h5 className="font-black text-slate-900 text-xs uppercase tracking-widest border-b border-slate-100 pb-4">Turismo (SEMTUR)</h5>
+              <ul className="text-sm text-slate-500 space-y-3 font-medium">
+                <li>Secretária: <br/><b>Micheli Stephany de Souza</b></li>
+                <li>Contato: <b>(94) 98145-2067</b></li>
+                <li>Email: <b>setursaga@gmail.com</b></li>
+              </ul>
+            </div>
+
+            <div className="space-y-6">
+              <h5 className="font-black text-slate-900 text-xs uppercase tracking-widest border-b border-slate-100 pb-4">Equipe Técnica</h5>
+              <ul className="text-sm text-slate-500 space-y-2 font-medium">
+                <li>• Adriana da Luz Lima</li>
+                <li>• Carmelita Luz da Silva</li>
+                <li>• Diego Silva Costa</li>
+              </ul>
             </div>
           </div>
-
-          <p className="text-sm text-slate-400">
-            © {new Date().getFullYear()} · Prefeitura Municipal de São Geraldo do Araguaia · Pará
-          </p>
+          
+          <div className="text-center pt-10 border-t border-slate-50">
+            <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.4em]">© 2026 Secretaria Municipal de Turismo - São Geraldo do Araguaia (PA)</p>
+          </div>
         </div>
       </footer>
     </main>
