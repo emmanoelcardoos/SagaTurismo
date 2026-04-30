@@ -21,7 +21,6 @@ const inter = Inter({
   weight: ['400', '500', '600', '700'],
 });
 
-// Tipagem baseada na tabela
 type Hotel = {
   id: string;
   nome: string;
@@ -37,7 +36,6 @@ type Hotel = {
 };
 
 export default function HotelDetalhePage({ params }: { params: { id: string } }) {
-  // LÓGICA DO HEADER (Corrige o erro do showHeader)
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
 
@@ -45,7 +43,6 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
 
-  // FETCH DO HOTEL NO SUPABASE
   useEffect(() => {
     async function fetchHotel() {
       try {
@@ -68,7 +65,6 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
     if (params.id) fetchHotel();
   }, [params.id]);
 
-  // CONTROLO DO SCROLL PARA O HEADER
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
@@ -103,15 +99,17 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
     );
   }
 
-  // Formatar número do WhatsApp (remover tudo o que não for número)
   const numeroLimpo = hotel.whatsapp ? hotel.whatsapp.replace(/\D/g, '') : '';
   const mensagemWhatsApp = `Olá! Vi o ${hotel.nome} no portal SagaTurismo e gostaria de saber mais informações sobre reservas.`;
   const linkWhatsApp = `https://wa.me/${numeroLimpo}?text=${encodeURIComponent(mensagemWhatsApp)}`;
 
+  // Link do mapa dinâmico baseado no nome do hotel e endereço
+  const mapSearchQuery = encodeURIComponent(`${hotel.nome} ${hotel.endereco || 'São Geraldo do Araguaia, Pará'}`);
+  const googleMapsEmbedUrl = `https://maps.google.com/maps?q=${mapSearchQuery}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
+
   return (
     <main className={`${inter.className} min-h-screen bg-white text-slate-900 pb-24`}>
       
-      {/* HEADER EXATO QUE VOCÊ PEDIU */}
       <header
         className={`fixed left-0 top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl transition-transform duration-300 ${
           showHeader ? 'translate-y-0' : '-translate-y-full'
@@ -128,7 +126,6 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
                 className="object-contain object-left"
               />
             </div>
-
             <div className="hidden border-l border-slate-200 pl-4 lg:block">
               <p className={`${jakarta.className} text-2xl font-bold leading-none text-[#00577C]`}>
                 SagaTurismo
@@ -143,15 +140,12 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
             <Link href="/roteiro" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
               Rota Turística
             </Link>
-
             <a href="#eventos" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
               Eventos
             </a>
-
             <a href="#historia" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
               História
             </a>
-
             <a
               href="https://saogeraldodoaraguaia.pa.gov.br"
               target="_blank"
@@ -160,7 +154,6 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
             >
               Governo
             </a>
-
             <Link
               href="/cadastro"
               className="rounded-full bg-[#F9C400] px-5 py-3 text-sm font-bold text-[#00577C] shadow-lg transition hover:bg-[#ffd633]"
@@ -175,7 +168,6 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
         </div>
       </header>
 
-      {/* HERO IMAGE HORIZONTAL COM MARGEM PARA O HEADER */}
       <div className="w-full h-[40vh] md:h-[60vh] relative bg-slate-100 mt-[70px] md:mt-[90px]">
         <Link href="/#hoteis" className="absolute top-6 left-6 z-20 flex items-center gap-2 text-sm font-bold text-white bg-black/40 hover:bg-black/60 px-4 py-2 rounded-full backdrop-blur-md transition-colors">
           <ArrowLeft size={16} /> Voltar
@@ -196,12 +188,9 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
         <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent" />
       </div>
 
-      {/* CONTEÚDO PRINCIPAL */}
       <div className="mx-auto max-w-7xl px-5 -mt-16 relative z-10 grid lg:grid-cols-[1fr_380px] gap-12 items-start">
         
-        {/* COLUNA ESQUERDA: INFORMAÇÕES */}
         <section className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-2xl border border-slate-100">
-          
           <div className="flex items-center gap-3 mb-4">
             <span className="bg-[#F9C400] text-[#00577C] px-3 py-1 rounded-md text-xs font-black uppercase tracking-widest shadow-sm">
               {hotel.tipo}
@@ -222,7 +211,6 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
             <span>{hotel.endereco || 'São Geraldo do Araguaia, Pará'}</span>
           </div>
 
-          {/* Sobre o Hotel */}
           <div className="mb-12">
             <h3 className={`${jakarta.className} text-2xl font-black text-[#00577C] mb-6`}>Sobre a Hospedagem</h3>
             <div className="text-lg text-slate-600 font-medium leading-relaxed whitespace-pre-wrap">
@@ -230,7 +218,6 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
             </div>
           </div>
 
-          {/* Comodidades */}
           {hotel.comodidades && hotel.comodidades.length > 0 && (
             <div className="mb-12">
               <h3 className={`${jakarta.className} text-2xl font-black text-[#00577C] mb-6`}>Comodidades Principais</h3>
@@ -244,11 +231,10 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
               </div>
             </div>
           )}
-
         </section>
 
-        {/* COLUNA DIREITA: CAIXA DE RESERVAS (STICKY) */}
         <aside className="lg:sticky lg:top-32 space-y-6">
+          {/* CARD DE RESERVA */}
           <div className="bg-[#00577C] text-white p-8 rounded-[2.5rem] shadow-2xl">
             <p className="text-xs font-black uppercase tracking-widest text-[#F9C400] mb-2">Tarifa Média</p>
             <p className={`${jakarta.className} text-3xl font-black mb-8`}>
@@ -282,10 +268,30 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
               Reserva direta com o estabelecimento. O SagaTurismo não cobra taxas.
             </p>
           </div>
+
+          {/* NOVO: CARD DO MAPA GOOGLE */}
+          <div className="bg-white p-4 rounded-[2.5rem] shadow-2xl border border-slate-100 overflow-hidden">
+            <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-3 px-2 flex items-center gap-2">
+              <MapPin size={14} className="text-[#009640]" /> Localização
+            </p>
+            <div className="w-full h-[300px] rounded-2xl overflow-hidden grayscale-[0.2] contrast-[1.1]">
+              <iframe
+                width="100%"
+                height="100%"
+                style={{ border: 0 }}
+                loading="lazy"
+                allowFullScreen
+                referrerPolicy="no-referrer-when-downgrade"
+                src={googleMapsEmbedUrl}
+              ></iframe>
+            </div>
+            <p className="text-[10px] text-slate-400 mt-3 px-2 text-center italic">
+              Clique no mapa para navegar via GPS
+            </p>
+          </div>
         </aside>
       </div>
 
-      {/* SECÇÃO DA GALERIA DE FOTOS */}
       {hotel.galeria && hotel.galeria.length > 0 && (
         <div className="mx-auto max-w-7xl px-5 mt-16 pt-16 border-t border-slate-200">
            <h3 className={`${jakarta.className} text-3xl font-black text-slate-900 mb-8`}>Galeria de Fotos</h3>
@@ -304,7 +310,6 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
         </div>
       )}
 
-      {/* FOOTER INSTITUCIONAL */}
       <footer className="border-t border-slate-200 bg-white mt-24">
         <div className="mx-auto flex max-w-7xl flex-col gap-8 px-5 py-12 md:flex-row md:items-center md:justify-between text-center md:text-left">
           <div className="flex flex-col md:flex-row items-center gap-4">
