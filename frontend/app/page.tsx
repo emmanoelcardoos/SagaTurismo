@@ -76,24 +76,6 @@ type FotoGaleria = {
 // ==========================================
 // DADOS ESTÁTICOS
 // ==========================================
-const heroSlides = [
-  {
-    image: 'https://images.unsplash.com/photo-1442850473887-0fb77cd0b337?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0',
-    title: 'Descubra a beleza natural do Araguaia.',
-    subtitle: 'Rios, serras, trilhas e paisagens inesquecíveis no coração do sul do Pará.',
-  },
-  {
-    image: 'https://images.pexels.com/photos/33153432/pexels-photo-33153432.jpeg',
-    title: 'Viva experiências únicas em São Geraldo.',
-    subtitle: 'Uma cidade acolhedora, cheia de natureza, cultura e histórias para conhecer.',
-  },
-  {
-    image: 'https://images.pexels.com/photos/16832175/pexels-photo-16832175.jpeg',
-    title: 'A natureza também é patrimônio do povo.',
-    subtitle: 'Residentes têm acesso facilitado ao parque com o Cartão Digital SagaTurismo.',
-  },
-];
-
 const atracoes = [
   {
     title: 'Serra das Andorinhas',
@@ -215,28 +197,28 @@ function GaleriaVerao() {
   }, []);
 
   return (
-    <section className="py-24 bg-[#00577C] relative overflow-hidden">
+    <section className="py-24 bg-slate-50 relative overflow-hidden border-t border-slate-200">
       <div className="mx-auto max-w-7xl px-5 mb-12 text-center md:text-left flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <p className="mb-3 text-sm font-extrabold uppercase tracking-[0.22em] text-[#F9C400] flex items-center gap-2 justify-center md:justify-start">
+          <p className="mb-3 text-sm font-extrabold uppercase tracking-[0.22em] text-[#009640] flex items-center gap-2 justify-center md:justify-start">
             <ImageIcon size={16} /> Memórias
           </p>
-          <h2 className={`${jakarta.className} text-4xl font-black text-white md:text-6xl tracking-tight`}>
+          <h2 className={`${jakarta.className} text-4xl font-black text-[#00577C] md:text-6xl tracking-tight`}>
             Galeria Verão 2025
           </h2>
         </div>
-        <Link href="/galeria" className="inline-flex items-center justify-center gap-2 font-bold text-white hover:text-[#F9C400] hover:gap-4 transition-all">
+        <Link href="/galeria" className="inline-flex items-center justify-center gap-2 font-bold text-[#00577C] hover:text-[#004766] hover:gap-4 transition-all">
           Ver galeria completa <ArrowRight size={18} />
         </Link>
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-12 text-white"><Loader2 className="animate-spin w-10 h-10" /></div>
+        <div className="flex justify-center py-12 text-[#00577C]"><Loader2 className="animate-spin w-10 h-10" /></div>
       ) : (
         <div className="px-5 w-full overflow-hidden">
           <div className="flex md:grid md:grid-cols-5 gap-4 overflow-x-auto snap-x snap-mandatory pb-8 md:pb-0 hide-scrollbar">
             {fotos.map((foto) => (
-              <div key={foto.id} className="relative shrink-0 w-[280px] md:w-full h-[400px] rounded-3xl overflow-hidden group snap-center cursor-pointer shadow-lg bg-slate-800">
+              <div key={foto.id} className="relative shrink-0 w-[280px] md:w-full h-[400px] rounded-3xl overflow-hidden group snap-center cursor-pointer shadow-lg bg-slate-200">
                 <Image 
                   src={foto.imagem_url} 
                   alt={foto.titulo || 'Foto da Galeria'} 
@@ -257,7 +239,7 @@ function GaleriaVerao() {
 }
 
 // ==========================================
-// COMPONENTE 1: AGENDA CULTURAL
+// COMPONENTE: AGENDA CULTURAL
 // ==========================================
 function AgendaCultural() {
   const [eventos, setEventos] = useState<Evento[]>([]);
@@ -300,7 +282,7 @@ function AgendaCultural() {
   });
 
   return (
-    <section id="eventos" className="py-24 px-5 bg-slate-50 relative overflow-hidden border-b border-slate-200">
+    <section id="eventos" className="py-24 px-5 bg-white relative overflow-hidden border-b border-slate-200">
       <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#00577C]/5 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/3 pointer-events-none" />
       
       <div className="mx-auto max-w-7xl relative z-10">
@@ -317,15 +299,15 @@ function AgendaCultural() {
         </div>
 
         <div className="grid lg:grid-cols-[400px_1fr] gap-10 items-start">
-          <div className="bg-white rounded-[2.5rem] p-8 shadow-xl border border-slate-100">
+          <div className="bg-slate-50 rounded-[2.5rem] p-8 shadow-xl border border-slate-100">
             <div className="flex items-center justify-between mb-8">
-              <button onClick={prevMonth} className="p-2 bg-slate-50 rounded-full hover:bg-slate-100 text-[#00577C] transition">
+              <button onClick={prevMonth} className="p-2 bg-white rounded-full hover:bg-slate-100 text-[#00577C] transition shadow-sm">
                 <ChevronLeft size={20}/>
               </button>
               <h3 className={`${jakarta.className} text-xl font-bold text-slate-800 uppercase`}>
                 {monthNames[currentDate.getMonth()]} <span className="text-[#F9C400]">{currentDate.getFullYear()}</span>
               </h3>
-              <button onClick={nextMonth} className="p-2 bg-slate-50 rounded-full hover:bg-slate-100 text-[#00577C] transition">
+              <button onClick={nextMonth} className="p-2 bg-white rounded-full hover:bg-slate-100 text-[#00577C] transition shadow-sm">
                 <ChevronRight size={20}/>
               </button>
             </div>
@@ -353,7 +335,7 @@ function AgendaCultural() {
                     onClick={() => setSelectedDate(isSelected ? null : dateOfThisCell)}
                     className={`
                       relative w-10 h-10 mx-auto rounded-full flex items-center justify-center text-sm font-bold transition-all
-                      ${isSelected ? 'bg-[#00577C] text-white shadow-lg' : 'hover:bg-slate-100 text-slate-700'}
+                      ${isSelected ? 'bg-[#00577C] text-white shadow-lg' : 'hover:bg-white text-slate-700'}
                       ${hasEvent && !isSelected ? 'ring-2 ring-[#F9C400] bg-[#F9C400]/10 text-[#00577C]' : ''}
                     `}
                   >
@@ -367,7 +349,7 @@ function AgendaCultural() {
             </div>
 
             {selectedDate && (
-              <div className="mt-8 pt-6 border-t border-slate-100 text-center">
+              <div className="mt-8 pt-6 border-t border-slate-200 text-center">
                 <button onClick={() => setSelectedDate(null)} className="text-sm font-bold text-slate-400 hover:text-[#00577C] transition">
                   Mostrar todos do mês
                 </button>
@@ -377,7 +359,7 @@ function AgendaCultural() {
 
           <div className="space-y-6">
             {filteredEventos.length === 0 ? (
-              <div className="bg-white rounded-[2.5rem] p-12 text-center border border-slate-100 border-dashed flex flex-col items-center justify-center h-full min-h-[300px]">
+              <div className="bg-slate-50 rounded-[2.5rem] p-12 text-center border border-slate-200 border-dashed flex flex-col items-center justify-center h-full min-h-[300px]">
                 <CalendarDays className="w-12 h-12 text-slate-300 mb-4" />
                 <h4 className={`${jakarta.className} text-xl font-bold text-slate-500`}>Nenhum evento agendado</h4>
                 <p className="text-slate-400 mt-2">Não há eventos marcados para o período selecionado.</p>
@@ -429,7 +411,7 @@ function AgendaCultural() {
 }
 
 // ==========================================
-// COMPONENTE 2: SECÇÃO DE HOTÉIS
+// COMPONENTE: SECÇÃO DE HOTÉIS
 // ==========================================
 function SeccaoHoteis() {
   const [hoteis, setHoteis] = useState<HotelData[]>([]);
@@ -451,7 +433,7 @@ function SeccaoHoteis() {
   }, []);
 
   return (
-    <section id="hoteis" className="bg-white py-24 border-t border-slate-100">
+    <section id="hoteis" className="bg-slate-50 py-24 border-t border-slate-100">
       <div className="mx-auto max-w-7xl px-5">
         <div className="mb-14 text-center">
           <p className="mb-3 text-sm font-extrabold uppercase tracking-[0.22em] text-[#009640]">
@@ -476,7 +458,7 @@ function SeccaoHoteis() {
                 key={hotel.id}
                 className="group overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl flex flex-col"
               >
-                <div className="relative h-48 w-full bg-slate-50 flex items-center justify-center text-slate-400 overflow-hidden shrink-0">
+                <div className="relative h-48 w-full bg-slate-100 flex items-center justify-center text-slate-400 overflow-hidden shrink-0">
                   {hotel.imagem_url ? (
                     <Image
                       src={hotel.imagem_url}
@@ -491,7 +473,7 @@ function SeccaoHoteis() {
 
                 <div className="p-7 flex flex-col flex-1">
                   <div className="mb-4 flex items-center justify-between">
-                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+                    <span className="rounded-full bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600 border border-slate-100">
                       {hotel.tipo}
                     </span>
 
@@ -536,15 +518,30 @@ export default function HomePage() {
   const [currentImage, setCurrentImage] = useState(0);
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const [heroImages, setHeroImages] = useState<{ id: string; imagem_url: string; titulo: string }[]>([]);
 
-  const currentSlide = heroSlides[currentImage];
+  // Buscar imagens da galeria para o Hero
+  useEffect(() => {
+    async function fetchHeroImages() {
+      const { data, error } = await supabase
+        .from('galeria')
+        .select('id, imagem_url, titulo')
+        .limit(5);
+
+      if (!error && data && data.length > 0) {
+        setHeroImages(data);
+      }
+    }
+    fetchHeroImages();
+  }, []);
 
   useEffect(() => {
+    if (heroImages.length === 0) return;
     const interval = setInterval(() => {
-      setCurrentImage((prev) => (prev + 1) % heroSlides.length);
-    }, 20000);
+      setCurrentImage((prev) => (prev + 1) % heroImages.length);
+    }, 15000); 
     return () => clearInterval(interval);
-  }, []);
+  }, [heroImages]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -557,6 +554,26 @@ export default function HomePage() {
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
+
+  const imagesToDisplay = heroImages.length > 0 
+    ? heroImages.map(img => ({ image: img.imagem_url, title: 'Descubra a beleza natural do Araguaia.', subtitle: 'Rios, serras, trilhas e paisagens inesquecíveis no coração do sul do Pará.' })) 
+    : [
+      {
+        image: 'https://images.unsplash.com/photo-1442850473887-0fb77cd0b337?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0',
+        title: 'Descubra a beleza natural do Araguaia.',
+        subtitle: 'Rios, serras, trilhas e paisagens inesquecíveis no coração do sul do Pará.',
+      },
+      {
+        image: 'https://images.pexels.com/photos/33153432/pexels-photo-33153432.jpeg',
+        title: 'Viva experiências únicas em São Geraldo.',
+        subtitle: 'Uma cidade acolhedora, cheia de natureza, cultura e histórias para conhecer.',
+      },
+      {
+        image: 'https://images.pexels.com/photos/16832175/pexels-photo-16832175.jpeg',
+        title: 'A natureza também é patrimônio do povo.',
+        subtitle: 'Residentes têm acesso facilitado ao parque com o Cartão Digital SagaTurismo.',
+      }
+    ];
 
   return (
     <main className={`${inter.className} bg-white text-slate-900`}>
@@ -597,6 +614,14 @@ export default function HomePage() {
               Eventos
             </a>
 
+            <a href="#hoteis" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
+              Hotéis
+            </a>
+
+            <a href="#historia" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
+              História
+            </a>
+
             <a
               href="https://saogeraldodoaraguaia.pa.gov.br"
               target="_blank"
@@ -620,11 +645,11 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* HERO */}
-      <section className="relative min-h-screen overflow-hidden pt-20">
-        {heroSlides.map((slide, index) => (
+      {/* HERO SECTION DINÂMICA */}
+      <section className="relative min-h-screen overflow-hidden pt-20 bg-slate-900">
+        {imagesToDisplay.map((slide, index) => (
           <div
-            key={slide.image}
+            key={index}
             className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ${
               index === currentImage ? 'opacity-100' : 'opacity-0'
             }`}
@@ -639,11 +664,11 @@ export default function HomePage() {
           <div className="max-w-3xl text-white">
 
             <h1 className={`${jakarta.className} text-5xl font-extrabold leading-[0.95] md:text-7xl`}>
-              {currentSlide.title}
+              {imagesToDisplay[currentImage]?.title || 'Descubra a beleza natural do Araguaia.'}
             </h1>
 
             <p className="mt-6 max-w-2xl text-lg leading-relaxed text-white/85 md:text-xl">
-              {currentSlide.subtitle}
+              {imagesToDisplay[currentImage]?.subtitle || 'Rios, serras, trilhas e paisagens inesquecíveis no coração do sul do Pará.'}
             </p>
 
             <div className="mt-8 flex flex-col gap-4 sm:flex-row">
@@ -666,7 +691,7 @@ export default function HomePage() {
         </div>
 
         <div className="absolute bottom-8 left-1/2 z-20 flex -translate-x-1/2 gap-2">
-          {heroSlides.map((_, index) => (
+          {imagesToDisplay.map((_, index) => (
             <button
               key={index}
               onClick={() => setCurrentImage(index)}
@@ -776,13 +801,11 @@ export default function HomePage() {
       <DestaquesVerao />
       <GaleriaVerao />
 
-      
-
       {/* HOTÉIS LIGADOS À SUPABASE */}
       <SeccaoHoteis />
 
       {/* HISTÓRIA */}
-      <section id="historia" className="bg-slate-50 py-24">
+      <section id="historia" className="bg-white py-24">
         <div className="mx-auto grid max-w-7xl gap-12 px-5 md:grid-cols-2 md:items-center">
           <div>
             <p className="mb-3 text-sm font-extrabold uppercase tracking-[0.22em] text-[#009640]">
@@ -808,7 +831,7 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="rounded-[2.5rem] bg-white p-10 shadow-xl">
+          <div className="rounded-[2.5rem] bg-slate-50 p-10 shadow-xl border border-slate-100">
             <Landmark className="mb-8 h-12 w-12 text-[#00577C]" />
 
             <p className="text-sm font-extrabold uppercase tracking-[0.22em] text-[#009640]">
