@@ -20,7 +20,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Ticket,
-  Loader2
+  Loader2,
+  Sparkles,
+  Image as ImageIcon
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -55,6 +57,20 @@ type HotelData = {
   descricao: string;
   estrelas: number;
   imagem_url: string;
+};
+
+type EventoDestaque = {
+  id: string;
+  titulo: string;
+  data: string;
+  imagem_url: string;
+  categoria: string;
+};
+
+type FotoGaleria = {
+  id: string;
+  imagem_url: string;
+  titulo: string;
 };
 
 // ==========================================
@@ -97,7 +113,151 @@ const atracoes = [
 ];
 
 // ==========================================
-// COMPONENTE 1: AGENDA CULTURAL
+// COMPONENTE: DESTAQUES VERÃO 2026
+// ==========================================
+function DestaquesVerao() {
+  const [destaques, setDestaques] = useState<EventoDestaque[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchDestaques() {
+      const { data, error } = await supabase
+        .from('eventos')
+        .select('id, titulo, data, imagem_url, categoria')
+        .eq('destaque', true)
+        .limit(3);
+
+      if (data) setDestaques(data);
+      setLoading(false);
+    }
+    fetchDestaques();
+  }, []);
+
+  const formatarData = (dataStr: string) => {
+    const dataObj = new Date(dataStr + 'T00:00:00');
+    const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+    return `${String(dataObj.getDate()).padStart(2, '0')} ${meses[dataObj.getMonth()]}`;
+  };
+
+  return (
+    <section className="py-24 px-5 bg-white border-t border-slate-100 relative overflow-hidden">
+      <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-[#F9C400]/10 rounded-full blur-[100px] -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
+      
+      <div className="mx-auto max-w-7xl relative z-10">
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
+          <div className="max-w-2xl">
+            <p className="mb-3 text-sm font-extrabold uppercase tracking-[0.22em] text-[#F9C400] flex items-center gap-2">
+              <Sparkles size={16} /> Imperdível
+            </p>
+            <h2 className={`${jakarta.className} text-4xl font-black text-[#00577C] md:text-6xl tracking-tight`}>
+              Destaques Verão 2026
+            </h2>
+            <p className="mt-4 text-slate-600 text-lg">Os eventos mais aguardados da temporada nas praias do Araguaia.</p>
+          </div>
+          <Link href="/#eventos" className="inline-flex items-center gap-2 font-bold text-[#00577C] hover:text-[#004766] hover:gap-4 transition-all">
+            Ver agenda completa <ArrowRight size={18} />
+          </Link>
+        </div>
+
+        {loading ? (
+          <div className="flex justify-center py-12 text-[#00577C]"><Loader2 className="animate-spin w-10 h-10" /></div>
+        ) : (
+          <div className="grid md:grid-cols-3 gap-8">
+            {destaques.map((evento) => (
+              <Link key={evento.id} href={`/eventos/${evento.id}`} className="group block relative rounded-[2.5rem] overflow-hidden shadow-xl hover:shadow-2xl transition-all hover:-translate-y-2 bg-slate-900 h-[450px]">
+                {evento.imagem_url ? (
+                  <Image src={evento.imagem_url} alt={evento.titulo} fill className="object-cover group-hover:scale-110 transition-transform duration-700 opacity-80 group-hover:opacity-100" />
+                ) : (
+                  <div className="w-full h-full bg-[#00577C] flex items-center justify-center"><CalendarDays className="text-white/50 w-16 h-16" /></div>
+                )}
+                
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent" />
+                
+                <div className="absolute bottom-0 left-0 right-0 p-8 flex flex-col items-start">
+                  <div className="bg-[#F9C400] text-[#00577C] px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest mb-4">
+                    {evento.categoria || 'Evento'}
+                  </div>
+                  <h3 className={`${jakarta.className} text-3xl font-black text-white leading-tight mb-2 line-clamp-2`}>
+                    {evento.titulo}
+                  </h3>
+                  <p className="text-white/80 font-bold flex items-center gap-2 text-sm mt-2">
+                    <CalendarDays size={16} className="text-[#F9C400]" /> {formatarData(evento.data)}
+                  </p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+// ==========================================
+// COMPONENTE: GALERIA VERÃO 2025
+// ==========================================
+function GaleriaVerao() {
+  const [fotos, setFotos] = useState<FotoGaleria[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchGaleria() {
+      const { data, error } = await supabase
+        .from('galeria')
+        .select('id, imagem_url, titulo')
+        .eq('ano', '2025')
+        .limit(5);
+
+      if (data) setFotos(data);
+      setLoading(false);
+    }
+    fetchGaleria();
+  }, []);
+
+  return (
+    <section className="py-24 bg-[#00577C] relative overflow-hidden">
+      <div className="mx-auto max-w-7xl px-5 mb-12 text-center md:text-left flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div>
+          <p className="mb-3 text-sm font-extrabold uppercase tracking-[0.22em] text-[#F9C400] flex items-center gap-2 justify-center md:justify-start">
+            <ImageIcon size={16} /> Memórias
+          </p>
+          <h2 className={`${jakarta.className} text-4xl font-black text-white md:text-6xl tracking-tight`}>
+            Galeria Verão 2025
+          </h2>
+        </div>
+        <Link href="/galeria" className="inline-flex items-center justify-center gap-2 font-bold text-white hover:text-[#F9C400] hover:gap-4 transition-all">
+          Ver galeria completa <ArrowRight size={18} />
+        </Link>
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-12 text-white"><Loader2 className="animate-spin w-10 h-10" /></div>
+      ) : (
+        <div className="px-5 w-full overflow-hidden">
+          <div className="flex md:grid md:grid-cols-5 gap-4 overflow-x-auto snap-x snap-mandatory pb-8 md:pb-0 hide-scrollbar">
+            {fotos.map((foto) => (
+              <div key={foto.id} className="relative shrink-0 w-[280px] md:w-full h-[400px] rounded-3xl overflow-hidden group snap-center cursor-pointer shadow-lg bg-slate-800">
+                <Image 
+                  src={foto.imagem_url} 
+                  alt={foto.titulo || 'Foto da Galeria'} 
+                  fill 
+                  className="object-cover group-hover:scale-110 transition-transform duration-700" 
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="absolute bottom-6 left-6 right-6 translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
+                  <p className="text-white font-bold text-sm">{foto.titulo}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+// ==========================================
+// COMPONENTE: AGENDA CULTURAL
 // ==========================================
 function AgendaCultural() {
   const [eventos, setEventos] = useState<Evento[]>([]);
@@ -269,7 +429,7 @@ function AgendaCultural() {
 }
 
 // ==========================================
-// COMPONENTE 2: SECÇÃO DE HOTÉIS
+// COMPONENTE: SECÇÃO DE HOTÉIS
 // ==========================================
 function SeccaoHoteis() {
   const [hoteis, setHoteis] = useState<HotelData[]>([]);
@@ -437,6 +597,10 @@ export default function HomePage() {
               Eventos
             </a>
 
+            <a href="#hoteis" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
+              Hotéis
+            </a>
+
             <a href="#historia" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
               História
             </a>
@@ -521,6 +685,10 @@ export default function HomePage() {
           ))}
         </div>
       </section>
+
+      {/* NOVAS SECÇÕES ADICIONADAS AQUI */}
+      <DestaquesVerao />
+      <GaleriaVerao />
 
       {/* ATRAÇÕES */}
       <section id="atracoes" className="mx-auto max-w-7xl px-5 py-24">
