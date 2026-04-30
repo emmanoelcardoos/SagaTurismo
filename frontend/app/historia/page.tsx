@@ -113,10 +113,10 @@ export default function HistoriaPage() {
             </h2>
             <div className="text-lg text-slate-600 leading-relaxed space-y-6">
               <p>
-                A história desta terra firme começa a ganhar contornos oficiais em meados do século XX. O nome da cidade é uma homenagem ao santo redentorista **São Geraldo de Majela**, refletindo a profunda fé que os pioneiros trouxeram consigo para as margens do rio.
+                A história de São Geraldo do Araguaia remonta a meados do século XX. O desbravamento da região começou timidamente por volta de 1950, quando garimpeiros e agricultores, oriundos principalmente de Minas Gerais, Goiás, Maranhão e da Bahia, chegaram às margens do Rio Araguaia. Eles vieram em busca de pedras preciosas, como cristal de rocha e diamantes, além de terras férteis para recomeçarem as suas vidas.
               </p>
               <p>
-                O povoado cresceu entre o Rio Araguaia e a majestosa Serra das Andorinhas, servindo como ponto de apoio para navegantes e exploradores que buscavam novas oportunidades no sudeste paraense.
+                Aos poucos, o pequeno acampamento ribeirinho começou a ganhar contornos de vila. A fé cristã sempre foi o grande alicerce destes pioneiros. Na época, a região recebia a visita esporádica de missões religiosas. Foi o missionário dominicano Frei Gil de Vila Nova quem, ao realizar as primeiras missas e batizados sob barracas de lona, sugeriu que a localidade fosse batizada em honra a **São Geraldo de Majela**, o santo redentorista conhecido por proteger as mães e os trabalhadores. Assim nascia oficialmente o nome da povoação, abençoada pelas águas do Araguaia.
               </p>
             </div>
           </div>
@@ -133,21 +133,21 @@ export default function HistoriaPage() {
            <div className="text-center mb-20 max-w-3xl mx-auto">
              <h2 className={`${merriweather.className} text-4xl font-black text-[#00577C] mb-6 italic`}>"Onde o Brasil Silenciou"</h2>
              <p className="text-lg text-slate-600">
-               São Geraldo do Araguaia não é apenas beleza natural; é solo de resistência. Durante a década de 70, a região foi palco da **Guerrilha do Araguaia**, um dos capítulos mais marcantes e sensíveis da história brasileira.
+               São Geraldo do Araguaia não é apenas beleza natural; é solo de resistência. Durante a década de 1970, a pacata região foi palco de um dos episódios mais densos e silenciados da ditadura militar brasileira: a **Guerrilha do Araguaia**.
              </p>
            </div>
            
            <div className="grid md:grid-cols-3 gap-8 mb-16">
-              <FotoAlbum src="https://images.unsplash.com/photo-1621535492451-b844101e40c4?q=80&w=800" caption="A mata que guarda segredos" rotate="-1deg" />
+              <FotoAlbum src="https://images.unsplash.com/photo-1621535492451-b844101e40c4?q=80&w=800" caption="A mata densa que escondeu o conflito" rotate="-1deg" />
               <div className="flex flex-col justify-center p-8 bg-[#00577C] rounded-[2rem] text-white shadow-2xl relative overflow-hidden group">
                  <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-700" />
                  <History className="mb-6 text-[#F9C400] w-12 h-12" />
-                 <h3 className={`${jakarta.className} text-2xl font-black mb-4`}>Patrimônio Histórico</h3>
-                 <p className="text-blue-100 leading-relaxed font-medium">
-                   Hoje, a cidade trabalha para transformar essas memórias em educação e turismo histórico, honrando a vida dos que aqui passaram.
+                 <h3 className={`${jakarta.className} text-2xl font-black mb-4`}>A Luta na Floresta</h3>
+                 <p className="text-blue-100 leading-relaxed font-medium text-sm">
+                   No final dos anos 60, militantes do Partido Comunista do Brasil (PCdoB) instalaram-se clandestinamente nas matas locais, prestando apoio médico e alfabetização aos camponeses para preparar uma revolução. Ao descobrir a base em 1972, as Forças Armadas deflagraram a maior mobilização militar do país desde a Segunda Guerra Mundial. A repressão foi implacável, resultando no desaparecimento de dezenas de guerrilheiros e num trauma profundo para a população ribeirinha que ficou no fogo cruzado.
                  </p>
               </div>
-              <FotoAlbum src="https://images.unsplash.com/photo-1596462502278-27bf8d53e16f?q=80&w=800" caption="O Araguaia testemunha de gerações" rotate="2deg" className="mt-8" />
+              <FotoAlbum src="https://images.unsplash.com/photo-1596462502278-27bf8d53e16f?q=80&w=800" caption="Memórias à beira do rio" rotate="2deg" className="mt-8" />
            </div>
         </div>
       </section>
@@ -157,27 +157,27 @@ export default function HistoriaPage() {
         <div className="mx-auto max-w-7xl flex flex-col lg:flex-row gap-16 items-center">
           <div className="flex-1 order-2 lg:order-1 relative">
              <div className="absolute -z-10 top-0 left-0 w-full h-full border-4 border-dashed border-[#009640]/20 rounded-full scale-150 animate-[spin_20s_linear_infinite]" />
-             <FotoAlbum src="https://images.pexels.com/photos/33153432/pexels-photo-33153432.jpeg" caption="Pinturas Rupestres: Nossa primeira escrita" rotate="-3deg" className="w-[80%] mx-auto" />
+             <FotoAlbum src="https://images.pexels.com/photos/33153432/pexels-photo-33153432.jpeg" caption="Pinturas Rupestres: A herança na pedra" rotate="-3deg" className="w-[80%] mx-auto" />
           </div>
           
           <div className="flex-1 space-y-8 order-1 lg:order-2">
             <div className="inline-block px-3 py-1 bg-[#009640]/10 text-[#009640] rounded-md text-xs font-black uppercase tracking-widest shadow-sm">
-              Ancestralidade
+              Emancipação e Ancestralidade
             </div>
             <h2 className={`${jakarta.className} text-4xl md:text-5xl font-black text-slate-900`}>
-              Escrito nas Pedras da <span className="text-[#009640]">Serra</span>
+              Liberdade e <br/><span className="text-[#009640]">Identidade</span>
             </h2>
             <div className="text-lg text-slate-600 leading-relaxed space-y-6 font-medium">
               <p>
-                Milhares de anos antes dos primeiros navegantes, civilizações antigas já chamavam São Geraldo de casa. A **Serra das Andorinhas** abriga um tesouro arqueológico com centenas de gravuras e pinturas rupestres.
+                Após os duros anos de conflito, a vila precisava ditar o seu próprio destino. O território pertencia ao gigantesco município de Conceição do Araguaia. Graças à força e organização da comunidade, realizou-se um plebiscito e, no dia **10 de maio de 1988**, a Lei Estadual nº 5.441 garantiu a tão sonhada emancipação política, tornando São Geraldo do Araguaia oficialmente um município independente.
               </p>
               <p>
-                Este património torna o município um museu a céu aberto, onde a natureza preserva a arte dos nossos antepassados sob o olhar atento das andorinhas que cruzam os céus todos os finais de tarde.
+                Com a independência, a cidade começou a olhar para a sua maior riqueza: a **Serra das Andorinhas**. Declarada Parque Estadual em 2001, a serra não é apenas um santuário de biodiversidade amazónica, mas um dos mais importantes sítios arqueológicos do país. Possui centenas de cavernas adornadas com gravuras e pinturas rupestres que datam de milhares de anos, comprovando que civilizações complexas já habitavam esta região amazónica muito antes da história registada em papel.
               </p>
             </div>
             <div className="pt-4 flex gap-8 border-t border-slate-100">
-               <div><p className="text-3xl font-black text-[#00577C]">400+</p><p className="text-xs font-bold text-slate-400 uppercase tracking-tighter">Cavidades catalogadas</p></div>
-               <div><p className="text-3xl font-black text-[#009640]">60k</p><p className="text-xs font-bold text-slate-400 uppercase tracking-tighter">Hectares de preservação</p></div>
+               <div><p className="text-3xl font-black text-[#00577C]">1988</p><p className="text-xs font-bold text-slate-400 uppercase tracking-tighter">Ano de Emancipação</p></div>
+               <div><p className="text-3xl font-black text-[#009640]">400+</p><p className="text-xs font-bold text-slate-400 uppercase tracking-tighter">Cavernas Arqueológicas</p></div>
             </div>
           </div>
         </div>
@@ -191,7 +191,7 @@ export default function HistoriaPage() {
             A Cidade Amada segue em frente.
           </h2>
           <p className="text-xl text-blue-100 mb-12 leading-relaxed font-medium">
-            São Geraldo do Araguaia hoje é sinónimo de desenvolvimento sustentável. Uma cidade que se orgulha do seu passado, preserva a sua cultura araguaiense e abre os braços para o turismo que gera emprego e renda para o seu povo.
+            São Geraldo do Araguaia transformou um passado de lutas numa história de superação e preservação. Hoje, é sinónimo de desenvolvimento sustentável. Uma cidade que se orgulha das suas raízes, valoriza o seu património arqueológico inestimável e abre os braços para o ecoturismo, gerando emprego e renda para o seu povo ao som das águas do Araguaia.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
              <Link href="/galeria" className="bg-[#F9C400] text-[#00577C] px-8 py-4 rounded-full font-black uppercase text-sm shadow-xl hover:scale-105 transition-transform flex items-center gap-2">
