@@ -14,7 +14,7 @@ import { supabase } from '@/lib/supabase';
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
-  weight: ['600', '700', '800',],
+  weight: ['600', '700', '800'],
 });
 
 const inter = Inter({
@@ -22,7 +22,7 @@ const inter = Inter({
   weight: ['400', '500', '600', '700'],
 });
 
-// Tipo do evento baseado na tabela da Supabase e no roteiro oficial [cite: 8, 72]
+// Tipo do evento baseado na tabela da Supabase e no roteiro oficial
 type Evento = {
   id: string;
   titulo: string;
@@ -47,17 +47,16 @@ export default function EventoDetalhePage({ params }: { params: { id: string } }
   const [erro, setErro] = useState<string | null>(null);
 
   // ==========================================
-  // FETCH REAL NA SUPABASE (VERSÃO ROBUSTA)
+  // FETCH REAL NA SUPABASE
   // ==========================================
   useEffect(() => {
     async function fetchEventoReal() {
       try {
-        // Usa o cliente Supabase diretamente, sem necessidade de fetch nativo
         const { data, error } = await supabase
           .from('eventos')
           .select('*')
           .eq('id', params.id)
-          .single(); // Esperamos apenas um resultado
+          .single(); 
 
         if (error) {
           throw new Error("Erro ao buscar o evento na base de dados.");
@@ -158,13 +157,13 @@ export default function EventoDetalhePage({ params }: { params: { id: string } }
             <Link href="/roteiro" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
               Rota Turística
             </Link>
-            <a href="#eventos" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
+            <a href="/#eventos" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
               Eventos
             </a>
-            <a href="#hoteis" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
+            <a href="/#hoteis" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
               Hotéis
             </a>
-            <a href="#historia" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
+            <a href="/#historia" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
               História
             </a>
             <a
@@ -189,10 +188,10 @@ export default function EventoDetalhePage({ params }: { params: { id: string } }
         </div>
       </header>
 
-      {/* CONTEÚDO PRINCIPAL (LAYOUT INSPIRADO NO TMC) */}
+      {/* CONTEÚDO PRINCIPAL */}
       <div className="mx-auto max-w-7xl px-5 pt-32 pb-24 flex flex-col lg:flex-row gap-12 lg:gap-20 items-start">
         
-        {/* SIDEBAR DE INFORMAÇÕES TÉCNICAS [cite: 72] */}
+        {/* SIDEBAR DE INFORMAÇÕES TÉCNICAS */}
         <aside className="w-full lg:w-[300px] shrink-0 space-y-12">
           <div className="bg-[#00577C] text-white p-8 rounded-[2rem] shadow-xl">
              <h2 className={`${jakarta.className} text-2xl font-black mb-8 uppercase tracking-tighter`}>Informações</h2>
@@ -282,7 +281,7 @@ export default function EventoDetalhePage({ params }: { params: { id: string } }
              </div>
           </div>
 
-          {/* Sinopse / Detalhes [cite: 8] */}
+          {/* Sinopse / Detalhes */}
           <div id="detalhes" className="pt-12 border-t border-slate-100">
             <h3 className={`${jakarta.className} text-3xl font-black text-[#00577C] mb-8 uppercase tracking-tighter`}>Sobre o Evento</h3>
             <div className="text-lg text-slate-600 font-medium leading-relaxed whitespace-pre-wrap max-w-4xl">
@@ -290,22 +289,34 @@ export default function EventoDetalhePage({ params }: { params: { id: string } }
             </div>
           </div>
 
-          {/* Localização [cite: 13, 72] */}
-          <div id="local" className="bg-slate-50 p-10 rounded-[2.5rem] border border-slate-100 flex flex-col md:flex-row items-center gap-8">
-             <div className="w-20 h-20 shrink-0 bg-white rounded-3xl flex items-center justify-center shadow-md text-[#009640]">
-               <MapPin size={40} />
-             </div>
-             <div className="text-center md:text-left">
+          {/* Localização com Mapa do Google */}
+          <div id="local" className="bg-slate-50 p-10 rounded-[2.5rem] border border-slate-100 flex flex-col md:flex-row gap-10 items-center">
+             <div className="text-center md:text-left flex-1">
+               <div className="w-20 h-20 shrink-0 mx-auto md:mx-0 bg-white rounded-3xl flex items-center justify-center shadow-md text-[#009640] mb-6">
+                 <MapPin size={40} />
+               </div>
                <p className="text-xs font-black uppercase text-slate-400 tracking-widest mb-1">Localização e Realização</p>
-               <p className={`${jakarta.className} text-2xl font-bold text-[#00577C]`}>{evento.local || 'São Geraldo do Araguaia'}</p>
-               <p className="text-sm text-slate-500 mt-1">SEMTUR • Secretaria Municipal de Turismo [cite: 71, 72]</p>
+               <p className={`${jakarta.className} text-3xl font-bold text-[#00577C]`}>{evento.local || 'São Geraldo do Araguaia'}</p>
+               <p className="text-sm text-slate-500 mt-2">SEMTUR • Secretaria Municipal de Turismo</p>
+             </div>
+
+             <div className="w-full md:w-[60%] h-[300px] rounded-[2rem] overflow-hidden shadow-lg border border-slate-200">
+                <iframe
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0 }}
+                  loading="lazy"
+                  allowFullScreen
+                  referrerPolicy="no-referrer-when-downgrade"
+                  src={`https://www.google.com/maps?q=${encodeURIComponent((evento.local || 'São Geraldo do Araguaia') + ', São Geraldo do Araguaia, Pará, Brasil')}&output=embed`}
+                ></iframe>
              </div>
           </div>
 
         </section>
       </div>
 
-      {/* FOOTER INSTITUCIONAL [cite: 68] */}
+      {/* FOOTER INSTITUCIONAL */}
       <footer className="border-t border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl flex-col gap-8 px-5 py-12 md:flex-row md:items-center md:justify-between text-center md:text-left">
           <div className="flex flex-col md:flex-row items-center gap-4">
@@ -314,11 +325,11 @@ export default function EventoDetalhePage({ params }: { params: { id: string } }
             </div>
             <div className="border-l border-slate-200 pl-4 hidden md:block">
               <p className={`${jakarta.className} text-2xl font-bold text-[#00577C]`}>SagaTurismo</p>
-              <p className="text-sm text-slate-500 uppercase font-bold tracking-widest text-[10px]">Portal Oficial de Turismo [cite: 71]</p>
+              <p className="text-sm text-slate-500 uppercase font-bold tracking-widest text-[10px]">Portal Oficial de Turismo</p>
             </div>
           </div>
           <p className="text-xs text-slate-400 font-medium">
-            © {new Date().getFullYear()} · Prefeitura Municipal de São Geraldo do Araguaia · Pará [cite: 68]
+            © {new Date().getFullYear()} · Prefeitura Municipal de São Geraldo do Araguaia · Pará
           </p>
         </div>
       </footer>
