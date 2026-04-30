@@ -133,8 +133,8 @@ export default function GaleriaPage() {
         </div>
       </header>
 
-      {/* HERO DA GALERIA (AGORA COM CARROSSEL DINÂMICO) */}
-      <section className="relative overflow-hidden bg-slate-900 pt-40 pb-24 px-5">
+      {/* HERO DA GALERIA (AGORA COM CARROSSEL DINÂMICO E MAIS ALTA) */}
+      <section className="relative overflow-hidden bg-slate-900 min-h-[60vh] pt-48 pb-32 px-5 flex flex-col justify-center">
         {/* Renderiza as imagens do carrossel */}
         {fotos.slice(0, 5).map((foto, index) => (
           <div
@@ -149,9 +149,10 @@ export default function GaleriaPage() {
         {/* Overlays para garantir a leitura do texto */}
         <div className="absolute inset-0 bg-gradient-to-r from-[#00577C]/90 via-[#00577C]/60 to-[#00577C]/30" />
         <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-[#F9C400]/10 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/3 pointer-events-none z-0" />
-        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-slate-50 to-transparent z-10" />
+        
+        {/* TRANSIÇÃO DE DEGRADÊ BRANCO REMOVIDA AQUI */}
 
-        <div className="mx-auto max-w-7xl relative z-10 text-center">
+        <div className="mx-auto w-full max-w-7xl relative z-10 text-center">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/20 text-[#F9C400] mb-6 backdrop-blur-md">
             <Camera size={32} />
           </div>
