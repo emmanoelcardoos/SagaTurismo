@@ -805,8 +805,18 @@ export default function HomePage() {
             <p className="mt-6 text-lg leading-8 text-slate-600">
               O SagaTurismo nasce para valorizar esse patrimônio, aproximar visitantes das
               riquezas locais e garantir que os moradores também tenham acesso facilitado aos
-              principais atrativos da cidade.
+              principais atrativos da cidade. Convidamos você a fazer uma viagem no tempo e mergulhar nas raízes da nossa terra.
             </p>
+
+            <div className="mt-8">
+              <Link
+                href="/historia"
+                className="inline-flex items-center justify-center gap-3 rounded-full bg-[#F9C400] px-8 py-4 font-bold text-[#00577C] shadow-lg transition hover:-translate-y-0.5 hover:bg-[#ffd633]"
+              >
+                Conhecer a História Completa
+                <ArrowRight className="h-5 w-5" />
+              </Link>
+            </div>
           </div>
 
           <div className="rounded-[2.5rem] bg-white p-10 shadow-xl">
