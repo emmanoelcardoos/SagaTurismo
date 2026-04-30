@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { 
   ArrowLeft, MapPin, Star, MessageCircle, 
-  CheckCircle2, Info, Loader2 
+  CheckCircle2, Info, Loader2, Menu 
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 
@@ -21,7 +21,7 @@ const inter = Inter({
   weight: ['400', '500', '600', '700'],
 });
 
-// Tipagem baseada na tabela atualizada
+// Tipagem baseada na tabela
 type Hotel = {
   id: string;
   nome: string;
@@ -37,6 +37,10 @@ type Hotel = {
 };
 
 export default function HotelDetalhePage({ params }: { params: { id: string } }) {
+  // LÓGICA DO HEADER (Corrige o erro do showHeader)
+  const [showHeader, setShowHeader] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+
   const [hotel, setHotel] = useState<Hotel | null>(null);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
@@ -51,9 +55,9 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
           .eq('id', params.id)
           .single();
 
-        if (error) throw new Error("Erro ao buscar o alojamento na base de dados.");
+        if (error) throw new Error("Erro ao buscar a hospedagem na base de dados.");
         if (data) setHotel(data);
-        else setErro("Alojamento não encontrado.");
+        else setErro("Hospedagem não encontrada.");
       } catch (err: any) {
         setErro(err.message || "Ocorreu um erro inesperado.");
       } finally {
@@ -63,6 +67,20 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
 
     if (params.id) fetchHotel();
   }, [params.id]);
+
+  // CONTROLO DO SCROLL PARA O HEADER
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      if (currentScrollY < 80) setShowHeader(true);
+      else if (currentScrollY > lastScrollY) setShowHeader(false);
+      else setShowHeader(true);
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [lastScrollY]);
 
   if (loading) {
     return (
@@ -93,21 +111,75 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
   return (
     <main className={`${inter.className} min-h-screen bg-white text-slate-900 pb-24`}>
       
-      {/* HEADER SIMPLIFICADO */}
-      <header className="w-full border-b border-slate-200 bg-white sticky top-0 z-50">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
-          <Link href="/#hoteis" className="flex items-center gap-3">
-            <ArrowLeft className="text-[#00577C] hover:text-[#F9C400] transition-colors" />
-            <span className="text-sm font-bold text-[#00577C] uppercase tracking-widest">Voltar à Lista</span>
+      {/* HEADER EXATO QUE VOCÊ PEDIU */}
+      <header
+        className={`fixed left-0 top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl transition-transform duration-300 ${
+          showHeader ? 'translate-y-0' : '-translate-y-full'
+        }`}
+      >
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-5">
+          <Link href="/" className="flex min-w-0 items-center gap-3 sm:gap-4">
+            <div className="relative h-12 w-36 shrink-0 sm:h-16 sm:w-56">
+              <Image
+                src="/logop.png"
+                alt="Prefeitura de São Geraldo do Araguaia"
+                fill
+                priority
+                className="object-contain object-left"
+              />
+            </div>
+
+            <div className="hidden border-l border-slate-200 pl-4 lg:block">
+              <p className={`${jakarta.className} text-2xl font-bold leading-none text-[#00577C]`}>
+                SagaTurismo
+              </p>
+              <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                Secretaria de Turismo de São Geraldo do Araguaia
+              </p>
+            </div>
           </Link>
-          <div className="h-8 w-24 relative">
-             <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain object-right" />
-          </div>
+
+          <nav className="hidden items-center gap-7 md:flex">
+            <Link href="/roteiro" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
+              Rota Turística
+            </Link>
+
+            <a href="#eventos" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
+              Eventos
+            </a>
+
+            <a href="#historia" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
+              História
+            </a>
+
+            <a
+              href="https://saogeraldodoaraguaia.pa.gov.br"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-semibold text-slate-600 hover:text-[#00577C]"
+            >
+              Governo
+            </a>
+
+            <Link
+              href="/cadastro"
+              className="rounded-full bg-[#F9C400] px-5 py-3 text-sm font-bold text-[#00577C] shadow-lg transition hover:bg-[#ffd633]"
+            >
+              Cartão Residente
+            </Link>
+          </nav>
+
+          <button className="rounded-xl border border-slate-200 p-2 md:hidden">
+            <Menu className="h-5 w-5 text-[#00577C]" />
+          </button>
         </div>
       </header>
 
-      {/* HERO IMAGE HORIZONTAL */}
-      <div className="w-full h-[40vh] md:h-[60vh] relative bg-slate-100">
+      {/* HERO IMAGE HORIZONTAL COM MARGEM PARA O HEADER */}
+      <div className="w-full h-[40vh] md:h-[60vh] relative bg-slate-100 mt-[70px] md:mt-[90px]">
+        <Link href="/#hoteis" className="absolute top-6 left-6 z-20 flex items-center gap-2 text-sm font-bold text-white bg-black/40 hover:bg-black/60 px-4 py-2 rounded-full backdrop-blur-md transition-colors">
+          <ArrowLeft size={16} /> Voltar
+        </Link>
         {hotel.imagem_url ? (
           <Image 
             src={hotel.imagem_url} 
@@ -117,7 +189,7 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
             priority
           />
         ) : (
-          <div className="flex items-center justify-center w-full h-full text-slate-300">
+          <div className="flex items-center justify-center w-full h-full text-slate-400">
             <span className="font-bold">Imagem não disponível</span>
           </div>
         )}
@@ -176,7 +248,7 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
         </section>
 
         {/* COLUNA DIREITA: CAIXA DE RESERVAS (STICKY) */}
-        <aside className="lg:sticky lg:top-28 space-y-6">
+        <aside className="lg:sticky lg:top-32 space-y-6">
           <div className="bg-[#00577C] text-white p-8 rounded-[2.5rem] shadow-2xl">
             <p className="text-xs font-black uppercase tracking-widest text-[#F9C400] mb-2">Tarifa Média</p>
             <p className={`${jakarta.className} text-3xl font-black mb-8`}>
@@ -185,7 +257,7 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
 
             <div className="space-y-4 mb-8">
               <div className="flex items-center gap-3 text-sm text-blue-100 font-medium">
-                <Info size={18} className="text-[#F9C400]" />
+                <Info size={18} className="text-[#F9C400] shrink-0" />
                 Os valores podem sofrer alterações conforme a temporada.
               </div>
             </div>
@@ -219,7 +291,7 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
            <h3 className={`${jakarta.className} text-3xl font-black text-slate-900 mb-8`}>Galeria de Fotos</h3>
            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {hotel.galeria.map((foto, idx) => (
-                <div key={idx} className="relative h-64 rounded-3xl overflow-hidden shadow-md group">
+                <div key={idx} className="relative h-64 rounded-3xl overflow-hidden shadow-md group bg-slate-100">
                   <Image 
                     src={foto} 
                     alt={`Galeria ${hotel.nome} ${idx + 1}`} 
@@ -232,6 +304,23 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
         </div>
       )}
 
+      {/* FOOTER INSTITUCIONAL */}
+      <footer className="border-t border-slate-200 bg-white mt-24">
+        <div className="mx-auto flex max-w-7xl flex-col gap-8 px-5 py-12 md:flex-row md:items-center md:justify-between text-center md:text-left">
+          <div className="flex flex-col md:flex-row items-center gap-4">
+            <div className="relative h-14 w-40">
+              <Image src="/logop.png" alt="Prefeitura" fill className="object-contain object-left" />
+            </div>
+            <div className="border-l border-slate-200 pl-4 hidden md:block">
+              <p className={`${jakarta.className} text-2xl font-bold text-[#00577C]`}>SagaTurismo</p>
+              <p className="text-sm text-slate-500 uppercase font-bold tracking-widest text-[10px]">Portal Oficial de Turismo</p>
+            </div>
+          </div>
+          <p className="text-xs text-slate-400 font-medium">
+            © {new Date().getFullYear()} · Prefeitura Municipal de São Geraldo do Araguaia · Pará
+          </p>
+        </div>
+      </footer>
     </main>
   );
 }
