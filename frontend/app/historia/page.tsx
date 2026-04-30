@@ -4,9 +4,11 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { 
-  ArrowLeft, Menu, Anchor, Landmark, Compass, History, BookOpen, Camera
+  ArrowLeft, Menu, Anchor, Landmark, Compass, History, BookOpen, Camera, Loader2
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Merriweather, Inter } from 'next/font/google';
+
+import { supabase } from '@/lib/supabase';
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -23,6 +25,14 @@ const inter = Inter({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
 });
+
+// Tipagem da Supabase
+type FotoHistoria = {
+  id: string;
+  imagem_url: string;
+  legenda: string;
+  seccao: string;
+};
 
 // Componente para as fotos do "Álbum"
 function FotoAlbum({ src, caption, rotate = "0deg", className = "" }: { src: string, caption: string, rotate?: string, className?: string }) {
@@ -41,6 +51,30 @@ function FotoAlbum({ src, caption, rotate = "0deg", className = "" }: { src: str
 export default function HistoriaPage() {
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+
+  // Estados para a Base de Dados
+  const [fotos, setFotos] = useState<FotoHistoria[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch das Fotos na Supabase
+  useEffect(() => {
+    async function fetchFotos() {
+      const { data, error } = await supabase
+        .from('historia_fotos')
+        .select('*');
+
+      if (data) {
+        setFotos(data);
+      }
+      setLoading(false);
+    }
+    fetchFotos();
+  }, []);
+
+  // Filtramos as fotos para cada secção
+  const fotosOrigens = fotos.filter(f => f.seccao === 'origens');
+  const fotosGuerrilha = fotos.filter(f => f.seccao === 'guerrilha');
+  const fotosArqueologia = fotos.filter(f => f.seccao === 'arqueologia');
 
   useEffect(() => {
     const handleScroll = () => {
@@ -120,9 +154,20 @@ export default function HistoriaPage() {
               </p>
             </div>
           </div>
+          
           <div className="grid grid-cols-2 gap-4">
-             <FotoAlbum src="https://images.unsplash.com/photo-1544943971-d861676462bb?q=80&w=800" caption="As águas que deram vida à vila" rotate="-2deg" className="mt-12" />
-             <FotoAlbum src="https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=800" caption="Registos da fé pioneira" rotate="3deg" />
+            {loading ? (
+              <div className="col-span-2 flex justify-center py-10"><Loader2 className="w-8 h-8 animate-spin text-[#00577C]" /></div>
+            ) : fotosOrigens.map((foto, index) => (
+              <FotoAlbum 
+                key={foto.id} 
+                src={foto.imagem_url} 
+                caption={foto.legenda} 
+                // Estilos dinâmicos para a 1ª e 2ª foto para dar aquele aspeto de álbum
+                rotate={index % 2 === 0 ? "-2deg" : "3deg"} 
+                className={index % 2 === 0 ? "mt-12" : ""} 
+              />
+            ))}
           </div>
         </div>
       </section>
@@ -137,9 +182,13 @@ export default function HistoriaPage() {
              </p>
            </div>
            
-           <div className="grid md:grid-cols-3 gap-8 mb-16">
-              <FotoAlbum src="https://images.unsplash.com/photo-1621535492451-b844101e40c4?q=80&w=800" caption="A mata densa que escondeu o conflito" rotate="-1deg" />
-              <div className="flex flex-col justify-center p-8 bg-[#00577C] rounded-[2rem] text-white shadow-2xl relative overflow-hidden group">
+           <div className="grid md:grid-cols-3 gap-8 mb-16 items-center">
+              {/* Mostra a 1ª foto da guerrilha (se houver) */}
+              {fotosGuerrilha[0] && (
+                <FotoAlbum src={fotosGuerrilha[0].imagem_url} caption={fotosGuerrilha[0].legenda} rotate="-1deg" />
+              )}
+
+              <div className="flex flex-col justify-center p-8 bg-[#00577C] rounded-[2rem] text-white shadow-2xl relative overflow-hidden group h-full">
                  <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-700" />
                  <History className="mb-6 text-[#F9C400] w-12 h-12" />
                  <h3 className={`${jakarta.className} text-2xl font-black mb-4`}>A Luta na Floresta</h3>
@@ -147,7 +196,11 @@ export default function HistoriaPage() {
                    No final dos anos 60, militantes do Partido Comunista do Brasil (PCdoB) instalaram-se clandestinamente nas matas locais, prestando apoio médico e alfabetização aos camponeses para preparar uma revolução. Ao descobrir a base em 1972, as Forças Armadas deflagraram a maior mobilização militar do país desde a Segunda Guerra Mundial. A repressão foi implacável, resultando no desaparecimento de dezenas de guerrilheiros e num trauma profundo para a população ribeirinha que ficou no fogo cruzado.
                  </p>
               </div>
-              <FotoAlbum src="https://images.unsplash.com/photo-1596462502278-27bf8d53e16f?q=80&w=800" caption="Memórias à beira do rio" rotate="2deg" className="mt-8" />
+
+              {/* Mostra a 2ª foto da guerrilha (se houver) */}
+              {fotosGuerrilha[1] && (
+                <FotoAlbum src={fotosGuerrilha[1].imagem_url} caption={fotosGuerrilha[1].legenda} rotate="2deg" className="md:mt-8" />
+              )}
            </div>
         </div>
       </section>
@@ -157,7 +210,12 @@ export default function HistoriaPage() {
         <div className="mx-auto max-w-7xl flex flex-col lg:flex-row gap-16 items-center">
           <div className="flex-1 order-2 lg:order-1 relative">
              <div className="absolute -z-10 top-0 left-0 w-full h-full border-4 border-dashed border-[#009640]/20 rounded-full scale-150 animate-[spin_20s_linear_infinite]" />
-             <FotoAlbum src="https://images.pexels.com/photos/33153432/pexels-photo-33153432.jpeg" caption="Pinturas Rupestres: A herança na pedra" rotate="-3deg" className="w-[80%] mx-auto" />
+             
+             {loading ? (
+                <div className="flex justify-center py-10"><Loader2 className="w-8 h-8 animate-spin text-[#00577C]" /></div>
+             ) : fotosArqueologia[0] ? (
+                <FotoAlbum src={fotosArqueologia[0].imagem_url} caption={fotosArqueologia[0].legenda} rotate="-3deg" className="w-[80%] mx-auto" />
+             ) : null}
           </div>
           
           <div className="flex-1 space-y-8 order-1 lg:order-2">
