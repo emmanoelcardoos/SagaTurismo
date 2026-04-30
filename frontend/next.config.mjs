@@ -9,11 +9,18 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
-    // Necessário para carregar as imagens do Pexels que usaste no roteiro
     remotePatterns: [
       {
         protocol: 'https',
         hostname: 'images.pexels.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.supabase.co', // Permite qualquer imagem vinda do Storage da sua Supabase
       },
     ],
   },
