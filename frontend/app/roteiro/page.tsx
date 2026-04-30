@@ -292,7 +292,7 @@ export default function SaoGeraldoAraguaiaPage() {
           </div>
           
           <div className="text-center pt-10 border-t border-slate-50">
-            <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.4em]">© 2026 FlightAndFun • São Geraldo do Araguaia (PA)</p>
+            <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.4em]">© 2026 Secretaria Municipal de Turismo - São Geraldo do Araguaia (PA)</p>
           </div>
         </div>
       </footer>
