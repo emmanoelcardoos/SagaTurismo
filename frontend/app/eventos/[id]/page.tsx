@@ -9,9 +9,12 @@ import {
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 
+// Importa o cliente Supabase centralizado
+import { supabase } from '@/lib/supabase';
+
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
-  weight: ['600', '700', '800'],
+  weight: ['600', '700', '800',],
 });
 
 const inter = Inter({
@@ -19,7 +22,7 @@ const inter = Inter({
   weight: ['400', '500', '600', '700'],
 });
 
-// TIPO EXATO DA SUA TABELA
+// Tipo do evento baseado na tabela da Supabase e no roteiro oficial [cite: 8, 72]
 type Evento = {
   id: string;
   titulo: string;
@@ -28,7 +31,6 @@ type Evento = {
   local: string;
   imagem_url: string;
   categoria: string;
-  // Campos extra que pode ter adicionado para o layout
   horario?: string;
   duracao?: string;
   preco?: string;
@@ -40,39 +42,29 @@ export default function EventoDetalhePage({ params }: { params: { id: string } }
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   
-  // Estados Reais do Banco de Dados
   const [evento, setEvento] = useState<Evento | null>(null);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
 
   // ==========================================
-  // FETCH REAL NA SUPABASE
+  // FETCH REAL NA SUPABASE (VERSÃO ROBUSTA)
   // ==========================================
   useEffect(() => {
     async function fetchEventoReal() {
       try {
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-        const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+        // Usa o cliente Supabase diretamente, sem necessidade de fetch nativo
+        const { data, error } = await supabase
+          .from('eventos')
+          .select('*')
+          .eq('id', params.id)
+          .single(); // Esperamos apenas um resultado
 
-        if (!supabaseUrl || !supabaseKey) {
-          throw new Error("Variáveis de ambiente do Supabase não encontradas.");
+        if (error) {
+          throw new Error("Erro ao buscar o evento na base de dados.");
         }
 
-        const res = await fetch(`${supabaseUrl}/rest/v1/eventos?id=eq.${params.id}&select=*`, {
-          method: 'GET',
-          headers: {
-            'apikey': supabaseKey,
-            'Authorization': `Bearer ${supabaseKey}`,
-            'Content-Type': 'application/json'
-          }
-        });
-
-        if (!res.ok) throw new Error("Erro ao buscar o evento na base de dados.");
-
-        const data = await res.json();
-        
-        if (data && data.length > 0) {
-          setEvento(data[0]);
+        if (data) {
+          setEvento(data);
         } else {
           setErro("Evento não encontrado.");
         }
@@ -88,50 +80,41 @@ export default function EventoDetalhePage({ params }: { params: { id: string } }
     }
   }, [params.id]);
 
-  // ==========================================
-  // LÓGICA DO HEADER FORNECIDO
-  // ==========================================
+  // Lógica de visibilidade do Header
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
-
       if (currentScrollY < 80) setShowHeader(true);
       else if (currentScrollY > lastScrollY) setShowHeader(false);
       else setShowHeader(true);
-
       setLastScrollY(currentScrollY);
     };
-
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
-
-  // ==========================================
-  // ESTADOS DE CARREGAMENTO E ERRO
-  // ==========================================
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-white text-[#00577C]">
         <Loader2 className="w-12 h-12 animate-spin mb-4" />
-        <p className="font-bold">A carregar evento...</p>
+        <p className="font-bold uppercase tracking-widest">A carregar evento...</p>
       </div>
     );
   }
 
   if (erro || !evento) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 text-slate-900">
-        <h1 className="text-3xl font-black mb-4">Ups! Algo correu mal.</h1>
-        <p className="text-slate-500 mb-8">{erro}</p>
-        <Link href="/" className="bg-[#00577C] text-white px-6 py-3 rounded-full font-bold">Voltar à Página Inicial</Link>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 text-slate-900 px-6 text-center">
+        <h1 className="text-3xl font-black mb-4">Informação não disponível</h1>
+        <p className="text-slate-500 mb-8 max-w-md">{erro || "Não foi possível carregar os detalhes do evento solicitado."}</p>
+        <Link href="/" className="bg-[#00577C] text-white px-8 py-4 rounded-full font-bold uppercase tracking-widest text-sm shadow-lg">
+          Voltar à Homepage
+        </Link>
       </div>
     );
   }
 
-  // ==========================================
-  // FORMATAÇÃO DE DATA DO EVENTO REAL
-  // ==========================================
+  // Formatação de Datas
   const dataObj = new Date(evento.data);
   const diasSemana = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
   const meses = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
@@ -144,7 +127,7 @@ export default function EventoDetalhePage({ params }: { params: { id: string } }
   return (
     <main className={`${inter.className} min-h-screen bg-white text-slate-900`}>
       
-      {/* HEADER FORNECIDO PELO USUÁRIO */}
+      {/* HEADER INSTITUCIONAL */}
       <header
         className={`fixed left-0 top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl transition-transform duration-300 ${
           showHeader ? 'translate-y-0' : '-translate-y-full'
@@ -161,7 +144,6 @@ export default function EventoDetalhePage({ params }: { params: { id: string } }
                 className="object-contain object-left"
               />
             </div>
-
             <div className="hidden border-l border-slate-200 pl-4 lg:block">
               <p className={`${jakarta.className} text-2xl font-bold leading-none text-[#00577C]`}>
                 SagaTurismo
@@ -176,19 +158,15 @@ export default function EventoDetalhePage({ params }: { params: { id: string } }
             <Link href="/roteiro" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
               Rota Turística
             </Link>
-
             <a href="#eventos" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
               Eventos
             </a>
-
             <a href="#hoteis" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
               Hotéis
             </a>
-
             <a href="#historia" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
               História
             </a>
-
             <a
               href="https://saogeraldodoaraguaia.pa.gov.br"
               target="_blank"
@@ -197,7 +175,6 @@ export default function EventoDetalhePage({ params }: { params: { id: string } }
             >
               Governo
             </a>
-
             <Link
               href="/cadastro"
               className="rounded-full bg-[#F9C400] px-5 py-3 text-sm font-bold text-[#00577C] shadow-lg transition hover:bg-[#ffd633]"
@@ -212,172 +189,136 @@ export default function EventoDetalhePage({ params }: { params: { id: string } }
         </div>
       </header>
 
-      {/* CONTEÚDO DA PÁGINA DO EVENTO */}
+      {/* CONTEÚDO PRINCIPAL (LAYOUT INSPIRADO NO TMC) */}
       <div className="mx-auto max-w-7xl px-5 pt-32 pb-24 flex flex-col lg:flex-row gap-12 lg:gap-20 items-start">
         
-        {/* ============================================================== */}
-        {/* COLUNA ESQUERDA (SIDEBAR DE INFORMAÇÕES) */}
-        {/* ============================================================== */}
-        <aside className="w-full lg:w-[280px] shrink-0 space-y-12">
-          
-          {/* Navegação Interna */}
+        {/* SIDEBAR DE INFORMAÇÕES TÉCNICAS [cite: 72] */}
+        <aside className="w-full lg:w-[300px] shrink-0 space-y-12">
           <div className="bg-[#00577C] text-white p-8 rounded-[2rem] shadow-xl">
-             <h2 className={`${jakarta.className} text-2xl font-black mb-8`}>Informações</h2>
+             <h2 className={`${jakarta.className} text-2xl font-black mb-8 uppercase tracking-tighter`}>Informações</h2>
              <nav className="space-y-5 flex flex-col font-medium text-sm">
-               <Link href="#detalhes" className="hover:text-[#F9C400] transition-colors flex items-center justify-between group">
-                 Sobre o Evento <ChevronRight size={16} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+               <Link href="#detalhes" className="hover:text-[#F9C400] transition-colors flex items-center justify-between group border-b border-white/10 pb-2">
+                 Sobre o Evento <ChevronRight size={16} className="opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1" />
                </Link>
-               <Link href="#local" className="hover:text-[#F9C400] transition-colors flex items-center justify-between group">
-                 Como Chegar <ChevronRight size={16} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+               <Link href="#local" className="hover:text-[#F9C400] transition-colors flex items-center justify-between group border-b border-white/10 pb-2">
+                 Como Chegar <ChevronRight size={16} className="opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1" />
                </Link>
              </nav>
           </div>
 
-          {/* Dados Técnicos Reais */}
-          <div className="space-y-6 px-4">
+          <div className="space-y-8 px-4 border-l-2 border-slate-100">
              <div>
-               <p className={`${jakarta.className} text-xl font-black text-slate-900`}>Duração</p>
-               <p className="text-slate-600 font-medium">{evento.duracao || 'Consulte a programação'}</p>
+               <p className={`${jakarta.className} text-xs font-black text-slate-400 uppercase tracking-widest mb-1`}>Duração</p>
+               <p className="text-lg font-bold text-slate-800">{evento.duracao || 'Consulte a programação'}</p>
              </div>
-             
              <div>
-               <p className={`${jakarta.className} text-xl font-black text-slate-900`}>Preço</p>
-               <p className="text-slate-600 font-medium">{evento.preco || 'Acesso Livre / Gratuito'}</p>
+               <p className={`${jakarta.className} text-xs font-black text-slate-400 uppercase tracking-widest mb-1`}>Preço</p>
+               <p className="text-lg font-bold text-slate-800">{evento.preco || 'Acesso Livre / Gratuito'}</p>
              </div>
-
              <div>
-               <p className={`${jakarta.className} text-xl font-black text-slate-900`}>Horário</p>
-               <p className="text-slate-600 font-medium">{evento.horario || 'Consulte o cronograma oficial'}</p>
+               <p className={`${jakarta.className} text-xs font-black text-slate-400 uppercase tracking-widest mb-1`}>Horário</p>
+               <p className="text-lg font-bold text-slate-800">{evento.horario || 'Consulte o cronograma'}</p>
              </div>
           </div>
         </aside>
 
-        {/* ============================================================== */}
-        {/* COLUNA DIREITA (CONTEÚDO PRINCIPAL DO EVENTO) */}
-        {/* ============================================================== */}
+        {/* ÁREA DE CONTEÚDO DINÂMICO */}
         <section className="flex-1 w-full space-y-12">
           
-          {/* Botão de Voltar */}
-          <Link href="/#eventos" className="inline-flex items-center gap-2 text-sm font-bold text-[#00577C] hover:text-[#F9C400] transition-colors mb-2">
-            <ArrowLeft size={16} /> Voltar à Agenda
+          <Link href="/#eventos" className="inline-flex items-center gap-2 text-sm font-bold text-[#00577C] hover:text-[#F9C400] transition-colors mb-4 group">
+            <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> Voltar à Agenda Cultural
           </Link>
 
-          {/* Bloco Superior: Imagem + Detalhes */}
-          <div className="flex flex-col xl:flex-row gap-8 items-start">
-             
-             {/* Imagem Real do Evento */}
-             <div className="relative w-full xl:w-[60%] h-[400px] overflow-hidden rounded-[2rem] bg-slate-100 shadow-xl">
+          <div className="flex flex-col xl:flex-row gap-10 items-start">
+             {/* Imagem do Evento */}
+             <div className="relative w-full xl:w-[65%] h-[450px] overflow-hidden rounded-[2.5rem] bg-slate-100 shadow-2xl">
                {evento.imagem_url ? (
-                 <Image 
-                   src={evento.imagem_url} 
-                   alt={evento.titulo} 
-                   fill 
-                   className="object-cover"
-                   priority
-                 />
+                 <Image src={evento.imagem_url} alt={evento.titulo} fill className="object-cover" priority />
                ) : (
-                 <div className="flex items-center justify-center w-full h-full text-slate-400">
-                   <CalendarDays size={48} />
+                 <div className="flex items-center justify-center w-full h-full text-slate-300">
+                   <CalendarDays size={64} />
                  </div>
                )}
              </div>
 
-             {/* Informação Principal */}
-             <div className="w-full xl:w-[40%] flex flex-col items-start pt-2">
-                
-                {/* Data Formatada */}
-                <div className="flex gap-3 items-start">
-                  <div className={`${jakarta.className} bg-[#00577C] text-white px-3 py-2 text-center rounded-xl shadow-md leading-none`}>
-                    <p className="text-xs font-bold uppercase">{diaSemana}</p>
-                    <p className="text-base font-black uppercase tracking-widest">{mesExtenso}</p>
+             {/* Painel de Data e Título */}
+             <div className="w-full xl:w-[35%] flex flex-col items-start pt-2">
+                <div className="flex gap-4 items-start mb-6">
+                  <div className={`${jakarta.className} bg-[#00577C] text-white px-4 py-3 text-center rounded-2xl shadow-lg leading-none min-w-[70px]`}>
+                    <p className="text-[10px] font-bold uppercase mb-1">{diaSemana}</p>
+                    <p className="text-lg font-black uppercase tracking-widest">{mesExtenso}</p>
                   </div>
-                  <p className={`${jakarta.className} text-6xl font-black text-slate-900 tracking-tighter leading-none`}>
+                  <p className={`${jakarta.className} text-7xl font-black text-slate-900 tracking-tighter leading-none`}>
                     {diaMes}
                   </p>
                 </div>
                 
-                <p className="mt-3 text-sm font-bold text-slate-500">
-                  {dataObj.getDate()} de {mesExtenso} de {ano}
-                </p>
+                <p className="text-sm font-bold text-slate-400 mb-6">{dataObj.getDate()} de {mesExtenso} de {ano}</p>
 
-                {/* Categoria */}
                 {evento.categoria && (
-                  <div className="mt-4 bg-[#F9C400] text-[#00577C] px-3 py-1 rounded-md text-xs font-black uppercase tracking-widest shadow-sm">
+                  <div className="bg-[#F9C400] text-[#00577C] px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest shadow-sm mb-4">
                     {evento.categoria}
                   </div>
                 )}
 
-                {/* Título Real */}
-                <h1 className={`${jakarta.className} mt-3 text-4xl sm:text-5xl font-black text-slate-900 tracking-tight leading-[1.1]`}>
+                <h1 className={`${jakarta.className} text-4xl sm:text-5xl font-black text-slate-900 tracking-tight leading-[1] mb-6`}>
                   {evento.titulo}
                 </h1>
 
-                {/* Classificação */}
-                <div className="mt-6">
-                  <p className={`${jakarta.className} font-black text-slate-900`}>Classificação Indicativa</p>
-                  <p className="text-sm text-slate-600">{evento.classificacao || 'Livre para todos os públicos'}</p>
+                <div className="mb-8">
+                  <p className={`${jakarta.className} text-xs font-black text-slate-400 uppercase tracking-widest mb-1`}>Classificação</p>
+                  <p className="text-sm font-bold text-slate-700">{evento.classificacao || 'Livre para todos os públicos'}</p>
                 </div>
 
-                {/* Botão de Ação / Bilheteira */}
                 {evento.link_bilheteira && (
                   <Link 
                     href={evento.link_bilheteira} 
                     target="_blank"
-                    className={`${jakarta.className} mt-8 block w-full md:w-auto bg-[#00577C] text-white px-8 py-4 rounded-full text-center font-black text-sm uppercase tracking-widest transition-all hover:bg-[#F9C400] hover:text-[#00577C] shadow-lg flex items-center justify-center gap-2`}
+                    className={`${jakarta.className} w-full bg-[#00577C] text-white px-8 py-5 rounded-2xl text-center font-black text-sm uppercase tracking-widest transition-all hover:bg-slate-900 hover:scale-[1.02] shadow-xl flex items-center justify-center gap-3`}
                   >
-                    <Ticket size={18} /> Participar / Comprar
+                    <Ticket size={20} /> Participar / Bilhetes
                   </Link>
                 )}
              </div>
           </div>
 
-          {/* Descrição Real (Sinopse) */}
-          <div id="detalhes" className="pt-8 border-t border-slate-200">
-            <h1 className={`${jakarta.className} text-3xl font-black text-[#00577C] mb-6`}>Detalhes do Evento</h1>
-            <div className="text-lg text-slate-700 font-medium leading-relaxed whitespace-pre-wrap">
-              {evento.descricao || 'Descrição não disponibilizada para este evento.'}
+          {/* Sinopse / Detalhes [cite: 8] */}
+          <div id="detalhes" className="pt-12 border-t border-slate-100">
+            <h3 className={`${jakarta.className} text-3xl font-black text-[#00577C] mb-8 uppercase tracking-tighter`}>Sobre o Evento</h3>
+            <div className="text-lg text-slate-600 font-medium leading-relaxed whitespace-pre-wrap max-w-4xl">
+              {evento.descricao || "Não existem detalhes adicionais disponíveis para este evento."}
             </div>
           </div>
 
-          {/* Localização Real */}
-          <div id="local" className="bg-slate-50 p-8 rounded-3xl border border-slate-100 flex items-center gap-6">
-             <div className="w-16 h-16 shrink-0 bg-white rounded-full flex items-center justify-center shadow-sm text-[#009640]">
-               <MapPin size={32} />
+          {/* Localização [cite: 13, 72] */}
+          <div id="local" className="bg-slate-50 p-10 rounded-[2.5rem] border border-slate-100 flex flex-col md:flex-row items-center gap-8">
+             <div className="w-20 h-20 shrink-0 bg-white rounded-3xl flex items-center justify-center shadow-md text-[#009640]">
+               <MapPin size={40} />
              </div>
-             <div>
-               <p className="text-xs font-black uppercase text-slate-400 tracking-widest mb-1">Localização</p>
-               <p className={`${jakarta.className} text-2xl font-bold text-slate-900`}>{evento.local || 'São Geraldo do Araguaia'}</p>
+             <div className="text-center md:text-left">
+               <p className="text-xs font-black uppercase text-slate-400 tracking-widest mb-1">Localização e Realização</p>
+               <p className={`${jakarta.className} text-2xl font-bold text-[#00577C]`}>{evento.local || 'São Geraldo do Araguaia'}</p>
+               <p className="text-sm text-slate-500 mt-1">SEMTUR • Secretaria Municipal de Turismo [cite: 71, 72]</p>
              </div>
           </div>
 
         </section>
       </div>
 
-      {/* FOOTER */}
+      {/* FOOTER INSTITUCIONAL [cite: 68] */}
       <footer className="border-t border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl flex-col gap-8 px-5 py-12 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-4">
+        <div className="mx-auto flex max-w-7xl flex-col gap-8 px-5 py-12 md:flex-row md:items-center md:justify-between text-center md:text-left">
+          <div className="flex flex-col md:flex-row items-center gap-4">
             <div className="relative h-14 w-40">
-              <Image
-                src="/logop.png"
-                alt="Prefeitura de São Geraldo do Araguaia"
-                fill
-                className="object-contain object-left"
-              />
+              <Image src="/logop.png" alt="Prefeitura" fill className="object-contain object-left" />
             </div>
-
-            <div className="border-l border-slate-200 pl-4">
-              <p className={`${jakarta.className} text-2xl font-bold text-[#00577C]`}>
-                SagaTurismo
-              </p>
-              <p className="mt-1 text-sm text-slate-500">
-                Plataforma oficial de turismo
-              </p>
+            <div className="border-l border-slate-200 pl-4 hidden md:block">
+              <p className={`${jakarta.className} text-2xl font-bold text-[#00577C]`}>SagaTurismo</p>
+              <p className="text-sm text-slate-500 uppercase font-bold tracking-widest text-[10px]">Portal Oficial de Turismo [cite: 71]</p>
             </div>
           </div>
-
-          <p className="text-sm text-slate-400">
-            © {new Date().getFullYear()} · Prefeitura Municipal de São Geraldo do Araguaia · Pará
+          <p className="text-xs text-slate-400 font-medium">
+            © {new Date().getFullYear()} · Prefeitura Municipal de São Geraldo do Araguaia · Pará [cite: 68]
           </p>
         </div>
       </footer>

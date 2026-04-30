@@ -22,12 +22,9 @@ import {
   Ticket,
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
 
-// Inicializa a ligação ao teu Supabase usando as variáveis de ambiente que já tens
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseKey);
+
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -387,10 +384,6 @@ export default function HomePage() {
               Eventos
             </a>
 
-            <a href="#hoteis" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
-              Hotéis
-            </a>
-
             <a href="#historia" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
               História
             </a>
@@ -408,7 +401,7 @@ export default function HomePage() {
               href="/cadastro"
               className="rounded-full bg-[#F9C400] px-5 py-3 text-sm font-bold text-[#00577C] shadow-lg transition hover:bg-[#ffd633]"
             >
-              Cartão do Residente
+              Cartão Residente
             </Link>
           </nav>
 
