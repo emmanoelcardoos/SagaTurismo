@@ -5,3 +5,5 @@ google-genai
 python-multipart
 python-dotenv
 reportlab
+qrcode
+pillow
