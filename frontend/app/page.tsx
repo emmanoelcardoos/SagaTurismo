@@ -597,14 +597,6 @@ export default function HomePage() {
               Eventos
             </a>
 
-            <a href="#hoteis" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
-              Hotéis
-            </a>
-
-            <a href="#historia" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
-              História
-            </a>
-
             <a
               href="https://saogeraldodoaraguaia.pa.gov.br"
               target="_blank"
