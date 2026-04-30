@@ -26,7 +26,7 @@ def validar_endereco_com_ia(imagem_bytes: bytes, nome_esperado: str, mime_type: 
 
         # CORREÇÃO DA SINTAXE: Usando types.Part.from_bytes para resolver o erro do log
         response = client.models.generate_content(
-            model="gemini-2.0-flash",
+            model="gemini-1.5-flash",
             contents=[
                 types.Part.from_bytes(data=imagem_bytes, mime_type=mime_type),
                 prompt
