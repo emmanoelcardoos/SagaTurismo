@@ -119,8 +119,6 @@ export default function GaleriaPage() {
 
           <nav className="hidden items-center gap-7 md:flex">
             <Link href="/roteiro" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Rota Turística</Link>
-            <Link href="/#eventos" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Eventos</Link>
-            <Link href="/#hoteis" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Hotéis</Link>
             <Link href="/#historia" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">História</Link>
             <a href="https://saogeraldodoaraguaia.pa.gov.br" target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Governo</a>
             <Link href="/cadastro" className="rounded-full bg-[#F9C400] px-5 py-3 text-sm font-bold text-[#00577C] shadow-lg transition hover:bg-[#ffd633]">
@@ -153,9 +151,6 @@ export default function GaleriaPage() {
         {/* TRANSIÇÃO DE DEGRADÊ BRANCO REMOVIDA AQUI */}
 
         <div className="mx-auto w-full max-w-7xl relative z-10 text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/20 text-[#F9C400] mb-6 backdrop-blur-md">
-            <Camera size={32} />
-          </div>
           <h1 className={`${jakarta.className} text-5xl md:text-7xl font-black text-white tracking-tight mb-6`}>
             Nossas Memórias
           </h1>
