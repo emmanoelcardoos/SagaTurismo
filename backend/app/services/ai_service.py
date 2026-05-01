@@ -9,10 +9,13 @@ load_dotenv()
 
 def validar_endereco_com_ia(imagem_bytes: bytes, nome_esperado: str, mime_type: str = "image/jpeg") -> dict:
     try:
-        # 1. Instanciamos o cliente sem forçar a v1 para evitar o 404
-        client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+        # 1. FORÇAMOS a porta oficial (v1) e evitamos a v1beta que deu erro
+        client = genai.Client(
+            api_key=os.getenv("GEMINI_API_KEY"),
+            http_options={'api_version': 'v1'}
+        )
         
-        # 2. Usamos o 2.0-flash (único que não deu 404 nos seus logs)
+        # 2. O modelo estável e rápido
         MODELO = "gemini-1.5-flash"
 
         prompt = (
@@ -63,7 +66,4 @@ def validar_endereco_com_ia(imagem_bytes: bytes, nome_esperado: str, mime_type: 
 
     except Exception as e:
         print(f"[IA-LOG] Erro: {e}")
-        # Mensagem amigável para o usuário, mas detalhada no seu log
-        if "429" in str(e):
-            return {"valido": False, "motivo": "ERRO DE QUOTA: Ative o faturamento no Google AI Studio (Pay-as-you-go)."}
         return {"valido": False, "motivo": f"Erro técnico: {str(e)[:50]}"}
