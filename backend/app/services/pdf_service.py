@@ -94,7 +94,10 @@ def _label_valor(c, x, y, label, valor, tam_label=6, tam_valor=10):
 
 def gerar_pdf_carteira(residente_data, token):
     os.makedirs("tmp_pdfs", exist_ok=True)
-    caminho_pdf = os.path.abspath(f"tmp_pdfs/carteira_{token}.pdf")
+    
+    # MUDEI AQUI: O nome do ficheiro agora leva o nome da pessoa (com espaços trocados por _)
+    nome_pessoa_limpo = residente_data.get('nome', 'Residente').replace(' ', '_')
+    caminho_pdf = os.path.abspath(f"tmp_pdfs/Carteira_{nome_pessoa_limpo}_{token[:4]}.pdf")
 
     # Dimensões da carteirinha
     largura, altura = 135 * mm, 85 * mm
