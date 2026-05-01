@@ -8,29 +8,27 @@ from reportlab.lib.utils import ImageReader
 import qrcode
 from datetime import datetime, timedelta
 
-# ─── PALETA PREMIUM – ESTILO PARQUES NACIONAIS MUNDIAIS ───────────────────────
-COR_FLORESTA    = colors.HexColor("#0d3b2e")   # Verde escuro profundo
-COR_FOLHA       = colors.HexColor("#5a9e47")   # Verde vivo (destaque)
-COR_OURO        = colors.HexColor("#c8a951")   # Dourado para detalhes premium
-COR_CREME       = colors.HexColor("#f5f0e8")   # Fundo creme natural
-COR_CINZA_CLARO = colors.HexColor("#e8e0d0")   # Separadores suaves
-COR_TEXTO       = colors.HexColor("#1a1a1a")   # Texto principal
-COR_LABEL       = colors.HexColor("#4a7c59")   # Labels secundários
-COR_HEADER_FX   = colors.HexColor("#0a2e22")   # Header ainda mais escuro
-COR_DESCONTO    = colors.HexColor("#c0392b")   # Vermelho para badge 50%
-
+# ─── NOVA PALETA – CORES OFICIAIS SAGA TURISMO ──────────────────────────────
+COR_AZUL        = colors.HexColor("#00577C")   # Azul Petróleo (Primária)
+COR_VERDE       = colors.HexColor("#009640")   # Verde (Secundária)
+COR_AMARELO     = colors.HexColor("#F9C400")   # Amarelo/Dourado (Destaque)
+COR_FUNDO       = colors.HexColor("#F8FAFC")   # Fundo moderno claro (Slate 50)
+COR_CINZA_BORDA = colors.HexColor("#E2E8F0")   # Separadores suaves (Slate 200)
+COR_TEXTO_ESCURO= colors.HexColor("#0F172A")   # Texto principal escuro (Slate 900)
+COR_TEXTO_LABEL = colors.HexColor("#64748B")   # Texto de títulos secundários (Slate 500)
+COR_BRANCO      = colors.white
 
 def _hex_to_rgb(hex_str):
     h = hex_str.lstrip('#')
     return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
 
-
 def _gradiente_header(c, largura, altura):
     passos = 30
     h_header = 24 * mm
     y_inicio = altura - h_header
-    r1, g1, b1 = _hex_to_rgb("#0a2e22")
-    r2, g2, b2 = _hex_to_rgb("#0d3b2e")
+    # Gradiente suave de um azul mais escuro para o Azul Petróleo oficial
+    r1, g1, b1 = _hex_to_rgb("#004766")
+    r2, g2, b2 = _hex_to_rgb("#00577C")
     faixa_h = h_header / passos
     for i in range(passos):
         t = i / passos
@@ -40,115 +38,119 @@ def _gradiente_header(c, largura, altura):
         c.setFillColorRGB(r / 255, g / 255, b / 255)
         c.rect(0, y_inicio + i * faixa_h, largura, faixa_h + 0.5, fill=1, stroke=0)
 
-
-def _linha_ouro(c, x1, y1, x2, y2, espessura=0.6):
-    """CORREÇÃO: Agora aceita y1 e y2 para permitir linhas verticais e horizontais."""
-    c.setStrokeColor(COR_OURO)
+def _linha_cor(c, x1, y1, x2, y2, espessura=0.6, cor=COR_AMARELO):
+    c.setStrokeColor(cor)
     c.setLineWidth(espessura)
     c.line(x1, y1, x2, y2)
 
-
-def _badge_desconto(c, x, y, raio=7 * mm):
-    c.setFillColor(colors.HexColor("#00000022"))
-    c.circle(x + 0.5 * mm, y - 0.5 * mm, raio, fill=1, stroke=0)
-    c.setFillColor(COR_DESCONTO)
-    c.setStrokeColor(COR_OURO)
-    c.setLineWidth(1)
+def _badge_desconto(c, x, y, raio=8 * mm):
+    # Sombra
+    c.setFillColor(colors.HexColor("#00000015"))
+    c.circle(x + 0.8 * mm, y - 0.8 * mm, raio, fill=1, stroke=0)
+    
+    # Fundo Amarelo com Borda Azul
+    c.setFillColor(COR_AMARELO)
+    c.setStrokeColor(COR_AZUL)
+    c.setLineWidth(1.5)
     c.circle(x, y, raio, fill=1, stroke=1)
-    c.setFillColor(colors.white)
-    c.setFont("Helvetica-Bold", 9)
-    c.drawCentredString(x, y + 1.5 * mm, "50%")
-    c.setFont("Helvetica-Bold", 5.5)
-    c.drawCentredString(x, y - 2.5 * mm, "DESCONTO")
+    
+    # Texto
+    c.setFillColor(COR_AZUL)
+    c.setFont("Helvetica-Bold", 11)
+    c.drawCentredString(x, y + 0.5 * mm, "50%")
+    c.setFont("Helvetica-Bold", 4.5)
+    c.drawCentredString(x, y - 3.5 * mm, "DESCONTO")
 
-
-def _textura_diagonal(c, largura, altura):
+def _textura_fundo(c, largura, altura):
     c.saveState()
-    c.setStrokeColor(COR_FOLHA)
-    c.setLineWidth(0.15)
-    c.setStrokeAlpha(0.07)
-    step = 5 * mm
+    c.setStrokeColor(COR_AZUL)
+    c.setLineWidth(0.3)
+    c.setStrokeAlpha(0.04) # Muito subtil
+    step = 4 * mm
     for i in range(-int(altura / step), int(largura / step) + int(altura / step)):
         x0 = i * step
         c.line(x0, 0, x0 + altura, altura)
     c.restoreState()
 
-
-def _moldura_foto(c, x, y, w, h, radius=3 * mm):
-    c.setFillColor(colors.HexColor("#00000018"))
-    c.roundRect(x + 0.8 * mm, y - 0.8 * mm, w, h, radius, fill=1, stroke=0)
-    c.setStrokeColor(COR_OURO)
-    c.setLineWidth(1.2)
-    c.setFillColor(COR_CINZA_CLARO)
+def _moldura_foto(c, x, y, w, h, radius=4 * mm):
+    # Sombra elegante
+    c.setFillColor(colors.HexColor("#00000010"))
+    c.roundRect(x + 1.2 * mm, y - 1.2 * mm, w, h, radius, fill=1, stroke=0)
+    
+    # Borda Azul da Prefeitura
+    c.setStrokeColor(COR_AZUL)
+    c.setLineWidth(1.5)
+    c.setFillColor(COR_BRANCO)
     c.roundRect(x, y, w, h, radius, fill=1, stroke=1)
 
-
-def _label_valor(c, x, y, label, valor, cor_label=None, cor_valor=None,
-                  tam_label=6, tam_valor=10):
-    cor_label = cor_label or COR_LABEL
-    cor_valor = cor_valor or COR_TEXTO
-    c.setFillColor(cor_label)
+def _label_valor(c, x, y, label, valor, tam_label=6, tam_valor=10):
+    c.setFillColor(COR_TEXTO_LABEL)
     c.setFont("Helvetica-Bold", tam_label)
     c.drawString(x, y, label)
-    c.setFillColor(cor_valor)
+    
+    c.setFillColor(COR_TEXTO_ESCURO)
     c.setFont("Helvetica-Bold", tam_valor)
     c.drawString(x, y - (tam_valor * 0.45 * mm) - 1.5 * mm, valor)
-
 
 def gerar_pdf_carteira(residente_data, token):
     os.makedirs("tmp_pdfs", exist_ok=True)
     caminho_pdf = os.path.abspath(f"tmp_pdfs/carteira_{token}.pdf")
 
+    # Dimensões da carteirinha
     largura, altura = 135 * mm, 85 * mm
     c = canvas.Canvas(caminho_pdf, pagesize=(largura, altura))
 
-    # ── 1. FUNDO ────────────────────────────────────────────────────────────────
-    c.setFillColor(COR_CREME)
+    # ── 1. FUNDO GERAL ──────────────────────────────────────────────────────────
+    c.setFillColor(COR_FUNDO)
     c.rect(0, 0, largura, altura, fill=1, stroke=0)
-    _textura_diagonal(c, largura, altura)
+    _textura_fundo(c, largura, altura)
 
-    c.setFillColor(COR_FLORESTA)
-    c.rect(0, 0, 3.5 * mm, altura - 24 * mm, fill=1, stroke=0)
-    c.setFillColor(COR_OURO)
-    c.rect(0, altura - 24 * mm - 3 * mm, 3.5 * mm, 3 * mm, fill=1, stroke=0)
+    # Detalhe lateral elegante
+    c.setFillColor(COR_VERDE)
+    c.rect(0, 0, 3 * mm, altura, fill=1, stroke=0)
+    c.setFillColor(COR_AMARELO)
+    c.rect(3 * mm, 0, 1.5 * mm, altura, fill=1, stroke=0)
 
     # ── 2. HEADER ───────────────────────────────────────────────────────────────
     _gradiente_header(c, largura, altura)
+    _linha_cor(c, 0, altura - 24 * mm, largura, altura - 24 * mm, espessura=1.5, cor=COR_AMARELO)
 
-    # CORREÇÃO: Passando y1 e y2 iguais para linha horizontal
-    _linha_ouro(c, 0, altura - 24 * mm, largura, altura - 24 * mm, espessura=1.4)
-
+    # Logo
     path_logo = os.path.join(os.getcwd(), "frontend", "public", "logop.png")
     if os.path.exists(path_logo):
         c.drawImage(path_logo,
-                    8 * mm, altura - 21 * mm,
-                    width=15 * mm, height=15 * mm,
+                    9 * mm, altura - 20 * mm,
+                    width=14 * mm, height=14 * mm,
                     mask='auto', preserveAspectRatio=True)
     else:
-        c.setFillColor(COR_OURO)
-        c.circle(15.5 * mm, altura - 13 * mm, 8 * mm, fill=1, stroke=0)
-        c.setFillColor(COR_FLORESTA)
-        c.setFont("Helvetica-Bold", 10)
-        c.drawCentredString(15.5 * mm, altura - 15.5 * mm, "SGA")
+        # Fallback caso não encontre o logo
+        c.setFillColor(COR_BRANCO)
+        c.circle(16 * mm, altura - 13 * mm, 7 * mm, fill=1, stroke=0)
+        c.setFillColor(COR_AZUL)
+        c.setFont("Helvetica-Bold", 9)
+        c.drawCentredString(16 * mm, altura - 14.5 * mm, "SGA")
 
-    c.setFillColor(colors.white)
-    c.setFont("Helvetica-Bold", 18)
-    c.drawString(27 * mm, altura - 12 * mm, "SagaTurismo")
+    # Títulos no Header
+    c.setFillColor(COR_AMARELO)
+    c.setFont("Helvetica-Bold", 17)
+    c.drawString(28 * mm, altura - 13 * mm, "SagaTurismo")
 
-    c.setFillColor(COR_OURO)
-    c.setFont("Helvetica-Oblique", 7)
-    c.drawString(27 * mm, altura - 17.5 * mm, "CARTEIRA DO RESIDENTE  ·  PARQUE AMBIENTAL")
+    c.setFillColor(COR_BRANCO)
+    c.setFont("Helvetica-Bold", 6.5)
+    c.drawString(28 * mm, altura - 18.5 * mm, "CARTEIRA DE RESIDENTE  ·  SÃO GERALDO DO ARAGUAIA")
 
-    c.setFillColor(colors.HexColor("#ffffff55"))
-    c.setFont("Helvetica", 6)
-    c.drawRightString(largura - 5 * mm, altura - 20 * mm, f"#{token[:8].upper()}")
+    # ID do Token (canto superior direito)
+    c.setFillColor(colors.HexColor("#ffffff60"))
+    c.setFont("Helvetica-Bold", 7)
+    c.drawRightString(largura - 6 * mm, altura - 15 * mm, f"ID: {token[:8].upper()}")
 
-    # ── 3. FOTO ─────────────────────────────────────────────────────────────────
-    foto_x, foto_y = 7 * mm, 17 * mm
-    foto_w, foto_h = 38 * mm, 48 * mm
+    # ── 3. FOTO E BADGE ─────────────────────────────────────────────────────────
+    foto_x, foto_y = 10 * mm, 18 * mm
+    foto_w, foto_h = 36 * mm, 45 * mm
 
     _moldura_foto(c, foto_x, foto_y, foto_w, foto_h)
 
+    # Buscar e inserir Foto
     try:
         url_foto = residente_data.get('foto_url')
         response = requests.get(url_foto, timeout=10)
@@ -158,101 +160,94 @@ def gerar_pdf_carteira(residente_data, token):
                     width=foto_w - 2 * mm, height=foto_h - 2 * mm,
                     preserveAspectRatio=True, mask='auto')
     except Exception:
-        c.setFillColor(COR_CINZA_CLARO)
+        c.setFillColor(COR_CINZA_BORDA)
         c.roundRect(foto_x + 1 * mm, foto_y + 1 * mm,
-                    foto_w - 2 * mm, foto_h - 2 * mm, 2 * mm, fill=1, stroke=0)
-        c.setFillColor(COR_LABEL)
+                    foto_w - 2 * mm, foto_h - 2 * mm, 3 * mm, fill=1, stroke=0)
+        c.setFillColor(COR_TEXTO_LABEL)
         c.setFont("Helvetica-Oblique", 7)
         c.drawCentredString(foto_x + foto_w / 2, foto_y + foto_h / 2, "Foto indisponível")
 
-    c.setFillColor(COR_FLORESTA)
-    c.roundRect(foto_x, foto_y - 8 * mm, foto_w, 6.5 * mm, 1.5 * mm, fill=1, stroke=0)
-    c.setFillColor(COR_OURO)
+    # Placa "RESIDENTE" abaixo da foto
+    c.setFillColor(COR_AZUL)
+    c.roundRect(foto_x, foto_y - 7.5 * mm, foto_w, 6 * mm, 1.5 * mm, fill=1, stroke=0)
+    c.setFillColor(COR_AMARELO)
     c.setFont("Helvetica-Bold", 7)
-    c.drawCentredString(foto_x + foto_w / 2, foto_y - 5.2 * mm, "✦  RESIDENTE  ✦")
+    c.drawCentredString(foto_x + foto_w / 2, foto_y - 5.5 * mm, "RESIDENTE OFICIAL")
 
-    # ── 4. DADOS (COLUNA DIREITA) ────────────────────────────────────────────────
-    x_col = 51 * mm
-    col_w  = largura - x_col - 34 * mm
+    # ── 4. DADOS DO CIDADÃO ─────────────────────────────────────────────────────
+    x_col = 54 * mm
+    col_w  = largura - x_col - 36 * mm
 
-    # CORREÇÃO: Linha vertical (x1=x2)
-    _linha_ouro(c, x_col - 3 * mm, 10 * mm, x_col - 3 * mm, altura - 26 * mm, espessura=0.8)
+    # Linha vertical separadora macia
+    _linha_cor(c, x_col - 4 * mm, 12 * mm, x_col - 4 * mm, altura - 28 * mm, espessura=0.8, cor=COR_CINZA_BORDA)
 
     nome = residente_data.get('nome', '').upper()
-    c.setFillColor(COR_LABEL)
+    c.setFillColor(COR_TEXTO_LABEL)
     c.setFont("Helvetica-Bold", 6)
-    c.drawString(x_col, 62 * mm, "NOME DO TITULAR")
+    c.drawString(x_col, 56 * mm, "NOME DO TITULAR")
     
-    # CORREÇÃO: Linha horizontal sob o nome (y1=y2)
-    _linha_ouro(c, x_col, 61.2 * mm, x_col + col_w, 61.2 * mm, espessura=0.4)
-    
-    c.setFillColor(COR_FLORESTA)
-    c.setFont("Helvetica-Bold", 11)
-    while c.stringWidth(nome, "Helvetica-Bold", 11) > col_w and len(nome) > 4:
+    # Nome em Destaque
+    c.setFillColor(COR_AZUL)
+    c.setFont("Helvetica-Bold", 12)
+    while c.stringWidth(nome, "Helvetica-Bold", 12) > col_w and len(nome) > 4:
         nome = nome[:-1]
-    c.drawString(x_col, 56.5 * mm, nome)
+    c.drawString(x_col, 51.5 * mm, nome)
 
-    _label_valor(c, x_col, 50 * mm,
-                 "CPF", residente_data.get('cpf', '000.000.000-00'),
-                 tam_label=6, tam_valor=10)
+    # Dados adicionais
+    _label_valor(c, x_col, 42 * mm, "CPF", residente_data.get('cpf', '000.000.000-00'))
+    _label_valor(c, x_col, 32 * mm, "DATA DE NASCIMENTO", residente_data.get('data_nascimento', '--/--/----'))
 
-    _label_valor(c, x_col, 42 * mm,
-                 "DATA DE NASCIMENTO", residente_data.get('data_nascimento', '--/--/----'),
-                 tam_label=6, tam_valor=10)
-
-    c.setStrokeColor(COR_CINZA_CLARO)
-    c.setLineWidth(0.4)
-    c.line(x_col, 35.5 * mm, x_col + col_w, 35.5 * mm)
+    # Área de Validade
+    c.setStrokeColor(COR_CINZA_BORDA)
+    c.setLineWidth(0.5)
+    c.line(x_col, 25 * mm, x_col + col_w, 25 * mm)
 
     validade = (datetime.now() + timedelta(days=365)).strftime("%d/%m/%Y")
-    c.setFillColor(COR_LABEL)
+    c.setFillColor(COR_TEXTO_LABEL)
     c.setFont("Helvetica-Bold", 6)
-    c.drawString(x_col, 34 * mm, "VÁLIDO ATÉ")
-    c.setFillColor(COR_DESCONTO)
-    c.setFont("Helvetica-Bold", 13)
-    c.drawString(x_col, 27.5 * mm, validade)
+    c.drawString(x_col, 23 * mm, "VÁLIDO ATÉ")
+    
+    c.setFillColor(COR_VERDE)
+    c.setFont("Helvetica-Bold", 14)
+    c.drawString(x_col, 16.5 * mm, validade)
 
-    _badge_desconto(c, largura - 12 * mm, 58 * mm, raio=8 * mm)
+    # Selo de 50% de Desconto
+    _badge_desconto(c, largura - 14 * mm, 50 * mm, raio=9 * mm)
 
     # ── 5. QR CODE ──────────────────────────────────────────────────────────────
-    qr = qrcode.QRCode(box_size=10, border=1,
-                       error_correction=qrcode.constants.ERROR_CORRECT_M)
+    qr = qrcode.QRCode(box_size=10, border=1, error_correction=qrcode.constants.ERROR_CORRECT_M)
     qr.add_data(f"https://sagat-sga.vercel.app/fiscal/validar/{token}")
     qr.make(fit=True)
-    img_qr = qr.make_image(fill_color="#0d3b2e", back_color="white")
-
+    
+    # QR Code no Azul da Prefeitura
+    img_qr = qr.make_image(fill_color="#00577C", back_color="white")
     qr_io = BytesIO()
     img_qr.save(qr_io, format='PNG')
     qr_io.seek(0)
 
-    qr_size = 24 * mm
-    qr_x    = largura - qr_size - 5 * mm
-    qr_y    = 10 * mm
+    qr_size = 25 * mm
+    qr_x    = largura - qr_size - 6 * mm
+    qr_y    = 11 * mm
 
-    c.setFillColor(colors.white)
-    c.setStrokeColor(COR_OURO)
-    c.setLineWidth(0.8)
-    c.roundRect(qr_x - 1 * mm, qr_y - 1 * mm,
-                qr_size + 2 * mm, qr_size + 2 * mm,
-                1.5 * mm, fill=1, stroke=1)
-    c.drawImage(ImageReader(qr_io), qr_x, qr_y,
-                width=qr_size, height=qr_size)
+    # Moldura do QR Code
+    c.setFillColor(COR_BRANCO)
+    c.setStrokeColor(COR_CINZA_BORDA)
+    c.setLineWidth(1)
+    c.roundRect(qr_x - 1.5 * mm, qr_y - 1.5 * mm, qr_size + 3 * mm, qr_size + 3 * mm, 2 * mm, fill=1, stroke=1)
+    c.drawImage(ImageReader(qr_io), qr_x, qr_y, width=qr_size, height=qr_size)
 
-    c.setFillColor(COR_LABEL)
-    c.setFont("Helvetica-Bold", 5)
-    c.drawCentredString(qr_x + qr_size / 2, qr_y - 3.5 * mm, "ACESSO AO PARQUE")
+    c.setFillColor(COR_VERDE)
+    c.setFont("Helvetica-Bold", 5.5)
+    c.drawCentredString(qr_x + qr_size / 2, qr_y - 4 * mm, "VALIDAR ACESSO")
 
     # ── 6. RODAPÉ ───────────────────────────────────────────────────────────────
-    c.setFillColor(COR_FLORESTA)
-    c.rect(0, 0, largura, 9 * mm, fill=1, stroke=0)
-    
-    # CORREÇÃO: Linha horizontal no rodapé (y1=y2)
-    _linha_ouro(c, 0, 9 * mm, largura, 9 * mm, espessura=1)
+    _linha_cor(c, 0, 7.5 * mm, largura, 7.5 * mm, espessura=1, cor=COR_VERDE)
+    c.setFillColor(COR_VERDE)
+    c.rect(0, 0, largura, 7 * mm, fill=1, stroke=0)
 
-    c.setFillColor(colors.white)
-    c.setFont("Helvetica-Bold", 6.5)
-    c.drawCentredString(largura / 2, 3.5 * mm,
-                        "Desenvolvido pela Secretaria Municipal de Turismo de São Geraldo do Araguaia")
+    c.setFillColor(COR_AMARELO)
+    c.setFont("Helvetica-Bold", 5.5)
+    c.drawCentredString(largura / 2, 2.5 * mm, "DOCUMENTO OFICIAL DA SECRETARIA MUNICIPAL DE TURISMO")
 
     c.save()
     return caminho_pdf

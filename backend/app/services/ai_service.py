@@ -1,46 +1,57 @@
 import os
 import json
+import re
 from google import genai
-from google.genai import types  # Importação necessária para o formato de imagem
+from google.genai import types
 from dotenv import load_dotenv
 
 load_dotenv()
 
 def validar_endereco_com_ia(imagem_bytes: bytes, nome_esperado: str, mime_type: str = "image/jpeg") -> dict:
     """
-    Valida se o documento (luz, água, gás) comprova residência em São Geraldo do Araguaia
-    e se pertence ao usuário.
+    Versão Corrigida: Usa o modelo estável 002 e limpeza de JSON robusta.
     """
     try:
+        # Inicializa o cliente para Google AI Studio
         client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
         
-        # Prompt focado na prova de residência
         prompt = (
-            f"Aja como um validador de documentos oficial. Analise este comprovante (luz, água, gás ou telefone). "
-            f"1. O documento prova que o endereço fica na cidade de 'São Geraldo do Araguaia' no Pará? "
-            f"2. O nome presente no documento é '{nome_esperado}'? "
-            "Ignore se o nome estiver abreviado. O objetivo principal é confirmar a residência na cidade. "
-            "Responda APENAS em JSON: "
-            '{"valido": true/false, "motivo": "Explique brevemente o porquê"}'
+            f"Aja como um validador de documentos oficial da Prefeitura de São Geraldo do Araguaia. "
+            f"Analise este comprovante (luz, água, gás ou telefone). "
+            f"1. O endereço está localizado em 'São Geraldo do Araguaia' (PA)? "
+            f"2. O nome no documento corresponde a '{nome_esperado}'? "
+            "Considere nomes abreviados como válidos. Foco: confirmar se mora na cidade. "
+            "Responda APENAS em formato JSON puro: "
+            '{"valido": true/false, "motivo": "justificativa curta"}'
         )
 
-        # CORREÇÃO DA SINTAXE: Usando types.Part.from_bytes para resolver o erro do log
+        # Usando o modelo gemini-1.5-flash-002 para evitar erro 404 de rota
         response = client.models.generate_content(
-            model="gemini-1.5-flash",
+            model="gemini-1.5-flash-002",
             contents=[
                 types.Part.from_bytes(data=imagem_bytes, mime_type=mime_type),
                 prompt
             ]
         )
 
-        # Limpeza e conversão do JSON
-        texto_limpo = response.text.replace("```json", "").replace("```", "").strip()
-        return json.loads(texto_limpo)
+        # Limpeza de JSON robusta usando Expressão Regular
+        conteudo = response.text
+        # Procura por algo que pareça um JSON { ... } dentro da resposta
+        match = re.search(r'\{.*\}', conteudo, re.DOTALL)
+        
+        if match:
+            texto_json = match.group(0)
+            return json.loads(texto_json)
+        else:
+            raise ValueError("IA não devolveu um JSON válido")
 
     except Exception as e:
-        # Log detalhado no terminal da Railway para debug
         print(f"[IA-LOG] Erro detalhado: {e}")
+        # Se for erro de cota (429), avisamos o log
+        if "429" in str(e):
+            return {"valido": False, "motivo": "Sistema de IA sobrecarregado. Tente novamente em 1 minuto."}
+        
         return {
             "valido": False, 
-            "motivo": "Falha técnica ao analisar o documento."
+            "motivo": "Falha técnica na validação. Por favor, tente novamente ou use outro documento."
         }
