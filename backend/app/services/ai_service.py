@@ -13,7 +13,7 @@ def validar_endereco_com_ia(imagem_bytes: bytes, nome_esperado: str, mime_type: 
         client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
         
         # 2. Usamos o 2.0-flash (único que não deu 404 nos seus logs)
-        MODELO = "gemini-2.0-flash"
+        MODELO = "gemini-1.5-flash"
 
         prompt = (
             f"VOCÊ É UM AUDITOR FISCAL RIGOROSO DA PREFEITURA DE SÃO GERALDO DO ARAGUAIA - PA.\n"
