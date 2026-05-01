@@ -10,22 +10,29 @@ GMAIL_PASS = "vudm kmvd seaq ptkg"
 
 LOGO_URL = "https://sagaturismo.vercel.app/logop.png"  # troca pelo teu domínio real
 
-
-def enviar_carteira_por_email(destinatario, nome, caminho_pdf):
+# Agora recebemos o nome do titular (para a saudação), a lista de todos os aprovados e a lista de PDFs
+def enviar_carteiras_por_email(destinatario, nome_titular, lista_nomes, caminhos_pdfs):
     try:
         msg = MIMEMultipart("alternative")
         msg["From"] = f"SagaTurismo | Prefeitura de São Geraldo do Araguaia <{GMAIL_USER}>"
         msg["To"] = destinatario
         msg["Subject"] = "Sua Carteira Digital de Residente está pronta"
 
-        primeiro_nome = nome.split()[0] if nome else "Residente"
+        primeiro_nome = nome_titular.split()[0] if nome_titular else "Residente"
+        
+        # Formata a lista de nomes para o texto puro
+        lista_nomes_texto = "\n".join([f"- {nome}" for nome in lista_nomes])
+        
+        # Formata a lista de nomes para o HTML
+        lista_nomes_html = "<br>".join([f"&bull; <strong>{nome}</strong>" for nome in lista_nomes])
 
         texto = f"""
 Olá {primeiro_nome},
 
-Sua solicitação foi aprovada e sua Carteira Digital de Residente está pronta.
+Sua solicitação foi aprovada! Abaixo estão as carteiras digitais de acesso ao parque para:
+{lista_nomes_texto}
 
-O PDF oficial está em anexo neste e-mail.
+Os documentos oficiais em PDF estão anexados a este e-mail.
 
 Prefeitura Municipal de São Geraldo do Araguaia
 SagaTurismo
@@ -42,7 +49,7 @@ SagaTurismo
                             
                             <tr>
                                 <td style="padding:28px 32px; background:#ffffff; border-bottom:1px solid #e2e8f0;">
-                                    <img src="logop.png" alt="Prefeitura de São Geraldo do Araguaia" style="display:block; height:72px; max-width:260px; width:auto;" />
+                                    <img src="{LOGO_URL}" alt="Prefeitura de São Geraldo do Araguaia" style="display:block; height:72px; max-width:260px; width:auto;" />
                                 </td>
                             </tr>
 
@@ -69,8 +76,9 @@ SagaTurismo
                                     </h2>
 
                                     <p style="margin:0 0 18px; color:#475569; font-size:15px; line-height:1.7;">
-                                        A sua residência foi validada e a sua <strong>Carteira Digital de Residente</strong> foi emitida.
-                                        O documento oficial está anexado a este e-mail em PDF.
+                                        A sua residência foi validada. Abaixo estão as carteiras digitais de acesso ao parque para:<br><br>
+                                        <span style="color:#00577C; font-size: 15px;">{lista_nomes_html}</span><br><br>
+                                        Os documentos oficiais estão anexados a este e-mail em PDF.
                                     </p>
 
                                     <div style="margin:26px 0; background:#f8fafc; border:1px solid #e2e8f0; border-radius:18px; padding:24px;">
@@ -123,31 +131,41 @@ SagaTurismo
         msg.attach(MIMEText(texto, "plain"))
         msg.attach(MIMEText(html, "html"))
 
-        if os.path.exists(caminho_pdf):
-            with open(caminho_pdf, "rb") as f:
-                payload = MIMEBase("application", "octet-stream")
-                payload.set_payload(f.read())
-                encoders.encode_base64(payload)
-                payload.add_header(
-                    "Content-Disposition",
-                    "attachment",
-                    filename="Carteira_Digital_Residente_SGA.pdf",
-                )
-                msg.attach(payload)
+        # Adiciona múltiplos anexos
+        anexos_sucesso = 0
+        for caminho_pdf in caminhos_pdfs:
+            if os.path.exists(caminho_pdf):
+                with open(caminho_pdf, "rb") as f:
+                    payload = MIMEBase("application", "octet-stream")
+                    payload.set_payload(f.read())
+                    encoders.encode_base64(payload)
+                    
+                    # Usa o próprio nome do arquivo para o anexo
+                    nome_arquivo = os.path.basename(caminho_pdf)
+                    payload.add_header(
+                        "Content-Disposition",
+                        f"attachment; filename={nome_arquivo}",
+                    )
+                    msg.attach(payload)
+                
+                os.remove(caminho_pdf)  # Limpa o arquivo após anexar
+                anexos_sucesso += 1
+            else:
+                print(f"Aviso: PDF não encontrado em {caminho_pdf}")
 
-            if not GMAIL_PASS:
-                raise RuntimeError("GMAIL_PASS não configurada.")
+        if anexos_sucesso == 0:
+            print("Nenhum PDF foi anexado. Cancelando envio.")
+            return False
 
-            with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-                server.login(GMAIL_USER, GMAIL_PASS)
-                server.sendmail(GMAIL_USER, destinatario, msg.as_string())
+        if not GMAIL_PASS:
+            raise RuntimeError("GMAIL_PASS não configurada.")
 
-            os.remove(caminho_pdf)
-            print(f"Sucesso ao enviar para {destinatario}")
-            return True
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            server.login(GMAIL_USER, GMAIL_PASS)
+            server.sendmail(GMAIL_USER, destinatario, msg.as_string())
 
-        print("PDF não encontrado.")
-        return False
+        print(f"Sucesso ao enviar para {destinatario} com {anexos_sucesso} anexo(s).")
+        return True
 
     except Exception as e:
         print(f"Erro no Email: {e}")
