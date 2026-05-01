@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 # Importação dos serviços customizados
 from app.services.ai_service import validar_endereco_com_ia
 from app.services.pdf_service import gerar_pdf_carteira
-from app.services.email_service import enviar_carteira_por_email
+from app.services.email_service import enviar_carteiras_por_email
 
 load_dotenv()
 
