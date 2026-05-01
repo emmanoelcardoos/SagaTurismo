@@ -1,7 +1,7 @@
 fastapi
 uvicorn
 supabase
-anthropic
+google-genai
 python-multipart
 python-dotenv
 reportlab
