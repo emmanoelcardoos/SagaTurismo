@@ -8,24 +8,20 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def validar_endereco_com_ia(imagem_bytes: bytes, nome_esperado: str, mime_type: str = "image/jpeg") -> dict:
-    """
-    Versão Corrigida: Usa o modelo estável 002 e limpeza de JSON robusta.
-    """
     try:
-        # Inicializa o cliente para Google AI Studio
-        client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+        # CONFIGURAÇÃO CRÍTICA: Forçamos o uso da API v1 estável
+        client = genai.Client(
+            api_key=os.getenv("GEMINI_API_KEY"),
+            http_options={'api_version': 'v1'} 
+        )
         
         prompt = (
-            f"Aja como um validador de documentos oficial da Prefeitura de São Geraldo do Araguaia. "
-            f"Analise este comprovante (luz, água, gás ou telefone). "
-            f"1. O endereço está localizado em 'São Geraldo do Araguaia' (PA)? "
-            f"2. O nome no documento corresponde a '{nome_esperado}'? "
-            "Considere nomes abreviados como válidos. Foco: confirmar se mora na cidade. "
-            "Responda APENAS em formato JSON puro: "
-            '{"valido": true/false, "motivo": "justificativa curta"}'
+            f"Analise este comprovante para a Prefeitura de São Geraldo do Araguaia. "
+            f"O requerente é {nome_esperado}. "
+            "Responda apenas JSON: {'valido': true/false, 'motivo': 'texto'}"
         )
 
-        # Usando o modelo gemini-1.5-flash-002 para evitar erro 404 de rota
+        # Agora o Gemini 3 Flash será encontrado sem erro 404
         response = client.models.generate_content(
             model="gemini-3-flash",
             contents=[
