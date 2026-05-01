@@ -20,7 +20,6 @@ import {
   Sparkles,
   CalendarDays,
 } from 'lucide-react';
-// Substituído Playfair_Display por Plus_Jakarta_Sans para alinhar com a Homepage
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 
 import CPFInput from '@/components/ui/CPFInput';
@@ -517,15 +516,52 @@ export default function CadastroPage() {
                   </div>
                 </div>
 
-                <div className="mb-6 rounded-3xl border border-[#007FA3]/20 bg-[#007FA3]/5 p-5">
-                  <div className="flex gap-3">
-                    <Info className="mt-0.5 h-5 w-5 shrink-0 text-[#007FA3]" />
-                    <p className="text-sm leading-relaxed text-slate-600">
-                      <strong className="text-[#00577C]">Imagens aceitas:</strong> foto da conta de água,
-                      luz, telefone, boleto ou documento com seu nome e endereço em São Geraldo do Araguaia.
-                    </p>
+                {/* --- NOVA CAIXA DE REGRAS EXPLICADAS --- */}
+                <div className="mb-8 space-y-4">
+                  {/* Informações Críticas & Titularidade */}
+                  <div className="rounded-3xl border border-[#007FA3]/20 bg-[#007FA3]/5 p-5">
+                    <div className="mb-3 flex gap-3">
+                      <Info className="mt-0.5 h-5 w-5 shrink-0 text-[#007FA3]" />
+                      <p className="text-sm font-bold text-[#00577C]">
+                        Regras de Verificação (Leia com atenção)
+                      </p>
+                    </div>
+                    <ul className="ml-8 list-disc space-y-1.5 text-sm text-slate-600">
+                      <li>O documento DEVE provar vínculo com <strong className="text-[#00577C]">São Geraldo do Araguaia - PA</strong> (CEP: 68570-000).</li>
+                      <li>Deve ser recente (máximo de <strong className="text-[#00577C]">90 dias</strong>) e estar totalmente legível.</li>
+                      <li>Deve estar no <strong className="text-[#00577C]">seu nome</strong>. Exceção: Contas de consumo em nome de familiares que possuam o mesmo sobrenome.</li>
+                    </ul>
+                  </div>
+
+                  {/* O Que Aceitamos */}
+                  <div className="rounded-3xl border border-[#009640]/20 bg-[#EAF8F0] p-5">
+                    <div className="mb-3 flex gap-3">
+                      <CheckCircle2 className="h-5 w-5 shrink-0 text-[#009640]" />
+                      <p className="text-sm font-bold text-[#009640]">Documentos Aceitos</p>
+                    </div>
+                    <ul className="ml-8 list-disc space-y-1.5 text-sm text-slate-600">
+                      <li><strong className="font-semibold text-slate-700">Contas de Consumo:</strong> Energia (Equatorial), Água (Cosanpa) ou faturas de Internet fixa.</li>
+                      <li><strong className="font-semibold text-slate-700">Educação:</strong> Declaração de matrícula em escola/faculdade do município.</li>
+                      <li><strong className="font-semibold text-slate-700">Trabalho:</strong> Contracheque ou contrato com empresa local.</li>
+                      <li><strong className="font-semibold text-slate-700">Saúde:</strong> Cartão SUS ou declaração de posto de saúde (UBS) local.</li>
+                    </ul>
+                  </div>
+
+                  {/* O Que NÃO Aceitamos */}
+                  <div className="rounded-3xl border border-red-200 bg-red-50 p-5">
+                    <div className="mb-3 flex gap-3">
+                      <XCircle className="h-5 w-5 shrink-0 text-red-500" />
+                      <p className="text-sm font-bold text-red-600">NÃO Serão Aceitos</p>
+                    </div>
+                    <ul className="ml-8 list-disc space-y-1.5 text-sm text-slate-600">
+                      <li>Boletos genéricos (cartão de crédito, compras online, faculdades de fora).</li>
+                      <li>Contratos de aluguel informais (sem firma reconhecida em cartório).</li>
+                      <li>Declarações feitas à mão ou sem o logotipo oficial da instituição.</li>
+                      <li>Fotos apenas do RG, CPF ou CNH (pois não comprovam morada local).</li>
+                    </ul>
                   </div>
                 </div>
+                {/* --- FIM DA NOVA CAIXA --- */}
 
                 <div className="grid gap-6">
                   <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
