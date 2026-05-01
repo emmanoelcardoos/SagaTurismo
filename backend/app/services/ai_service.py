@@ -21,7 +21,7 @@ def validar_endereco_com_ia(imagem_bytes: bytes, nome_esperado: str, mime_type: 
             print(f"Não foi possível listar modelos: {e_list}", flush=True)
 
         # 3. Usamos o sufixo "-latest" (O curinga da Google que nunca dá 404)
-        MODELO = "gemini-1.5-flash-latest"
+        MODELO = "gemini-2.5-flash"
 
         prompt = (
             f"VOCÊ É UM AUDITOR DA PREFEITURA DE SÃO GERALDO DO ARAGUAIA - PA.\n"
