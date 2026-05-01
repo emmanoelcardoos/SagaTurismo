@@ -8,69 +8,62 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def validar_endereco_com_ia(imagem_bytes: bytes, nome_esperado: str, mime_type: str = "image/jpeg") -> dict:
-    """
-    Validação de Tolerância Zero para São Geraldo do Araguaia.
-    """
     try:
-        # Usamos o cliente v1 estável
-        client = genai.Client(
-            api_key=os.getenv("GEMINI_API_KEY"),
-            http_options={'api_version': 'v1'}
-        )
+        # 1. Instanciamos o cliente sem forçar a v1 para evitar o 404
+        client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
         
-        # Nome estável do modelo para evitar o erro 404
-        MODEL_NAME = "gemini-3-flash"
+        # 2. Usamos o 2.0-flash (único que não deu 404 nos seus logs)
+        MODELO = "gemini-2.0-flash"
 
         prompt = (
-            f"VOCÊ É UM AUDITOR FISCAL DA PREFEITURA DE SÃO GERALDO DO ARAGUAIA - PA.\n"
-            f"Analise o documento para o requerente: '{nome_esperado}'.\n\n"
-            "### REGRAS DE OURO (TOLERÂNCIA ZERO):\n"
-            "1. LOCALIDADE: O endereço deve ser em São Geraldo do Araguaia - PA. Verifique cidade, estado e CEP (68585-000).\n"
-            "2. TITULARIDADE: Compare o nome no documento com '{nome_esperado}'. Aceite abreviações óbvias, mas rejeite nomes totalmente diferentes sem vínculo.\n"
-            "3. CPF: Se houver CPF no documento, extraia-o.\n"
-            "4. RECENTE: O documento deve ser de 2026 (máximo 90 dias de antiguidade).\n"
-            "5. TIPO: Apenas faturas oficiais de Energia (Equatorial), Água (Cosanpa), IPTU ou Internet fixa.\n\n"
-            "### ESTRUTURA DE RESPOSTA (APENAS JSON):\n"
+            f"VOCÊ É UM AUDITOR FISCAL RIGOROSO DA PREFEITURA DE SÃO GERALDO DO ARAGUAIA - PA.\n"
+            f"Sua missão é validar com TOLERÂNCIA ZERO se o munícipe '{nome_esperado}' reside na cidade para fins de concessão de benefício.\n\n"
+            
+            "### PROTOCOLO DE ANÁLISE OBRIGATÓRIO:\n"
+            "1. LOCALIDADE: O endereço DEVE estar em São Geraldo do Araguaia, Pará. Verifique o CEP (faixa 68585-000), nome da cidade e sigla do estado.\n"
+            "2. TITULARIDADE: O nome no documento deve ser idêntico ou uma abreviação clara de '{nome_esperado}'.\n"
+            "3. CPF: Se houver um CPF visível no documento, extraia-o para cruzamento de dados.\n"
+            "4. ATUALIDADE: A data de emissão ou vencimento deve ser dos últimos 90 dias (considere que estamos em Maio de 2026).\n"
+            "5. TIPO: Aceite apenas contas de consumo fixas (Energia/Equatorial, Água/Cosanpa, IPTU, Internet Residencial ou Telefone Fixo).\n\n"
+            
+            "### CRITÉRIOS DE REJEIÇÃO IMEDIATA:\n"
+            "- Documentos de outras cidades (ex: Marabá, Piçarra, Xinguara).\n"
+            "- Documentos com mais de 3 meses de atraso.\n"
+            "- Print de tela de celular (deve ser o PDF original ou foto do documento físico).\n"
+            "- Nomes que não possuam parentesco óbvio (se o nome for diferente, sugira 'revisao_dependente').\n\n"
+            
+            "### FORMATO DE SAÍDA (ESTRITAMENTE JSON):\n"
             "{\n"
             "  \"valido\": true/false,\n"
-            "  \"status\": \"aprovado_titular\" | \"revisao_parentesco\" | \"rejeitado\",\n"
+            "  \"status_sugerido\": \"aprovado_titular\" | \"revisao_dependente\" | \"rejeitado_localidade\" | \"rejeitado_titularidade\" | \"rejeitado_antigo\" | \"ilegivel\",\n"
             "  \"dados_extraidos\": {\n"
-            "    \"nome_documento\": \"string\",\n"
-            "    \"cpf_encontrado\": \"string ou null\",\n"
-            "    \"endereco_completo\": \"string\",\n"
-            "    \"cidade_estado\": \"string\",\n"
-            "    \"data_emissao\": \"string\"\n"
+            "    \"nome_no_doc\": \"string\",\n"
+            "    \"cpf_no_doc\": \"string ou null\",\n"
+            "    \"logradouro\": \"rua/avenida e número\",\n"
+            "    \"bairro\": \"string\",\n"
+            "    \"data_referencia\": \"DD/MM/AAAA\"\n"
             "  },\n"
-            "  \"analise_tecnica\": {\n"
-            "    \"cidade_confere\": true/false,\n"
-            "    \"nome_confere\": true/false,\n"
-            "    \"documento_recente\": true/false\n"
-            "  },\n"
-            "  \"motivo\": \"Explicação detalhada do veredito\"\n"
+            "  \"motivo\": \"Explicação técnica e detalhada da decisão\",\n"
+            "  \"confianca_ia\": 0-100\n"
             "}"
         )
 
         response = client.models.generate_content(
-            model=MODEL_NAME,
+            model=MODELO,
             contents=[
                 types.Part.from_bytes(data=imagem_bytes, mime_type=mime_type),
                 prompt
             ]
         )
 
-        # Captura apenas o JSON da resposta
         match = re.search(r'\{.*\}', response.text, re.DOTALL)
         if match:
             return json.loads(match.group(0))
-        
-        raise ValueError("A IA não retornou um formato JSON válido.")
+        raise ValueError("JSON não encontrado")
 
     except Exception as e:
-        print(f"[GEMINI-LOG] Erro detalhado: {e}")
-        # Tratamento de erros comuns para o seu Log da Railway
-        if "404" in str(e):
-            return {"valido": False, "motivo": "Erro 404: O modelo gemini-3-flash não foi encontrado no v1. Tente v1beta ou verifique o nome."}
+        print(f"[IA-LOG] Erro: {e}")
+        # Mensagem amigável para o usuário, mas detalhada no seu log
         if "429" in str(e):
-            return {"valido": False, "motivo": "Quota esgotada. Ative o faturamento (Pay-as-you-go) no AI Studio."}
-        
-        return {"valido": False, "motivo": "Falha técnica na análise do documento."}
+            return {"valido": False, "motivo": "ERRO DE QUOTA: Ative o faturamento no Google AI Studio (Pay-as-you-go)."}
+        return {"valido": False, "motivo": f"Erro técnico: {str(e)[:50]}"}
