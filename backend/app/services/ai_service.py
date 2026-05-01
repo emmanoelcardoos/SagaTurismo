@@ -27,7 +27,7 @@ def validar_endereco_com_ia(imagem_bytes: bytes, nome_esperado: str, mime_type: 
 
         # Usando o modelo gemini-1.5-flash-002 para evitar erro 404 de rota
         response = client.models.generate_content(
-            model="gemini-1.5-flash-002",
+            model="gemini-3-flash",
             contents=[
                 types.Part.from_bytes(data=imagem_bytes, mime_type=mime_type),
                 prompt
