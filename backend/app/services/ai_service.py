@@ -27,54 +27,15 @@ def validar_endereco_com_ia(imagem_bytes: bytes, lista_nomes: list, mime_type: s
 
         # MUDANÇA 3: Injetamos o texto dinâmico no prompt
         prompt = (
-            f"Você é o Auditor Chefe da Prefeitura de São Geraldo do Araguaia - PA.\n"
-            f"{texto_contexto}\n\n"
-
-            "## REGRAS DE VALIDAÇÃO (Tolerância Zero)\n\n"
-
-            "### REGRA 1 — MUNICÍPIO (Crítico)\n"
-            "O documento DEVE provar vínculo com São Geraldo do Araguaia - PA.\n"
-            "Busque pelo nome da cidade ou pelo CEP oficial: 68570-000.\n"
-            "Rejeite se a cidade for outra. Se não estiver legível, reprove.\n\n"
-
-            "### REGRA 2 — TIPO DE DOCUMENTO\n"
-            "✅ ACEITOS:\n"
-            "- Contas de Consumo: Energia (Equatorial), Água (Cosanpa, Saneatins, Odebrecht,...), IPTU, Internet fixa.\n"
-            "- Vínculo de Ensino: Declaração de matrícula em escola/faculdade do município.\n"
-            "- Vínculo de Trabalho: Contracheque ou contrato de trabalho com empresa do município.\n"
-            "- Vínculo de Saúde: Declaração/Cartão de posto de saúde (UBS) ou SUS do município.\n\n"
-            "🚫 REJEITADOS SUMARIAMENTE:\n"
-            "- Boletos genéricos (cartão de crédito, compras online, faculdades EAD de fora).\n"
-            "- Contratos de aluguel informais (sem firma reconhecida).\n"
-            "- Declarações escritas à mão ou documentos sem logotipo da instituição.\n"
-            "- Documentos de identidade (RG, CPF, CNH) usados como comprovante de endereço.\n\n"
-
-            "### REGRA 3 — TITULARIDADE E PARENTESCO\n"
-            f"{texto_titularidade}\n"
-            "EXCEÇÃO (Parentesco): Se o documento for uma conta de consumo válida e estiver em outro nome, mas houver forte correspondência de SOBRENOMES com alguém da lista, considere a titularidade como válida (aprovado_parentesco).\n"
-            "Se não for o titular e os sobrenomes forem totalmente diferentes de todos da lista, reprove.\n\n"
-
-            "### REGRA 4 — DATA E LEGIBILIDADE\n"
-            "O documento deve ter no máximo 90 dias (ou pertencer ao ano letivo atual para ensino).\n"
-            "Documentos borrados, cortados ou sem data visível devem ser reprovados.\n\n"
-
-            "## FORMATO DE RESPOSTA (APENAS JSON)\n"
+            "Você é um assistente de validação de documentos de teste.\n"
+            "Sua tarefa é analisar a imagem enviada e responder SOMENTE em JSON.\n\n"
+            "VERIFIQUE DUAS COISAS:\n"
+            "1. A imagem é um documento de identidade (RG)?\n"
+            "2. O documento menciona a cidade de 'São Geraldo do Araguaia' (seja como Naturalidade ou Local de Expedição/Emissão)?\n\n"
+            "FORMATO DE SAÍDA OBRIGATÓRIO:\n"
             "{\n"
             "  \"valido\": true | false,\n"
-            "  \"status\": \"aprovado_direto\" | \"aprovado_parentesco\" | \"aprovado_ensino\" | \"aprovado_trabalho\" | \"aprovado_saude\" | \"rejeitado\",\n"
-            "  \"dados_extraidos\": {\n"
-            "    \"nome_no_documento\": \"string\",\n"
-            "    \"endereco_completo\": \"string\",\n"
-            "    \"data_emissao\": \"string\",\n"
-            "    \"tipo_identificado\": \"string\"\n"
-            "  },\n"
-            "  \"checklist_auditoria\": {\n"
-            "    \"cidade_correta\": true | false,\n"
-            "    \"tipo_aceito\": true | false,\n"
-            "    \"nome_ou_parentesco_confere\": true | false,\n"
-            "    \"data_recente\": true | false\n"
-            "  },\n"
-            "  \"motivo\": \"Explicação direta do veredito.\"\n"
+            "  \"motivo\": \"Explique brevemente se achou a cidade e confirmou se é um RG.\"\n"
             "}"
         )
 
