@@ -1,42 +1,35 @@
 // lib/api.ts
 const BASE = process.env.NEXT_PUBLIC_API_URL;
 
-export interface CadastroPayload {
-  nome: string;
-  cpf: string;
-  email: string;
-  data_nascimento: string; // Novo campo
-  arquivo: File;           // Comprovativo de residência
-  foto: File;              // Foto de rosto (Selfie)
-}
-
 export interface CadastroResponse {
   status: 'sucesso' | 'erro';
   mensagem: string;
   valido_ia: boolean;
-  token_carteira?: string; // Novo campo devolvido pelo Backend
+  token_carteira?: string;
 }
 
-export async function cadastrarResidente(payload: CadastroPayload): Promise<CadastroResponse> {
-  const form = new FormData();
+// MUDANÇA MÁGICA: Agora a função recebe o FormData diretamente, 
+// sem a interface antiga que limitava a 1 pessoa só.
+export async function cadastrarResidente(formData: FormData): Promise<CadastroResponse> {
   
-  // Anexando todos os campos conforme o backend espera
-  form.append('nome', payload.nome);
-  form.append('cpf', payload.cpf);
-  form.append('email', payload.email);
-  form.append('data_nascimento', payload.data_nascimento);
-  form.append('arquivo', payload.arquivo); // Multipart do comprovativo
-  form.append('foto', payload.foto);       // Multipart da selfie
-
   const res = await fetch(`${BASE}/api/v1/residentes/cadastrar`, {
     method: 'POST',
-    body: form,
+    // ATENÇÃO: Nunca coloque headers de Content-Type aqui. O fetch faz isso sozinho.
+    body: formData, 
   });
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    // Se o backend enviar um erro 429 (Cota do Gemini), ele cairá aqui
-    throw new Error(err?.detail ?? 'Erro ao processar o cadastro.');
+    
+    // Isto vai imprimir o verdadeiro motivo do erro no console se algo falhar
+    console.error("[FASTAPI 422 DETAIL]:", err);
+    
+    // Transforma o array chato do FastAPI numa string legível para o frontend não dar [object Object]
+    const mensagemErro = err?.detail 
+      ? (typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail))
+      : 'Erro ao processar o cadastro.';
+      
+    throw new Error(mensagemErro);
   }
 
   return res.json();
