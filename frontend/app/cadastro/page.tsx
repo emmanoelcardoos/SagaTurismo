@@ -227,7 +227,7 @@ export default function CadastroPage() {
     setLoading(true);
 
     try {
-      // 1. Agrupar os dados de todos os integrantes num array JSON
+      // 1. Agrupar os dados de todos os integrantes num array JSON (Titular na posição 0)
       const integrantes = [
         { tipo: 'titular', nome, cpf, email, data_nascimento: dataNascimento },
         ...dependentes.map(d => ({
@@ -241,13 +241,13 @@ export default function CadastroPage() {
       // 2. Extrair fotos numa lista ordenada (Titular [0], Dependentes [1..4])
       const fotosArray = [foto!, ...dependentes.map(d => d.foto!)];
 
-      // 3. Montar o FormData
+      // 3. Montar o FormData com os nomes de campos EXATOS do FastAPI
       const formData = new FormData();
       formData.append('integrantes', JSON.stringify(integrantes));
-      formData.append('comprovante_residencia', arquivo!);
+      formData.append('arquivo', arquivo!); // Chave exata do backend
       
-      fotosArray.forEach((f, index) => {
-        formData.append('fotos_rosto', f);
+      fotosArray.forEach((f) => {
+        formData.append('fotos', f); // Chave exata do backend (permite vários ficheiros)
       });
 
       // 4. Enviar para a API
