@@ -25,6 +25,7 @@ import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import CPFInput from '@/components/ui/CPFInput';
 import FileUploader from '@/components/ui/FileUploader';
 import { cadastrarResidente, type CadastroResponse } from '@/lib/api';
+import imageCompression from 'browser-image-compression';
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],

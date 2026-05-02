@@ -1,15 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Html5QrcodeScanner } from 'html5-qrcode';
-import { ShieldAlert, CheckCircle2, AlertTriangle, XCircle, User, ShieldCheck, ScanLine, RefreshCcw } from 'lucide-react';
+import { useEffect, useState, useRef } from 'react';
+import { Html5Qrcode } from 'html5-qrcode';
+import { ShieldAlert, CheckCircle2, AlertTriangle, XCircle, User, ShieldCheck, ScanLine, RefreshCcw, Camera } from 'lucide-react';
 
 interface ValidarResponse {
   sucesso: boolean;
   nome?: string;
-  status?: string; // 'ativo', 'expirado', 'suspenso', etc.
+  status?: string; 
   foto_url?: string;
-  data_expiracao?: string; // Data formatada
+  data_expiracao?: string; 
   mensagem?: string;
 }
 
@@ -17,53 +17,80 @@ export default function ScannerFiscal() {
   const [scanResult, setScanResult] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [dadosResidente, setDadosResidente] = useState<ValidarResponse | null>(null);
+  const [permissaoErro, setPermissaoErro] = useState<string | null>(null);
+  
+  // Usamos uma ref para guardar a instância do leitor e poder pará-lo adequadamente
+  const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
 
   useEffect(() => {
-    // Só inicia a câmara se não estiver a mostrar um resultado
-    if (scanResult) return;
+    // Se já leu um código ou está a carregar, não tenta ligar a câmara novamente
+    if (scanResult || loading) return;
 
-    const scanner = new Html5QrcodeScanner(
-      "reader",
-      { fps: 10, qrbox: { width: 250, height: 250 } },
-      false
-    );
-
-    async function onScanSuccess(decodedText: string) {
-      // Evita ler o mesmo código 2 vezes seguidas acidentalmente
-      if (loading) return;
-      
-      setScanResult(decodedText);
-      scanner.clear(); // Desliga a câmara momentaneamente
-      setLoading(true);
-      
+    const iniciarCamera = async () => {
       try {
-        const token = decodedText.split('/').pop() || decodedText;
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
-        
-        // Chama a sua API
-        const res = await fetch(`${baseUrl}/api/validar?token=${encodeURIComponent(token)}`);
-        const data = await res.json();
-        setDadosResidente(data);
-      } catch (error) {
-        setDadosResidente({ sucesso: false, mensagem: "Erro de conexão com o servidor." });
-      } finally {
-        setLoading(false);
+        // Inicializa a versão "Core" do leitor
+        const html5QrCode = new Html5Qrcode("reader");
+        html5QrCodeRef.current = html5QrCode;
+
+        await html5QrCode.start(
+          { facingMode: "environment" }, // Força a câmara traseira (do ambiente)
+          {
+            fps: 10,
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1.0 // Ajuda no enquadramento mobile
+          },
+          async (decodedText) => {
+            // SUCESSO NA LEITURA
+            if (html5QrCodeRef.current?.isScanning) {
+              await html5QrCodeRef.current.stop(); // Para a câmara imediatamente
+              html5QrCodeRef.current.clear();
+            }
+            
+            setScanResult(decodedText);
+            setLoading(true);
+            
+            try {
+              const token = decodedText.split('/').pop() || decodedText;
+              const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+              
+              const res = await fetch(`${baseUrl}/api/validar?token=${encodeURIComponent(token)}`);
+              const data = await res.json();
+              setDadosResidente(data);
+            } catch (error) {
+              setDadosResidente({ sucesso: false, mensagem: "Erro de conexão com o servidor." });
+            } finally {
+              setLoading(false);
+            }
+          },
+          (errorMessage) => {
+            // Ignora os erros normais de "QR Code não encontrado neste frame"
+          }
+        );
+        setPermissaoErro(null);
+      } catch (err) {
+        console.error("Erro ao iniciar câmara:", err);
+        setPermissaoErro("Por favor, permita o acesso à câmara nas configurações do seu navegador para ler os QR Codes.");
       }
-    }
+    };
 
-    scanner.render(onScanSuccess, () => {});
+    iniciarCamera();
 
+    // Limpeza quando o componente desmonta ou quando o scanResult muda
     return () => {
-      scanner.clear().catch(console.error);
+      if (html5QrCodeRef.current?.isScanning) {
+        html5QrCodeRef.current.stop().then(() => {
+          html5QrCodeRef.current?.clear();
+        }).catch(console.error);
+      }
     };
   }, [scanResult, loading]);
 
   const resetScanner = () => {
     setScanResult(null);
     setDadosResidente(null);
+    setPermissaoErro(null);
   };
 
-  // Função para definir o tema (Cores e Ícones) com base no status
   const getTheme = () => {
     if (!dadosResidente?.sucesso) return { color: 'border-red-500', bg: 'bg-red-500', text: 'text-red-700', icon: <XCircle className="w-12 h-12 text-white" />, label: 'ACESSO NEGADO' };
     
@@ -90,10 +117,26 @@ export default function ScannerFiscal() {
           <h1 className="text-2xl font-black">Scanner de Residentes</h1>
         </div>
 
-        {/* TELA DA CÂMARA (Só aparece se não houver resultado) */}
-        {!scanResult && (
+        {/* ERRO DE PERMISSÃO DA CÂMARA */}
+        {permissaoErro && !scanResult && (
+          <div className="bg-red-500/10 border-2 border-red-500 rounded-3xl p-6 text-center space-y-4">
+            <Camera className="w-12 h-12 text-red-500 mx-auto" />
+            <p className="text-red-400 font-bold">{permissaoErro}</p>
+            <button 
+              onClick={resetScanner}
+              className="bg-red-500 text-white px-6 py-2 rounded-full font-bold uppercase text-sm"
+            >
+              Tentar Novamente
+            </button>
+          </div>
+        )}
+
+        {/* TELA DA CÂMARA */}
+        {!scanResult && !permissaoErro && (
           <div className="bg-white rounded-[2rem] overflow-hidden border-4 border-stone-800 p-2 shadow-2xl">
-            <div id="reader" className="w-full text-stone-900 [&_video]:rounded-2xl [&_video]:object-cover"></div>
+            {/* O leitor vai ser injetado nesta div limpa */}
+            <div id="reader" className="w-full bg-stone-900 rounded-2xl overflow-hidden [&_video]:w-full [&_video]:object-cover"></div>
+            
             <div className="p-4 text-center text-sm font-bold text-stone-500 flex items-center justify-center gap-2">
               <ScanLine className="w-5 h-5" /> Aponte para o QR Code da Carteira
             </div>
@@ -115,7 +158,6 @@ export default function ScannerFiscal() {
           return (
             <div className={`rounded-[2.5rem] border-4 overflow-hidden shadow-2xl transition-all bg-white ${theme.color}`}>
               
-              {/* Header de Status */}
               <div className={`px-8 py-6 flex items-center gap-5 ${theme.bg}`}>
                 {theme.icon}
                 <div>
@@ -128,9 +170,7 @@ export default function ScannerFiscal() {
                 </div>
               </div>
 
-              {/* Corpo do Cartão */}
               <div className="p-8 space-y-6">
-                {/* Foto Gigante para combate à fraude */}
                 {dadosResidente.sucesso && (
                   <div className="flex flex-col items-center">
                     <div className={`w-48 h-60 bg-stone-100 rounded-[2rem] overflow-hidden border-4 shadow-lg relative ${theme.color}`}>
@@ -150,7 +190,6 @@ export default function ScannerFiscal() {
                   </div>
                 )}
 
-                {/* Dados Pessoais */}
                 {dadosResidente.nome && (
                   <div className="space-y-4">
                     <div className="text-center">
@@ -179,7 +218,6 @@ export default function ScannerFiscal() {
                   </div>
                 )}
 
-                {/* Botão para Ler Próximo */}
                 <button 
                   onClick={resetScanner}
                   className="w-full mt-4 flex items-center justify-center gap-2 rounded-full bg-stone-900 text-white py-5 font-black uppercase tracking-widest text-sm shadow-xl hover:bg-stone-800 transition active:scale-95"
