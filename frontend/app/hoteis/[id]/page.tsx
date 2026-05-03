@@ -188,9 +188,11 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
         <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent" />
       </div>
 
-      <div className="mx-auto max-w-7xl px-5 -mt-16 relative z-10 grid lg:grid-cols-[1fr_380px] gap-12 items-start">
+      {/* AQUI ESTÁ A CORREÇÃO: Removido o 'items-start' do grid */}
+      <div className="mx-auto max-w-7xl px-5 -mt-16 relative z-10 grid lg:grid-cols-[1fr_380px] gap-12">
         
-        <section className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-2xl border border-slate-100">
+        {/* AQUI ESTÁ A CORREÇÃO: Adicionado 'self-start' à section da esquerda */}
+        <section className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-2xl border border-slate-100 self-start">
           <div className="flex items-center gap-3 mb-4">
             <span className="bg-[#F9C400] text-[#00577C] px-3 py-1 rounded-md text-xs font-black uppercase tracking-widest shadow-sm">
               {hotel.tipo}
@@ -233,61 +235,65 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
           )}
         </section>
 
-        <aside className="lg:sticky lg:top-32 space-y-6">
-          {/* CARD DE RESERVA */}
-          <div className="bg-[#00577C] text-white p-8 rounded-[2.5rem] shadow-2xl">
-            <p className="text-xs font-black uppercase tracking-widest text-[#F9C400] mb-2">Tarifa Média</p>
-            <p className={`${jakarta.className} text-3xl font-black mb-8`}>
-              {hotel.preco_medio || 'Sob Consulta'}
-            </p>
+        {/* AQUI ESTÁ A CORREÇÃO: O Aside agora atua como uma calha infinita (h-full) */}
+        <aside className="relative h-full">
+          {/* A div interior viaja ao longo da calha graças ao sticky */}
+          <div className="lg:sticky lg:top-32 space-y-6 pb-8">
+            {/* CARD DE RESERVA */}
+            <div className="bg-[#00577C] text-white p-8 rounded-[2.5rem] shadow-2xl">
+              <p className="text-xs font-black uppercase tracking-widest text-[#F9C400] mb-2">Tarifa Média</p>
+              <p className={`${jakarta.className} text-3xl font-black mb-8`}>
+                {hotel.preco_medio || 'Sob Consulta'}
+              </p>
 
-            <div className="space-y-4 mb-8">
-              <div className="flex items-center gap-3 text-sm text-blue-100 font-medium">
-                <Info size={18} className="text-[#F9C400] shrink-0" />
-                Os valores podem sofrer alterações conforme a temporada.
+              <div className="space-y-4 mb-8">
+                <div className="flex items-center gap-3 text-sm text-blue-100 font-medium">
+                  <Info size={18} className="text-[#F9C400] shrink-0" />
+                  Os valores podem sofrer alterações conforme a temporada.
+                </div>
               </div>
+
+              {numeroLimpo ? (
+                <a 
+                  href={linkWhatsApp}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`${jakarta.className} flex items-center justify-center gap-3 w-full bg-[#25D366] hover:bg-[#1EBE57] text-white py-5 rounded-2xl font-black text-lg transition-colors shadow-lg`}
+                >
+                  <MessageCircle size={24} />
+                  Reservar no WhatsApp
+                </a>
+              ) : (
+                <button disabled className={`${jakarta.className} flex items-center justify-center gap-3 w-full bg-slate-600 text-slate-400 py-5 rounded-2xl font-black text-lg cursor-not-allowed`}>
+                  Contacto Indisponível
+                </button>
+              )}
+
+              <p className="text-center text-xs font-medium text-blue-200 mt-4 opacity-70">
+                Reserva direta com o estabelecimento. O SagaTurismo não cobra taxas.
+              </p>
             </div>
 
-            {numeroLimpo ? (
-              <a 
-                href={linkWhatsApp}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`${jakarta.className} flex items-center justify-center gap-3 w-full bg-[#25D366] hover:bg-[#1EBE57] text-white py-5 rounded-2xl font-black text-lg transition-colors shadow-lg`}
-              >
-                <MessageCircle size={24} />
-                Reservar no WhatsApp
-              </a>
-            ) : (
-              <button disabled className={`${jakarta.className} flex items-center justify-center gap-3 w-full bg-slate-600 text-slate-400 py-5 rounded-2xl font-black text-lg cursor-not-allowed`}>
-                Contacto Indisponível
-              </button>
-            )}
-
-            <p className="text-center text-xs font-medium text-blue-200 mt-4 opacity-70">
-              Reserva direta com o estabelecimento. O SagaTurismo não cobra taxas.
-            </p>
-          </div>
-
-          {/* NOVO: CARD DO MAPA GOOGLE */}
-          <div className="bg-white p-4 rounded-[2.5rem] shadow-2xl border border-slate-100 overflow-hidden">
-            <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-3 px-2 flex items-center gap-2">
-              <MapPin size={14} className="text-[#009640]" /> Localização
-            </p>
-            <div className="w-full h-[300px] rounded-2xl overflow-hidden grayscale-[0.2] contrast-[1.1]">
-              <iframe
-                width="100%"
-                height="100%"
-                style={{ border: 0 }}
-                loading="lazy"
-                allowFullScreen
-                referrerPolicy="no-referrer-when-downgrade"
-                src={googleMapsEmbedUrl}
-              ></iframe>
+            {/* CARD DO MAPA GOOGLE */}
+            <div className="bg-white p-4 rounded-[2.5rem] shadow-2xl border border-slate-100 overflow-hidden">
+              <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-3 px-2 flex items-center gap-2">
+                <MapPin size={14} className="text-[#009640]" /> Localização
+              </p>
+              <div className="w-full h-[300px] rounded-2xl overflow-hidden grayscale-[0.2] contrast-[1.1]">
+                <iframe
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0 }}
+                  loading="lazy"
+                  allowFullScreen
+                  referrerPolicy="no-referrer-when-downgrade"
+                  src={googleMapsEmbedUrl}
+                ></iframe>
+              </div>
+              <p className="text-[10px] text-slate-400 mt-3 px-2 text-center italic">
+                Clique no mapa para navegar via GPS
+              </p>
             </div>
-            <p className="text-[10px] text-slate-400 mt-3 px-2 text-center italic">
-              Clique no mapa para navegar via GPS
-            </p>
           </div>
         </aside>
       </div>
