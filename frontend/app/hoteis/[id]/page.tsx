@@ -157,17 +157,16 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
         </div>
       </header>
 
-      {/* HERO SECTION COM IMAGEM */}
-      <div className="w-full h-[40vh] md:h-[60vh] relative bg-slate-900 mt-[70px] md:mt-[90px]">
+      {/* HERO SECTION COM IMAGEM (AGORA TOTALMENTE LIMPA SEM DEGRADÊ OU OPACIDADE) */}
+      <div className="w-full h-[40vh] md:h-[60vh] relative bg-slate-100 mt-[70px] md:mt-[90px]">
         <Link href="/#hoteis" className="absolute top-6 left-6 z-20 flex items-center gap-2 text-sm font-bold text-white bg-black/40 hover:bg-black/60 px-4 py-2 rounded-full backdrop-blur-md transition-colors">
           <ArrowLeft size={16} /> Voltar
         </Link>
         {hotel.imagem_url ? (
-          <Image src={hotel.imagem_url} alt={hotel.nome} fill className="object-cover opacity-90" priority />
+          <Image src={hotel.imagem_url} alt={hotel.nome} fill className="object-cover" priority />
         ) : (
           <div className="flex items-center justify-center w-full h-full text-slate-400"><span className="font-bold">Imagem não disponível</span></div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-50 via-transparent to-transparent" />
       </div>
 
       {/* LAYOUT DE 2 COLUNAS (FLEX) PARA O STICKY FUNCIONAR SEMPRE */}
@@ -216,7 +215,7 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
             </div>
           )}
 
-          {/* GALERIA AGORA ESTÁ DENTRO DA COLUNA ESQUERDA PARA DAR ALTURA À PÁGINA */}
+          {/* GALERIA */}
           {hotel.galeria && hotel.galeria.length > 0 && (
             <div className="mt-16 pt-16 border-t border-slate-100">
                <h3 className={`${jakarta.className} text-3xl font-black text-slate-900 mb-8`}>Galeria de Fotos</h3>
@@ -238,8 +237,8 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
           )}
         </section>
 
-        {/* COLUNA DIREITA: STICKY SIDEBAR */}
-        <aside className="w-full lg:w-[400px] shrink-0 lg:sticky lg:top-[120px] space-y-8 self-start">
+        {/* COLUNA DIREITA: STICKY SIDEBAR (CORRIGIDO COM H-FIT) */}
+        <aside className="w-full lg:w-[400px] shrink-0 lg:sticky lg:top-[120px] h-fit space-y-8">
           
           {/* CARD RESERVAS */}
           <div className="bg-[#00577C] text-white p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden">
