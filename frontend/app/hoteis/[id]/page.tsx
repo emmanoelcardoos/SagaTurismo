@@ -147,8 +147,8 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
 
           <nav className="hidden items-center gap-7 md:flex">
             <Link href="/roteiro" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Rota Turística</Link>
-            <a href="#eventos" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Eventos</a>
-            <a href="#historia" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">História</a>
+            <a href="/#eventos" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Eventos</a>
+            <a href="/#historia" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">História</a>
             <Link href="/cadastro" className="rounded-full bg-[#F9C400] px-5 py-3 text-sm font-bold text-[#00577C] shadow-lg transition hover:bg-[#ffd633]">
               Cartão Residente
             </Link>
@@ -157,7 +157,7 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
         </div>
       </header>
 
-      {/* HERO SECTION COM IMAGEM (AGORA TOTALMENTE LIMPA SEM DEGRADÊ OU OPACIDADE) */}
+      {/* HERO SECTION COM IMAGEM (TOTALMENTE LIMPA) */}
       <div className="w-full h-[40vh] md:h-[60vh] relative bg-slate-100 mt-[70px] md:mt-[90px]">
         <Link href="/#hoteis" className="absolute top-6 left-6 z-20 flex items-center gap-2 text-sm font-bold text-white bg-black/40 hover:bg-black/60 px-4 py-2 rounded-full backdrop-blur-md transition-colors">
           <ArrowLeft size={16} /> Voltar
@@ -169,8 +169,8 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
         )}
       </div>
 
-      {/* LAYOUT DE 2 COLUNAS (FLEX) PARA O STICKY FUNCIONAR SEMPRE */}
-      <div className="mx-auto max-w-7xl px-5 py-12 flex flex-col lg:flex-row items-start gap-12 relative z-10">
+      {/* LAYOUT DE 2 COLUNAS PARA O STICKY FUNCIONAR SEMPRE */}
+      <div className="mx-auto max-w-7xl px-5 py-12 flex flex-col lg:flex-row gap-12 relative z-10">
         
         {/* COLUNA ESQUERDA: INFORMAÇÕES DO HOTEL */}
         <section className="w-full lg:flex-1 bg-white rounded-[2.5rem] p-8 md:p-12 shadow-xl border border-slate-100">
@@ -237,59 +237,63 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
           )}
         </section>
 
-        {/* COLUNA DIREITA: STICKY SIDEBAR (CORRIGIDO COM H-FIT) */}
-        <aside className="w-full lg:w-[400px] shrink-0 lg:sticky lg:top-[120px] h-fit space-y-8">
+        {/* COLUNA DIREITA: A CALHA PARA O STICKY */}
+        <aside className="w-full lg:w-[400px] shrink-0">
           
-          {/* CARD RESERVAS */}
-          <div className="bg-[#00577C] text-white p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16" />
-            <p className="text-xs font-black uppercase tracking-widest text-[#F9C400] mb-2 relative z-10">Tarifa Média</p>
-            <p className={`${jakarta.className} text-4xl font-black mb-8 relative z-10`}>
-              {hotel.preco_medio || 'Sob Consulta'}
-            </p>
+          {/* CONTEÚDO FIXO (STICKY) DENTRO DA CALHA */}
+          <div className="sticky top-32 space-y-8">
+            
+            {/* CARD RESERVAS */}
+            <div className="bg-[#00577C] text-white p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16" />
+              <p className="text-xs font-black uppercase tracking-widest text-[#F9C400] mb-2 relative z-10">Tarifa Média</p>
+              <p className={`${jakarta.className} text-4xl font-black mb-8 relative z-10`}>
+                {hotel.preco_medio || 'Sob Consulta'}
+              </p>
 
-            <div className="space-y-4 mb-8 relative z-10">
-              <div className="flex items-start gap-3 text-sm text-blue-100 font-medium">
-                <Info size={18} className="text-[#F9C400] shrink-0 mt-0.5" />
-                <p>Os valores podem sofrer alterações conforme a temporada e disponibilidade.</p>
+              <div className="space-y-4 mb-8 relative z-10">
+                <div className="flex items-start gap-3 text-sm text-blue-100 font-medium">
+                  <Info size={18} className="text-[#F9C400] shrink-0 mt-0.5" />
+                  <p>Os valores podem sofrer alterações conforme a temporada e disponibilidade.</p>
+                </div>
               </div>
+
+              {numeroLimpo ? (
+                <a 
+                  href={linkWhatsApp}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`${jakarta.className} flex items-center justify-center gap-3 w-full bg-[#25D366] hover:bg-[#1EBE57] text-white py-5 rounded-2xl font-black text-lg transition-transform hover:-translate-y-1 shadow-xl relative z-10`}
+                >
+                  <MessageCircle size={24} />
+                  Reservar no WhatsApp
+                </a>
+              ) : (
+                <button disabled className={`${jakarta.className} flex items-center justify-center gap-3 w-full bg-slate-600 text-slate-400 py-5 rounded-2xl font-black text-lg cursor-not-allowed relative z-10`}>
+                  Contacto Indisponível
+                </button>
+              )}
+              <p className="text-center text-xs font-medium text-blue-200 mt-4 opacity-70 relative z-10">
+                O SagaTurismo não cobra taxas de serviço.
+              </p>
             </div>
 
-            {numeroLimpo ? (
-              <a 
-                href={linkWhatsApp}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`${jakarta.className} flex items-center justify-center gap-3 w-full bg-[#25D366] hover:bg-[#1EBE57] text-white py-5 rounded-2xl font-black text-lg transition-transform hover:-translate-y-1 shadow-xl relative z-10`}
-              >
-                <MessageCircle size={24} />
-                Reservar no WhatsApp
-              </a>
-            ) : (
-              <button disabled className={`${jakarta.className} flex items-center justify-center gap-3 w-full bg-slate-600 text-slate-400 py-5 rounded-2xl font-black text-lg cursor-not-allowed relative z-10`}>
-                Contacto Indisponível
-              </button>
-            )}
-            <p className="text-center text-xs font-medium text-blue-200 mt-4 opacity-70 relative z-10">
-              O SagaTurismo não cobra taxas de serviço.
-            </p>
-          </div>
-
-          {/* CARD MAPA */}
-          <div className="bg-white p-4 rounded-[2.5rem] shadow-xl border border-slate-200 overflow-hidden">
-            <p className="text-xs font-black uppercase tracking-widest text-[#00577C] mb-3 px-2 flex items-center gap-2">
-              <MapPin size={14} className="text-[#009640]" /> Como Chegar
-            </p>
-            <div className="w-full h-[250px] rounded-2xl overflow-hidden bg-slate-100">
-              <iframe
-                width="100%"
-                height="100%"
-                style={{ border: 0 }}
-                loading="lazy"
-                allowFullScreen
-                referrerPolicy="no-referrer-when-downgrade"
-                src={googleMapsEmbedUrl}
-              ></iframe>
+            {/* CARD MAPA */}
+            <div className="bg-white p-4 rounded-[2.5rem] shadow-xl border border-slate-200 overflow-hidden">
+              <p className="text-xs font-black uppercase tracking-widest text-[#00577C] mb-3 px-2 flex items-center gap-2">
+                <MapPin size={14} className="text-[#009640]" /> Como Chegar
+              </p>
+              <div className="w-full h-[250px] rounded-2xl overflow-hidden bg-slate-100">
+                <iframe
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0 }}
+                  loading="lazy"
+                  allowFullScreen
+                  referrerPolicy="no-referrer-when-downgrade"
+                  src={googleMapsEmbedUrl}
+                ></iframe>
+              </div>
             </div>
           </div>
         </aside>
