@@ -3,8 +3,8 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
-import { 
-  ArrowLeft, MapPin, Star, MessageCircle, 
+import {
+  ArrowLeft, MapPin, Star, MessageCircle,
   CheckCircle2, Info, Loader2, Menu, X, ChevronLeft, ChevronRight, ZoomIn
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
@@ -43,7 +43,6 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
 
-  // ESTADO PARA A GALERIA DE ECRÃ INTEIRO
   const [fotoExpandidaIndex, setFotoExpandidaIndex] = useState<number | null>(null);
 
   useEffect(() => {
@@ -55,11 +54,11 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
           .eq('id', params.id)
           .single();
 
-        if (error) throw new Error("Erro ao buscar a hospedagem na base de dados.");
+        if (error) throw new Error('Erro ao buscar a hospedagem na base de dados.');
         if (data) setHotel(data);
-        else setErro("Hospedagem não encontrada.");
+        else setErro('Hospedagem não encontrada.');
       } catch (err: any) {
-        setErro(err.message || "Ocorreu um erro inesperado.");
+        setErro(err.message || 'Ocorreu um erro inesperado.');
       } finally {
         setLoading(false);
       }
@@ -81,9 +80,8 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
-  // FUNÇÕES DA GALERIA
   const fecharGaleria = () => setFotoExpandidaIndex(null);
-  
+
   const proximaFoto = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (hotel?.galeria) {
@@ -111,7 +109,9 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 text-slate-900 px-6 text-center">
         <h1 className="text-3xl font-black mb-4">Informação não disponível</h1>
-        <p className="text-slate-500 mb-8 max-w-md">{erro || "Não foi possível carregar os detalhes do hotel."}</p>
+        <p className="text-slate-500 mb-8 max-w-md">
+          {erro || 'Não foi possível carregar os detalhes do hotel.'}
+        </p>
         <Link href="/#hoteis" className="bg-[#00577C] text-white px-8 py-4 rounded-full font-bold uppercase tracking-widest text-sm shadow-lg">
           Voltar aos Hotéis
         </Link>
@@ -127,7 +127,6 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
 
   return (
     <div className={`${inter.className} min-h-screen bg-slate-50 text-slate-900 flex flex-col`}>
-      
       <header
         className={`fixed left-0 top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl transition-transform duration-300 ${
           showHeader ? 'translate-y-0' : '-translate-y-full'
@@ -140,7 +139,9 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
             </div>
             <div className="hidden border-l border-slate-200 pl-4 lg:block">
               <p className={`${jakarta.className} text-2xl font-bold leading-none text-[#00577C]`}>SagaTurismo</p>
-              <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Secretaria de Turismo de São Geraldo</p>
+              <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                Secretaria de Turismo de São Geraldo
+              </p>
             </div>
           </Link>
 
@@ -152,30 +153,35 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
               Cartão Residente
             </Link>
           </nav>
-          <button className="rounded-xl border border-slate-200 p-2 md:hidden"><Menu className="h-5 w-5 text-[#00577C]" /></button>
+
+          <button className="rounded-xl border border-slate-200 p-2 md:hidden">
+            <Menu className="h-5 w-5 text-[#00577C]" />
+          </button>
         </div>
       </header>
 
-      {/* HERO SECTION 100% LIMPA: Sem degradês nem cores sobre a foto */}
       <div className="w-full h-[40vh] md:h-[60vh] relative bg-slate-200 mt-[70px] md:mt-[90px]">
         <Link href="/#hoteis" className="absolute top-6 left-6 z-20 flex items-center gap-2 text-sm font-bold text-slate-800 bg-white hover:bg-slate-50 px-4 py-2 rounded-full shadow-lg transition-colors">
           <ArrowLeft size={16} /> Voltar
         </Link>
+
         {hotel.imagem_url ? (
           <Image src={hotel.imagem_url} alt={hotel.nome} fill className="object-cover" priority />
         ) : (
-          <div className="flex items-center justify-center w-full h-full text-slate-400"><span className="font-bold">Imagem não disponível</span></div>
+          <div className="flex items-center justify-center w-full h-full text-slate-400">
+            <span className="font-bold">Imagem não disponível</span>
+          </div>
         )}
       </div>
 
       <div className="mx-auto w-full max-w-7xl px-5 py-12 flex flex-col lg:flex-row items-start gap-12 relative z-10 flex-1">
-        
         <div className="flex-1 w-full min-w-0">
           <section className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-xl border border-slate-100">
             <div className="flex items-center gap-3 mb-4">
               <span className="bg-[#F9C400] text-[#00577C] px-3 py-1 rounded-md text-xs font-black uppercase tracking-widest shadow-sm">
                 {hotel.tipo}
               </span>
+
               <div className="flex gap-1">
                 {Array.from({ length: hotel.estrelas }).map((_, i) => (
                   <Star key={i} className="h-5 w-5 fill-[#F9C400] text-[#F9C400]" />
@@ -193,7 +199,9 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
             </div>
 
             <div className="mb-12">
-              <h3 className={`${jakarta.className} text-2xl font-black text-[#00577C] mb-6`}>Sobre a Hospedagem</h3>
+              <h3 className={`${jakarta.className} text-2xl font-black text-[#00577C] mb-6`}>
+                Sobre a Hospedagem
+              </h3>
               <div className="text-lg text-slate-600 font-medium leading-relaxed whitespace-pre-wrap">
                 {hotel.descricao}
               </div>
@@ -201,7 +209,10 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
 
             {hotel.comodidades && hotel.comodidades.length > 0 && (
               <div className="mb-12">
-                <h3 className={`${jakarta.className} text-2xl font-black text-[#00577C] mb-6`}>Comodidades Principais</h3>
+                <h3 className={`${jakarta.className} text-2xl font-black text-[#00577C] mb-6`}>
+                  Comodidades Principais
+                </h3>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {hotel.comodidades.map((item, idx) => (
                     <div key={idx} className="flex items-center gap-3 text-slate-700 font-medium bg-slate-50 px-4 py-3 rounded-xl border border-slate-100">
@@ -215,21 +226,29 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
 
             {hotel.galeria && hotel.galeria.length > 0 && (
               <div className="mt-16 pt-16 border-t border-slate-100">
-                 <h3 className={`${jakarta.className} text-3xl font-black text-slate-900 mb-8`}>Galeria de Fotos</h3>
-                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {hotel.galeria.map((foto, idx) => (
-                      <div 
-                        key={idx} 
-                        onClick={() => setFotoExpandidaIndex(idx)}
-                        className="relative h-48 md:h-56 rounded-3xl overflow-hidden shadow-md group bg-slate-200 cursor-pointer"
-                      >
-                        <Image src={foto} alt={`Foto ${idx + 1}`} fill className="object-cover group-hover:scale-110 transition-transform duration-700" />
-                        <div className="absolute inset-0 bg-[#00577C]/0 group-hover:bg-[#00577C]/40 transition-colors duration-300 flex items-center justify-center">
-                          <ZoomIn className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-10 h-10 scale-50 group-hover:scale-100" />
-                        </div>
+                <h3 className={`${jakarta.className} text-3xl font-black text-slate-900 mb-8`}>
+                  Galeria de Fotos
+                </h3>
+
+                <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory">
+                  {hotel.galeria.map((foto, idx) => (
+                    <div
+                      key={idx}
+                      onClick={() => setFotoExpandidaIndex(idx)}
+                      className="relative h-48 md:h-56 min-w-[260px] sm:min-w-[320px] md:min-w-[360px] rounded-3xl overflow-hidden shadow-md group bg-slate-200 cursor-pointer snap-start flex-shrink-0"
+                    >
+                      <Image
+                        src={foto}
+                        alt={`Foto ${idx + 1}`}
+                        fill
+                        className="object-cover group-hover:scale-110 transition-transform duration-700"
+                      />
+                      <div className="absolute inset-0 bg-[#00577C]/0 group-hover:bg-[#00577C]/40 transition-colors duration-300 flex items-center justify-center">
+                        <ZoomIn className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-10 h-10 scale-50 group-hover:scale-100" />
                       </div>
-                    ))}
-                 </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </section>
@@ -239,7 +258,11 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
           <aside className="lg:sticky lg:top-32 space-y-6">
             <div className="bg-[#00577C] text-white p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16" />
-              <p className="text-xs font-black uppercase tracking-widest text-[#F9C400] mb-2 relative z-10">Tarifa Média</p>
+
+              <p className="text-xs font-black uppercase tracking-widest text-[#F9C400] mb-2 relative z-10">
+                Tarifa Média
+              </p>
+
               <p className={`${jakarta.className} text-4xl font-black mb-8 relative z-10`}>
                 {hotel.preco_medio || 'Sob Consulta'}
               </p>
@@ -252,7 +275,7 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
               </div>
 
               {numeroLimpo ? (
-                <a 
+                <a
                   href={linkWhatsApp}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -266,6 +289,7 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
                   Contacto Indisponível
                 </button>
               )}
+
               <p className="text-center text-xs font-medium text-blue-200 mt-4 opacity-70 relative z-10">
                 O SagaTurismo não cobra taxas de serviço.
               </p>
@@ -275,6 +299,7 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
               <p className="text-xs font-black uppercase tracking-widest text-[#00577C] mb-3 px-2 flex items-center gap-2">
                 <MapPin size={14} className="text-[#009640]" /> Como Chegar
               </p>
+
               <div className="w-full h-[250px] rounded-2xl overflow-hidden bg-slate-100">
                 <iframe
                   width="100%"
@@ -284,54 +309,48 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
                   allowFullScreen
                   referrerPolicy="no-referrer-when-downgrade"
                   src={googleMapsEmbedUrl}
-                ></iframe>
+                />
               </div>
             </div>
           </aside>
         </div>
       </div>
 
-      {/* MODAL / LIGHTBOX (GALERIA ECRÃ INTEIRO) */}
       {fotoExpandidaIndex !== null && hotel?.galeria && (
-        <div 
+        <div
           className="fixed inset-0 z-[100] bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-5 animate-in fade-in duration-200"
           onClick={fecharGaleria}
         >
-          {/* Botão Fechar */}
-          <button 
+          <button
             onClick={fecharGaleria}
             className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors z-[110]"
           >
             <X size={24} />
           </button>
 
-          {/* Botão Anterior */}
-          <button 
+          <button
             onClick={fotoAnterior}
             className="absolute left-6 top-1/2 -translate-y-1/2 p-4 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors z-[110]"
           >
             <ChevronLeft size={32} />
           </button>
 
-          {/* Imagem Central */}
           <div className="relative w-full max-w-6xl aspect-video rounded-xl overflow-hidden shadow-2xl">
-            <Image 
-              src={hotel.galeria[fotoExpandidaIndex]} 
-              alt={`Foto ${fotoExpandidaIndex + 1}`} 
-              fill 
-              className="object-contain" 
+            <Image
+              src={hotel.galeria[fotoExpandidaIndex]}
+              alt={`Foto ${fotoExpandidaIndex + 1}`}
+              fill
+              className="object-contain"
             />
           </div>
 
-          {/* Botão Próximo */}
-          <button 
+          <button
             onClick={proximaFoto}
             className="absolute right-6 top-1/2 -translate-y-1/2 p-4 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors z-[110]"
           >
             <ChevronRight size={32} />
           </button>
 
-          {/* Contador */}
           <div className="absolute bottom-10 left-0 right-0 text-center pointer-events-none">
             <p className="text-white font-bold tracking-widest text-sm bg-black/60 inline-block px-5 py-2 rounded-full backdrop-blur-sm">
               {fotoExpandidaIndex + 1} de {hotel.galeria.length}
@@ -340,18 +359,21 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
         </div>
       )}
 
-      {/* FOOTER */}
       <footer className="border-t border-slate-200 bg-white mt-auto">
         <div className="mx-auto flex max-w-7xl flex-col gap-8 px-5 py-12 md:flex-row md:items-center md:justify-between text-center md:text-left">
           <div className="flex flex-col md:flex-row items-center gap-4">
             <div className="relative h-14 w-40">
               <Image src="/logop.png" alt="Prefeitura" fill className="object-contain object-left" />
             </div>
+
             <div className="border-l border-slate-200 pl-4 hidden md:block">
               <p className={`${jakarta.className} text-xl font-bold text-[#00577C]`}>SagaTurismo</p>
-              <p className="text-sm text-slate-500 uppercase font-bold tracking-widest text-[10px]">Portal Oficial de Turismo</p>
+              <p className="text-sm text-slate-500 uppercase font-bold tracking-widest text-[10px]">
+                Portal Oficial de Turismo
+              </p>
             </div>
           </div>
+
           <p className="text-xs text-slate-400 font-medium">
             © {new Date().getFullYear()} · Prefeitura Municipal de São Geraldo do Araguaia
           </p>
