@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
-import { Loader2, Menu, MapPin, Users, ArrowRight } from 'lucide-react';
+import { Loader2, Menu, MapPin, ArrowRight } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
 
@@ -22,6 +22,10 @@ export default function AldeiasPage() {
   const [aldeias, setAldeias] = useState<Aldeia[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // CORREÇÃO 1: Adicionado os estados em falta para a Header
+  const [showHeader, setShowHeader] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+
   useEffect(() => {
     async function fetchAldeias() {
       const { data } = await supabase.from('aldeias').select('id, nome, povo, imagem_capa, localizacao').order('nome');
@@ -30,6 +34,20 @@ export default function AldeiasPage() {
     }
     fetchAldeias();
   }, []);
+
+  // CORREÇÃO 2: Adicionada a lógica de Scroll para a Header aparecer/desaparecer
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      if (currentScrollY < 80) setShowHeader(true);
+      else if (currentScrollY > lastScrollY) setShowHeader(false);
+      else setShowHeader(true);
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [lastScrollY]);
 
   return (
     <main className={`${inter.className} min-h-screen bg-slate-50 text-slate-900 pb-24`}>
@@ -41,7 +59,8 @@ export default function AldeiasPage() {
               <img src="/logop.png" alt="Prefeitura de São Geraldo do Araguaia" className="object-contain object-left h-full w-full" />
             </div>
             <div className="hidden border-l border-slate-200 pl-4 sm:block">
-              <p className={`${playfair.className} text-2xl font-bold leading-none text-[#00577C]`}>SagaTurismo</p>
+              {/* CORREÇÃO 3: Substituído 'playfair.className' por 'jakarta.className' */}
+              <p className={`${jakarta.className} text-2xl font-bold leading-none text-[#00577C]`}>SagaTurismo</p>
               <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Secretaria de Turismo de São Geraldo do Araguaia</p>
             </div>
           </Link>

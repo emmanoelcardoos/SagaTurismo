@@ -119,7 +119,7 @@ export default function AldeiaDetalhePage({ params }: { params: { id: string } }
       {aldeia.galeria && aldeia.galeria.length > 0 && (
         <div className="bg-white border-t border-slate-200 py-16 px-5 mt-auto">
           <div className="mx-auto max-w-7xl">
-            <h3 className={`${jakarta.className} text-3xl font-black text-[#00577C] mb-8`}>Registos da Aldeia</h3>
+            <h3 className={`${jakarta.className} text-3xl font-black text-[#00577C] mb-8`}>Registros da Aldeia</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {aldeia.galeria.map((foto, idx) => (
                 <div key={idx} onClick={() => setFotoExpandidaIndex(idx)} className="relative h-72 rounded-3xl overflow-hidden shadow-lg group bg-slate-200 cursor-pointer">
