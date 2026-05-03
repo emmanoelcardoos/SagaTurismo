@@ -43,7 +43,7 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
 
-  // ESTADO PARA O MODAL DA GALERIA
+  // ESTADO PARA A GALERIA DE ECRÃ INTEIRO
   const [fotoExpandidaIndex, setFotoExpandidaIndex] = useState<number | null>(null);
 
   useEffect(() => {
@@ -85,7 +85,7 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
   const fecharGaleria = () => setFotoExpandidaIndex(null);
   
   const proximaFoto = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Impede que clique feche o modal
+    e.stopPropagation();
     if (hotel?.galeria) {
       setFotoExpandidaIndex((prev) => (prev! + 1) % hotel.galeria.length);
     }
@@ -122,12 +122,11 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
   const numeroLimpo = hotel.whatsapp ? hotel.whatsapp.replace(/\D/g, '') : '';
   const mensagemWhatsApp = `Olá! Vi o ${hotel.nome} no portal SagaTurismo e gostaria de saber mais informações sobre reservas.`;
   const linkWhatsApp = `https://wa.me/${numeroLimpo}?text=${encodeURIComponent(mensagemWhatsApp)}`;
-
   const mapSearchQuery = encodeURIComponent(`${hotel.nome} ${hotel.endereco || 'São Geraldo do Araguaia, Pará'}`);
   const googleMapsEmbedUrl = `https://maps.google.com/maps?q=${mapSearchQuery}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
 
   return (
-    <div className={`${inter.className} min-h-screen bg-slate-50 text-slate-900`}>
+    <div className={`${inter.className} min-h-screen bg-slate-50 text-slate-900 flex flex-col`}>
       
       <header
         className={`fixed left-0 top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl transition-transform duration-300 ${
@@ -147,8 +146,8 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
 
           <nav className="hidden items-center gap-7 md:flex">
             <Link href="/roteiro" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Rota Turística</Link>
-            <a href="/#eventos" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Eventos</a>
-            <a href="/#historia" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">História</a>
+            <Link href="/#eventos" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Eventos</Link>
+            <Link href="/#historia" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">História</Link>
             <Link href="/cadastro" className="rounded-full bg-[#F9C400] px-5 py-3 text-sm font-bold text-[#00577C] shadow-lg transition hover:bg-[#ffd633]">
               Cartão Residente
             </Link>
@@ -157,9 +156,9 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
         </div>
       </header>
 
-      {/* HERO SECTION COM IMAGEM (TOTALMENTE LIMPA) */}
-      <div className="w-full h-[40vh] md:h-[60vh] relative bg-slate-100 mt-[70px] md:mt-[90px]">
-        <Link href="/#hoteis" className="absolute top-6 left-6 z-20 flex items-center gap-2 text-sm font-bold text-white bg-black/40 hover:bg-black/60 px-4 py-2 rounded-full backdrop-blur-md transition-colors">
+      {/* HERO SECTION 100% LIMPA: Sem degradês, sem overlays, cor real da foto */}
+      <div className="w-full h-[40vh] md:h-[60vh] relative bg-slate-200 mt-[70px] md:mt-[90px]">
+        <Link href="/#hoteis" className="absolute top-6 left-6 z-20 flex items-center gap-2 text-sm font-bold text-white bg-black/50 hover:bg-black/80 px-4 py-2 rounded-full backdrop-blur-md transition-colors shadow-lg">
           <ArrowLeft size={16} /> Voltar
         </Link>
         {hotel.imagem_url ? (
@@ -169,81 +168,83 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
         )}
       </div>
 
-      {/* LAYOUT DE 2 COLUNAS PARA O STICKY FUNCIONAR SEMPRE */}
-      <div className="mx-auto max-w-7xl px-5 py-12 flex flex-col lg:flex-row gap-12 relative z-10">
+      {/* ESTRUTURA INFALÍVEL PARA O STICKY FUNCIONAR: FLEX SEM ITEMS-START */}
+      <div className="mx-auto w-full max-w-7xl px-5 py-12 flex flex-col lg:flex-row gap-12 relative z-10 flex-1">
         
-        {/* COLUNA ESQUERDA: INFORMAÇÕES DO HOTEL */}
-        <section className="w-full lg:flex-1 bg-white rounded-[2.5rem] p-8 md:p-12 shadow-xl border border-slate-100">
-          <div className="flex items-center gap-3 mb-4">
-            <span className="bg-[#F9C400] text-[#00577C] px-3 py-1 rounded-md text-xs font-black uppercase tracking-widest shadow-sm">
-              {hotel.tipo}
-            </span>
-            <div className="flex gap-1">
-              {Array.from({ length: hotel.estrelas }).map((_, i) => (
-                <Star key={i} className="h-5 w-5 fill-[#F9C400] text-[#F9C400]" />
-              ))}
-            </div>
-          </div>
-
-          <h1 className={`${jakarta.className} text-4xl sm:text-5xl font-black text-slate-900 tracking-tight mb-4`}>
-            {hotel.nome}
-          </h1>
-
-          <div className="flex items-center gap-2 text-slate-500 font-medium mb-10 border-b border-slate-100 pb-8">
-            <MapPin size={18} className="text-[#009640]" />
-            <span>{hotel.endereco || 'São Geraldo do Araguaia, Pará'}</span>
-          </div>
-
-          <div className="mb-12">
-            <h3 className={`${jakarta.className} text-2xl font-black text-[#00577C] mb-6`}>Sobre a Hospedagem</h3>
-            <div className="text-lg text-slate-600 font-medium leading-relaxed whitespace-pre-wrap">
-              {hotel.descricao}
-            </div>
-          </div>
-
-          {hotel.comodidades && hotel.comodidades.length > 0 && (
-            <div className="mb-12">
-              <h3 className={`${jakarta.className} text-2xl font-black text-[#00577C] mb-6`}>Comodidades Principais</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {hotel.comodidades.map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-3 text-slate-700 font-medium bg-slate-50 px-4 py-3 rounded-xl border border-slate-100">
-                    <CheckCircle2 size={20} className="text-[#009640]" />
-                    {item}
-                  </div>
+        {/* COLUNA ESQUERDA (FLEX-1) */}
+        <div className="flex-1 w-full min-w-0">
+          <section className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-xl border border-slate-100">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="bg-[#F9C400] text-[#00577C] px-3 py-1 rounded-md text-xs font-black uppercase tracking-widest shadow-sm">
+                {hotel.tipo}
+              </span>
+              <div className="flex gap-1">
+                {Array.from({ length: hotel.estrelas }).map((_, i) => (
+                  <Star key={i} className="h-5 w-5 fill-[#F9C400] text-[#F9C400]" />
                 ))}
               </div>
             </div>
-          )}
 
-          {/* GALERIA */}
-          {hotel.galeria && hotel.galeria.length > 0 && (
-            <div className="mt-16 pt-16 border-t border-slate-100">
-               <h3 className={`${jakarta.className} text-3xl font-black text-slate-900 mb-8`}>Galeria de Fotos</h3>
-               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {hotel.galeria.map((foto, idx) => (
-                    <div 
-                      key={idx} 
-                      onClick={() => setFotoExpandidaIndex(idx)}
-                      className="relative h-48 md:h-56 rounded-3xl overflow-hidden shadow-md group bg-slate-100 cursor-pointer"
-                    >
-                      <Image src={foto} alt={`Foto ${idx + 1}`} fill className="object-cover group-hover:scale-110 transition-transform duration-700" />
-                      <div className="absolute inset-0 bg-[#00577C]/0 group-hover:bg-[#00577C]/40 transition-colors duration-300 flex items-center justify-center">
-                        <ZoomIn className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-10 h-10 scale-50 group-hover:scale-100" />
-                      </div>
+            <h1 className={`${jakarta.className} text-4xl sm:text-5xl font-black text-slate-900 tracking-tight mb-4 break-words`}>
+              {hotel.nome}
+            </h1>
+
+            <div className="flex items-center gap-2 text-slate-500 font-medium mb-10 border-b border-slate-100 pb-8">
+              <MapPin size={18} className="text-[#009640] shrink-0" />
+              <span>{hotel.endereco || 'São Geraldo do Araguaia, Pará'}</span>
+            </div>
+
+            <div className="mb-12">
+              <h3 className={`${jakarta.className} text-2xl font-black text-[#00577C] mb-6`}>Sobre a Hospedagem</h3>
+              <div className="text-lg text-slate-600 font-medium leading-relaxed whitespace-pre-wrap">
+                {hotel.descricao}
+              </div>
+            </div>
+
+            {hotel.comodidades && hotel.comodidades.length > 0 && (
+              <div className="mb-12">
+                <h3 className={`${jakarta.className} text-2xl font-black text-[#00577C] mb-6`}>Comodidades Principais</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {hotel.comodidades.map((item, idx) => (
+                    <div key={idx} className="flex items-center gap-3 text-slate-700 font-medium bg-slate-50 px-4 py-3 rounded-xl border border-slate-100">
+                      <CheckCircle2 size={20} className="text-[#009640] shrink-0" />
+                      {item}
                     </div>
                   ))}
-               </div>
-            </div>
-          )}
-        </section>
+                </div>
+              </div>
+            )}
 
-        {/* COLUNA DIREITA: A CALHA PARA O STICKY */}
-        <aside className="w-full lg:w-[400px] shrink-0">
+            {/* GALERIA DE FOTOS INTEGRADA NA COLUNA ESQUERDA */}
+            {hotel.galeria && hotel.galeria.length > 0 && (
+              <div className="mt-16 pt-16 border-t border-slate-100">
+                 <h3 className={`${jakarta.className} text-3xl font-black text-slate-900 mb-8`}>Galeria de Fotos</h3>
+                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {hotel.galeria.map((foto, idx) => (
+                      <div 
+                        key={idx} 
+                        onClick={() => setFotoExpandidaIndex(idx)}
+                        className="relative h-48 md:h-56 rounded-3xl overflow-hidden shadow-md group bg-slate-200 cursor-pointer"
+                      >
+                        <Image src={foto} alt={`Foto ${idx + 1}`} fill className="object-cover group-hover:scale-110 transition-transform duration-700" />
+                        <div className="absolute inset-0 bg-[#00577C]/0 group-hover:bg-[#00577C]/40 transition-colors duration-300 flex items-center justify-center">
+                          <ZoomIn className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-10 h-10 scale-50 group-hover:scale-100" />
+                        </div>
+                      </div>
+                    ))}
+                 </div>
+              </div>
+            )}
+          </section>
+        </div>
+
+        {/* COLUNA DIREITA (TRILHO DO STICKY) */}
+        <div className="w-full lg:w-[400px] shrink-0">
           
-          {/* CONTEÚDO FIXO (STICKY) DENTRO DA CALHA */}
-          <div className="sticky top-32 space-y-8">
+          {/* OS CARTÕES DENTRO DESTE BLOCO ESTÃO MARCADOS COMO STICKY */}
+          <aside className="sticky top-32 space-y-6">
             
-            {/* CARD RESERVAS */}
+            {/* CARD RESERVA */}
             <div className="bg-[#00577C] text-white p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16" />
               <p className="text-xs font-black uppercase tracking-widest text-[#F9C400] mb-2 relative z-10">Tarifa Média</p>
@@ -295,8 +296,9 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
                 ></iframe>
               </div>
             </div>
-          </div>
-        </aside>
+          </aside>
+          
+        </div>
       </div>
 
       {/* MODAL / LIGHTBOX (GALERIA ECRÃ INTEIRO) */}
@@ -322,7 +324,7 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
           </button>
 
           {/* Imagem Central */}
-          <div className="relative w-full max-w-6xl aspect-video rounded-xl overflow-hidden">
+          <div className="relative w-full max-w-6xl aspect-video rounded-xl overflow-hidden shadow-2xl">
             <Image 
               src={hotel.galeria[fotoExpandidaIndex]} 
               alt={`Foto ${fotoExpandidaIndex + 1}`} 
@@ -339,9 +341,9 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
             <ChevronRight size={32} />
           </button>
 
-          {/* Legenda Base */}
+          {/* Contador */}
           <div className="absolute bottom-10 left-0 right-0 text-center pointer-events-none">
-            <p className="text-white font-bold tracking-widest text-sm bg-black/50 inline-block px-4 py-2 rounded-full">
+            <p className="text-white font-bold tracking-widest text-sm bg-black/60 inline-block px-5 py-2 rounded-full backdrop-blur-sm">
               {fotoExpandidaIndex + 1} de {hotel.galeria.length}
             </p>
           </div>
@@ -349,15 +351,19 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
       )}
 
       {/* FOOTER */}
-      <footer className="border-t border-slate-200 bg-white mt-12">
+      <footer className="border-t border-slate-200 bg-white mt-auto">
         <div className="mx-auto flex max-w-7xl flex-col gap-8 px-5 py-12 md:flex-row md:items-center md:justify-between text-center md:text-left">
           <div className="flex flex-col md:flex-row items-center gap-4">
             <div className="relative h-14 w-40">
               <Image src="/logop.png" alt="Prefeitura" fill className="object-contain object-left" />
             </div>
+            <div className="border-l border-slate-200 pl-4 hidden md:block">
+              <p className={`${jakarta.className} text-xl font-bold text-[#00577C]`}>SagaTurismo</p>
+              <p className="text-sm text-slate-500 uppercase font-bold tracking-widest text-[10px]">Portal Oficial de Turismo</p>
+            </div>
           </div>
           <p className="text-xs text-slate-400 font-medium">
-            © {new Date().getFullYear()} · Prefeitura Municipal de São Geraldo do Araguaia · Pará
+            © {new Date().getFullYear()} · Prefeitura Municipal de São Geraldo do Araguaia
           </p>
         </div>
       </footer>
