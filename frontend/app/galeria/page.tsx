@@ -3,10 +3,9 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
-import { Loader2, X, ZoomIn, Camera, ChevronLeft, ChevronRight, MapPin, ArrowRight } from 'lucide-react';
+import { Loader2, X, ZoomIn, Camera, ChevronLeft, ChevronRight, MapPin, ArrowRight, Menu } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
-import { Menu } from 'lucide-react';
 
 // AS FONTES DEVEM ESTAR SEMPRE AQUI NO TOPO, COMO CONSTANTES
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '700', '800'] });

@@ -329,50 +329,9 @@ function AldeiaCard({ aldeia, index }: { aldeia: Aldeia; index: number }) {
         </div>
       </div>
 
-      {/* FOOTER INSTITUCIONAL COMPLETO */}
-      <footer className="py-20 px-8 border-t border-slate-100 bg-white">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-16 mb-20">
-            <div className="space-y-8">
-               <img src="/logop.png" alt="Prefeitura SGA" className="h-20 object-contain" />
-               <p className="text-sm text-slate-400 font-bold uppercase tracking-widest leading-relaxed">São Geraldo do Araguaia <br/> "Cidade Amada, seguindo em frente"</p>
-            </div>
-            
-            <div className="space-y-6">
-              <h5 className="font-black text-slate-900 text-xs uppercase tracking-widest border-b border-slate-100 pb-4">Gestão Executiva</h5>
-              <ul className="text-sm text-slate-500 space-y-3 font-medium">
-                <li>Prefeito: <br/><b>Jefferson Douglas de Jesus Oliveira</b></li>
-                <li>Vice-Prefeito: <br/><b>Marcos Antônio Candido de Lucena</b></li>
-              </ul>
-            </div>
-
-            <div className="space-y-6">
-              <h5 className="font-black text-slate-900 text-xs uppercase tracking-widest border-b border-slate-100 pb-4">Turismo (SEMTUR)</h5>
-              <ul className="text-sm text-slate-500 space-y-3 font-medium">
-                <li>Secretária: <br/><b>Micheli Stephany de Souza</b></li>
-                <li>Contato: <b>(94) 98145-2067</b></li>
-                <li>Email: <b>setursaga@gmail.com</b></li>
-              </ul>
-            </div>
-
-            <div className="space-y-6">
-              <h5 className="font-black text-slate-900 text-xs uppercase tracking-widest border-b border-slate-100 pb-4">Equipe Técnica</h5>
-              <ul className="text-sm text-slate-500 space-y-2 font-medium">
-                <li>• Adriana da Luz Lima</li>
-                <li>• Carmelita Luz da Silva</li>
-                <li>• Diego Silva Costa</li>
-              </ul>
-            </div>
-          </div>
-          
-          <div className="text-center pt-10 border-t border-slate-50">
-            <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.4em]">© 2026 Secretaria Municipal de Turismo - São Geraldo do Araguaia (PA)</p>
-          </div>
-        </div>
-      </footer>
-
       {/* Barra decorativa no hover */}
       <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-[#F9C400] via-[#009640] to-[#00577C] scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left" />
     </Link>
   );
 }
+
