@@ -156,7 +156,7 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
         </div>
       </header>
 
-      {/* HERO SECTION 100% LIMPA: Sem degradês nem cores sobre a foto */}
+      {/* HERO SECTION */}
       <div className="w-full h-[40vh] md:h-[60vh] relative bg-slate-200 mt-[70px] md:mt-[90px]">
         <Link href="/#hoteis" className="absolute top-6 left-6 z-20 flex items-center gap-2 text-sm font-bold text-slate-800 bg-white hover:bg-slate-50 px-4 py-2 rounded-full shadow-lg transition-colors">
           <ArrowLeft size={16} /> Voltar
@@ -168,7 +168,8 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
         )}
       </div>
 
-      <div className="mx-auto w-full max-w-7xl px-5 py-12 flex flex-col lg:flex-row items-start gap-12 relative z-10 flex-1">
+      {/* SECÇÃO PRINCIPAL: Texto e Barra Lateral */}
+      <div className="mx-auto w-full max-w-7xl px-5 py-12 flex flex-col lg:flex-row items-start gap-12 relative z-10">
         
         <div className="flex-1 w-full min-w-0">
           <section className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-xl border border-slate-100">
@@ -200,7 +201,7 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
             </div>
 
             {hotel.comodidades && hotel.comodidades.length > 0 && (
-              <div className="mb-12">
+              <div>
                 <h3 className={`${jakarta.className} text-2xl font-black text-[#00577C] mb-6`}>Comodidades Principais</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {hotel.comodidades.map((item, idx) => (
@@ -209,27 +210,6 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
                       {item}
                     </div>
                   ))}
-                </div>
-              </div>
-            )}
-
-            {/* SECCÃO DE GALERIA - Grelha Compacta de Matriz Quadrada */}
-            {hotel.galeria && hotel.galeria.length > 0 && (
-              <div className="mt-16 pt-16 border-t border-slate-100 overflow-hidden">
-                <h3 className={`${jakarta.className} text-3xl font-black text-slate-900 mb-8`}>Galeria de Fotos</h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                    {hotel.galeria.map((foto, idx) => (
-                      <div 
-                        key={idx} 
-                        onClick={() => setFotoExpandidaIndex(idx)}
-                        className="relative aspect-square rounded-2xl overflow-hidden shadow-md group bg-slate-200 cursor-pointer"
-                      >
-                        <Image src={foto} alt={`Foto ${idx + 1}`} fill className="object-cover group-hover:scale-110 transition-transform duration-700" />
-                        <div className="absolute inset-0 bg-[#00577C]/0 group-hover:bg-[#00577C]/40 transition-colors duration-300 flex items-center justify-center">
-                          <ZoomIn className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-10 h-10 scale-50 group-hover:scale-100" />
-                        </div>
-                      </div>
-                    ))}
                 </div>
               </div>
             )}
@@ -291,6 +271,31 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
           </aside>
         </div>
       </div>
+
+      {/* NOVA SECÇÃO DE GALERIA - Agora fora da divisão, ocupando a largura total */}
+      {hotel.galeria && hotel.galeria.length > 0 && (
+        <div className="mx-auto w-full max-w-7xl px-5 pb-12 relative z-10 flex-1">
+          <section className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-xl border border-slate-100">
+            <h3 className={`${jakarta.className} text-3xl font-black text-slate-900 mb-8`}>Galeria de Fotos</h3>
+            
+            {/* Grelha atualizada: de 2 a 6 colunas dependendo do tamanho do ecrã */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+                {hotel.galeria.map((foto, idx) => (
+                  <div 
+                    key={idx} 
+                    onClick={() => setFotoExpandidaIndex(idx)}
+                    className="relative aspect-square rounded-2xl overflow-hidden shadow-md group bg-slate-200 cursor-pointer"
+                  >
+                    <Image src={foto} alt={`Foto ${idx + 1}`} fill className="object-cover group-hover:scale-110 transition-transform duration-700" />
+                    <div className="absolute inset-0 bg-[#00577C]/0 group-hover:bg-[#00577C]/40 transition-colors duration-300 flex items-center justify-center">
+                      <ZoomIn className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-10 h-10 scale-50 group-hover:scale-100" />
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </section>
+        </div>
+      )}
 
       {/* MODAL / LIGHTBOX (GALERIA ECRÃ INTEIRO) */}
       {fotoExpandidaIndex !== null && hotel?.galeria && (
