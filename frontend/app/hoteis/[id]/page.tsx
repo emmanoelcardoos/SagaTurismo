@@ -213,16 +213,18 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
               </div>
             )}
 
-            {/* SECCÃO DE GALERIA CORRIGIDA - Agora com scroll horizontal */}
+            {/* SECCÃO DE GALERIA ATUALIZADA - Grelha Compacta de Matriz Quadrada */}
             {hotel.galeria && hotel.galeria.length > 0 && (
               <div className="mt-16 pt-16 border-t border-slate-100 overflow-hidden">
-                 <h3 className={`${jakarta.className} text-3xl font-black text-slate-900 mb-8`}>Galeria de Fotos</h3>
-                 <div className="flex overflow-x-auto gap-4 pb-4 snap-x snap-mandatory" style={{ scrollbarWidth: 'thin' }}>
+                <h3 className={`${jakarta.className} text-3xl font-black text-slate-900 mb-8`}>Galeria de Fotos</h3>
+                {/* Configuração de colunas: 2 no mobile, 3 no tablet, 4 no desktop */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                     {hotel.galeria.map((foto, idx) => (
                       <div 
                         key={idx} 
                         onClick={() => setFotoExpandidaIndex(idx)}
-                        className="relative w-[85%] sm:w-[320px] shrink-0 h-48 md:h-56 rounded-3xl overflow-hidden shadow-md group bg-slate-200 cursor-pointer snap-start"
+                        {/* O segredo da matriz quadrada: aspect-square */}
+                        className="relative aspect-square rounded-2xl overflow-hidden shadow-md group bg-slate-200 cursor-pointer"
                       >
                         <Image src={foto} alt={`Foto ${idx + 1}`} fill className="object-cover group-hover:scale-110 transition-transform duration-700" />
                         <div className="absolute inset-0 bg-[#00577C]/0 group-hover:bg-[#00577C]/40 transition-colors duration-300 flex items-center justify-center">
@@ -230,7 +232,7 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
                         </div>
                       </div>
                     ))}
-                 </div>
+                </div>
               </div>
             )}
           </section>
