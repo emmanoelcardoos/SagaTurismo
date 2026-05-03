@@ -86,7 +86,7 @@ export default function AldeiasPage() {
   return (
     <main className={`${inter.className} min-h-screen bg-[#FAFAF7] text-slate-900 pb-32`}>
 
-      {/* HEADER PADRÃO */}
+      {/* HEADER */}
       <header
         className={`fixed left-0 top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl transition-transform duration-300 ${
           showHeader ? 'translate-y-0' : '-translate-y-full'
@@ -95,21 +95,58 @@ export default function AldeiasPage() {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-5">
           <Link href="/" className="flex min-w-0 items-center gap-3 sm:gap-4">
             <div className="relative h-12 w-36 shrink-0 sm:h-16 sm:w-56">
-              <Image src="/logop.png" alt="Prefeitura SGA" fill priority className="object-contain object-left" />
+              <Image
+                src="/logop.png"
+                alt="Prefeitura de São Geraldo do Araguaia"
+                fill
+                priority
+                className="object-contain object-left"
+              />
             </div>
+
             <div className="hidden border-l border-slate-200 pl-4 lg:block">
-              <p className={`${jakarta.className} text-2xl font-bold leading-none text-[#00577C]`}>SagaTurismo</p>
-              <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Secretaria de Turismo de São Geraldo do Araguaia</p>
+              <p className={`${jakarta.className} text-2xl font-bold leading-none text-[#00577C]`}>
+                SagaTurismo
+              </p>
+              <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                Secretaria de Turismo de São Geraldo do Araguaia
+              </p>
             </div>
           </Link>
 
           <nav className="hidden items-center gap-7 md:flex">
-            <Link href="/roteiro" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Rota Turística</Link>
-            <Link href="/#eventos" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Eventos</Link>
-            <Link href="/galeria" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Galeria</Link>
-            <Link href="/cadastro" className="rounded-full bg-[#F9C400] px-5 py-3 text-sm font-bold text-[#00577C] shadow-lg transition hover:bg-[#ffd633]">Cartão Residente</Link>
+            <Link href="/roteiro" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
+              Rota Turística
+            </Link>
+
+            <Link href="/aldeias" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
+              Aldeias
+            </Link>
+
+            <a href="#historia" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
+              História
+            </a>
+
+            <a
+              href="https://saogeraldodoaraguaia.pa.gov.br"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-semibold text-slate-600 hover:text-[#00577C]"
+            >
+              Governo
+            </a>
+
+            <Link
+              href="/cadastro"
+              className="rounded-full bg-[#F9C400] px-5 py-3 text-sm font-bold text-[#00577C] shadow-lg transition hover:bg-[#ffd633]"
+            >
+              Cartão Residente
+            </Link>
           </nav>
-          <button className="rounded-xl border border-slate-200 p-2 md:hidden"><Menu className="h-5 w-5 text-[#00577C]" /></button>
+
+          <button className="rounded-xl border border-slate-200 p-2 md:hidden">
+            <Menu className="h-5 w-5 text-[#00577C]" />
+          </button>
         </div>
       </header>
 
@@ -291,6 +328,48 @@ function AldeiaCard({ aldeia, index }: { aldeia: Aldeia; index: number }) {
           </div>
         </div>
       </div>
+
+      {/* FOOTER INSTITUCIONAL COMPLETO */}
+      <footer className="py-20 px-8 border-t border-slate-100 bg-white">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-16 mb-20">
+            <div className="space-y-8">
+               <img src="/logop.png" alt="Prefeitura SGA" className="h-20 object-contain" />
+               <p className="text-sm text-slate-400 font-bold uppercase tracking-widest leading-relaxed">São Geraldo do Araguaia <br/> "Cidade Amada, seguindo em frente"</p>
+            </div>
+            
+            <div className="space-y-6">
+              <h5 className="font-black text-slate-900 text-xs uppercase tracking-widest border-b border-slate-100 pb-4">Gestão Executiva</h5>
+              <ul className="text-sm text-slate-500 space-y-3 font-medium">
+                <li>Prefeito: <br/><b>Jefferson Douglas de Jesus Oliveira</b></li>
+                <li>Vice-Prefeito: <br/><b>Marcos Antônio Candido de Lucena</b></li>
+              </ul>
+            </div>
+
+            <div className="space-y-6">
+              <h5 className="font-black text-slate-900 text-xs uppercase tracking-widest border-b border-slate-100 pb-4">Turismo (SEMTUR)</h5>
+              <ul className="text-sm text-slate-500 space-y-3 font-medium">
+                <li>Secretária: <br/><b>Micheli Stephany de Souza</b></li>
+                <li>Contato: <b>(94) 98145-2067</b></li>
+                <li>Email: <b>setursaga@gmail.com</b></li>
+              </ul>
+            </div>
+
+            <div className="space-y-6">
+              <h5 className="font-black text-slate-900 text-xs uppercase tracking-widest border-b border-slate-100 pb-4">Equipe Técnica</h5>
+              <ul className="text-sm text-slate-500 space-y-2 font-medium">
+                <li>• Adriana da Luz Lima</li>
+                <li>• Carmelita Luz da Silva</li>
+                <li>• Diego Silva Costa</li>
+              </ul>
+            </div>
+          </div>
+          
+          <div className="text-center pt-10 border-t border-slate-50">
+            <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.4em]">© 2026 Secretaria Municipal de Turismo - São Geraldo do Araguaia (PA)</p>
+          </div>
+        </div>
+      </footer>
 
       {/* Barra decorativa no hover */}
       <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-[#F9C400] via-[#009640] to-[#00577C] scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left" />

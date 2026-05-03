@@ -4,12 +4,13 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { Loader2, X, ZoomIn, Camera, ChevronLeft, ChevronRight, MapPin, ArrowRight } from 'lucide-react';
-import { Plus_Jakarta_Sans, Playfair_Display, Lora } from 'next/font/google';
+import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
+import { Menu } from 'lucide-react';
 
+// AS FONTES DEVEM ESTAR SEMPRE AQUI NO TOPO, COMO CONSTANTES
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '700', '800'] });
-const playfair = Playfair_Display({ subsets: ['latin'], weight: ['400', '700', '900'], style: ['normal', 'italic'] });
-const lora = Lora({ subsets: ['latin'], weight: ['400', '500'] });
+const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
 
 type Foto = {
   id: string;
@@ -64,10 +65,10 @@ function HeroCarrossel({ fotos }: { fotos: Foto[] }) {
           </span>
         </div>
 
-        <h1 className={`${playfair.className} text-5xl md:text-7xl font-black text-white leading-none mb-4`}>
+        <h1 className={`${jakarta.className} text-5xl md:text-7xl font-black text-white leading-none mb-4`}>
           Nossas <em className="text-[#F9C400] not-italic">Memórias</em>
         </h1>
-        <p className={`${lora.className} text-white/80 text-lg max-w-xl leading-relaxed mb-8`}>
+        <p className={`${inter.className} text-white/80 text-lg max-w-xl leading-relaxed mb-8`}>
           Descubra as paisagens, a cultura e a alma de São Geraldo do Araguaia — e planeie a sua visita.
         </p>
 
@@ -142,7 +143,7 @@ function AlbumCategoria({ categoria, fotos, onOpen }: {
         <div className="w-1 h-10 rounded-full bg-[#00577C]" />
         <div>
           <p className="text-[#009640] text-[10px] font-bold uppercase tracking-[0.3em] mb-0.5">Álbum</p>
-          <h2 className={`${playfair.className} text-3xl md:text-4xl font-black text-[#00577C]`}>{categoria}</h2>
+          <h2 className={`${jakarta.className} text-3xl md:text-4xl font-black text-[#00577C]`}>{categoria}</h2>
         </div>
         <div className="flex-1 h-px bg-slate-200 hidden md:block" />
         <span className="hidden md:block text-slate-100 text-5xl font-black select-none">
@@ -213,7 +214,7 @@ function Lightbox({ lista, indexInicial, onClose }: {
         </button>
       )}
       <div className="absolute bottom-8 left-0 right-0 text-center px-5">
-        <p className={`${playfair.className} text-xl font-bold text-white`}>{current.titulo}</p>
+        <p className={`${jakarta.className} text-xl font-bold text-white`}>{current.titulo}</p>
         <p className="text-[#F9C400] text-xs font-bold uppercase tracking-widest mt-1">
           {current.categoria} · {current.ano}
         </p>
@@ -283,33 +284,69 @@ export default function GaleriaPage() {
     : fotosAgrupadas;
 
   return (
-    <main className={`${jakarta.className} min-h-screen bg-[#FAFAF7] text-slate-900`}>
+    <main className={`${inter.className} min-h-screen bg-[#FAFAF7] text-slate-900 pb-32`}>
 
-      {/* ── HEADER ── */}
+      {/* HEADER */}
       <header
-        className={`fixed left-0 top-0 z-50 w-full bg-white/98 backdrop-blur-xl transition-transform duration-300 ${showHeader ? 'translate-y-0' : '-translate-y-full'}`}
-        style={{ borderBottom: '3px solid #F9C400' }}
+        className={`fixed left-0 top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl transition-transform duration-300 ${
+          showHeader ? 'translate-y-0' : '-translate-y-full'
+        }`}
       >
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-3">
-          <Link href="/" className="flex items-center gap-4">
-            <img src="/logop.png" alt="Prefeitura" className="h-14 w-auto object-contain" />
-            <div className="hidden border-l-2 border-[#F9C400] pl-4 sm:block">
-              <p className={`${playfair.className} text-xl font-bold leading-none text-[#00577C]`}>SagaTurismo</p>
-              <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
-                Secretaria de Turismo · São Geraldo do Araguaia
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-5">
+          <Link href="/" className="flex min-w-0 items-center gap-3 sm:gap-4">
+            <div className="relative h-12 w-36 shrink-0 sm:h-16 sm:w-56">
+              <Image
+                src="/logop.png"
+                alt="Prefeitura de São Geraldo do Araguaia"
+                fill
+                priority
+                className="object-contain object-left"
+              />
+            </div>
+
+            <div className="hidden border-l border-slate-200 pl-4 lg:block">
+              <p className={`${jakarta.className} text-2xl font-bold leading-none text-[#00577C]`}>
+                SagaTurismo
+              </p>
+              <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                Secretaria de Turismo de São Geraldo do Araguaia
               </p>
             </div>
           </Link>
-          <nav className="hidden items-center gap-6 md:flex">
-            <Link href="/roteiro" className="text-sm font-semibold text-slate-600 hover:text-[#00577C] transition-colors">Rota Turística</Link>
-            <Link href="/aldeias" className="text-sm font-semibold text-slate-600 hover:text-[#00577C] transition-colors">Aldeias</Link>
-            <a href="https://saogeraldodoaraguaia.pa.gov.br" target="_blank" rel="noopener noreferrer"
-              className="text-sm font-semibold text-slate-600 hover:text-[#00577C] transition-colors">Governo</a>
-            <Link href="/cadastro"
-              className="rounded-full bg-[#00577C] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#004a6b] transition-colors">
+
+          <nav className="hidden items-center gap-7 md:flex">
+            <Link href="/roteiro" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
+              Rota Turística
+            </Link>
+
+            <Link href="/aldeias" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
+              Aldeias
+            </Link>
+
+            <a href="#historia" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
+              História
+            </a>
+
+            <a
+              href="https://saogeraldodoaraguaia.pa.gov.br"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-semibold text-slate-600 hover:text-[#00577C]"
+            >
+              Governo
+            </a>
+
+            <Link
+              href="/cadastro"
+              className="rounded-full bg-[#F9C400] px-5 py-3 text-sm font-bold text-[#00577C] shadow-lg transition hover:bg-[#ffd633]"
+            >
               Cartão Residente
             </Link>
           </nav>
+
+          <button className="rounded-xl border border-slate-200 p-2 md:hidden">
+            <Menu className="h-5 w-5 text-[#00577C]" />
+          </button>
         </div>
       </header>
 
@@ -333,7 +370,7 @@ export default function GaleriaPage() {
               { valor: [...new Set(fotos.map(f => f.ano))].length, label: 'Anos registados' },
             ].map(({ valor, label }) => (
               <div key={label} className="text-center md:text-left">
-                <p className={`${playfair.className} text-4xl font-black text-[#F9C400]`}>
+                <p className={`${jakarta.className} text-4xl font-black text-[#F9C400]`}>
                   {String(valor).padStart(2, '0')}
                 </p>
                 <p className="text-white/50 text-xs font-bold uppercase tracking-widest mt-1">{label}</p>
@@ -406,11 +443,11 @@ export default function GaleriaPage() {
         <div className="mx-auto max-w-5xl flex flex-col md:flex-row items-center gap-12">
           <div className="flex-1">
             <p className="text-[#F9C400] text-xs font-bold uppercase tracking-[0.3em] mb-3">Venha você também</p>
-            <h2 className={`${playfair.className} text-4xl md:text-5xl font-black leading-tight mb-5`}>
+            <h2 className={`${jakarta.className} text-4xl md:text-5xl font-black leading-tight mb-5`}>
               As fotos não fazem<br />
               <em className="text-[#F9C400] not-italic">jus à realidade.</em>
             </h2>
-            <p className={`${lora.className} text-white/75 text-base leading-relaxed max-w-md`}>
+            <p className={`${inter.className} text-white/75 text-base leading-relaxed max-w-md`}>
               São Geraldo do Araguaia tem rios cristalinos, culturas vivas, gastronomia autêntica e um povo acolhedor. Planeie já a sua visita.
             </p>
           </div>
@@ -431,43 +468,45 @@ export default function GaleriaPage() {
         </div>
       </section>
 
-      {/* ── FOOTER ── */}
-      <footer className="bg-slate-900 text-white py-16 px-6">
-        <div className="mx-auto max-w-7xl grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
-          <div className="space-y-5">
-            <img src="/logop.png" alt="Prefeitura SGA" className="h-16 object-contain brightness-0 invert opacity-70" />
-            <p className="text-white/30 text-xs font-bold uppercase tracking-widest leading-relaxed">
-              São Geraldo do Araguaia<br />"Cidade Amada, seguindo em frente"
-            </p>
+      {/* FOOTER INSTITUCIONAL COMPLETO */}
+      <footer className="py-20 px-8 border-t border-slate-100 bg-white">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-16 mb-20">
+            <div className="space-y-8">
+               <img src="/logop.png" alt="Prefeitura SGA" className="h-20 object-contain" />
+               <p className="text-sm text-slate-400 font-bold uppercase tracking-widest leading-relaxed">São Geraldo do Araguaia <br/> "Cidade Amada, seguindo em frente"</p>
+            </div>
+            
+            <div className="space-y-6">
+              <h5 className="font-black text-slate-900 text-xs uppercase tracking-widest border-b border-slate-100 pb-4">Gestão Executiva</h5>
+              <ul className="text-sm text-slate-500 space-y-3 font-medium">
+                <li>Prefeito: <br/><b>Jefferson Douglas de Jesus Oliveira</b></li>
+                <li>Vice-Prefeito: <br/><b>Marcos Antônio Candido de Lucena</b></li>
+              </ul>
+            </div>
+
+            <div className="space-y-6">
+              <h5 className="font-black text-slate-900 text-xs uppercase tracking-widest border-b border-slate-100 pb-4">Turismo (SEMTUR)</h5>
+              <ul className="text-sm text-slate-500 space-y-3 font-medium">
+                <li>Secretária: <br/><b>Micheli Stephany de Souza</b></li>
+                <li>Contato: <b>(94) 98145-2067</b></li>
+                <li>Email: <b>setursaga@gmail.com</b></li>
+              </ul>
+            </div>
+
+            <div className="space-y-6">
+              <h5 className="font-black text-slate-900 text-xs uppercase tracking-widest border-b border-slate-100 pb-4">Equipe Técnica</h5>
+              <ul className="text-sm text-slate-500 space-y-2 font-medium">
+                <li>• Adriana da Luz Lima</li>
+                <li>• Carmelita Luz da Silva</li>
+                <li>• Diego Silva Costa</li>
+              </ul>
+            </div>
           </div>
-          <div className="space-y-4">
-            <h5 className="text-white/30 text-[10px] font-black uppercase tracking-[0.2em] border-b border-white/10 pb-3">Gestão Executiva</h5>
-            <ul className="text-sm text-white/40 space-y-3 leading-relaxed">
-              <li>Prefeito:<br /><span className="text-white/70 font-semibold">Jefferson Douglas de Jesus Oliveira</span></li>
-              <li>Vice-Prefeito:<br /><span className="text-white/70 font-semibold">Marcos Antônio Candido de Lucena</span></li>
-            </ul>
+          
+          <div className="text-center pt-10 border-t border-slate-50">
+            <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.4em]">© 2026 Secretaria Municipal de Turismo - São Geraldo do Araguaia (PA)</p>
           </div>
-          <div className="space-y-4">
-            <h5 className="text-white/30 text-[10px] font-black uppercase tracking-[0.2em] border-b border-white/10 pb-3">Turismo (SEMTUR)</h5>
-            <ul className="text-sm text-white/40 space-y-2 leading-relaxed">
-              <li>Secretária:<br /><span className="text-white/70 font-semibold">Micheli Stephany de Souza</span></li>
-              <li>Tel: <span className="text-[#F9C400] font-semibold">(94) 98145-2067</span></li>
-              <li>Email: <span className="text-white/60">setursaga@gmail.com</span></li>
-            </ul>
-          </div>
-          <div className="space-y-4">
-            <h5 className="text-white/30 text-[10px] font-black uppercase tracking-[0.2em] border-b border-white/10 pb-3">Equipe Técnica</h5>
-            <ul className="text-sm text-white/40 space-y-2">
-              <li>Adriana da Luz Lima</li>
-              <li>Carmelita Luz da Silva</li>
-              <li>Diego Silva Costa</li>
-            </ul>
-          </div>
-        </div>
-        <div className="border-t border-white/10 pt-8 text-center">
-          <p className="text-white/20 text-[10px] font-bold uppercase tracking-[0.4em]">
-            © 2026 Secretaria Municipal de Turismo · São Geraldo do Araguaia (PA)
-          </p>
         </div>
       </footer>
 
