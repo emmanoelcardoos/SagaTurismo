@@ -593,6 +593,9 @@ export default function HomePage() {
               Rota Turística
             </Link>
 
+            <Link href="/aldeias" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
+              Aldeias
+            </Link>
 
             <a href="#historia" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
               História
@@ -777,13 +780,53 @@ export default function HomePage() {
       <DestaquesVerao />
       <GaleriaVerao />
 
-      
-
       {/* HOTÉIS LIGADOS À SUPABASE */}
       <SeccaoHoteis />
 
+      {/* NOVA SECÇÃO: ALDEIAS INDÍGENAS */}
+      <section className="bg-white py-24 border-t border-slate-100">
+        <div className="mx-auto grid max-w-7xl gap-12 px-5 md:grid-cols-2 md:items-center">
+          <div className="order-2 md:order-1">
+            <p className="mb-3 text-sm font-extrabold uppercase tracking-[0.22em] text-[#009640]">
+              Patrimônio Vivo
+            </p>
+
+            <h2 className={`${jakarta.className} text-4xl font-bold text-[#00577C] md:text-6xl tracking-tight`}>
+              Povos Originários e a nossa verdadeira raiz.
+            </h2>
+
+            <p className="mt-6 text-lg leading-8 text-slate-600">
+              O município de São Geraldo do Araguaia orgulha-se de ser o lar de diversas comunidades indígenas. Guardiões da floresta, dos rios e de saberes milenares, estes povos mantêm viva uma rica herança cultural de rituais, artesanato e conexão profunda com a natureza amazónica.
+            </p>
+
+            <div className="mt-8">
+              <Link
+                href="/aldeias"
+                className="inline-flex items-center justify-center gap-3 rounded-full bg-[#009640] px-8 py-4 font-bold text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-[#007a33]"
+              >
+                Conhecer as Aldeias
+                <ArrowRight className="h-5 w-5" />
+              </Link>
+            </div>
+          </div>
+
+          <div className="order-1 md:order-2 relative min-h-[400px] overflow-hidden rounded-[2.5rem] shadow-xl group">
+            <Image
+              src="https://images.pexels.com/photos/12434691/pexels-photo-12434691.jpeg"
+              alt="Aldeias Indígenas"
+              fill
+              className="object-cover transition-transform duration-700 group-hover:scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent" />
+            <div className="absolute bottom-8 left-8 right-8">
+              <p className="text-white font-black text-2xl tracking-wide drop-shadow-md">Cultura, respeito e ancestralidade.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* HISTÓRIA */}
-      <section id="historia" className="bg-slate-50 py-24">
+      <section id="historia" className="bg-slate-50 py-24 border-t border-slate-200">
         <div className="mx-auto grid max-w-7xl gap-12 px-5 md:grid-cols-2 md:items-center">
           <div>
             <p className="mb-3 text-sm font-extrabold uppercase tracking-[0.22em] text-[#009640]">
