@@ -3,12 +3,12 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
-import { Loader2, Menu, MapPin, ArrowRight } from 'lucide-react';
-import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
+import { Loader2, MapPin, ArrowRight, ChevronDown } from 'lucide-react';
+import { Plus_Jakarta_Sans, Playfair_Display } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
 
-const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['600', '700', '800'] });
-const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
+const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '700', '800'] });
+const playfair = Playfair_Display({ subsets: ['latin'], weight: ['400', '700', '900'], style: ['normal', 'italic'] });
 
 type Aldeia = {
   id: string;
@@ -18,16 +18,51 @@ type Aldeia = {
   localizacao: string;
 };
 
+// Padrão geométrico indígena em SVG inline
+function PatternBorder() {
+  return (
+    <svg viewBox="0 0 400 20" preserveAspectRatio="none" className="w-full h-5" aria-hidden>
+      <pattern id="indigena" x="0" y="0" width="40" height="20" patternUnits="userSpaceOnUse">
+        <rect width="40" height="20" fill="#00577C" />
+        <polygon points="0,0 10,10 0,20" fill="#F9C400" />
+        <polygon points="10,0 20,10 10,20 0,10" fill="#009640" />
+        <polygon points="20,0 30,10 20,20 10,10" fill="#F9C400" />
+        <polygon points="30,0 40,10 30,20 20,10" fill="#009640" />
+        <polygon points="40,0 40,20 30,10" fill="#F9C400" />
+      </pattern>
+      <rect width="400" height="20" fill="url(#indigena)" />
+    </svg>
+  );
+}
+
+function PatternBorderBottom() {
+  return (
+    <svg viewBox="0 0 400 20" preserveAspectRatio="none" className="w-full h-5" aria-hidden>
+      <pattern id="indigena2" x="0" y="0" width="40" height="20" patternUnits="userSpaceOnUse">
+        <rect width="40" height="20" fill="transparent" />
+        <polygon points="0,0 10,10 0,20" fill="#F9C400" opacity="0.6" />
+        <polygon points="10,0 20,10 10,20 0,10" fill="#009640" opacity="0.6" />
+        <polygon points="20,0 30,10 20,20 10,10" fill="#F9C400" opacity="0.6" />
+        <polygon points="30,0 40,10 30,20 20,10" fill="#009640" opacity="0.6" />
+        <polygon points="40,0 40,20 30,10" fill="#F9C400" opacity="0.6" />
+      </pattern>
+      <rect width="400" height="20" fill="url(#indigena2)" />
+    </svg>
+  );
+}
+
 export default function AldeiasPage() {
   const [aldeias, setAldeias] = useState<Aldeia[]>([]);
   const [loading, setLoading] = useState(true);
-
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
 
   useEffect(() => {
     async function fetchAldeias() {
-      const { data } = await supabase.from('aldeias').select('id, nome, povo, imagem_capa, localizacao').order('nome');
+      const { data } = await supabase
+        .from('aldeias')
+        .select('id, nome, povo, imagem_capa, localizacao')
+        .order('nome');
       if (data) setAldeias(data);
       setLoading(false);
     }
@@ -42,92 +77,232 @@ export default function AldeiasPage() {
       else setShowHeader(true);
       setLastScrollY(currentScrollY);
     };
-
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
   return (
-    <main className={`${inter.className} min-h-screen bg-slate-50 text-slate-900 pb-24`}>
-      {/* HEADER INSTITUCIONAL */}
-      <header className={`fixed left-0 top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl transition-transform duration-300 ${showHeader ? 'translate-y-0' : '-translate-y-full'}`}>
+    <main className={`${jakarta.className} min-h-screen bg-[#FAFAF7] text-slate-900 pb-32`}>
+
+      {/* ── HEADER ── */}
+      <header
+        className={`fixed left-0 top-0 z-50 w-full bg-white/98 backdrop-blur-xl transition-transform duration-300 ${showHeader ? 'translate-y-0' : '-translate-y-full'}`}
+        style={{ borderBottom: '3px solid #F9C400' }}
+      >
         <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-3">
           <Link href="/" className="flex items-center gap-4">
-            <div className="relative h-16 w-44 sm:w-56">
-              <img src="/logop.png" alt="Prefeitura de São Geraldo do Araguaia" className="object-contain object-left h-full w-full" />
-            </div>
-            <div className="hidden border-l border-slate-200 pl-4 sm:block">
-              <p className={`${jakarta.className} text-2xl font-bold leading-none text-[#00577C]`}>SagaTurismo</p>
-              <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Secretaria de Turismo de São Geraldo do Araguaia</p>
+            <img src="/logop.png" alt="Prefeitura" className="h-14 w-auto object-contain" />
+            <div className="hidden border-l-2 border-[#F9C400] pl-4 sm:block">
+              <p className={`${playfair.className} text-xl font-bold leading-none text-[#00577C]`}>SagaTurismo</p>
+              <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
+                Secretaria de Turismo · São Geraldo do Araguaia
+              </p>
             </div>
           </Link>
-          <nav className="hidden items-center gap-7 md:flex">
-            <a href="#roteiro" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Roteiro</a>
-            <a href="#hospedagem" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Onde Ficar</a>
-            <a href="#gastronomia" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Onde Comer</a>
-            <Link href="/cadastro" className="rounded-full bg-[#F9C400] px-5 py-3 text-sm font-bold text-[#00577C] shadow-lg transition hover:bg-[#ffd633]">Cartão do Residente</Link>
+          <nav className="hidden items-center gap-6 md:flex">
+            {['Roteiro', 'Onde Ficar', 'Onde Comer'].map(item => (
+              <a key={item} href={`#${item.toLowerCase().replace(' ', '')}`}
+                className="text-sm font-semibold text-slate-600 hover:text-[#00577C] transition-colors">
+                {item}
+              </a>
+            ))}
+            <Link href="/cadastro"
+              className="rounded-full bg-[#00577C] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#004a6b] transition-colors shadow">
+              Cartão do Residente
+            </Link>
           </nav>
         </div>
       </header>
 
-      {/* HERO SECTION COM IMAGEM DE FUNDO */}
-      <section className="relative pt-40 pb-24 px-5 text-center text-white overflow-hidden">
-        
-        {/* AQUI ENTRA A IMAGEM DE FUNDO */}
+      {/* ── HERO ── */}
+      <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden">
+        {/* Imagem de fundo */}
         <div className="absolute inset-0 z-0">
-          <Image 
-            src="https://images.pexels.com/photos/12434691/pexels-photo-12434691.jpeg?_gl=1*1o9nxbn*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzc4NDMxOTMkbzM0JGcxJHQxNzc3ODQ0NTY5JGoyNyRsMCRoMA.." 
-            alt="Aldeias Indígenas" 
-            fill 
-            className="object-cover" 
+          <Image
+            src="https://images.pexels.com/photos/12434691/pexels-photo-12434691.jpeg"
+            alt="Aldeias Indígenas do Araguaia"
+            fill
+            className="object-cover object-center"
             priority
           />
+          {/* Overlay gradiente forte */}
+          <div className="absolute inset-0 bg-gradient-to-b from-[#001f2e]/85 via-[#00577C]/70 to-[#001f2e]/95" />
         </div>
 
-        {/* OVERLAY ESCURO PARA O TEXTO SE LER BEM */}
-        <div className="absolute inset-0 z-0 bg-gradient-to-b from-[#00577C]/90 to-slate-900/80" />
+        {/* Padrão decorativo no topo */}
+        <div className="absolute top-[72px] left-0 right-0 z-10 opacity-60">
+          <PatternBorder />
+        </div>
 
-        {/* BRILHO VERDE SUBTIL NO CANTO */}
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#009640]/30 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/3 pointer-events-none z-0" />
-        
-        <div className="relative z-10 mx-auto max-w-4xl">
-          <h1 className={`${jakarta.className} text-5xl md:text-7xl font-black tracking-tight mb-6`}>Povos Originários</h1>
-          <p className="text-xl text-blue-100 max-w-2xl mx-auto font-medium">
-            Conheça as aldeias indígenas de São Geraldo do Araguaia, guardiões da floresta e da nossa verdadeira raiz ancestral.
+        {/* Conteúdo central */}
+        <div className="relative z-10 mx-auto max-w-5xl px-5 text-center pt-32 pb-24">
+          {/* Rótulo etno */}
+          <div className="inline-flex items-center gap-3 mb-8">
+            <span className="h-px w-12 bg-[#F9C400]" />
+            <span className="text-[#F9C400] text-xs font-bold uppercase tracking-[0.3em]">
+              Patrimônio Vivo do Araguaia
+            </span>
+            <span className="h-px w-12 bg-[#F9C400]" />
+          </div>
+
+          <h1 className={`${playfair.className} text-6xl md:text-8xl font-black text-white leading-none mb-6`}>
+            Povos{' '}
+            <em className="text-[#F9C400] not-italic">Originários</em>
+          </h1>
+          <p className="text-lg md:text-xl text-blue-100/90 max-w-2xl mx-auto font-medium leading-relaxed">
+            Guardiões da floresta e da memória ancestral. Conheça as aldeias indígenas de São Geraldo do Araguaia
+            — suas histórias, tradições e o pulso vivo da cultura nativa.
+          </p>
+
+          {/* Seta animada */}
+          <div className="mt-16 flex justify-center animate-bounce text-[#F9C400]/70">
+            <ChevronDown size={36} />
+          </div>
+        </div>
+
+        {/* Padrão decorativo na base */}
+        <div className="absolute bottom-0 left-0 right-0 z-10">
+          <PatternBorder />
+        </div>
+      </section>
+
+      {/* ── INTRO ── */}
+      <section className="bg-[#00577C] text-white py-16 px-5">
+        <div className="mx-auto max-w-5xl flex flex-col md:flex-row gap-10 items-center">
+          {/* Ornamento gráfico */}
+          <div className="flex-shrink-0 w-32 h-32 rounded-full border-4 border-[#F9C400] flex items-center justify-center bg-[#004a6b]">
+            <svg viewBox="0 0 80 80" className="w-16 h-16" fill="none">
+              <circle cx="40" cy="40" r="36" stroke="#F9C400" strokeWidth="2" />
+              <path d="M40 10 L50 30 L40 25 L30 30 Z" fill="#F9C400" />
+              <path d="M40 70 L50 50 L40 55 L30 50 Z" fill="#009640" />
+              <path d="M10 40 L30 30 L25 40 L30 50 Z" fill="#009640" />
+              <path d="M70 40 L50 30 L55 40 L50 50 Z" fill="#F9C400" />
+              <circle cx="40" cy="40" r="8" fill="#F9C400" opacity="0.3" />
+            </svg>
+          </div>
+          <div>
+            <h2 className={`${playfair.className} text-3xl font-bold mb-4`}>
+              A Terra que Pulsa com Memória
+            </h2>
+            <p className="text-blue-100 leading-relaxed text-base">
+              O município de São Geraldo do Araguaia é lar de povos indígenas que mantêm viva uma das mais ricas
+              heranças culturais do Brasil. Cada aldeia é um universo próprio de língua, ritual, arte e saber.
+              Ao visitá-las — com respeito e escuta — o visitante se conecta com a verdadeira alma do território.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ── GRID DE ALDEIAS ── */}
+      <section className="mx-auto max-w-7xl px-5 py-20">
+        <div className="flex items-end justify-between mb-12">
+          <div>
+            <p className="text-[#009640] text-xs font-bold uppercase tracking-[0.25em] mb-2">Comunidades cadastradas</p>
+            <h2 className={`${playfair.className} text-4xl md:text-5xl font-black text-[#00577C]`}>
+              Aldeias do Município
+            </h2>
+          </div>
+          {!loading && aldeias.length > 0 && (
+            <span className="hidden md:block text-5xl font-black text-slate-100 select-none">
+              {String(aldeias.length).padStart(2, '0')}
+            </span>
+          )}
+        </div>
+
+        {loading ? (
+          <div className="flex justify-center items-center py-32">
+            <Loader2 className="w-10 h-10 animate-spin text-[#00577C]" />
+          </div>
+        ) : aldeias.length === 0 ? (
+          <div className="text-center py-32 text-slate-400 text-lg">Nenhuma aldeia cadastrada ainda.</div>
+        ) : (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {aldeias.map((aldeia, idx) => (
+              <AldeiaCard key={aldeia.id} aldeia={aldeia} index={idx} />
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* ── AVISO CULTURAL ── */}
+      <section className="bg-[#009640] text-white py-10 px-5">
+        <div className="mx-auto max-w-5xl flex items-center gap-6">
+          <div className="text-4xl flex-shrink-0">🌿</div>
+          <p className="text-sm font-medium leading-relaxed opacity-90">
+            <strong>Visitação responsável:</strong> Toda visita a territórios indígenas deve ser previamente
+            autorizada pelas lideranças da aldeia e/ou pela FUNAI. A Secretaria de Turismo de São Geraldo do
+            Araguaia auxilia no contato e orientação. Respeite os costumes e a privacidade de cada comunidade.
           </p>
         </div>
       </section>
 
-      {/* LISTA DE ALDEIAS */}
-      <div className="mx-auto max-w-7xl px-5 -mt-10 relative z-20">
-        {loading ? (
-          <div className="flex justify-center py-20 bg-white rounded-3xl shadow-xl"><Loader2 className="w-10 h-10 animate-spin text-[#00577C]" /></div>
-        ) : aldeias.length === 0 ? (
-          <div className="text-center py-20 bg-white rounded-3xl shadow-xl">Nenhuma aldeia cadastrada.</div>
-        ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {aldeias.map(aldeia => (
-              <div key={aldeia.id} className="bg-white rounded-[2rem] overflow-hidden shadow-xl border border-slate-100 group transition-transform hover:-translate-y-2">
-                <div className="relative h-64 w-full">
-                  <Image src={aldeia.imagem_capa} alt={aldeia.nome} fill className="object-cover group-hover:scale-105 transition-transform duration-700" />
-                  <div className="absolute top-4 left-4 bg-[#F9C400] text-[#00577C] px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest shadow-md">
-                    Povo {aldeia.povo}
-                  </div>
-                </div>
-                <div className="p-8">
-                  <h2 className={`${jakarta.className} text-2xl font-bold text-slate-900 mb-4`}>{aldeia.nome}</h2>
-                  <div className="flex items-center gap-2 text-sm text-slate-500 font-medium mb-8">
-                    <MapPin size={16} className="text-[#009640]" /> {aldeia.localizacao}
-                  </div>
-                  <Link href={`/aldeias/${aldeia.id}`} className="flex items-center justify-center gap-2 w-full bg-slate-50 hover:bg-[#00577C] text-[#00577C] hover:text-white px-6 py-4 rounded-xl font-bold transition-colors">
-                    Conhecer História <ArrowRight size={16} />
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
     </main>
   );
+}
+
+// ── CARD INDIVIDUAL ──
+function AldeiaCard({ aldeia, index }: { aldeia: Aldeia; index: number }) {
+  const { playfair } = useFonts();
+
+  return (
+    <Link
+      href={`/aldeias/${aldeia.id}`}
+      className="group relative flex flex-col bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border border-slate-100"
+      style={{ animationDelay: `${index * 80}ms` }}
+    >
+      {/* Imagem */}
+      <div className="relative h-60 overflow-hidden flex-shrink-0">
+        <Image
+          src={aldeia.imagem_capa}
+          alt={aldeia.nome}
+          fill
+          className="object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
+        />
+        {/* Gradiente sobre a imagem */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#001f2e]/80 via-transparent to-transparent" />
+
+        {/* Badge do povo */}
+        <div className="absolute top-4 left-4 bg-[#F9C400] text-[#00577C] px-3 py-1 rounded text-[10px] font-black uppercase tracking-widest shadow">
+          Povo {aldeia.povo}
+        </div>
+
+        {/* Número decorativo */}
+        <div className="absolute top-4 right-4 text-white/20 text-5xl font-black leading-none select-none">
+          {String(index + 1).padStart(2, '0')}
+        </div>
+
+        {/* Nome na imagem */}
+        <div className="absolute bottom-4 left-5 right-5">
+          <h2 className={`text-2xl font-black text-white leading-tight drop-shadow-lg`}>
+            {aldeia.nome}
+          </h2>
+        </div>
+      </div>
+
+      {/* Corpo do card */}
+      <div className="flex flex-col flex-1 p-6">
+        <div className="flex items-center gap-2 text-sm text-slate-500 font-medium mb-auto">
+          <MapPin size={14} className="text-[#009640] flex-shrink-0" />
+          <span>{aldeia.localizacao}</span>
+        </div>
+
+        <div className="mt-6 flex items-center justify-between">
+          <span className="text-[#00577C] text-sm font-bold">Conhecer a aldeia</span>
+          <div className="w-10 h-10 rounded-full bg-[#00577C]/8 group-hover:bg-[#00577C] flex items-center justify-center transition-colors duration-300">
+            <ArrowRight size={16} className="text-[#00577C] group-hover:text-white transition-colors duration-300" />
+          </div>
+        </div>
+      </div>
+
+      {/* Barra decorativa no hover */}
+      <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-[#F9C400] via-[#009640] to-[#00577C] scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left" />
+    </Link>
+  );
+}
+
+// Hook auxiliar para reutilizar fontes dentro do mesmo arquivo
+function useFonts() {
+  return {
+    playfair: Playfair_Display({ subsets: ['latin'], weight: ['700', '900'] }),
+  };
 }
