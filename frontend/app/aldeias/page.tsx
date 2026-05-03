@@ -22,7 +22,6 @@ export default function AldeiasPage() {
   const [aldeias, setAldeias] = useState<Aldeia[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // CORREÇÃO 1: Adicionado os estados em falta para a Header
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
 
@@ -35,7 +34,6 @@ export default function AldeiasPage() {
     fetchAldeias();
   }, []);
 
-  // CORREÇÃO 2: Adicionada a lógica de Scroll para a Header aparecer/desaparecer
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
@@ -59,7 +57,6 @@ export default function AldeiasPage() {
               <img src="/logop.png" alt="Prefeitura de São Geraldo do Araguaia" className="object-contain object-left h-full w-full" />
             </div>
             <div className="hidden border-l border-slate-200 pl-4 sm:block">
-              {/* CORREÇÃO 3: Substituído 'playfair.className' por 'jakarta.className' */}
               <p className={`${jakarta.className} text-2xl font-bold leading-none text-[#00577C]`}>SagaTurismo</p>
               <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Secretaria de Turismo de São Geraldo do Araguaia</p>
             </div>
@@ -73,9 +70,26 @@ export default function AldeiasPage() {
         </div>
       </header>
 
-      {/* HERO SECTION */}
-      <section className="bg-[#00577C] pt-40 pb-24 px-5 text-center text-white relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#009640]/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+      {/* HERO SECTION COM IMAGEM DE FUNDO */}
+      <section className="relative pt-40 pb-24 px-5 text-center text-white overflow-hidden">
+        
+        {/* AQUI ENTRA A IMAGEM DE FUNDO */}
+        <div className="absolute inset-0 z-0">
+          <Image 
+            src="https://images.pexels.com/photos/12434691/pexels-photo-12434691.jpeg?_gl=1*1o9nxbn*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzc4NDMxOTMkbzM0JGcxJHQxNzc3ODQ0NTY5JGoyNyRsMCRoMA.." 
+            alt="Aldeias Indígenas" 
+            fill 
+            className="object-cover" 
+            priority
+          />
+        </div>
+
+        {/* OVERLAY ESCURO PARA O TEXTO SE LER BEM */}
+        <div className="absolute inset-0 z-0 bg-gradient-to-b from-[#00577C]/90 to-slate-900/80" />
+
+        {/* BRILHO VERDE SUBTIL NO CANTO */}
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#009640]/30 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/3 pointer-events-none z-0" />
+        
         <div className="relative z-10 mx-auto max-w-4xl">
           <h1 className={`${jakarta.className} text-5xl md:text-7xl font-black tracking-tight mb-6`}>Povos Originários</h1>
           <p className="text-xl text-blue-100 max-w-2xl mx-auto font-medium">
