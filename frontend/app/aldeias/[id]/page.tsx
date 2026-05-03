@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import {
   ArrowLeft, MapPin, Users, Loader2,
   X, ChevronLeft, ChevronRight, ZoomIn,
+  Menu,
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Playfair_Display, Lora } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -134,32 +135,30 @@ export default function AldeiaDetalhePage({ params }: { params: { id: string } }
   return (
     <div className={`${jakarta.className} min-h-screen bg-[#FAFAF7] text-slate-900`}>
 
-      {/* ── HEADER ── */}
+      {/* HEADER PADRÃO */}
       <header
-        className={`fixed left-0 top-0 z-50 w-full bg-white/98 backdrop-blur-xl transition-transform duration-300 ${showHeader ? 'translate-y-0' : '-translate-y-full'}`}
-        style={{ borderBottom: '3px solid #F9C400' }}
+        className={`fixed left-0 top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl transition-transform duration-300 ${
+          showHeader ? 'translate-y-0' : '-translate-y-full'
+        }`}
       >
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-3">
-          <Link href="/" className="flex items-center gap-4">
-            <img src="/logop.png" alt="Prefeitura" className="h-14 w-auto object-contain" />
-            <div className="hidden border-l-2 border-[#F9C400] pl-4 sm:block">
-              <p className={`${playfair.className} text-xl font-bold leading-none text-[#00577C]`}>SagaTurismo</p>
-              <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
-                Secretaria de Turismo · São Geraldo do Araguaia
-              </p>
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-5">
+          <Link href="/" className="flex min-w-0 items-center gap-3 sm:gap-4">
+            <div className="relative h-12 w-36 shrink-0 sm:h-16 sm:w-56">
+              <Image src="/logop.png" alt="Prefeitura SGA" fill priority className="object-contain object-left" />
+            </div>
+            <div className="hidden border-l border-slate-200 pl-4 lg:block">
+              <p className={`${jakarta.className} text-2xl font-bold leading-none text-[#00577C]`}>SagaTurismo</p>
+              <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Secretaria de Turismo de São Geraldo do Araguaia</p>
             </div>
           </Link>
-          <div className="flex items-center gap-4">
-            <Link href="/aldeias"
-              className="flex items-center gap-2 text-sm font-bold text-[#00577C] hover:text-[#009640] transition-colors">
-              <ArrowLeft size={16} />
-              <span className="hidden sm:inline">Todas as aldeias</span>
-            </Link>
-            <Link href="/cadastro"
-              className="hidden md:block rounded-full bg-[#00577C] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#004a6b] transition-colors">
-              Cartão do Residente
-            </Link>
-          </div>
+
+          <nav className="hidden items-center gap-7 md:flex">
+            <Link href="/roteiro" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Rota Turística</Link>
+            <Link href="/#eventos" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Eventos</Link>
+            <Link href="/galeria" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Galeria</Link>
+            <Link href="/cadastro" className="rounded-full bg-[#F9C400] px-5 py-3 text-sm font-bold text-[#00577C] shadow-lg transition hover:bg-[#ffd633]">Cartão Residente</Link>
+          </nav>
+          <button className="rounded-xl border border-slate-200 p-2 md:hidden"><Menu className="h-5 w-5 text-[#00577C]" /></button>
         </div>
       </header>
 
