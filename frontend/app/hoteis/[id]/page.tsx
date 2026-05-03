@@ -176,7 +176,7 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
         )}
       </div>
 
-      <div className="mx-auto w-full max-w-7xl px-5 py-12 grid grid-cols-1 lg:grid-cols-[1fr_380px] items-start gap-12 relative z-10 flex-1">
+      <div className="mx-auto w-full max-w-7xl px-5 py-12 grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-12 relative z-10">
         <section className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-xl border border-slate-100 min-w-0">
           <div className="flex items-center gap-3 mb-4">
             <span className="bg-[#F9C400] text-[#00577C] px-3 py-1 rounded-md text-xs font-black uppercase tracking-widest shadow-sm">
