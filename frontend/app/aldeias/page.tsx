@@ -33,20 +33,23 @@ export default function AldeiasPage() {
 
   return (
     <main className={`${inter.className} min-h-screen bg-slate-50 text-slate-900 pb-24`}>
-      {/* HEADER SIMPLIFICADO AQUI */}
-      <header className="fixed left-0 top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-5">
-          <Link href="/" className="flex min-w-0 items-center gap-3 sm:gap-4">
-            <div className="relative h-12 w-36 shrink-0 sm:h-16 sm:w-56">
-              <Image src="/logop.png" alt="Prefeitura" fill priority className="object-contain object-left" />
+      {/* HEADER INSTITUCIONAL */}
+      <header className={`fixed left-0 top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl transition-transform duration-300 ${showHeader ? 'translate-y-0' : '-translate-y-full'}`}>
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-3">
+          <Link href="/" className="flex items-center gap-4">
+            <div className="relative h-16 w-44 sm:w-56">
+              <img src="/logop.png" alt="Prefeitura de São Geraldo do Araguaia" className="object-contain object-left h-full w-full" />
             </div>
-            <div className="hidden border-l border-slate-200 pl-4 lg:block">
-              <p className={`${jakarta.className} text-2xl font-bold leading-none text-[#00577C]`}>SagaTurismo</p>
+            <div className="hidden border-l border-slate-200 pl-4 sm:block">
+              <p className={`${playfair.className} text-2xl font-bold leading-none text-[#00577C]`}>SagaTurismo</p>
+              <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Secretaria de Turismo de São Geraldo do Araguaia</p>
             </div>
           </Link>
           <nav className="hidden items-center gap-7 md:flex">
-            <Link href="/" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Início</Link>
-            <Link href="/historia" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">História</Link>
+            <a href="#roteiro" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Roteiro</a>
+            <a href="#hospedagem" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Onde Ficar</a>
+            <a href="#gastronomia" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Onde Comer</a>
+            <Link href="/cadastro" className="rounded-full bg-[#F9C400] px-5 py-3 text-sm font-bold text-[#00577C] shadow-lg transition hover:bg-[#ffd633]">Cartão do Residente</Link>
           </nav>
         </div>
       </header>
