@@ -168,138 +168,131 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
         )}
       </div>
 
-      {/* ESTRUTURA INFALÍVEL PARA O STICKY FUNCIONAR: FLEX SEM ITEMS-START */}
-      <div className="mx-auto w-full max-w-7xl px-5 py-12 flex flex-col lg:flex-row gap-12 relative z-10 flex-1">
+      {/* ESTRUTURA PARA O STICKY FUNCIONAR */}
+      <div className="mx-auto w-full max-w-7xl px-5 py-12 flex flex-col lg:flex-row items-start gap-12 relative z-10 flex-1">
         
-        {/* COLUNA ESQUERDA (FLEX-1) */}
-        <div className="flex-1 w-full min-w-0">
-          <section className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-xl border border-slate-100">
-            <div className="flex items-center gap-3 mb-4">
-              <span className="bg-[#F9C400] text-[#00577C] px-3 py-1 rounded-md text-xs font-black uppercase tracking-widest shadow-sm">
-                {hotel.tipo}
-              </span>
-              <div className="flex gap-1">
-                {Array.from({ length: hotel.estrelas }).map((_, i) => (
-                  <Star key={i} className="h-5 w-5 fill-[#F9C400] text-[#F9C400]" />
+        {/* COLUNA ESQUERDA (DESCRIÇÃO E COMODIDADES) */}
+        <section className="w-full lg:flex-1 bg-white rounded-[2.5rem] p-8 md:p-12 shadow-xl border border-slate-100 min-w-0">
+          <div className="flex items-center gap-3 mb-4">
+            <span className="bg-[#F9C400] text-[#00577C] px-3 py-1 rounded-md text-xs font-black uppercase tracking-widest shadow-sm">
+              {hotel.tipo}
+            </span>
+            <div className="flex gap-1">
+              {Array.from({ length: hotel.estrelas }).map((_, i) => (
+                <Star key={i} className="h-5 w-5 fill-[#F9C400] text-[#F9C400]" />
+              ))}
+            </div>
+          </div>
+
+          <h1 className={`${jakarta.className} text-4xl sm:text-5xl font-black text-slate-900 tracking-tight mb-4 break-words`}>
+            {hotel.nome}
+          </h1>
+
+          <div className="flex items-center gap-2 text-slate-500 font-medium mb-10 border-b border-slate-100 pb-8">
+            <MapPin size={18} className="text-[#009640] shrink-0" />
+            <span>{hotel.endereco || 'São Geraldo do Araguaia, Pará'}</span>
+          </div>
+
+          <div className="mb-12">
+            <h3 className={`${jakarta.className} text-2xl font-black text-[#00577C] mb-6`}>Sobre a Hospedagem</h3>
+            <div className="text-lg text-slate-600 font-medium leading-relaxed whitespace-pre-wrap">
+              {hotel.descricao}
+            </div>
+          </div>
+
+          {hotel.comodidades && hotel.comodidades.length > 0 && (
+            <div>
+              <h3 className={`${jakarta.className} text-2xl font-black text-[#00577C] mb-6`}>Comodidades Principais</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {hotel.comodidades.map((item, idx) => (
+                  <div key={idx} className="flex items-center gap-3 text-slate-700 font-medium bg-slate-50 px-4 py-3 rounded-xl border border-slate-100">
+                    <CheckCircle2 size={20} className="text-[#009640] shrink-0" />
+                    {item}
+                  </div>
                 ))}
               </div>
             </div>
+          )}
+        </section>
 
-            <h1 className={`${jakarta.className} text-4xl sm:text-5xl font-black text-slate-900 tracking-tight mb-4 break-words`}>
-              {hotel.nome}
-            </h1>
-
-            <div className="flex items-center gap-2 text-slate-500 font-medium mb-10 border-b border-slate-100 pb-8">
-              <MapPin size={18} className="text-[#009640] shrink-0" />
-              <span>{hotel.endereco || 'São Geraldo do Araguaia, Pará'}</span>
-            </div>
-
-            <div className="mb-12">
-              <h3 className={`${jakarta.className} text-2xl font-black text-[#00577C] mb-6`}>Sobre a Hospedagem</h3>
-              <div className="text-lg text-slate-600 font-medium leading-relaxed whitespace-pre-wrap">
-                {hotel.descricao}
-              </div>
-            </div>
-
-            {hotel.comodidades && hotel.comodidades.length > 0 && (
-              <div className="mb-12">
-                <h3 className={`${jakarta.className} text-2xl font-black text-[#00577C] mb-6`}>Comodidades Principais</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {hotel.comodidades.map((item, idx) => (
-                    <div key={idx} className="flex items-center gap-3 text-slate-700 font-medium bg-slate-50 px-4 py-3 rounded-xl border border-slate-100">
-                      <CheckCircle2 size={20} className="text-[#009640] shrink-0" />
-                      {item}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* GALERIA DE FOTOS INTEGRADA NA COLUNA ESQUERDA */}
-            {hotel.galeria && hotel.galeria.length > 0 && (
-              <div className="mt-16 pt-16 border-t border-slate-100">
-                 <h3 className={`${jakarta.className} text-3xl font-black text-slate-900 mb-8`}>Galeria de Fotos</h3>
-                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {hotel.galeria.map((foto, idx) => (
-                      <div 
-                        key={idx} 
-                        onClick={() => setFotoExpandidaIndex(idx)}
-                        className="relative h-48 md:h-56 rounded-3xl overflow-hidden shadow-md group bg-slate-200 cursor-pointer"
-                      >
-                        <Image src={foto} alt={`Foto ${idx + 1}`} fill className="object-cover group-hover:scale-110 transition-transform duration-700" />
-                        <div className="absolute inset-0 bg-[#00577C]/0 group-hover:bg-[#00577C]/40 transition-colors duration-300 flex items-center justify-center">
-                          <ZoomIn className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-10 h-10 scale-50 group-hover:scale-100" />
-                        </div>
-                      </div>
-                    ))}
-                 </div>
-              </div>
-            )}
-          </section>
-        </div>
-
-        {/* COLUNA DIREITA (TRILHO DO STICKY) */}
-        <div className="w-full lg:w-[400px] shrink-0 lg:self-start">
+        {/* COLUNA DIREITA: STICKY SIDEBAR */}
+        <aside className="w-full lg:w-[400px] shrink-0 lg:sticky lg:top-[120px] space-y-6">
           
-          {/* OS CARTÕES DENTRO DESTE BLOCO ESTÃO MARCADOS COMO STICKY */}
-          <aside className="lg:sticky lg:top-32 space-y-6">
-            
-            {/* CARD RESERVA */}
-            <div className="bg-[#00577C] text-white p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16" />
-              <p className="text-xs font-black uppercase tracking-widest text-[#F9C400] mb-2 relative z-10">Tarifa Média</p>
-              <p className={`${jakarta.className} text-4xl font-black mb-8 relative z-10`}>
-                {hotel.preco_medio || 'Sob Consulta'}
-              </p>
+          {/* CARD RESERVAS */}
+          <div className="bg-[#00577C] text-white p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16" />
+            <p className="text-xs font-black uppercase tracking-widest text-[#F9C400] mb-2 relative z-10">Tarifa Média</p>
+            <p className={`${jakarta.className} text-4xl font-black mb-8 relative z-10`}>
+              {hotel.preco_medio || 'Sob Consulta'}
+            </p>
 
-              <div className="space-y-4 mb-8 relative z-10">
-                <div className="flex items-start gap-3 text-sm text-blue-100 font-medium">
-                  <Info size={18} className="text-[#F9C400] shrink-0 mt-0.5" />
-                  <p>Os valores podem sofrer alterações conforme a temporada e disponibilidade.</p>
-                </div>
-              </div>
-
-              {numeroLimpo ? (
-                <a 
-                  href={linkWhatsApp}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`${jakarta.className} flex items-center justify-center gap-3 w-full bg-[#25D366] hover:bg-[#1EBE57] text-white py-5 rounded-2xl font-black text-lg transition-transform hover:-translate-y-1 shadow-xl relative z-10`}
-                >
-                  <MessageCircle size={24} />
-                  Reservar no WhatsApp
-                </a>
-              ) : (
-                <button disabled className={`${jakarta.className} flex items-center justify-center gap-3 w-full bg-slate-600 text-slate-400 py-5 rounded-2xl font-black text-lg cursor-not-allowed relative z-10`}>
-                  Contacto Indisponível
-                </button>
-              )}
-              <p className="text-center text-xs font-medium text-blue-200 mt-4 opacity-70 relative z-10">
-                O SagaTurismo não cobra taxas de serviço.
-              </p>
-            </div>
-
-            {/* CARD MAPA */}
-            <div className="bg-white p-4 rounded-[2.5rem] shadow-xl border border-slate-200 overflow-hidden">
-              <p className="text-xs font-black uppercase tracking-widest text-[#00577C] mb-3 px-2 flex items-center gap-2">
-                <MapPin size={14} className="text-[#009640]" /> Como Chegar
-              </p>
-              <div className="w-full h-[250px] rounded-2xl overflow-hidden bg-slate-100">
-                <iframe
-                  width="100%"
-                  height="100%"
-                  style={{ border: 0 }}
-                  loading="lazy"
-                  allowFullScreen
-                  referrerPolicy="no-referrer-when-downgrade"
-                  src={googleMapsEmbedUrl}
-                ></iframe>
+            <div className="space-y-4 mb-8 relative z-10">
+              <div className="flex items-start gap-3 text-sm text-blue-100 font-medium">
+                <Info size={18} className="text-[#F9C400] shrink-0 mt-0.5" />
+                <p>Os valores podem sofrer alterações conforme a temporada e disponibilidade.</p>
               </div>
             </div>
-          </aside>
-          
-        </div>
+
+            {numeroLimpo ? (
+              <a 
+                href={linkWhatsApp}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`${jakarta.className} flex items-center justify-center gap-3 w-full bg-[#25D366] hover:bg-[#1EBE57] text-white py-5 rounded-2xl font-black text-lg transition-transform hover:-translate-y-1 shadow-xl relative z-10`}
+              >
+                <MessageCircle size={24} />
+                Reservar no WhatsApp
+              </a>
+            ) : (
+              <button disabled className={`${jakarta.className} flex items-center justify-center gap-3 w-full bg-slate-600 text-slate-400 py-5 rounded-2xl font-black text-lg cursor-not-allowed relative z-10`}>
+                Contacto Indisponível
+              </button>
+            )}
+            <p className="text-center text-xs font-medium text-blue-200 mt-4 opacity-70 relative z-10">
+              O SagaTurismo não cobra taxas de serviço.
+            </p>
+          </div>
+
+          {/* CARD MAPA */}
+          <div className="bg-white p-4 rounded-[2.5rem] shadow-xl border border-slate-200 overflow-hidden">
+            <p className="text-xs font-black uppercase tracking-widest text-[#00577C] mb-3 px-2 flex items-center gap-2">
+              <MapPin size={14} className="text-[#009640]" /> Como Chegar
+            </p>
+            <div className="w-full h-[250px] rounded-2xl overflow-hidden bg-slate-100">
+              <iframe
+                width="100%"
+                height="100%"
+                style={{ border: 0 }}
+                loading="lazy"
+                allowFullScreen
+                referrerPolicy="no-referrer-when-downgrade"
+                src={googleMapsEmbedUrl}
+              ></iframe>
+            </div>
+          </div>
+        </aside>
       </div>
+
+      {/* GALERIA DE FOTOS (DISPOSIÇÃO HORIZONTAL LARGA - COMO ANTES) */}
+      {hotel.galeria && hotel.galeria.length > 0 && (
+        <div className="mx-auto w-full max-w-7xl px-5 pt-8 pb-16">
+           <h3 className={`${jakarta.className} text-3xl font-black text-slate-900 mb-8 border-t border-slate-200 pt-8`}>Galeria de Fotos</h3>
+           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+              {hotel.galeria.map((foto, idx) => (
+                <div 
+                  key={idx} 
+                  onClick={() => setFotoExpandidaIndex(idx)}
+                  className="relative h-64 rounded-3xl overflow-hidden shadow-md group bg-slate-200 cursor-pointer"
+                >
+                  <Image src={foto} alt={`Foto ${idx + 1}`} fill className="object-cover group-hover:scale-110 transition-transform duration-700" />
+                  <div className="absolute inset-0 bg-[#00577C]/0 group-hover:bg-[#00577C]/40 transition-colors duration-300 flex items-center justify-center">
+                    <ZoomIn className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-12 h-12 scale-50 group-hover:scale-100" />
+                  </div>
+                </div>
+              ))}
+           </div>
+        </div>
+      )}
 
       {/* MODAL / LIGHTBOX (GALERIA ECRÃ INTEIRO) */}
       {fotoExpandidaIndex !== null && hotel?.galeria && (
