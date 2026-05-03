@@ -7,6 +7,7 @@ import { Loader2, MapPin, ArrowRight, ChevronDown } from 'lucide-react';
 import { Plus_Jakarta_Sans, Playfair_Display } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
 
+// AS FONTES DEVEM ESTAR SEMPRE AQUI NO TOPO, COMO CONSTANTES
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '700', '800'] });
 const playfair = Playfair_Display({ subsets: ['latin'], weight: ['400', '700', '900'], style: ['normal', 'italic'] });
 
@@ -241,9 +242,9 @@ export default function AldeiasPage() {
 }
 
 // ── CARD INDIVIDUAL ──
+// CORREÇÃO: Removida a chamada ao `useFonts()` aqui dentro.
+// O componente agora vai herdar o `playfair.className` do escopo global do ficheiro.
 function AldeiaCard({ aldeia, index }: { aldeia: Aldeia; index: number }) {
-  const { playfair } = useFonts();
-
   return (
     <Link
       href={`/aldeias/${aldeia.id}`}
@@ -271,9 +272,9 @@ function AldeiaCard({ aldeia, index }: { aldeia: Aldeia; index: number }) {
           {String(index + 1).padStart(2, '0')}
         </div>
 
-        {/* Nome na imagem */}
+        {/* Nome na imagem usando a fonte global */}
         <div className="absolute bottom-4 left-5 right-5">
-          <h2 className={`text-2xl font-black text-white leading-tight drop-shadow-lg`}>
+          <h2 className={`${playfair.className} text-2xl font-black text-white leading-tight drop-shadow-lg`}>
             {aldeia.nome}
           </h2>
         </div>
@@ -298,11 +299,4 @@ function AldeiaCard({ aldeia, index }: { aldeia: Aldeia; index: number }) {
       <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-[#F9C400] via-[#009640] to-[#00577C] scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left" />
     </Link>
   );
-}
-
-// Hook auxiliar para reutilizar fontes dentro do mesmo arquivo
-function useFonts() {
-  return {
-    playfair: Playfair_Display({ subsets: ['latin'], weight: ['700', '900'] }),
-  };
 }
