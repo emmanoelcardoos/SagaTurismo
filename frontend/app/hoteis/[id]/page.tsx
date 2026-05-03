@@ -239,10 +239,10 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
         </div>
 
         {/* COLUNA DIREITA (TRILHO DO STICKY) */}
-        <div className="w-full lg:w-[400px] shrink-0">
+        <div className="w-full lg:w-[400px] shrink-0 lg:self-start">
           
           {/* OS CARTÕES DENTRO DESTE BLOCO ESTÃO MARCADOS COMO STICKY */}
-          <aside className="sticky top-32 space-y-6">
+          <aside className="lg:sticky lg:top-32 space-y-6">
             
             {/* CARD RESERVA */}
             <div className="bg-[#00577C] text-white p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden">
