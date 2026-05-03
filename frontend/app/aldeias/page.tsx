@@ -4,12 +4,13 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { Loader2, MapPin, ArrowRight, ChevronDown } from 'lucide-react';
-import { Plus_Jakarta_Sans, Playfair_Display } from 'next/font/google';
+import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
 import { Menu } from 'lucide-react';
+
 // AS FONTES DEVEM ESTAR SEMPRE AQUI NO TOPO, COMO CONSTANTES
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '700', '800'] });
-const playfair = Playfair_Display({ subsets: ['latin'], weight: ['400', '700', '900'], style: ['normal', 'italic'] });
+const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
 
 type Aldeia = {
   id: string;
@@ -83,7 +84,7 @@ export default function AldeiasPage() {
   }, [lastScrollY]);
 
   return (
-    <main className={`${jakarta.className} min-h-screen bg-[#FAFAF7] text-slate-900 pb-32`}>
+    <main className={`${inter.className} min-h-screen bg-[#FAFAF7] text-slate-900 pb-32`}>
 
       {/* HEADER PADRÃO */}
       <header
@@ -143,7 +144,7 @@ export default function AldeiasPage() {
             <span className="h-px w-12 bg-[#F9C400]" />
           </div>
 
-          <h1 className={`${playfair.className} text-6xl md:text-8xl font-black text-white leading-none mb-6`}>
+          <h1 className={`${jakarta.className} text-6xl md:text-8xl font-black text-white leading-none mb-6`}>
             Povos{' '}
             <em className="text-[#F9C400] not-italic">Originários</em>
           </h1>
@@ -179,7 +180,7 @@ export default function AldeiasPage() {
             </svg>
           </div>
           <div>
-            <h2 className={`${playfair.className} text-3xl font-bold mb-4`}>
+            <h2 className={`${jakarta.className} text-3xl font-bold mb-4`}>
               A Terra que Pulsa com Memória
             </h2>
             <p className="text-blue-100 leading-relaxed text-base">
@@ -196,7 +197,7 @@ export default function AldeiasPage() {
         <div className="flex items-end justify-between mb-12">
           <div>
             <p className="text-[#009640] text-xs font-bold uppercase tracking-[0.25em] mb-2">Comunidades cadastradas</p>
-            <h2 className={`${playfair.className} text-4xl md:text-5xl font-black text-[#00577C]`}>
+            <h2 className={`${jakarta.className} text-4xl md:text-5xl font-black text-[#00577C]`}>
               Aldeias do Município
             </h2>
           </div>
@@ -239,8 +240,7 @@ export default function AldeiasPage() {
 }
 
 // ── CARD INDIVIDUAL ──
-// CORREÇÃO: Removida a chamada ao `useFonts()` aqui dentro.
-// O componente agora vai herdar o `playfair.className` do escopo global do ficheiro.
+// O componente agora vai herdar o `jakarta.className` do escopo global do ficheiro.
 function AldeiaCard({ aldeia, index }: { aldeia: Aldeia; index: number }) {
   return (
     <Link
@@ -271,7 +271,7 @@ function AldeiaCard({ aldeia, index }: { aldeia: Aldeia; index: number }) {
 
         {/* Nome na imagem usando a fonte global */}
         <div className="absolute bottom-4 left-5 right-5">
-          <h2 className={`${playfair.className} text-2xl font-black text-white leading-tight drop-shadow-lg`}>
+          <h2 className={`${jakarta.className} text-2xl font-black text-white leading-tight drop-shadow-lg`}>
             {aldeia.nome}
           </h2>
         </div>
