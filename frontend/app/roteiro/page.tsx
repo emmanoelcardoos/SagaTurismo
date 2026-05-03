@@ -72,7 +72,7 @@ export default function SaoGeraldoAraguaiaPage() {
       {/* HERO SECTION CINEMÁTICA */}
       <section className="relative h-[95vh] w-full flex items-center justify-center">
         <div className="absolute inset-0">
-          <img src="https://images.pexels.com/photos/17835411/pexels-photo-17835411.jpeg?_gl=1*i2axa5*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzc0ODA1MTIkbzI3JGcxJHQxNzc3NDg0NTE1JGo0OCRsMCRoMA.." alt="Rio Araguaia" className="w-full h-full object-cover" />
+          <img src="https://images.pexels.com/photos/7867865/pexels-photo-7867865.jpeg?_gl=1*9hmuia*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzc4NDMxOTMkbzM0JGcxJHQxNzc3ODQzNDIyJGoxMiRsMCRoMA.." alt="Rio Araguaia" className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-b from-[#005274]/60 via-transparent to-white" />
         </div>
         <div className={`relative z-10 text-center px-4 transition-all duration-1000 transform ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
