@@ -2,14 +2,14 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { Loader2, X, ZoomIn, Camera, ChevronLeft, ChevronRight, MapPin, ArrowRight } from 'lucide-react';
 import { Plus_Jakarta_Sans, Playfair_Display, Lora } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
 
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '700', '800'] });
 const playfair = Playfair_Display({ subsets: ['latin'], weight: ['400', '700', '900'], style: ['normal', 'italic'] });
-const lora = Lora({ subsets: ['latin'], weight: ['400', '500'], style: ['normal'] });
+const lora = Lora({ subsets: ['latin'], weight: ['400', '500'] });
 
 type Foto = {
   id: string;
@@ -19,40 +19,21 @@ type Foto = {
   categoria: string;
 };
 
-// ── GRAFISMO INDÍGENA ──
-function GrafismoBar({ className = '' }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 800 16" preserveAspectRatio="none" className={`w-full h-4 ${className}`} aria-hidden>
-      <pattern id="gbar" x="0" y="0" width="32" height="16" patternUnits="userSpaceOnUse">
-        <rect width="32" height="16" fill="transparent" />
-        <polygon points="0,0 8,8 0,16" fill="#F9C400" opacity="0.9" />
-        <polygon points="8,0 16,8 8,16 0,8" fill="#009640" opacity="0.9" />
-        <polygon points="16,0 24,8 16,16 8,8" fill="#F9C400" opacity="0.9" />
-        <polygon points="24,0 32,8 24,16 16,8" fill="#009640" opacity="0.9" />
-        <polygon points="32,0 32,16 24,8" fill="#F9C400" opacity="0.9" />
-      </pattern>
-      <rect width="800" height="16" fill="url(#gbar)" />
-    </svg>
-  );
-}
-
 // ── HERO CARROSSEL ──
 function HeroCarrossel({ fotos }: { fotos: Foto[] }) {
   const [current, setCurrent] = useState(0);
-  const [prev, setPrev] = useState<number | null>(null);
   const [transitioning, setTransitioning] = useState(false);
   const heroFotos = fotos.slice(0, 6);
 
   const goTo = (idx: number) => {
     if (transitioning || idx === current) return;
     setTransitioning(true);
-    setPrev(current);
     setCurrent(idx);
-    setTimeout(() => { setPrev(null); setTransitioning(false); }, 900);
+    setTimeout(() => setTransitioning(false), 900);
   };
 
   const next = () => goTo((current + 1) % heroFotos.length);
-  const goBack = () => goTo((current - 1 + heroFotos.length) % heroFotos.length);
+  const prev = () => goTo((current - 1 + heroFotos.length) % heroFotos.length);
 
   useEffect(() => {
     const t = setInterval(next, 7000);
@@ -62,9 +43,7 @@ function HeroCarrossel({ fotos }: { fotos: Foto[] }) {
   if (heroFotos.length === 0) return null;
 
   return (
-    <section className="relative w-full h-screen min-h-[600px] max-h-[900px] overflow-hidden bg-[#001020]">
-
-      {/* Imagens empilhadas com fade */}
+    <section className="relative w-full h-screen min-h-[600px] max-h-[900px] overflow-hidden bg-slate-900">
       {heroFotos.map((foto, idx) => (
         <div
           key={foto.id}
@@ -75,124 +54,50 @@ function HeroCarrossel({ fotos }: { fotos: Foto[] }) {
         </div>
       ))}
 
-      {/* Overlay escuro */}
-      <div className="absolute inset-0 z-10" style={{
-        background: 'linear-gradient(to bottom, rgba(0,16,32,0.5) 0%, rgba(0,16,32,0.15) 40%, rgba(0,16,32,0.7) 80%, rgba(0,16,32,0.95) 100%)'
-      }} />
+      <div className="absolute inset-0 z-10 bg-gradient-to-b from-slate-900/55 via-slate-900/20 to-slate-900/90" />
 
-      {/* Brilho lateral esquerdo */}
-      <div className="absolute top-0 left-0 w-[400px] h-full z-10 opacity-30"
-        style={{ background: 'linear-gradient(to right, rgba(0,87,124,0.8), transparent)' }} />
-
-      {/* Conteúdo central */}
       <div className="absolute inset-0 z-20 flex flex-col justify-end pb-20 px-6 md:px-16 max-w-7xl mx-auto left-0 right-0">
-
-        {/* Rótulo */}
         <div className="flex items-center gap-3 mb-5">
           <span className="h-px w-10 bg-[#F9C400]" />
-          <span className="text-[#F9C400] text-xs font-black uppercase tracking-[0.3em]">
+          <span className="text-[#F9C400] text-xs font-bold uppercase tracking-[0.3em]">
             {heroFotos[current]?.categoria || 'São Geraldo do Araguaia'}
           </span>
         </div>
 
         <h1 className={`${playfair.className} text-5xl md:text-7xl font-black text-white leading-none mb-4`}>
-          Nossas<br />
-          <em className="text-[#F9C400] not-italic">Memórias</em>
+          Nossas <em className="text-[#F9C400] not-italic">Memórias</em>
         </h1>
         <p className={`${lora.className} text-white/80 text-lg max-w-xl leading-relaxed mb-8`}>
-          Cada fotografia é um convite. Descubra as paisagens, a cultura e a alma de São Geraldo do Araguaia — e planeie a sua visita.
+          Descubra as paisagens, a cultura e a alma de São Geraldo do Araguaia — e planeie a sua visita.
         </p>
 
-        {/* CTA */}
         <div className="flex flex-wrap items-center gap-4">
           <a href="#galeria"
-            className="flex items-center gap-2 bg-[#F9C400] text-[#00577C] font-black text-sm px-6 py-3.5 rounded-full hover:bg-[#ffd633] transition-colors shadow-lg">
-            <Camera size={16} />
-            Ver toda a galeria
+            className="flex items-center gap-2 bg-[#F9C400] text-[#00577C] font-bold text-sm px-6 py-3.5 rounded-full hover:bg-[#ffd633] transition-colors shadow">
+            <Camera size={16} /> Ver toda a galeria
           </a>
           <Link href="/roteiro"
-            className="flex items-center gap-2 text-white/90 font-bold text-sm px-6 py-3.5 rounded-full border border-white/30 hover:border-white/60 transition-colors">
+            className="flex items-center gap-2 text-white font-semibold text-sm px-6 py-3.5 rounded-full border border-white/30 hover:border-white/70 transition-colors">
             Planear visita <ArrowRight size={16} />
           </Link>
         </div>
 
-        {/* Navegação inferior: dots + setas */}
-        <div className="flex items-center gap-4 mt-10">
+        <div className="flex items-center gap-3 mt-10">
           {heroFotos.map((_, i) => (
             <button key={i} onClick={() => goTo(i)}
-              className={`transition-all duration-300 rounded-full ${i === current ? 'w-8 h-2 bg-[#F9C400]' : 'w-2 h-2 bg-white/30 hover:bg-white/60'}`}
-              aria-label={`Foto ${i + 1}`}
-            />
+              className={`transition-all duration-300 rounded-full ${i === current ? 'w-8 h-2 bg-[#F9C400]' : 'w-2 h-2 bg-white/30 hover:bg-white/60'}`} />
           ))}
           <div className="ml-auto flex gap-2">
-            <button onClick={goBack}
-              className="w-10 h-10 rounded-full border border-white/30 hover:border-white text-white flex items-center justify-center transition-colors">
+            <button onClick={prev} className="w-10 h-10 rounded-full border border-white/30 hover:border-white text-white flex items-center justify-center transition-colors">
               <ChevronLeft size={18} />
             </button>
-            <button onClick={next}
-              className="w-10 h-10 rounded-full bg-[#00577C] hover:bg-[#004a6b] text-white flex items-center justify-center transition-colors">
+            <button onClick={next} className="w-10 h-10 rounded-full bg-[#00577C] hover:bg-[#004a6b] text-white flex items-center justify-center transition-colors">
               <ChevronRight size={18} />
             </button>
           </div>
         </div>
       </div>
-
-      {/* Grafismo na base do hero */}
-      <div className="absolute bottom-0 left-0 right-0 z-30">
-        <GrafismoBar />
-      </div>
     </section>
-  );
-}
-
-// ── GRID EDITORIAL por categoria ──
-function AlbumCategoria({
-  categoria,
-  fotos,
-  onOpen,
-}: {
-  categoria: string;
-  fotos: Foto[];
-  onOpen: (foto: Foto, lista: Foto[], idx: number) => void;
-}) {
-  // Layout masonry-like: primeira foto grande, restantes menores
-  const [primeira, ...resto] = fotos;
-
-  return (
-    <div className="mb-24" id={`cat-${categoria.toLowerCase().replace(/\s+/g, '-')}`}>
-      {/* Cabeçalho do álbum */}
-      <div className="flex items-center gap-5 mb-8">
-        <div className="w-1.5 h-12 rounded-full bg-gradient-to-b from-[#F9C400] to-[#009640]" />
-        <div>
-          <p className="text-[#009640] text-[10px] font-black uppercase tracking-[0.3em] mb-0.5">Álbum</p>
-          <h2 className={`${playfair.className} text-3xl md:text-4xl font-black text-[#00577C]`}>{categoria}</h2>
-        </div>
-        <div className="flex-1 h-px bg-slate-200 hidden md:block" />
-        <span className="hidden md:block text-slate-100 text-5xl font-black select-none">
-          {String(fotos.length).padStart(2, '0')}
-        </span>
-      </div>
-
-      {/* Grid especial: se só 1 foto, full-width */}
-      {fotos.length === 1 ? (
-        <FotoCard foto={fotos[0]} onOpen={() => onOpen(fotos[0], fotos, 0)} tall />
-      ) : fotos.length === 2 ? (
-        <div className="grid grid-cols-2 gap-4">
-          {fotos.map((f, i) => <FotoCard key={f.id} foto={f} onOpen={() => onOpen(f, fotos, i)} />)}
-        </div>
-      ) : (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-[240px]">
-          {/* Primeira foto ocupa 2 linhas na coluna 1 */}
-          <div className="row-span-2 col-span-1">
-            <FotoCard foto={primeira} onOpen={() => onOpen(primeira, fotos, 0)} tall />
-          </div>
-          {/* Resto */}
-          {resto.map((f, i) => (
-            <FotoCard key={f.id} foto={f} onOpen={() => onOpen(f, fotos, i + 1)} />
-          ))}
-        </div>
-      )}
-    </div>
   );
 }
 
@@ -209,24 +114,58 @@ function FotoCard({ foto, onOpen, tall = false }: { foto: Foto; onOpen: () => vo
         fill
         className="object-cover transition-transform duration-700 group-hover:scale-105"
       />
-      {/* Overlay */}
-      <div className="absolute inset-0 bg-[#001020]/0 group-hover:bg-[#001020]/50 transition-colors duration-300 flex items-center justify-center">
-        <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 scale-75 group-hover:scale-100">
-          <ZoomIn className="text-white w-10 h-10" />
-        </div>
+      <div className="absolute inset-0 bg-slate-900/0 group-hover:bg-slate-900/40 transition-colors duration-300 flex items-center justify-center">
+        <ZoomIn className="text-white opacity-0 group-hover:opacity-100 transition-all duration-300 scale-75 group-hover:scale-100 w-10 h-10" />
       </div>
-
-      {/* Legenda ao hover */}
-      <div className="absolute bottom-0 left-0 right-0 p-5 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300"
-        style={{ background: 'linear-gradient(to top, rgba(0,16,32,0.9), transparent)' }}>
+      <div
+        className="absolute bottom-0 left-0 right-0 p-5 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300"
+        style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85), transparent)' }}
+      >
         <p className="text-white font-bold text-sm line-clamp-1">{foto.titulo}</p>
-        <p className="text-[#F9C400] text-xs font-black uppercase tracking-widest mt-1">{foto.ano}</p>
+        <p className="text-[#F9C400] text-xs font-bold uppercase tracking-widest mt-1">{foto.ano}</p>
+      </div>
+    </div>
+  );
+}
+
+// ── ÁLBUM POR CATEGORIA ──
+function AlbumCategoria({ categoria, fotos, onOpen }: {
+  categoria: string;
+  fotos: Foto[];
+  onOpen: (lista: Foto[], idx: number) => void;
+}) {
+  const [primeira, ...resto] = fotos;
+
+  return (
+    <div className="mb-24">
+      <div className="flex items-center gap-5 mb-8">
+        <div className="w-1 h-10 rounded-full bg-[#00577C]" />
+        <div>
+          <p className="text-[#009640] text-[10px] font-bold uppercase tracking-[0.3em] mb-0.5">Álbum</p>
+          <h2 className={`${playfair.className} text-3xl md:text-4xl font-black text-[#00577C]`}>{categoria}</h2>
+        </div>
+        <div className="flex-1 h-px bg-slate-200 hidden md:block" />
+        <span className="hidden md:block text-slate-100 text-5xl font-black select-none">
+          {String(fotos.length).padStart(2, '0')}
+        </span>
       </div>
 
-      {/* Categoria badge */}
-      {foto.categoria && (
-        <div className="absolute top-3 left-3 bg-[#00577C]/80 backdrop-blur-sm text-white px-2.5 py-1 rounded text-[9px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          {foto.categoria}
+      {fotos.length === 1 ? (
+        <div className="h-80">
+          <FotoCard foto={fotos[0]} onOpen={() => onOpen(fotos, 0)} tall />
+        </div>
+      ) : fotos.length === 2 ? (
+        <div className="grid grid-cols-2 gap-4 h-72">
+          {fotos.map((f, i) => <FotoCard key={f.id} foto={f} onOpen={() => onOpen(fotos, i)} />)}
+        </div>
+      ) : (
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-[240px]">
+          <div className="row-span-2 col-span-1">
+            <FotoCard foto={primeira} onOpen={() => onOpen(fotos, 0)} tall />
+          </div>
+          {resto.map((f, i) => (
+            <FotoCard key={f.id} foto={f} onOpen={() => onOpen(fotos, i + 1)} />
+          ))}
         </div>
       )}
     </div>
@@ -234,8 +173,10 @@ function FotoCard({ foto, onOpen, tall = false }: { foto: Foto; onOpen: () => vo
 }
 
 // ── LIGHTBOX ──
-function Lightbox({ foto, lista, indexInicial, onClose }: {
-  foto: Foto; lista: Foto[]; indexInicial: number; onClose: () => void;
+function Lightbox({ lista, indexInicial, onClose }: {
+  lista: Foto[];
+  indexInicial: number;
+  onClose: () => void;
 }) {
   const [idx, setIdx] = useState(indexInicial);
   const current = lista[idx];
@@ -255,42 +196,27 @@ function Lightbox({ foto, lista, indexInicial, onClose }: {
 
   return (
     <div className="fixed inset-0 z-[200] bg-black/97 flex items-center justify-center" onClick={onClose}>
-
-      {/* Fechar */}
-      <button onClick={onClose}
-        className="absolute top-5 right-5 z-10 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors">
+      <button onClick={onClose} className="absolute top-5 right-5 z-10 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors">
         <X size={20} />
       </button>
-
-      {/* Anterior */}
       {lista.length > 1 && (
-        <button onClick={prev}
-          className="absolute left-4 top-1/2 -translate-y-1/2 z-10 p-4 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors">
+        <button onClick={prev} className="absolute left-4 top-1/2 -translate-y-1/2 z-10 p-4 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors">
           <ChevronLeft size={26} />
         </button>
       )}
-
-      {/* Imagem */}
       <div className="relative w-full max-w-5xl mx-6 aspect-video rounded-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
         <Image src={current.imagem_url} alt={current.titulo} fill className="object-contain" />
       </div>
-
-      {/* Próxima */}
       {lista.length > 1 && (
-        <button onClick={next}
-          className="absolute right-4 top-1/2 -translate-y-1/2 z-10 p-4 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors">
+        <button onClick={next} className="absolute right-4 top-1/2 -translate-y-1/2 z-10 p-4 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors">
           <ChevronRight size={26} />
         </button>
       )}
-
-      {/* Info */}
       <div className="absolute bottom-8 left-0 right-0 text-center px-5">
         <p className={`${playfair.className} text-xl font-bold text-white`}>{current.titulo}</p>
-        <p className="text-[#F9C400] text-xs font-black uppercase tracking-widest mt-1">
+        <p className="text-[#F9C400] text-xs font-bold uppercase tracking-widest mt-1">
           {current.categoria} · {current.ano}
         </p>
-
-        {/* Dots */}
         {lista.length > 1 && (
           <div className="flex justify-center gap-2 mt-4">
             {lista.map((_, i) => (
@@ -304,46 +230,12 @@ function Lightbox({ foto, lista, indexInicial, onClose }: {
   );
 }
 
-// ── SECÇÃO CTA DE CONVERSÃO ──
-function CTAVisita() {
-  return (
-    <section className="bg-[#00577C] text-white py-20 px-6">
-      <div className="mx-auto max-w-5xl flex flex-col md:flex-row items-center gap-12">
-        <div className="flex-1">
-          <p className="text-[#F9C400] text-xs font-black uppercase tracking-[0.3em] mb-3">Venha você também</p>
-          <h2 className={`${playfair.className} text-4xl md:text-5xl font-black leading-tight mb-5`}>
-            As fotos não fazem<br />
-            <em className="text-[#F9C400] not-italic">jus à realidade.</em>
-          </h2>
-          <p className={`${lora.className} text-white/80 text-base leading-relaxed max-w-md`}>
-            São Geraldo do Araguaia tem rios cristalinos, culturas vivas, gastronomia autêntica e um povo acolhedor. Planeie já a sua visita.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 flex-shrink-0">
-          <Link href="/roteiro"
-            className="flex items-center justify-center gap-2 bg-[#F9C400] text-[#00577C] font-black px-8 py-4 rounded-full hover:bg-[#ffd633] transition-colors shadow-lg text-sm">
-            Ver roteiro turístico <ArrowRight size={16} />
-          </Link>
-          <Link href="/cadastro"
-            className="flex items-center justify-center gap-2 border-2 border-white/30 text-white font-bold px-8 py-4 rounded-full hover:border-white transition-colors text-sm">
-            Cartão do Residente
-          </Link>
-          <div className="flex items-center gap-2 text-white/60 text-xs font-medium justify-center">
-            <MapPin size={12} className="text-[#009640]" />
-            São Geraldo do Araguaia, Pará, Brasil
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 // ── PÁGINA PRINCIPAL ──
 export default function GaleriaPage() {
   const [fotos, setFotos] = useState<Foto[]>([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
-  const [lightbox, setLightbox] = useState<{ foto: Foto; lista: Foto[]; idx: number } | null>(null);
+  const [lightbox, setLightbox] = useState<{ lista: Foto[]; idx: number } | null>(null);
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [categoriaAtiva, setCategoriaAtiva] = useState<string | null>(null);
@@ -390,8 +282,6 @@ export default function GaleriaPage() {
     ? { [categoriaAtiva]: fotosAgrupadas[categoriaAtiva] }
     : fotosAgrupadas;
 
-  const openLightbox = (foto: Foto, lista: Foto[], idx: number) => setLightbox({ foto, lista, idx });
-
   return (
     <main className={`${jakarta.className} min-h-screen bg-[#FAFAF7] text-slate-900`}>
 
@@ -423,23 +313,30 @@ export default function GaleriaPage() {
         </div>
       </header>
 
-      {/* ── HERO CARROSSEL ── */}
+      {/* ── HERO ── */}
       <div className="mt-[70px]">
         {!loading && fotos.length > 0 && <HeroCarrossel fotos={fotos} />}
+        {loading && (
+          <div className="w-full bg-slate-900 flex items-center justify-center" style={{ height: 'calc(100vh - 70px)' }}>
+            <Loader2 className="w-10 h-10 animate-spin text-white/20" />
+          </div>
+        )}
       </div>
 
-      {/* ── ESTATÍSTICAS RÁPIDAS ── */}
+      {/* ── BARRA DE ESTATÍSTICAS ── */}
       {!loading && fotos.length > 0 && (
         <section className="bg-[#00577C] text-white py-6 px-5">
-          <div className="mx-auto max-w-7xl flex flex-wrap justify-center md:justify-start gap-8 md:gap-16">
+          <div className="mx-auto max-w-7xl flex flex-wrap justify-center md:justify-start gap-10 md:gap-20">
             {[
               { valor: fotos.length, label: 'Fotografias' },
               { valor: categorias.length, label: 'Álbuns' },
               { valor: [...new Set(fotos.map(f => f.ano))].length, label: 'Anos registados' },
             ].map(({ valor, label }) => (
               <div key={label} className="text-center md:text-left">
-                <p className={`${playfair.className} text-4xl font-black text-[#F9C400]`}>{String(valor).padStart(2, '0')}</p>
-                <p className="text-white/60 text-xs font-bold uppercase tracking-widest mt-1">{label}</p>
+                <p className={`${playfair.className} text-4xl font-black text-[#F9C400]`}>
+                  {String(valor).padStart(2, '0')}
+                </p>
+                <p className="text-white/50 text-xs font-bold uppercase tracking-widest mt-1">{label}</p>
               </div>
             ))}
           </div>
@@ -448,21 +345,20 @@ export default function GaleriaPage() {
 
       {/* ── GALERIA ── */}
       <section id="galeria" className="mx-auto max-w-7xl px-5 py-20">
-
         {loading ? (
           <div className="flex flex-col items-center justify-center py-32 text-[#00577C]">
-            <Loader2 className="w-12 h-12 animate-spin mb-4" />
-            <p className="font-bold uppercase tracking-widest text-xs opacity-60">A carregar galeria…</p>
+            <Loader2 className="w-10 h-10 animate-spin mb-4" />
+            <p className="text-xs font-bold uppercase tracking-widest opacity-40">A carregar…</p>
           </div>
         ) : erro ? (
           <div className="text-center py-32">
-            <p className="text-2xl font-bold text-slate-400 mb-2">Algo correu mal.</p>
+            <p className="text-xl font-bold text-slate-300 mb-2">Algo correu mal.</p>
             <p className="text-slate-400 text-sm">{erro}</p>
           </div>
         ) : fotos.length === 0 ? (
           <div className="text-center py-32">
             <Camera className="w-16 h-16 text-slate-200 mx-auto mb-4" />
-            <p className="text-2xl font-bold text-slate-300">Galeria vazia</p>
+            <p className="text-xl font-bold text-slate-300">Galeria vazia</p>
           </div>
         ) : (
           <>
@@ -472,7 +368,7 @@ export default function GaleriaPage() {
                 <button
                   onClick={() => setCategoriaAtiva(null)}
                   className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all ${!categoriaAtiva
-                    ? 'bg-[#00577C] text-white shadow-md'
+                    ? 'bg-[#00577C] text-white shadow'
                     : 'bg-white text-slate-600 border border-slate-200 hover:border-[#00577C] hover:text-[#00577C]'}`}
                 >
                   Todos
@@ -482,11 +378,11 @@ export default function GaleriaPage() {
                     key={cat}
                     onClick={() => setCategoriaAtiva(cat === categoriaAtiva ? null : cat)}
                     className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all ${categoriaAtiva === cat
-                      ? 'bg-[#009640] text-white shadow-md'
+                      ? 'bg-[#009640] text-white shadow'
                       : 'bg-white text-slate-600 border border-slate-200 hover:border-[#009640] hover:text-[#009640]'}`}
                   >
                     {cat}
-                    <span className="ml-2 text-xs opacity-60">({fotosAgrupadas[cat].length})</span>
+                    <span className="ml-2 text-xs opacity-50">({fotosAgrupadas[cat].length})</span>
                   </button>
                 ))}
               </div>
@@ -498,45 +394,70 @@ export default function GaleriaPage() {
                 key={categoria}
                 categoria={categoria}
                 fotos={fotosDaCategoria}
-                onOpen={openLightbox}
+                onOpen={(lista, idx) => setLightbox({ lista, idx })}
               />
             ))}
           </>
         )}
       </section>
 
-      {/* ── CTA DE CONVERSÃO ── */}
-      <GrafismoBar />
-      <CTAVisita />
-      <GrafismoBar />
+      {/* ── CTA ── */}
+      <section className="bg-[#00577C] text-white py-20 px-6">
+        <div className="mx-auto max-w-5xl flex flex-col md:flex-row items-center gap-12">
+          <div className="flex-1">
+            <p className="text-[#F9C400] text-xs font-bold uppercase tracking-[0.3em] mb-3">Venha você também</p>
+            <h2 className={`${playfair.className} text-4xl md:text-5xl font-black leading-tight mb-5`}>
+              As fotos não fazem<br />
+              <em className="text-[#F9C400] not-italic">jus à realidade.</em>
+            </h2>
+            <p className={`${lora.className} text-white/75 text-base leading-relaxed max-w-md`}>
+              São Geraldo do Araguaia tem rios cristalinos, culturas vivas, gastronomia autêntica e um povo acolhedor. Planeie já a sua visita.
+            </p>
+          </div>
+          <div className="flex flex-col gap-4 flex-shrink-0 w-full md:w-auto">
+            <Link href="/roteiro"
+              className="flex items-center justify-center gap-2 bg-[#F9C400] text-[#00577C] font-bold px-8 py-4 rounded-full hover:bg-[#ffd633] transition-colors shadow text-sm">
+              Ver roteiro turístico <ArrowRight size={16} />
+            </Link>
+            <Link href="/cadastro"
+              className="flex items-center justify-center gap-2 border-2 border-white/25 text-white font-bold px-8 py-4 rounded-full hover:border-white/60 transition-colors text-sm">
+              Cartão do Residente
+            </Link>
+            <div className="flex items-center gap-2 text-white/40 text-xs font-medium justify-center">
+              <MapPin size={12} className="text-[#4ade80]" />
+              São Geraldo do Araguaia, Pará, Brasil
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* ── FOOTER ── */}
-      <footer className="bg-[#001020] text-white py-16 px-6">
+      <footer className="bg-slate-900 text-white py-16 px-6">
         <div className="mx-auto max-w-7xl grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
           <div className="space-y-5">
-            <img src="/logop.png" alt="Prefeitura SGA" className="h-16 object-contain brightness-0 invert opacity-80" />
-            <p className="text-white/40 text-xs font-bold uppercase tracking-widest leading-relaxed">
+            <img src="/logop.png" alt="Prefeitura SGA" className="h-16 object-contain brightness-0 invert opacity-70" />
+            <p className="text-white/30 text-xs font-bold uppercase tracking-widest leading-relaxed">
               São Geraldo do Araguaia<br />"Cidade Amada, seguindo em frente"
             </p>
           </div>
           <div className="space-y-4">
             <h5 className="text-white/30 text-[10px] font-black uppercase tracking-[0.2em] border-b border-white/10 pb-3">Gestão Executiva</h5>
-            <ul className="text-sm text-white/50 space-y-3 font-medium leading-relaxed">
-              <li>Prefeito:<br /><span className="text-white/80 font-bold">Jefferson Douglas de Jesus Oliveira</span></li>
-              <li>Vice-Prefeito:<br /><span className="text-white/80 font-bold">Marcos Antônio Candido de Lucena</span></li>
+            <ul className="text-sm text-white/40 space-y-3 leading-relaxed">
+              <li>Prefeito:<br /><span className="text-white/70 font-semibold">Jefferson Douglas de Jesus Oliveira</span></li>
+              <li>Vice-Prefeito:<br /><span className="text-white/70 font-semibold">Marcos Antônio Candido de Lucena</span></li>
             </ul>
           </div>
           <div className="space-y-4">
             <h5 className="text-white/30 text-[10px] font-black uppercase tracking-[0.2em] border-b border-white/10 pb-3">Turismo (SEMTUR)</h5>
-            <ul className="text-sm text-white/50 space-y-2 font-medium leading-relaxed">
-              <li>Secretária:<br /><span className="text-white/80 font-bold">Micheli Stephany de Souza</span></li>
-              <li>Tel: <span className="text-[#F9C400] font-bold">(94) 98145-2067</span></li>
-              <li>Email: <span className="text-white/70">setursaga@gmail.com</span></li>
+            <ul className="text-sm text-white/40 space-y-2 leading-relaxed">
+              <li>Secretária:<br /><span className="text-white/70 font-semibold">Micheli Stephany de Souza</span></li>
+              <li>Tel: <span className="text-[#F9C400] font-semibold">(94) 98145-2067</span></li>
+              <li>Email: <span className="text-white/60">setursaga@gmail.com</span></li>
             </ul>
           </div>
           <div className="space-y-4">
             <h5 className="text-white/30 text-[10px] font-black uppercase tracking-[0.2em] border-b border-white/10 pb-3">Equipe Técnica</h5>
-            <ul className="text-sm text-white/50 space-y-2 font-medium">
+            <ul className="text-sm text-white/40 space-y-2">
               <li>Adriana da Luz Lima</li>
               <li>Carmelita Luz da Silva</li>
               <li>Diego Silva Costa</li>
@@ -553,13 +474,11 @@ export default function GaleriaPage() {
       {/* ── LIGHTBOX ── */}
       {lightbox && (
         <Lightbox
-          foto={lightbox.foto}
           lista={lightbox.lista}
           indexInicial={lightbox.idx}
           onClose={() => setLightbox(null)}
         />
       )}
-
     </main>
   );
 }
