@@ -728,16 +728,6 @@ export default function HomePage() {
               }}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-[#00577C]/75 via-[#00577C]/20 to-transparent" />
-
-            <div className="absolute bottom-6 left-6 right-6 rounded-3xl border border-white/20 bg-white/15 p-5 text-white backdrop-blur-md">
-              <Route className="mb-3 h-8 w-8 text-[#F9C400]" />
-              <p className="text-sm font-bold uppercase tracking-[0.18em] text-white/75">
-                Roteiro oficial
-              </p>
-              <p className={`${jakarta.className} mt-1 text-3xl font-bold`}>
-                São Geraldo em cada caminho.
-              </p>
-            </div>
           </div>
 
           <div>
@@ -802,7 +792,7 @@ export default function HomePage() {
             <div className="mt-8">
               <Link
                 href="/aldeias"
-                className="inline-flex items-center justify-center gap-3 rounded-full bg-[#009640] px-8 py-4 font-bold text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-[#007a33]"
+                className="inline-flex items-center justify-center gap-3 rounded-full bg-[#F9C400] px-8 py-4 font-bold text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-[#007a33]"
               >
                 Conhecer as Aldeias
                 <ArrowRight className="h-5 w-5" />
