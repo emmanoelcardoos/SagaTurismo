@@ -792,7 +792,7 @@ export default function HomePage() {
             <div className="mt-8">
               <Link
                 href="/aldeias"
-                className="inline-flex items-center justify-center gap-3 rounded-full bg-[#F9C400] px-8 py-4 font-bold text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-[#007a33]"
+                className="inline-flex items-center justify-center gap-3 rounded-full bg-[#F9C400] px-8 py-4 font-bold text-[#00577C] shadow-lg transition hover:-translate-y-0.5 hover:bg-[#007a33]"
               >
                 Conhecer as Aldeias
                 <ArrowRight className="h-5 w-5" />
