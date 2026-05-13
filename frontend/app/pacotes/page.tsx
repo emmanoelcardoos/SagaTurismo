@@ -4,8 +4,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { 
-  Loader2, Menu, MapPin, ArrowRight, CheckCircle2, 
-  Bed, Compass, Ticket, QrCode, X, CalendarClock, Wallet 
+  Loader2, Menu, MapPin, ArrowRight, 
+  Bed, Compass, Ticket, CalendarClock 
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -47,11 +47,6 @@ export default function PacotesPage() {
   const [loading, setLoading] = useState(true);
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
-
-  // Estados do Checkout
-  const [pacoteSelecionado, setPacoteSelecionado] = useState<Pacote | null>(null);
-  const [processandoPix, setProcessandoPix] = useState(false);
-  const [pixGerado, setPixGerado] = useState(false);
 
   useEffect(() => {
     async function fetchPacotes() {
@@ -101,22 +96,6 @@ export default function PacotesPage() {
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
-
-  // Função Simulação de Checkout
-  const simularPagamentoPix = () => {
-    setProcessandoPix(true);
-    // Simula a ida ao Backend (Python/FastAPI) e a geração do QR Code no PagBank
-    setTimeout(() => {
-      setProcessandoPix(false);
-      setPixGerado(true);
-    }, 2500);
-  };
-
-  const fecharModal = () => {
-    setPacoteSelecionado(null);
-    setProcessandoPix(false);
-    setPixGerado(false);
-  };
 
   return (
     <main className={`${inter.className} min-h-screen bg-[#FAFAF7] text-slate-900 pb-32`}>
@@ -227,18 +206,18 @@ export default function PacotesPage() {
                     ))}
                   </div>
 
-                  {/* Rodapé do Card: Preço Total e Botão */}
+                  {/* Rodapé do Card: Preço Total e Botão para a página de detalhes */}
                   <div className="flex items-end justify-between mt-auto">
                     <div>
                       <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Valor Total</p>
                       <p className={`${jakarta.className} text-3xl font-black text-[#009640]`}>{formatarMoeda(pacote.valor_total || 0)}</p>
                     </div>
-                    <button 
-                      onClick={() => setPacoteSelecionado(pacote)}
+                    <Link 
+                      href={`/pacotes/${pacote.id}`}
                       className="bg-[#00577C] hover:bg-[#004a6b] text-white px-6 py-3 rounded-full font-bold text-sm transition-colors flex items-center gap-2 shadow-md"
                     >
-                      Comprar <ArrowRight size={16} />
-                    </button>
+                      Ver Detalhes <ArrowRight size={16} />
+                    </Link>
                   </div>
                 </div>
               </div>
@@ -247,91 +226,12 @@ export default function PacotesPage() {
         )}
       </section>
 
-      {/* ── MODAL DE CHECKOUT PIX ── */}
-      {pacoteSelecionado && (
-        <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl relative">
-            
-            {/* Header Modal */}
-            <div className="bg-[#00577C] p-6 text-white flex justify-between items-start">
-              <div>
-                <p className="text-[#F9C400] text-[10px] font-bold uppercase tracking-[0.2em] mb-1">Checkout Oficial SGA</p>
-                <h3 className={`${jakarta.className} text-2xl font-bold leading-tight`}>{pacoteSelecionado.titulo}</h3>
-              </div>
-              <button onClick={fecharModal} className="p-2 bg-white/10 hover:bg-white/20 rounded-full transition"><X size={20} /></button>
-            </div>
-
-            <div className="p-8">
-              {!pixGerado ? (
-                <>
-                  <p className="text-slate-600 mb-6 text-center text-sm">
-                    Confirme os detalhes da sua compra. O valor será dividido automaticamente entre os prestadores de serviço locais.
-                  </p>
-
-                  {/* Resumo Final */}
-                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 mb-8">
-                    <div className="flex justify-between items-center border-b border-slate-200 pb-4 mb-4">
-                      <span className="text-slate-500 font-medium">Data da Viagem</span>
-                      <span className="font-bold text-[#00577C]">A agendar</span>
-                    </div>
-                    <div className="flex justify-between items-center text-xl">
-                      <span className={`${jakarta.className} font-bold text-slate-800`}>Total a Pagar</span>
-                      <span className={`${jakarta.className} font-black text-[#009640] text-2xl`}>
-                        {formatarMoeda(pacoteSelecionado.valor_total || 0)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Botão Pagar PIX */}
-                  <button 
-                    onClick={simularPagamentoPix}
-                    disabled={processandoPix}
-                    className={`w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-3 transition-all ${
-                      processandoPix ? 'bg-slate-200 text-slate-500 cursor-not-allowed' : 'bg-[#009640] hover:bg-[#007a33] text-white shadow-xl hover:-translate-y-1'
-                    }`}
-                  >
-                    {processandoPix ? (
-                      <><Loader2 className="animate-spin" size={24} /> Gerando PIX PagBank...</>
-                    ) : (
-                      <><QrCode size={24} /> Pagar via PIX Agora</>
-                    )}
-                  </button>
-                  <div className="flex items-center justify-center gap-2 mt-4 text-[10px] text-slate-400 font-bold uppercase">
-                    <Wallet size={12} /> Pagamento 100% Seguro via PagBank
-                  </div>
-                </>
-              ) : (
-                /* Sucesso / QR Code Gerado (Simulação) */
-                <div className="text-center py-6">
-                  <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <CheckCircle2 size={40} className="text-[#009640]" />
-                  </div>
-                  <h3 className={`${jakarta.className} text-2xl font-bold text-slate-800 mb-2`}>PIX Gerado com Sucesso!</h3>
-                  <p className="text-slate-500 mb-8">
-                    Abra o app do seu banco e escaneie o código abaixo ou copie a chave Pix Copia e Cola.
-                  </p>
-                  
-                  {/* Fake QR Code Area */}
-                  <div className="w-48 h-48 bg-slate-100 border-2 border-dashed border-slate-300 mx-auto rounded-xl flex items-center justify-center mb-6">
-                    <QrCode size={60} className="text-slate-300" />
-                  </div>
-
-                  <button className="bg-slate-100 hover:bg-slate-200 text-slate-700 w-full py-3 rounded-xl font-bold transition-colors">
-                    Copiar Código PIX
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ── FOOTER PADRÃO ── */}
       <footer className="py-20 px-8 border-t border-slate-100 bg-white mt-20">
         <div className="max-w-7xl mx-auto text-center">
            <img src="/logop.png" alt="Prefeitura SGA" className="h-16 object-contain mx-auto mb-6" />
            <p className="text-sm text-slate-400 font-bold uppercase tracking-widest leading-relaxed">
-             São Geraldo do Araguaia <br/> Cidade Amada, seguindo em frente
+             São Geraldo do Araguaia <br/> "Cidade Amada, seguindo em frente"
            </p>
         </div>
       </footer>
