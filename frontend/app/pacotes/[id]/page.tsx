@@ -407,8 +407,8 @@ export default function DetalhePacotePage() {
                   <Bed size={18} />
                 </div>
                 <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Passo 1</p>
-                  <h2 className={`${jakarta.className} text-2xl font-bold text-slate-900 leading-none`}>Escolha o Hotel</h2>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Acomodação</p>
+                  <h2 className={`${jakarta.className} text-2xl font-bold text-slate-900 leading-none`}>O Hotel</h2>
                 </div>
               </div>
 
@@ -528,8 +528,8 @@ export default function DetalhePacotePage() {
                   <UserCheck size={16} />
                 </div>
                 <div>
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Passo 2</p>
-                  <h2 className={`${jakarta.className} text-2xl font-bold text-slate-900 leading-none`}>Escolha o Guia</h2>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Guia Turistico</p>
+                  <h2 className={`${jakarta.className} text-2xl font-bold text-slate-900 leading-none`}>O Guia</h2>
                 </div>
               </div>
 
