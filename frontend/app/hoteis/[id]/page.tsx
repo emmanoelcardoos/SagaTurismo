@@ -161,6 +161,7 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
       alert("Por favor, selecione as datas de Check-in e Check-out no calendário.");
       return;
     }
+    // LIGAÇÃO ATUALIZADA PARA O NOVO CHECKOUT UNIFICADO
     router.push(`/checkout?tipo=hotel&hotel=${hotel?.id}&quarto=${tipoQuarto}&checkin=${formatarDataIso(checkin)}&checkout=${formatarDataIso(checkout)}`);
   };
 
