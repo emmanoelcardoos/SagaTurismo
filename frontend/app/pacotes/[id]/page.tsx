@@ -82,7 +82,6 @@ export default function DetalhePacotePage() {
   const [hotelSelecionado, setHotelSelecionado] = useState<Hotel | null>(null);
   const [tipoQuarto, setTipoQuarto] = useState<'standard' | 'luxo'>('standard');
   const [guiaSelecionado, setGuiaSelecionado] = useState<Guia | null>(null);
-  const [abaGaleria, setAbaGaleria] = useState<'destino' | 'hotel'>('destino');
   const [modalAberto, setModalAberto] = useState(false);
   const [processandoPix, setProcessandoPix] = useState(false);
   const [pixGerado, setPixGerado] = useState(false);
@@ -146,7 +145,7 @@ export default function DetalhePacotePage() {
   if (loading) return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#F5F5F0]">
       <Loader2 className="animate-spin text-[#00577C] w-12 h-12 mb-5" />
-      <p className={`${jakarta.className} font-bold text-slate-400 uppercase tracking-[0.3em] text-xs`}>
+      <p className={`${jakarta.className} font-bold text-slate-400 uppercase tracking-[0.3em] text-sm`}>
         Carregando Pacote…
       </p>
     </div>
@@ -159,7 +158,7 @@ export default function DetalhePacotePage() {
     <main className={`${inter.className} bg-[#F5F5F0] min-h-screen`}>
 
       {/* ════════════════════════════════════════════════════
-          HEADER — exact spec
+          HEADER
       ════════════════════════════════════════════════════ */}
       <header
         className={`fixed left-0 top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl transition-transform duration-300 ${
@@ -200,26 +199,10 @@ export default function DetalhePacotePage() {
       </header>
 
       {/* ════════════════════════════════════════════════════
-          HERO — cinematic full-bleed with overlapping info bar
-          
-          Structure:
-          ┌─────────────────────────────────────────────────┐
-          │  FULL-BLEED PHOTO (85vh)                        │
-          │  ┌──────────────────────────────────────────┐   │
-          │  │ gradient scrim — bottom 50%              │   │
-          │  │                                          │   │
-          │  │  [back btn]                              │   │
-          │  │                           [BADGE]        │   │
-          │  │  GIANT TITLE                             │   │
-          │  └──────────────────────────────────────────┘   │
-          └─────────────────────────────────────────────────┘
-          ┌── INFO BAR (overlaps hero by -56px) ───────────┐
-          │  📍 Location  ·  📅 Duration  ·  🕐 Saídas     │
-          └────────────────────────────────────────────────┘
+          HERO
       ════════════════════════════════════════════════════ */}
       <section className="relative w-full overflow-hidden" style={{ height: 'min(88vh, 820px)', minHeight: '520px' }}>
 
-        {/* Cinematic background image */}
         <div className="absolute inset-0 z-0">
           <Image
             src={pacote.imagem_principal}
@@ -230,11 +213,9 @@ export default function DetalhePacotePage() {
           />
         </div>
 
-        {/* Layered gradients */}
         <div className="absolute inset-0 z-10 bg-gradient-to-t from-[#001e2b] via-[#00577C]/40 to-transparent" />
         <div className="absolute inset-0 z-10 bg-gradient-to-r from-[#001e2b]/60 to-transparent" />
 
-        {/* Diagonal stripe texture */}
         <div
           className="absolute inset-0 z-10 pointer-events-none"
           style={{
@@ -244,37 +225,33 @@ export default function DetalhePacotePage() {
           }}
         />
 
-        {/* Top: back button */}
         <div className="absolute top-0 left-0 right-0 z-20 pt-28 px-6 lg:px-16">
           <button
             onClick={() => router.back()}
-            className="inline-flex items-center gap-2 text-white/80 hover:text-white text-sm font-bold transition-colors group"
+            className="inline-flex items-center gap-2 text-white/80 hover:text-white text-base font-bold transition-colors group"
           >
-            <span className="flex items-center justify-center w-8 h-8 rounded-full bg-white/15 group-hover:bg-white/25 transition-colors">
-              <ArrowLeft size={15} />
+            <span className="flex items-center justify-center w-9 h-9 rounded-full bg-white/15 group-hover:bg-white/25 transition-colors">
+              <ArrowLeft size={17} />
             </span>
             Voltar ao Catálogo
           </button>
         </div>
 
-        {/* Bottom: title + badge */}
         <div className="absolute bottom-0 left-0 right-0 z-20 pb-20 px-6 lg:px-16">
           <div className="mx-auto max-w-7xl">
-            {/* Eyebrow row */}
             <div className="flex flex-wrap items-center gap-3 mb-5">
-              <span className="bg-[#F9C400] text-[#00577C] text-[10px] font-black uppercase tracking-[0.25em] px-3.5 py-1.5 rounded-full shadow-md">
+              <span className="bg-[#F9C400] text-[#00577C] text-xs font-black uppercase tracking-[0.25em] px-4 py-2 rounded-full shadow-md">
                 Pacote Oficial
               </span>
-              <span className="flex items-center gap-1.5 text-white/70 text-xs font-semibold">
-                <MapPin size={12} className="text-[#F9C400]" />
+              <span className="flex items-center gap-1.5 text-white/70 text-sm font-semibold">
+                <MapPin size={14} className="text-[#F9C400]" />
                 São Geraldo do Araguaia, Pará
               </span>
             </div>
 
-            {/* Giant title */}
             <h1
               className={`${jakarta.className} font-black text-white leading-[0.9] tracking-tight`}
-              style={{ fontSize: 'clamp(2.4rem, 6vw, 5.5rem)' }}
+              style={{ fontSize: 'clamp(2.6rem, 6vw, 5.5rem)' }}
             >
               {pacote.titulo}
             </h1>
@@ -282,50 +259,50 @@ export default function DetalhePacotePage() {
         </div>
       </section>
 
-      {/* ── INFO BAR — overlaps hero bottom ── */}
+      {/* ── INFO BAR ── */}
       <div className="relative z-30 mx-auto max-w-7xl px-6 lg:px-16 -mt-8">
         <div className="bg-white rounded-2xl shadow-xl border border-slate-100 flex flex-wrap divide-y sm:divide-y-0 sm:divide-x divide-slate-100 overflow-hidden">
           {/* Duration */}
-          <div className="flex items-center gap-3 px-6 py-4 flex-1 min-w-[180px]">
-            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#F9C400]/15 shrink-0">
-              <Calendar size={16} className="text-[#b38d00]" />
+          <div className="flex items-center gap-4 px-7 py-5 flex-1 min-w-[180px]">
+            <div className="flex items-center justify-center w-11 h-11 rounded-xl bg-[#F9C400]/15 shrink-0">
+              <Calendar size={19} className="text-[#b38d00]" />
             </div>
             <div>
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Duração</p>
-              <p className="text-sm font-bold text-slate-800">{pacote.dias} Dias / {pacote.noites} Noites</p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Duração</p>
+              <p className="text-base font-bold text-slate-800">{pacote.dias} Dias / {pacote.noites} Noites</p>
             </div>
           </div>
 
           {/* Saídas */}
-          <div className="flex items-center gap-3 px-6 py-4 flex-1 min-w-[180px]">
-            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#009640]/10 shrink-0">
-              <Clock size={16} className="text-[#009640]" />
+          <div className="flex items-center gap-4 px-7 py-5 flex-1 min-w-[180px]">
+            <div className="flex items-center justify-center w-11 h-11 rounded-xl bg-[#009640]/10 shrink-0">
+              <Clock size={19} className="text-[#009640]" />
             </div>
             <div>
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Saídas</p>
-              <p className="text-sm font-bold text-slate-800">{pacote.horarios_info || 'Consultar SEMTUR'}</p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Saídas</p>
+              <p className="text-base font-bold text-slate-800">{pacote.horarios_info || 'Consultar SEMTUR'}</p>
             </div>
           </div>
 
           {/* Location */}
-          <div className="flex items-center gap-3 px-6 py-4 flex-1 min-w-[180px]">
-            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#00577C]/10 shrink-0">
-              <MapPin size={16} className="text-[#00577C]" />
+          <div className="flex items-center gap-4 px-7 py-5 flex-1 min-w-[180px]">
+            <div className="flex items-center justify-center w-11 h-11 rounded-xl bg-[#00577C]/10 shrink-0">
+              <MapPin size={19} className="text-[#00577C]" />
             </div>
             <div>
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Destino</p>
-              <p className="text-sm font-bold text-slate-800">São Geraldo do Araguaia</p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Destino</p>
+              <p className="text-base font-bold text-slate-800">São Geraldo do Araguaia</p>
             </div>
           </div>
 
           {/* Price preview */}
-          <div className="flex items-center gap-3 px-6 py-4 flex-1 min-w-[200px] bg-[#00577C]/[0.03]">
-            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#009640]/10 shrink-0">
-              <Wallet size={16} className="text-[#009640]" />
+          <div className="flex items-center gap-4 px-7 py-5 flex-1 min-w-[200px] bg-[#00577C]/[0.03]">
+            <div className="flex items-center justify-center w-11 h-11 rounded-xl bg-[#009640]/10 shrink-0">
+              <Wallet size={19} className="text-[#009640]" />
             </div>
             <div>
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">A partir de</p>
-              <p className={`${jakarta.className} text-lg font-black text-[#009640] leading-none tabular-nums`}>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">A partir de</p>
+              <p className={`${jakarta.className} text-xl font-black text-[#009640] leading-none tabular-nums`}>
                 {formatarMoeda(valorTotalFinal)}
               </p>
             </div>
@@ -334,141 +311,55 @@ export default function DetalhePacotePage() {
       </div>
 
       {/* ════════════════════════════════════════════════════
-          GALLERY SWITCHER
-          Full-width bento-box gallery with tab toggle
-      ════════════════════════════════════════════════════ */}
-      <section className="mx-auto max-w-7xl px-6 lg:px-16 mt-14">
-
-        {/* Tab toggle */}
-        <div className="flex items-center gap-3 mb-6">
-          <button
-            onClick={() => setAbaGaleria('destino')}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all border ${
-              abaGaleria === 'destino'
-                ? 'bg-[#00577C] text-white border-[#00577C] shadow-md'
-                : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
-            }`}
-          >
-            <Camera size={14} /> Destino
-          </button>
-          <button
-            onClick={() => setAbaGaleria('hotel')}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all border ${
-              abaGaleria === 'hotel'
-                ? 'bg-[#00577C] text-white border-[#00577C] shadow-md'
-                : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
-            }`}
-          >
-            <Bed size={14} /> Hospedagem
-          </button>
-        </div>
-
-        {/* Bento grid */}
-        {abaGaleria === 'destino' ? (
-          <div className="grid grid-cols-4 grid-rows-2 gap-3 h-[480px] rounded-3xl overflow-hidden">
-            {/* Main large image */}
-            <div className="relative col-span-2 row-span-2 overflow-hidden group bg-slate-200">
-              <Image
-                src={imagensRoteiro[0]}
-                alt="Principal"
-                fill
-                className="object-cover group-hover:scale-105 transition-transform duration-700"
-                priority
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-            </div>
-            {/* Secondary images */}
-            {imagensRoteiro.slice(1, 5).map((img, i) => (
-              <div key={i} className="relative hidden md:block overflow-hidden group bg-slate-200">
-                <Image
-                  src={img}
-                  alt={`Galeria ${i + 1}`}
-                  fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-700"
-                />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="relative h-[480px] rounded-3xl overflow-hidden group bg-slate-200">
-            <Image
-              src={hotelSelecionado?.imagem_url || pacote.imagem_principal}
-              alt={hotelSelecionado?.nome || 'Hotel'}
-              fill
-              className="object-cover group-hover:scale-105 transition-transform duration-700"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent flex flex-col justify-end p-10">
-              <p className="text-[#F9C400] text-[10px] font-black uppercase tracking-[0.4em] mb-2">
-                Alojamento Selecionado
-              </p>
-              <h2 className={`${jakarta.className} text-4xl font-bold text-white`}>
-                {hotelSelecionado?.nome}
-              </h2>
-            </div>
-          </div>
-        )}
-      </section>
-
-      {/* ════════════════════════════════════════════════════
           MAIN CONTENT — two-column layout
-          Left: Description + Hotel + Guide + Galleries
-          Right: Sticky booking card
       ════════════════════════════════════════════════════ */}
       <div className="mx-auto max-w-7xl px-6 lg:px-16 mt-16 pb-40">
-        <div className="grid lg:grid-cols-[1fr_380px] xl:grid-cols-[1fr_420px] gap-12 lg:gap-16 items-start">
+        <div className="grid lg:grid-cols-[1fr_400px] xl:grid-cols-[1fr_440px] gap-12 lg:gap-16 items-start">
 
           {/* ─── LEFT COLUMN ─── */}
           <div className="space-y-14">
 
-            {/* ── DESCRIPTION BLOCK ──
-                Pull-quote style: short description as large italicized
-                intro, then detailed itinerary in a clean readable block
-            */}
+            {/* ── DESCRIPTION BLOCK ── */}
             <section className="bg-white rounded-3xl overflow-hidden border border-slate-100 shadow-sm">
 
-              {/* Section header strip */}
-              <div className="flex items-center gap-4 px-8 py-5 border-b border-slate-100">
-                <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-[#00577C]/10">
-                  <Map size={15} className="text-[#00577C]" />
+              <div className="flex items-center gap-4 px-8 py-6 border-b border-slate-100">
+                <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-[#00577C]/10">
+                  <Map size={18} className="text-[#00577C]" />
                 </div>
-                <h2 className={`${jakarta.className} text-lg font-bold text-slate-900`}>Sobre a Expedição</h2>
+                <h2 className={`${jakarta.className} text-xl font-bold text-slate-900`}>Sobre a Expedição</h2>
               </div>
 
               <div className="p-8">
-                {/* Pull-quote intro */}
-                <p className="text-lg text-slate-600 leading-relaxed italic border-l-4 border-[#F9C400] pl-5 mb-8 font-medium">
+                <p className="text-xl text-slate-600 leading-relaxed italic border-l-4 border-[#F9C400] pl-5 mb-8 font-medium">
                   {pacote.descricao_curta}
                 </p>
 
-                {/* Itinerary body */}
-                <div className="whitespace-pre-line text-slate-700 text-[0.93rem] leading-loose">
+                <div className="whitespace-pre-line text-slate-700 text-base leading-loose">
                   {pacote.roteiro_detalhado}
                 </div>
               </div>
             </section>
 
-            {/* ── WHAT'S INCLUDED ──
-                Three-column chip grid: hotel / guide / attractions
-            */}
+            {/* ── WHAT'S INCLUDED ── */}
             <section className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-              <div className="flex items-center gap-4 px-8 py-5 border-b border-slate-100">
-                <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-[#009640]/10">
-                  <CheckCircle2 size={15} className="text-[#009640]" />
+              <div className="flex items-center gap-4 px-8 py-6 border-b border-slate-100">
+                <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-[#009640]/10">
+                  <CheckCircle2 size={18} className="text-[#009640]" />
                 </div>
-                <h2 className={`${jakarta.className} text-lg font-bold text-slate-900`}>O que está incluído</h2>
+                <h2 className={`${jakarta.className} text-xl font-bold text-slate-900`}>O que está incluído</h2>
               </div>
 
               <div className="grid sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
                 {/* Hotel column */}
-                <div className="p-6">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Bed size={14} className="text-[#00577C]" />
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.25em]">Hospedagem</p>
+                <div className="p-7">
+                  <div className="flex items-center gap-2 mb-5">
+                    <Bed size={16} className="text-[#00577C]" />
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">Hospedagem</p>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {hoteisDisponiveis.map((h) => (
-                      <p key={h.id} className="text-sm font-semibold text-slate-700 flex items-start gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#00577C] mt-1.5 shrink-0" />
+                      <p key={h.id} className="text-base font-semibold text-slate-700 flex items-start gap-2">
+                        <span className="w-2 h-2 rounded-full bg-[#00577C] mt-2 shrink-0" />
                         {h.nome}
                       </p>
                     ))}
@@ -476,15 +367,15 @@ export default function DetalhePacotePage() {
                 </div>
 
                 {/* Guide column */}
-                <div className="p-6">
-                  <div className="flex items-center gap-2 mb-4">
-                    <UserCheck size={14} className="text-[#009640]" />
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.25em]">Guias</p>
+                <div className="p-7">
+                  <div className="flex items-center gap-2 mb-5">
+                    <UserCheck size={16} className="text-[#009640]" />
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">Guias</p>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {guiasDisponiveis.map((g) => (
-                      <p key={g.id} className="text-sm font-semibold text-slate-700 flex items-start gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#009640] mt-1.5 shrink-0" />
+                      <p key={g.id} className="text-base font-semibold text-slate-700 flex items-start gap-2">
+                        <span className="w-2 h-2 rounded-full bg-[#009640] mt-2 shrink-0" />
                         {g.nome}
                       </p>
                     ))}
@@ -492,15 +383,15 @@ export default function DetalhePacotePage() {
                 </div>
 
                 {/* Attractions column */}
-                <div className="p-6">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Ticket size={14} className="text-[#b38d00]" />
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.25em]">Atrações</p>
+                <div className="p-7">
+                  <div className="flex items-center gap-2 mb-5">
+                    <Ticket size={16} className="text-[#b38d00]" />
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">Atrações</p>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {atracoesInclusas.map((a) => (
-                      <p key={a.id} className="text-sm font-semibold text-slate-700 flex items-start gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#F9C400] mt-1.5 shrink-0" />
+                      <p key={a.id} className="text-base font-semibold text-slate-700 flex items-start gap-2">
+                        <span className="w-2 h-2 rounded-full bg-[#F9C400] mt-2 shrink-0" />
                         {a.nome}
                       </p>
                     ))}
@@ -509,22 +400,19 @@ export default function DetalhePacotePage() {
               </div>
             </section>
 
-            {/* ── HOTEL SELECTION ──
-                Interactive cards — one per hotel.
-                Selected state expands to show room type picker.
-            */}
+            {/* ── HOTEL SELECTION ── */}
             <section>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="flex items-center justify-center w-9 h-9 rounded-2xl bg-[#00577C] text-white shrink-0">
-                  <Bed size={16} />
+              <div className="flex items-center gap-4 mb-7">
+                <div className="flex items-center justify-center w-11 h-11 rounded-2xl bg-[#00577C] text-white shrink-0">
+                  <Bed size={18} />
                 </div>
                 <div>
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Passo 1</p>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Passo 1</p>
                   <h2 className={`${jakarta.className} text-2xl font-bold text-slate-900 leading-none`}>Escolha o Hotel</h2>
                 </div>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-5">
                 {hoteisDisponiveis.map((hotel) => {
                   const selected = hotelSelecionado?.id === hotel.id;
                   return (
@@ -538,61 +426,61 @@ export default function DetalhePacotePage() {
                     >
                       {/* Hotel header row */}
                       <button
-                        className="w-full flex items-center gap-5 p-6 text-left"
+                        className="w-full flex items-center gap-6 p-7 text-left"
                         onClick={() => setHotelSelecionado(hotel)}
                       >
                         {/* Thumbnail */}
-                        <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-slate-100 shrink-0 border-2 border-white shadow">
+                        <div className="relative w-20 h-20 rounded-2xl overflow-hidden bg-slate-100 shrink-0 border-2 border-white shadow">
                           <Image src={hotel.imagem_url} alt={hotel.nome} fill className="object-cover" />
                         </div>
 
                         {/* Info */}
                         <div className="flex-1 min-w-0">
-                          <h4 className="text-base font-bold text-slate-900 mb-1">{hotel.nome}</h4>
+                          <h4 className="text-lg font-bold text-slate-900 mb-2">{hotel.nome}</h4>
                           <div className="flex items-center gap-2">
-                            <span className="text-[9px] font-black uppercase tracking-wider text-[#009640] bg-green-50 border border-green-100 px-2 py-0.5 rounded-md">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-[#009640] bg-green-50 border border-green-100 px-2.5 py-1 rounded-md">
                               {hotel.tipo}
                             </span>
                             <span className="flex text-[#F9C400] gap-px">
-                              {[...Array(4)].map((_, i) => <Star key={i} size={10} fill="currentColor" />)}
+                              {[...Array(4)].map((_, i) => <Star key={i} size={12} fill="currentColor" />)}
                             </span>
                           </div>
                         </div>
 
                         {/* Radio indicator */}
                         <div
-                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
+                          className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
                             selected ? 'border-[#00577C] bg-[#00577C]' : 'border-slate-300'
                           }`}
                         >
-                          {selected && <div className="w-2 h-2 rounded-full bg-white" />}
+                          {selected && <div className="w-2.5 h-2.5 rounded-full bg-white" />}
                         </div>
                       </button>
 
                       {/* Room picker — only when selected */}
                       {selected && (
-                        <div className="px-6 pb-6 grid sm:grid-cols-2 gap-4 border-t border-slate-50 pt-5">
+                        <div className="px-7 pb-7 grid sm:grid-cols-2 gap-5 border-t border-slate-50 pt-6">
                           {/* Standard */}
                           <button
                             onClick={() => setTipoQuarto('standard')}
-                            className={`relative text-left p-5 rounded-2xl border-2 transition-all ${
+                            className={`relative text-left p-6 rounded-2xl border-2 transition-all ${
                               tipoQuarto === 'standard'
                                 ? 'border-[#F9C400] bg-yellow-50/50'
                                 : 'border-slate-100 bg-slate-50 hover:border-slate-200'
                             }`}
                           >
-                            <div className="flex items-start justify-between mb-3">
-                              <p className="font-bold text-slate-800 text-sm">{hotel.quarto_standard_nome}</p>
-                              {tipoQuarto === 'standard' && <CheckCircle2 size={16} className="text-[#F9C400] shrink-0" />}
+                            <div className="flex items-start justify-between mb-4">
+                              <p className="font-bold text-slate-800 text-base">{hotel.quarto_standard_nome}</p>
+                              {tipoQuarto === 'standard' && <CheckCircle2 size={18} className="text-[#F9C400] shrink-0" />}
                             </div>
-                            <div className="flex flex-wrap gap-1.5 mb-4">
+                            <div className="flex flex-wrap gap-2 mb-5">
                               {hotel.quarto_standard_comodidades?.map((c, i) => (
-                                <span key={i} className="text-[8px] font-black bg-white border border-slate-100 px-1.5 py-0.5 rounded text-slate-500 uppercase tracking-tight">
+                                <span key={i} className="text-[9px] font-black bg-white border border-slate-100 px-2 py-1 rounded text-slate-500 uppercase tracking-tight">
                                   {c}
                                 </span>
                               ))}
                             </div>
-                            <p className={`${jakarta.className} text-xl font-black text-[#009640]`}>
+                            <p className={`${jakarta.className} text-2xl font-black text-[#009640]`}>
                               {formatarMoeda(parseValor(hotel.quarto_standard_preco))}
                             </p>
                           </button>
@@ -600,28 +488,28 @@ export default function DetalhePacotePage() {
                           {/* Luxo */}
                           <button
                             onClick={() => setTipoQuarto('luxo')}
-                            className={`relative text-left p-5 rounded-2xl border-2 transition-all ${
+                            className={`relative text-left p-6 rounded-2xl border-2 transition-all ${
                               tipoQuarto === 'luxo'
                                 ? 'border-[#00577C] bg-blue-50/40'
                                 : 'border-slate-100 bg-slate-50 hover:border-slate-200'
                             }`}
                           >
                             {/* Recommended badge */}
-                            <div className="absolute -top-3 right-4 bg-[#00577C] text-white text-[8px] font-black px-2.5 py-1 rounded-full flex items-center gap-1 shadow">
-                              <Award size={9} /> RECOMENDADO
+                            <div className="absolute -top-3 right-4 bg-[#00577C] text-white text-[9px] font-black px-3 py-1 rounded-full flex items-center gap-1 shadow">
+                              <Award size={10} /> RECOMENDADO
                             </div>
-                            <div className="flex items-start justify-between mb-3">
-                              <p className="font-bold text-slate-800 text-sm">{hotel.quarto_luxo_nome}</p>
-                              {tipoQuarto === 'luxo' && <CheckCircle2 size={16} className="text-[#00577C] shrink-0" />}
+                            <div className="flex items-start justify-between mb-4">
+                              <p className="font-bold text-slate-800 text-base">{hotel.quarto_luxo_nome}</p>
+                              {tipoQuarto === 'luxo' && <CheckCircle2 size={18} className="text-[#00577C] shrink-0" />}
                             </div>
-                            <div className="flex flex-wrap gap-1.5 mb-4">
+                            <div className="flex flex-wrap gap-2 mb-5">
                               {hotel.quarto_luxo_comodidades?.map((c, i) => (
-                                <span key={i} className="text-[8px] font-black bg-[#00577C] text-white px-1.5 py-0.5 rounded uppercase tracking-tight">
+                                <span key={i} className="text-[9px] font-black bg-[#00577C] text-white px-2 py-1 rounded uppercase tracking-tight">
                                   {c}
                                 </span>
                               ))}
                             </div>
-                            <p className={`${jakarta.className} text-xl font-black text-[#009640]`}>
+                            <p className={`${jakarta.className} text-2xl font-black text-[#009640]`}>
                               {formatarMoeda(parseValor(hotel.quarto_luxo_preco))}
                             </p>
                           </button>
@@ -635,12 +523,12 @@ export default function DetalhePacotePage() {
 
             {/* ── GUIDE SELECTION ── */}
             <section>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="flex items-center justify-center w-9 h-9 rounded-2xl bg-[#009640] text-white shrink-0">
-                  <UserCheck size={16} />
+              <div className="flex items-center gap-4 mb-7">
+                <div className="flex items-center justify-center w-11 h-11 rounded-2xl bg-[#009640] text-white shrink-0">
+                  <UserCheck size={18} />
                 </div>
                 <div>
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Passo 2</p>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Passo 2</p>
                   <h2 className={`${jakarta.className} text-2xl font-bold text-slate-900 leading-none`}>Escolha o Guia</h2>
                 </div>
               </div>
@@ -651,31 +539,31 @@ export default function DetalhePacotePage() {
                   return (
                     <label
                       key={guia.id}
-                      className={`flex items-center gap-5 bg-white p-5 rounded-3xl border-2 cursor-pointer transition-all ${
+                      className={`flex items-center gap-6 bg-white p-6 rounded-3xl border-2 cursor-pointer transition-all ${
                         selected
                           ? 'border-[#009640] shadow-lg shadow-green-100'
                           : 'border-slate-100 shadow-sm hover:border-slate-200'
                       }`}
                     >
                       {/* Avatar */}
-                      <div className="relative w-14 h-14 rounded-2xl overflow-hidden bg-slate-100 shrink-0 border-2 border-white shadow">
+                      <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-slate-100 shrink-0 border-2 border-white shadow">
                         <Image src={guia.imagem_url || '/placeholder.png'} alt={guia.nome} fill className="object-cover" />
                       </div>
 
                       {/* Info */}
                       <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-bold text-slate-900 mb-0.5">{guia.nome}</h4>
-                        <div className="flex items-center gap-1.5 text-slate-500 text-xs font-medium">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#009640]" />
+                        <h4 className="text-base font-bold text-slate-900 mb-1">{guia.nome}</h4>
+                        <div className="flex items-center gap-2 text-slate-500 text-sm font-medium">
+                          <span className="w-2 h-2 rounded-full bg-[#009640]" />
                           {guia.especialidade}
                         </div>
                       </div>
 
                       {/* Price + radio */}
-                      <div className="flex items-center gap-4 shrink-0">
+                      <div className="flex items-center gap-5 shrink-0">
                         <div className="text-right hidden sm:block">
-                          <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">p/ dia</p>
-                          <p className={`${jakarta.className} text-base font-black text-slate-800 tabular-nums`}>
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">p/ dia</p>
+                          <p className={`${jakarta.className} text-lg font-black text-slate-800 tabular-nums`}>
                             {formatarMoeda(parseValor(guia.preco_diaria))}
                           </p>
                         </div>
@@ -695,12 +583,12 @@ export default function DetalhePacotePage() {
 
             {/* ── EXPEDITION GALLERY ── */}
             <section>
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between mb-7">
                 <div>
-                  <p className="text-[9px] font-black text-[#00577C] uppercase tracking-[0.3em] mb-1">Galeria</p>
+                  <p className="text-[10px] font-black text-[#00577C] uppercase tracking-[0.3em] mb-1">Galeria</p>
                   <h2 className={`${jakarta.className} text-2xl font-bold text-slate-900`}>Fotos da Expedição</h2>
                 </div>
-                <ImageIcon size={32} className="text-slate-200" />
+                <ImageIcon size={36} className="text-slate-200" />
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -711,7 +599,7 @@ export default function DetalhePacotePage() {
                   >
                     <Image src={url} alt={`Expedição ${i + 1}`} fill className="object-cover group-hover:scale-110 transition-transform duration-700" />
                     <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <Camera size={22} className="text-white" />
+                      <Camera size={24} className="text-white" />
                     </div>
                   </div>
                 ))}
@@ -720,14 +608,14 @@ export default function DetalhePacotePage() {
 
             {/* ── HOTEL GALLERY ── */}
             <section>
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between mb-7">
                 <div>
-                  <p className="text-[9px] font-black text-[#009640] uppercase tracking-[0.3em] mb-1">Hospedagem</p>
+                  <p className="text-[10px] font-black text-[#009640] uppercase tracking-[0.3em] mb-1">Hospedagem</p>
                   <h2 className={`${jakarta.className} text-2xl font-bold text-slate-900`}>
                     {hotelSelecionado?.nome || 'Hotel'}
                   </h2>
                 </div>
-                <Bed size={32} className="text-slate-200" />
+                <Bed size={36} className="text-slate-200" />
               </div>
 
               {getGaleriaHotel(hotelSelecionado).length > 0 ? (
@@ -743,49 +631,45 @@ export default function DetalhePacotePage() {
                 </div>
               ) : (
                 <div className="bg-white rounded-3xl border-2 border-dashed border-slate-100 p-16 text-center flex flex-col items-center">
-                  <ImageIcon size={32} className="text-slate-200 mb-3" />
-                  <p className="text-xs font-black text-slate-300 uppercase tracking-widest">Galeria em Processamento</p>
+                  <ImageIcon size={36} className="text-slate-200 mb-3" />
+                  <p className="text-sm font-black text-slate-300 uppercase tracking-widest">Galeria em Processamento</p>
                 </div>
               )}
             </section>
 
           </div>
 
-          {/* ─── RIGHT COLUMN — STICKY BOOKING CARD ───
-              Airbnb-style sticky sidebar with full price breakdown,
-              selection summary, and prominent CTA.
-          */}
+          {/* ─── RIGHT COLUMN — STICKY BOOKING CARD ─── */}
           <aside className="lg:sticky lg:top-32 self-start">
             <div className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden">
 
-              {/* Colored top bar */}
               <div className="h-1.5 bg-gradient-to-r from-[#00577C] via-[#F9C400] to-[#009640]" />
 
-              <div className="p-7">
+              <div className="p-8">
 
                 {/* Price headline */}
-                <div className="mb-6 pb-6 border-b border-slate-100">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Valor Total da Expedição</p>
-                  <p className={`${jakarta.className} text-4xl font-black text-[#009640] tabular-nums leading-none`}>
+                <div className="mb-7 pb-7 border-b border-slate-100">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Valor Total da Expedição</p>
+                  <p className={`${jakarta.className} text-5xl font-black text-[#009640] tabular-nums leading-none`}>
                     {formatarMoeda(valorTotalFinal)}
                   </p>
                 </div>
 
                 {/* Breakdown */}
-                <div className="space-y-4 mb-6">
+                <div className="space-y-5 mb-7">
 
                   {/* Accommodation row */}
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="flex items-center justify-center w-7 h-7 rounded-xl bg-[#00577C]/10 shrink-0">
-                        <Bed size={13} className="text-[#00577C]" />
+                      <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#00577C]/10 shrink-0">
+                        <Bed size={15} className="text-[#00577C]" />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-xs font-bold text-slate-700 truncate">Hospedagem</p>
-                        <p className="text-[9px] font-bold text-slate-400 truncate">{hotelSelecionado?.nome}</p>
+                        <p className="text-sm font-bold text-slate-700 truncate">Hospedagem</p>
+                        <p className="text-xs font-bold text-slate-400 truncate">{hotelSelecionado?.nome}</p>
                       </div>
                     </div>
-                    <span className="text-sm font-black text-slate-800 shrink-0 tabular-nums">
+                    <span className="text-base font-black text-slate-800 shrink-0 tabular-nums">
                       {formatarMoeda(precoHospedagem)}
                     </span>
                   </div>
@@ -793,39 +677,39 @@ export default function DetalhePacotePage() {
                   {/* Guide row */}
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="flex items-center justify-center w-7 h-7 rounded-xl bg-[#009640]/10 shrink-0">
-                        <Compass size={13} className="text-[#009640]" />
+                      <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#009640]/10 shrink-0">
+                        <Compass size={15} className="text-[#009640]" />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-xs font-bold text-slate-700 truncate">Guia Local</p>
-                        <p className="text-[9px] font-bold text-slate-400 truncate">{guiaSelecionado?.nome}</p>
+                        <p className="text-sm font-bold text-slate-700 truncate">Guia Local</p>
+                        <p className="text-xs font-bold text-slate-400 truncate">{guiaSelecionado?.nome}</p>
                       </div>
                     </div>
-                    <span className="text-sm font-black text-slate-800 shrink-0 tabular-nums">
+                    <span className="text-base font-black text-slate-800 shrink-0 tabular-nums">
                       {formatarMoeda(totalGuias)}
                     </span>
                   </div>
 
                   {/* Attractions row */}
-                  <div className="flex items-center justify-between gap-3 pb-4 border-b border-slate-100">
+                  <div className="flex items-center justify-between gap-3 pb-5 border-b border-slate-100">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="flex items-center justify-center w-7 h-7 rounded-xl bg-[#F9C400]/15 shrink-0">
-                        <Ticket size={13} className="text-[#a37c00]" />
+                      <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#F9C400]/15 shrink-0">
+                        <Ticket size={15} className="text-[#a37c00]" />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-xs font-bold text-slate-700">Atrações & Taxas</p>
-                        <p className="text-[9px] font-bold text-slate-400">{atracoesInclusas.length} itens</p>
+                        <p className="text-sm font-bold text-slate-700">Atrações & Taxas</p>
+                        <p className="text-xs font-bold text-slate-400">{atracoesInclusas.length} itens</p>
                       </div>
                     </div>
-                    <span className="text-sm font-black text-slate-800 shrink-0 tabular-nums">
+                    <span className="text-base font-black text-slate-800 shrink-0 tabular-nums">
                       {formatarMoeda(totalAtracoes)}
                     </span>
                   </div>
 
                   {/* Total row */}
                   <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-black text-slate-900">Total</p>
-                    <p className={`${jakarta.className} text-xl font-black text-[#009640] tabular-nums`}>
+                    <p className="text-base font-black text-slate-900">Total</p>
+                    <p className={`${jakarta.className} text-2xl font-black text-[#009640] tabular-nums`}>
                       {formatarMoeda(valorTotalFinal)}
                     </p>
                   </div>
@@ -834,15 +718,15 @@ export default function DetalhePacotePage() {
                 {/* CTA */}
                 <button
                   onClick={() => setModalAberto(true)}
-                  className="w-full bg-[#00577C] hover:bg-[#004a6b] active:scale-[0.98] text-white py-5 rounded-2xl font-black text-base transition-all flex items-center justify-center gap-3 shadow-lg shadow-[#00577C]/20 group"
+                  className="w-full bg-[#00577C] hover:bg-[#004a6b] active:scale-[0.98] text-white py-5 rounded-2xl font-black text-lg transition-all flex items-center justify-center gap-3 shadow-lg shadow-[#00577C]/20 group"
                 >
                   Reservar Agora
-                  <ChevronRight size={18} className="transition-transform group-hover:translate-x-0.5" />
+                  <ChevronRight size={20} className="transition-transform group-hover:translate-x-0.5" />
                 </button>
 
                 {/* Trust signal */}
-                <p className="mt-4 text-center text-[9px] font-black text-slate-300 uppercase tracking-[0.25em] flex items-center justify-center gap-1.5">
-                  <ShieldCheck size={12} />
+                <p className="mt-4 text-center text-[10px] font-black text-slate-300 uppercase tracking-[0.25em] flex items-center justify-center gap-1.5">
+                  <ShieldCheck size={13} />
                   Pagamento Seguro · SEMTUR Oficial
                 </p>
               </div>
@@ -851,17 +735,17 @@ export default function DetalhePacotePage() {
             {/* Quick-trust chips below card */}
             <div className="mt-4 grid grid-cols-2 gap-3">
               {[
-                { icon: <ShieldCheck size={13} />, text: 'Reserva Garantida' },
-                { icon: <CheckCircle2 size={13} />, text: 'Guias Certificados' },
-                { icon: <Award size={13} />, text: 'Turismo Sustentável' },
-                { icon: <MapPin size={13} />, text: 'Destino Oficial' },
+                { icon: <ShieldCheck size={15} />, text: 'Reserva Garantida' },
+                { icon: <CheckCircle2 size={15} />, text: 'Guias Certificados' },
+                { icon: <Award size={15} />, text: 'Turismo Sustentável' },
+                { icon: <MapPin size={15} />, text: 'Destino Oficial' },
               ].map((c) => (
                 <div
                   key={c.text}
-                  className="bg-white rounded-2xl border border-slate-100 px-4 py-3 flex items-center gap-2 shadow-sm"
+                  className="bg-white rounded-2xl border border-slate-100 px-4 py-4 flex items-center gap-2.5 shadow-sm"
                 >
                   <span className="text-[#00577C] shrink-0">{c.icon}</span>
-                  <p className="text-[9px] font-black text-slate-500 uppercase tracking-wide leading-tight">{c.text}</p>
+                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-wide leading-tight">{c.text}</p>
                 </div>
               ))}
             </div>
@@ -877,17 +761,16 @@ export default function DetalhePacotePage() {
         <div className="fixed inset-0 z-[100] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl relative">
 
-            {/* Modal header */}
             <div className="bg-[#00577C] p-8 text-white relative">
               <button
                 onClick={() => setModalAberto(false)}
                 className="absolute top-6 right-6 p-2 hover:bg-white/10 rounded-full transition"
               >
-                <X size={20} />
+                <X size={22} />
               </button>
               <div className="flex items-center gap-2 mb-3">
-                <ShieldCheck size={14} className="text-[#F9C400]" />
-                <p className="text-[#F9C400] text-[9px] font-black uppercase tracking-[0.4em]">
+                <ShieldCheck size={15} className="text-[#F9C400]" />
+                <p className="text-[#F9C400] text-[10px] font-black uppercase tracking-[0.4em]">
                   Checkout Seguro · PagBank
                 </p>
               </div>
@@ -897,12 +780,12 @@ export default function DetalhePacotePage() {
             <div className="p-8 text-center">
               {!pixGerado ? (
                 <>
-                  <p className="text-slate-500 text-sm font-medium leading-relaxed mb-6">
+                  <p className="text-slate-500 text-base font-medium leading-relaxed mb-6">
                     Você selecionou <b>{pacote.titulo}</b> com hospedagem em <b>{hotelSelecionado?.nome}</b>.
                   </p>
 
                   <div className="bg-slate-50 rounded-2xl border border-slate-100 p-6 mb-6">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2">
                       Valor Final Autorizado
                     </p>
                     <p className={`${jakarta.className} text-5xl font-black text-slate-900 tabular-nums`}>
@@ -918,13 +801,13 @@ export default function DetalhePacotePage() {
                     className="w-full bg-[#009640] hover:bg-[#007a33] text-white py-5 rounded-2xl font-black text-lg transition-all flex items-center justify-center gap-3 active:scale-[0.98] shadow-lg shadow-green-200"
                   >
                     {processandoPix
-                      ? <Loader2 className="animate-spin" size={24} />
-                      : <><QrCode size={22} /> Gerar Chave PIX</>
+                      ? <Loader2 className="animate-spin" size={26} />
+                      : <><QrCode size={24} /> Gerar Chave PIX</>
                     }
                   </button>
 
-                  <p className="mt-4 text-[9px] text-slate-300 font-bold uppercase tracking-widest flex items-center justify-center gap-1.5">
-                    <ShieldAlert size={11} /> Ao clicar, você concorda com os termos da SEMTUR.
+                  <p className="mt-4 text-[10px] text-slate-300 font-bold uppercase tracking-widest flex items-center justify-center gap-1.5">
+                    <ShieldAlert size={12} /> Ao clicar, você concorda com os termos da SEMTUR.
                   </p>
                 </>
               ) : (
@@ -933,20 +816,19 @@ export default function DetalhePacotePage() {
                     <CheckCircle2 size={44} className="text-[#009640]" />
                   </div>
                   <h4 className={`${jakarta.className} text-2xl font-bold text-slate-900 mb-2`}>Chave PIX Emitida!</h4>
-                  <p className="text-slate-500 text-sm mb-8 leading-relaxed">
+                  <p className="text-slate-500 text-base mb-8 leading-relaxed">
                     Escaneie o QR code para confirmar sua vaga imediatamente via PagBank.
                   </p>
 
-                  {/* QR code placeholder */}
                   <div className="w-56 h-56 bg-slate-50 mx-auto rounded-3xl flex items-center justify-center mb-6 border-2 border-dashed border-slate-200 relative group overflow-hidden">
                     <QrCode size={120} className="text-slate-300 group-hover:scale-105 transition-transform duration-500" />
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/70 opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm">
                       <Smartphone size={36} className="text-[#00577C] mb-1.5 animate-pulse" />
-                      <span className="text-[9px] font-black text-[#00577C] uppercase tracking-widest">Escanear</span>
+                      <span className="text-[10px] font-black text-[#00577C] uppercase tracking-widest">Escanear</span>
                     </div>
                   </div>
 
-                  <button className="w-full bg-slate-900 hover:bg-black text-white py-4 rounded-2xl font-black text-xs uppercase tracking-[0.3em] transition-all active:scale-[0.98] shadow-lg">
+                  <button className="w-full bg-slate-900 hover:bg-black text-white py-4 rounded-2xl font-black text-sm uppercase tracking-[0.3em] transition-all active:scale-[0.98] shadow-lg">
                     Copiar Código Copia e Cola
                   </button>
                 </div>
@@ -957,7 +839,7 @@ export default function DetalhePacotePage() {
       )}
 
       {/* ════════════════════════════════════════════════════
-          FOOTER INSTITUCIONAL — exact spec
+          FOOTER INSTITUCIONAL
       ════════════════════════════════════════════════════ */}
       <footer className="py-20 px-8 border-t border-slate-100 bg-white">
         <div className="max-w-7xl mx-auto">
