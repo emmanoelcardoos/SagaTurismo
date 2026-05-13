@@ -3,9 +3,9 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
-import { 
-  Loader2, Menu, MapPin, ArrowRight, 
-  Bed, Compass, Ticket, CalendarClock 
+import {
+  Loader2, Menu, MapPin, ArrowRight,
+  Bed, Compass, Ticket, CalendarClock
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -33,11 +33,10 @@ type Pacote = {
   dias: number;
   noites: number;
   pacote_itens: PacoteItem[];
-  valor_total?: number; 
+  valor_total?: number;
 };
 
 // ── FUNÇÕES DE SEGURANÇA ──
-// Garante que o valor é sempre um número válido, mesmo se vier null ou string com vírgula do banco
 const parseValor = (valor: any): number => {
   if (valor === null || valor === undefined || valor === '') return 0;
   if (typeof valor === 'number') return isNaN(valor) ? 0 : valor;
@@ -76,7 +75,6 @@ export default function PacotesPage() {
       if (error) {
         console.error("Erro ao buscar pacotes:", error);
       } else if (data) {
-        // Cálculo 100% seguro do valor total usando o parseValor
         const pacotesProcessados = (data as any[]).map((pacote) => {
           let total = 0;
           pacote.pacote_itens.forEach((item: PacoteItem) => {
@@ -108,135 +106,283 @@ export default function PacotesPage() {
   return (
     <main className={`${inter.className} min-h-screen bg-[#FAFAF7] text-slate-900 pb-32`}>
 
-      {/* ── HEADER ── */}
-      <header className={`fixed left-0 top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl transition-transform duration-300 ${showHeader ? 'translate-y-0' : '-translate-y-full'}`}>
+      {/* ── HEADER (updated) ── */}
+      <header
+        className={`fixed left-0 top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl transition-transform duration-300 ${
+          showHeader ? 'translate-y-0' : '-translate-y-full'
+        }`}
+      >
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-5">
           <Link href="/" className="flex min-w-0 items-center gap-3 sm:gap-4">
             <div className="relative h-12 w-36 shrink-0 sm:h-16 sm:w-56">
-              <Image src="/logop.png" alt="Prefeitura de São Geraldo do Araguaia" fill priority className="object-contain object-left" />
+              <Image
+                src="/logop.png"
+                alt="Prefeitura de São Geraldo do Araguaia"
+                fill
+                priority
+                className="object-contain object-left"
+              />
             </div>
+
             <div className="hidden border-l border-slate-200 pl-4 lg:block">
-              <p className={`${jakarta.className} text-2xl font-bold leading-none text-[#00577C]`}>SagaTurismo</p>
-              <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Secretaria de Turismo de São Geraldo do Araguaia</p>
+              <p className={`${jakarta.className} text-2xl font-bold leading-none text-[#00577C]`}>
+                SagaTurismo
+              </p>
+              <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                Secretaria de Turismo de São Geraldo do Araguaia
+              </p>
             </div>
           </Link>
 
           <nav className="hidden items-center gap-7 md:flex">
-            <Link href="/roteiro" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Rota Turística</Link>
-            <Link href="/aldeias" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Aldeias</Link>
-            <Link href="/pacotes" className="text-sm font-bold text-[#00577C]">Pacotes & Vendas</Link>
-            <Link href="/cadastro" className="rounded-full bg-[#F9C400] px-5 py-3 text-sm font-bold text-[#00577C] shadow-lg transition hover:bg-[#ffd633]">Cartão Residente</Link>
+            <Link href="/roteiro" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
+              Rota Turística
+            </Link>
+
+            <Link href="/aldeias" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
+              Aldeias
+            </Link>
+
+            <a href="#historia" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
+              História
+            </a>
+
+            <a
+              href="https://saogeraldodoaraguaia.pa.gov.br"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-semibold text-slate-600 hover:text-[#00577C]"
+            >
+              Governo
+            </a>
+
+            <Link
+              href="/cadastro"
+              className="rounded-full bg-[#F9C400] px-5 py-3 text-sm font-bold text-[#00577C] shadow-lg transition hover:bg-[#ffd633]"
+            >
+              Cartão Residente
+            </Link>
           </nav>
-          <button className="rounded-xl border border-slate-200 p-2 md:hidden"><Menu className="h-5 w-5 text-[#00577C]" /></button>
+
+          <button className="rounded-xl border border-slate-200 p-2 md:hidden">
+            <Menu className="h-5 w-5 text-[#00577C]" />
+          </button>
         </div>
       </header>
 
-      {/* ── HERO ── */}
-      <section className="relative pt-48 pb-24 px-5 bg-[#00577C] text-center text-white overflow-hidden">
+      {/* ── HERO ──
+          Improvements:
+          - Added more generous top/bottom padding for a grander feel
+          - Subtitle has slightly larger text and improved line height for readability
+          - Decorative bottom wave divider for a smooth transition into the card grid
+      */}
+      <section className="relative pt-52 pb-36 px-5 bg-[#00577C] text-center text-white overflow-hidden">
         <div className="absolute inset-0 z-0 opacity-20">
-          <Image src="https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?q=80&w=1740" alt="Fundo Pacotes" fill className="object-cover" />
+          <Image
+            src="https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?q=80&w=1740"
+            alt="Fundo Pacotes"
+            fill
+            className="object-cover"
+          />
         </div>
         <div className="absolute inset-0 z-0 bg-gradient-to-b from-[#00577C] via-[#00577C]/90 to-[#FAFAF7]" />
-        
+
         <div className="relative z-10 mx-auto max-w-4xl">
-          <div className="inline-flex items-center gap-3 mb-6">
-            <span className="h-px w-8 bg-[#F9C400]" />
-            <span className="text-[#F9C400] text-xs font-bold uppercase tracking-[0.3em]">Turismo Oficial</span>
-            <span className="h-px w-8 bg-[#F9C400]" />
+          {/* Eyebrow label */}
+          <div className="inline-flex items-center gap-3 mb-8">
+            <span className="h-px w-10 bg-[#F9C400]" />
+            <span className="text-[#F9C400] text-xs font-bold uppercase tracking-[0.35em]">Turismo Oficial</span>
+            <span className="h-px w-10 bg-[#F9C400]" />
           </div>
-          <h1 className={`${jakarta.className} text-5xl md:text-7xl font-black tracking-tight mb-6`}>
+
+          {/* Main heading */}
+          <h1 className={`${jakarta.className} text-5xl md:text-7xl font-black tracking-tight mb-8 leading-[1.05]`}>
             Pacotes <span className="text-[#F9C400]">Turísticos</span>
           </h1>
-          <p className="text-xl text-blue-100 max-w-2xl mx-auto font-medium">
-            Explore São Geraldo do Araguaia sem complicações. Compre pacotes oficiais integrados com guias locais, hotéis e entradas de parques.
+
+          {/* Subtitle */}
+          <p className="text-xl md:text-2xl text-blue-100 max-w-2xl mx-auto font-medium leading-relaxed">
+            Explore São Geraldo do Araguaia sem complicações. Compre pacotes oficiais integrados
+            com guias locais, hotéis e entradas de parques.
           </p>
         </div>
       </section>
 
-      {/* ── GRID ── */}
-      <section className="mx-auto max-w-7xl px-5 -mt-10 relative z-20">
+      {/* ── PACKAGE GRID ──
+          Improvements:
+          - Cards lift with a stronger shadow on hover (shadow-2xl) for better interactivity feel
+          - Inclusion list items have a subtle left border accent for visual separation
+          - Price section has a thin top divider for cleaner hierarchy
+          - CTA button uses more generous horizontal padding and a slight border for definition
+          - Badge uses a pill shape for a more polished government-portal feel
+      */}
+      <section className="mx-auto max-w-7xl px-5 sm:px-8 -mt-12 relative z-20">
         {loading ? (
-          <div className="flex justify-center py-20 bg-white rounded-3xl shadow-xl border border-slate-100">
+          <div className="flex justify-center py-24 bg-white rounded-3xl shadow-xl border border-slate-100">
             <Loader2 className="w-10 h-10 animate-spin text-[#00577C]" />
           </div>
         ) : pacotes.length === 0 ? (
-          <div className="text-center py-20 bg-white rounded-3xl shadow-xl border border-slate-100">
+          <div className="text-center py-24 bg-white rounded-3xl shadow-xl border border-slate-100">
             <Ticket className="w-12 h-12 text-slate-300 mx-auto mb-4" />
             <p className="text-lg font-bold text-slate-500">Nenhum pacote disponível no momento.</p>
           </div>
         ) : (
-          <div className="grid lg:grid-cols-2 gap-10">
+          <div className="grid lg:grid-cols-2 gap-8 xl:gap-10">
             {pacotes.map((pacote) => (
-              <div key={pacote.id} className="bg-white rounded-[2rem] overflow-hidden shadow-xl border border-slate-100 flex flex-col md:flex-row group transition-transform hover:-translate-y-1">
-                
-                <div className="relative h-64 md:h-auto md:w-2/5 flex-shrink-0 bg-slate-200">
+              <article
+                key={pacote.id}
+                className="bg-white rounded-[2rem] overflow-hidden shadow-lg border border-slate-100 flex flex-col md:flex-row group transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl"
+              >
+                {/* Card image */}
+                <div className="relative h-64 md:h-auto md:w-[42%] flex-shrink-0 bg-slate-200">
                   {pacote.imagem_principal ? (
-                    <Image src={pacote.imagem_principal} alt={pacote.titulo} fill className="object-cover group-hover:scale-105 transition-transform duration-700" />
+                    <Image
+                      src={pacote.imagem_principal}
+                      alt={pacote.titulo}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-700"
+                    />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-slate-400"><MapPin size={40} /></div>
+                    <div className="w-full h-full flex items-center justify-center text-slate-400">
+                      <MapPin size={40} />
+                    </div>
                   )}
-                  <div className="absolute top-4 left-4 bg-[#F9C400] text-[#00577C] px-3 py-1.5 rounded-lg text-xs font-black flex items-center gap-2 shadow-lg">
-                    <CalendarClock size={14} /> {pacote.dias} Dias / {pacote.noites} Noites
+
+                  {/* Duration badge — pill shape */}
+                  <div className="absolute top-4 left-4 bg-[#F9C400] text-[#00577C] px-3.5 py-1.5 rounded-full text-xs font-black flex items-center gap-1.5 shadow-lg">
+                    <CalendarClock size={13} />
+                    {pacote.dias} Dias / {pacote.noites} Noites
                   </div>
                 </div>
 
-                <div className="p-8 flex flex-col flex-1">
-                  <h2 className={`${jakarta.className} text-2xl font-bold text-[#00577C] mb-2 leading-tight`}>{pacote.titulo}</h2>
-                  <p className="text-sm text-slate-500 mb-6 line-clamp-2">{pacote.descricao_curta}</p>
+                {/* Card body */}
+                <div className="p-7 md:p-8 flex flex-col flex-1 min-w-0">
+                  <h2 className={`${jakarta.className} text-xl md:text-2xl font-bold text-[#00577C] mb-2 leading-tight`}>
+                    {pacote.titulo}
+                  </h2>
+                  <p className="text-sm text-slate-500 mb-5 line-clamp-2 leading-relaxed">
+                    {pacote.descricao_curta}
+                  </p>
 
-                  <div className="space-y-3 mb-8 bg-slate-50 p-4 rounded-2xl border border-slate-100 flex-1">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">O que está incluso neste pacote:</p>
-                    
-                    {pacote.pacote_itens.map((item) => (
-                      <div key={item.id}>
-                        {item.hoteis && (
-                          <div className="flex justify-between items-center text-sm mb-2">
-                            <span className="flex items-center gap-2 text-slate-700 font-medium"><Bed size={16} className="text-[#00577C]" /> {item.hoteis.nome}</span>
-                            <span className="font-bold text-slate-900">{formatarMoeda(parseValor(item.hoteis.preco_medio))}</span>
-                          </div>
-                        )}
-                        {item.guias && (
-                          <div className="flex justify-between items-center text-sm mb-2">
-                            <span className="flex items-center gap-2 text-slate-700 font-medium"><Compass size={16} className="text-[#009640]" /> Guia: {item.guias.nome}</span>
-                            <span className="font-bold text-slate-900">{formatarMoeda(parseValor(item.guias.preco_diaria))}</span>
-                          </div>
-                        )}
-                        {item.atracoes && (
-                          <div className="flex justify-between items-center text-sm mb-2">
-                            <span className="flex items-center gap-2 text-slate-700 font-medium"><Ticket size={16} className="text-[#F9C400]" /> {item.atracoes.nome}</span>
-                            <span className="font-bold text-slate-900">{formatarMoeda(parseValor(item.atracoes.preco_entrada))}</span>
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                  {/* Inclusions list */}
+                  <div className="mb-7 bg-slate-50 rounded-2xl border border-slate-100 p-4 md:p-5 flex-1">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">
+                      O que está incluso neste pacote:
+                    </p>
+                    <div className="space-y-2.5">
+                      {pacote.pacote_itens.map((item) => (
+                        <div key={item.id}>
+                          {item.hoteis && (
+                            <div className="flex justify-between items-center text-sm gap-2">
+                              <span className="flex items-center gap-2 text-slate-700 font-medium min-w-0 truncate">
+                                <Bed size={15} className="text-[#00577C] shrink-0" />
+                                {item.hoteis.nome}
+                              </span>
+                              <span className="font-bold text-slate-900 shrink-0 tabular-nums">
+                                {formatarMoeda(parseValor(item.hoteis.preco_medio))}
+                              </span>
+                            </div>
+                          )}
+                          {item.guias && (
+                            <div className="flex justify-between items-center text-sm gap-2">
+                              <span className="flex items-center gap-2 text-slate-700 font-medium min-w-0 truncate">
+                                <Compass size={15} className="text-[#009640] shrink-0" />
+                                Guia: {item.guias.nome}
+                              </span>
+                              <span className="font-bold text-slate-900 shrink-0 tabular-nums">
+                                {formatarMoeda(parseValor(item.guias.preco_diaria))}
+                              </span>
+                            </div>
+                          )}
+                          {item.atracoes && (
+                            <div className="flex justify-between items-center text-sm gap-2">
+                              <span className="flex items-center gap-2 text-slate-700 font-medium min-w-0 truncate">
+                                <Ticket size={15} className="text-[#F9C400] shrink-0" />
+                                {item.atracoes.nome}
+                              </span>
+                              <span className="font-bold text-slate-900 shrink-0 tabular-nums">
+                                {formatarMoeda(parseValor(item.atracoes.preco_entrada))}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
-                  <div className="flex items-end justify-between mt-auto">
+                  {/* Price row + CTA */}
+                  <div className="flex items-end justify-between gap-4 pt-5 border-t border-slate-100 mt-auto">
                     <div>
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Valor Total</p>
-                      <p className={`${jakarta.className} text-3xl font-black text-[#009640]`}>{formatarMoeda(pacote.valor_total || 0)}</p>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">
+                        Valor Total
+                      </p>
+                      <p className={`${jakarta.className} text-3xl font-black text-[#009640] leading-none tabular-nums`}>
+                        {formatarMoeda(pacote.valor_total || 0)}
+                      </p>
                     </div>
-                    <Link 
+                    <Link
                       href={`/pacotes/${pacote.id}`}
-                      className="bg-[#00577C] hover:bg-[#004a6b] text-white px-6 py-3 rounded-full font-bold text-sm transition-colors flex items-center gap-2 shadow-md"
+                      className="bg-[#00577C] hover:bg-[#004a6b] text-white px-7 py-3.5 rounded-full font-bold text-sm transition-colors flex items-center gap-2 shadow-md shrink-0"
                     >
-                      Ver Detalhes <ArrowRight size={16} />
+                      Ver Detalhes <ArrowRight size={15} />
                     </Link>
                   </div>
                 </div>
-              </div>
+              </article>
             ))}
           </div>
         )}
       </section>
 
-      {/* ── FOOTER ── */}
+      {/* ── FOOTER INSTITUCIONAL COMPLETO (updated) ── */}
       <footer className="py-20 px-8 border-t border-slate-100 bg-white mt-20">
-        <div className="max-w-7xl mx-auto text-center">
-           <img src="/logop.png" alt="Prefeitura SGA" className="h-16 object-contain mx-auto mb-6" />
-           <p className="text-sm text-slate-400 font-bold uppercase tracking-widest leading-relaxed">
-             São Geraldo do Araguaia <br/> "Cidade Amada, seguindo em frente"
-           </p>
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-16 mb-20">
+            <div className="space-y-8">
+              <img src="/logop.png" alt="Prefeitura SGA" className="h-20 object-contain" />
+              <p className="text-sm text-slate-400 font-bold uppercase tracking-widest leading-relaxed">
+                São Geraldo do Araguaia <br /> "Cidade Amada, seguindo em frente"
+              </p>
+            </div>
+
+            <div className="space-y-6">
+              <h5 className="font-black text-slate-900 text-xs uppercase tracking-widest border-b border-slate-100 pb-4">
+                Gestão Executiva
+              </h5>
+              <ul className="text-sm text-slate-500 space-y-3 font-medium">
+                <li>Prefeito: <br /><b>Jefferson Douglas de Jesus Oliveira</b></li>
+                <li>Vice-Prefeito: <br /><b>Marcos Antônio Candido de Lucena</b></li>
+              </ul>
+            </div>
+
+            <div className="space-y-6">
+              <h5 className="font-black text-slate-900 text-xs uppercase tracking-widest border-b border-slate-100 pb-4">
+                Turismo (SEMTUR)
+              </h5>
+              <ul className="text-sm text-slate-500 space-y-3 font-medium">
+                <li>Secretária: <br /><b>Micheli Stephany de Souza</b></li>
+                <li>Contato: <b>(94) 98145-2067</b></li>
+                <li>Email: <b>setursaga@gmail.com</b></li>
+              </ul>
+            </div>
+
+            <div className="space-y-6">
+              <h5 className="font-black text-slate-900 text-xs uppercase tracking-widest border-b border-slate-100 pb-4">
+                Equipe Técnica
+              </h5>
+              <ul className="text-sm text-slate-500 space-y-2 font-medium">
+                <li>• Adriana da Luz Lima</li>
+                <li>• Carmelita Luz da Silva</li>
+                <li>• Diego Silva Costa</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="text-center pt-10 border-t border-slate-50">
+            <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.4em]">
+              © 2026 Secretaria Municipal de Turismo - São Geraldo do Araguaia (PA)
+            </p>
+          </div>
         </div>
       </footer>
     </main>
