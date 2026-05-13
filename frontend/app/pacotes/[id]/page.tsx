@@ -3,12 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
-import Link from 'next/link';
 import { 
   Loader2, ArrowLeft, MapPin, Calendar, Clock, 
   CheckCircle2, Bed, Compass, Ticket, ShieldCheck, 
   ChevronRight, Camera, Info, QrCode, Wallet, X, Star,
-  Smartphone, Award, Anchor
+  Smartphone, Award, ImageIcon
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -21,6 +20,7 @@ type Hotel = {
   id: string; nome: string; tipo: string; imagem_url: string; descricao: string;
   quarto_standard_nome: string; quarto_standard_preco: any;
   quarto_luxo_nome: string; quarto_luxo_preco: any;
+  galeria: string[] | string; // Suporta array real ou string do DB
 };
 type Guia = { id: string; nome: string; preco_diaria: any; especialidade: string; imagem_url: string; descricao: string; };
 type Atracao = { id: string; nome: string; preco_entrada: any; tipo: string; imagem_url: string; descricao: string; };
@@ -109,12 +109,18 @@ export default function DetalhePacotePage() {
 
   if (!pacote) return null;
 
-  const imagensRoteiro = [pacote.imagem_principal, ...(pacote.imagens_galeria || [])].slice(0, 5);
+  const imagensRoteiro = [pacote.imagem_principal, ...(pacote.imagens_galeria || [])];
+
+  // Helper para tratar a galeria do hotel (pode vir como string JSON do Supabase)
+  const getGaleriaHotel = (hotel: Hotel | null) => {
+    if (!hotel || !hotel.galeria) return [];
+    if (Array.isArray(hotel.galeria)) return hotel.galeria;
+    try { return JSON.parse(hotel.galeria); } catch (e) { return []; }
+  };
 
   return (
     <main className={`${inter.className} bg-[#F8FAFC] min-h-screen pb-32`}>
       
-      {/* NAVEGAÇÃO SUPERIOR */}
       <nav className="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-40 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <button onClick={() => router.back()} className="flex items-center gap-2 text-slate-600 hover:text-[#00577C] font-bold transition-all group">
@@ -122,7 +128,7 @@ export default function DetalhePacotePage() {
             Voltar aos Pacotes
           </button>
           <div className="flex items-center gap-4">
-            <div className="hidden md:flex items-center gap-2 text-[#009640] font-bold text-xs uppercase tracking-tighter bg-green-50 px-4 py-2 rounded-full border border-green-100">
+            <div className="hidden md:flex items-center gap-2 text-[#009640] font-bold text-xs uppercase bg-green-50 px-4 py-2 rounded-full border border-green-100">
               <ShieldCheck size={16}/> Pagamento 100% Seguro PagBank
             </div>
           </div>
@@ -131,7 +137,7 @@ export default function DetalhePacotePage() {
 
       <div className="max-w-7xl mx-auto px-6 mt-10">
         
-        {/* HEADER DO PACOTE */}
+        {/* CABEÇALHO */}
         <div className="mb-10">
           <div className="flex items-center gap-2 mb-4 text-[#00577C]">
              <div className="h-6 w-1 bg-[#F9C400] rounded-full"></div>
@@ -150,7 +156,7 @@ export default function DetalhePacotePage() {
           </div>
         </div>
 
-        {/* GALERIA PROFISSIONAL (BENTO BOX) */}
+        {/* GALERIA SUPERIOR (BENTO BOX) */}
         <section className="mb-16">
           <div className="flex gap-3 mb-6">
             <button onClick={() => setAbaGaleria('roteiro')} className={`px-8 py-3 rounded-2xl font-bold text-sm flex items-center gap-2 transition-all ${abaGaleria === 'roteiro' ? 'bg-[#00577C] text-white shadow-xl scale-105' : 'bg-white text-slate-500 border hover:bg-slate-50'}`}>
@@ -186,82 +192,51 @@ export default function DetalhePacotePage() {
           </div>
         </section>
 
-        {/* CORPO DA PÁGINA */}
+        {/* CORPO PRINCIPAL */}
         <div className="grid lg:grid-cols-[1fr_420px] gap-16">
-          
           <div className="space-y-16">
             
-            {/* SOBRE E ROTEIRO */}
+            {/* ROTEIRO */}
             <section className="bg-white p-10 md:p-14 rounded-[3rem] border border-slate-100 shadow-sm relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-10 opacity-5 pointer-events-none"><Info size={120}/></div>
-              <h2 className={`${jakarta.className} text-3xl font-bold text-slate-900 mb-8 flex items-center gap-3`}>
-                Roteiro da Experiência
-              </h2>
+              <h2 className={`${jakarta.className} text-3xl font-bold text-slate-900 mb-8 flex items-center gap-3`}>Roteiro da Experiência</h2>
               <div className="prose prose-slate max-w-none">
-                 <p className="text-xl text-slate-600 leading-relaxed mb-10 border-l-4 border-[#F9C400] pl-6 italic">
-                   {pacote.descricao_curta}
-                 </p>
-                 <div className="whitespace-pre-line text-slate-700 text-lg leading-loose space-y-4">
-                   {pacote.roteiro_detalhado}
-                 </div>
+                 <p className="text-xl text-slate-600 leading-relaxed mb-10 border-l-4 border-[#F9C400] pl-6 italic">{pacote.descricao_curta}</p>
+                 <div className="whitespace-pre-line text-slate-700 text-lg leading-loose space-y-4">{pacote.roteiro_detalhado}</div>
               </div>
             </section>
 
-            {/* SELEÇÃO DE HOTEL E QUARTO */}
+            {/* SELEÇÃO HOTEL */}
             <section>
-              <div className="flex items-center gap-4 mb-8">
+              <h2 className={`${jakarta.className} text-3xl font-bold text-slate-900 mb-8 flex items-center gap-4`}>
                 <div className="w-12 h-12 bg-[#00577C] rounded-2xl flex items-center justify-center text-white shadow-lg"><Bed size={24}/></div>
-                <h2 className={`${jakarta.className} text-3xl font-bold text-slate-900`}>1. Escolha sua Hospedagem</h2>
-              </div>
-
+                1. Escolha sua Hospedagem
+              </h2>
               <div className="space-y-6">
                 {hoteisDisponiveis.map(hotel => (
                   <div key={hotel.id} className={`p-8 rounded-[2.5rem] bg-white border-2 transition-all ${hotelSelecionado?.id === hotel.id ? 'border-[#00577C] ring-8 ring-blue-50' : 'border-slate-100'}`}>
                     <div className="flex items-center justify-between mb-8">
                       <div className="flex items-center gap-4">
-                        <div className="relative w-20 h-20 rounded-2xl overflow-hidden border border-slate-100 shadow-sm">
+                        <div className="relative w-20 h-20 rounded-2xl overflow-hidden border shadow-sm">
                            <Image src={hotel.imagem_url} alt={hotel.nome} fill className="object-cover" />
                         </div>
                         <div>
                           <h4 className="text-2xl font-bold text-slate-800">{hotel.nome}</h4>
-                          <span className="text-xs font-black uppercase tracking-widest text-[#009640] bg-green-50 px-3 py-1 rounded-md">{hotel.tipo}</span>
+                          <span className="text-xs font-black uppercase text-[#009640] bg-green-50 px-3 py-1 rounded-md">{hotel.tipo}</span>
                         </div>
                       </div>
-                      <button 
-                        onClick={() => {setHotelSelecionado(hotel); setTipoQuarto('standard');}}
-                        className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all ${hotelSelecionado?.id === hotel.id ? 'border-[#00577C] bg-[#00577C]' : 'border-slate-200'}`}
-                      >
+                      <button onClick={() => {setHotelSelecionado(hotel); setTipoQuarto('standard');}} className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all ${hotelSelecionado?.id === hotel.id ? 'border-[#00577C] bg-[#00577C]' : 'border-slate-200'}`}>
                         {hotelSelecionado?.id === hotel.id && <CheckCircle2 size={16} className="text-white"/>}
                       </button>
                     </div>
 
                     {hotelSelecionado?.id === hotel.id && (
                       <div className="grid md:grid-cols-2 gap-4 mt-6">
-                        {/* OPÇÃO STANDARD */}
-                        <div 
-                          onClick={() => setTipoQuarto('standard')}
-                          className={`p-6 rounded-3xl cursor-pointer border-2 transition-all ${tipoQuarto === 'standard' ? 'border-[#F9C400] bg-yellow-50/50' : 'border-slate-50 bg-slate-50 hover:border-slate-200'}`}
-                        >
-                          <div className="flex justify-between items-start mb-2">
-                             <p className="font-bold text-slate-800">{hotel.quarto_standard_nome}</p>
-                             {tipoQuarto === 'standard' && <div className="w-4 h-4 bg-[#F9C400] rounded-full border-4 border-white shadow-sm"></div>}
-                          </div>
-                          <p className="text-xs text-slate-500 mb-4">Acomodação confortável padrão turística.</p>
+                        <div onClick={() => setTipoQuarto('standard')} className={`p-6 rounded-3xl cursor-pointer border-2 transition-all ${tipoQuarto === 'standard' ? 'border-[#F9C400] bg-yellow-50/50' : 'border-slate-50 bg-slate-50 hover:border-slate-200'}`}>
+                          <p className="font-bold text-slate-800 mb-2">{hotel.quarto_standard_nome}</p>
                           <p className="font-black text-[#009640] text-xl">{formatarMoeda(parseValor(hotel.quarto_standard_preco))}</p>
                         </div>
-                        {/* OPÇÃO LUXO */}
-                        <div 
-                          onClick={() => setTipoQuarto('luxo')}
-                          className={`p-6 rounded-3xl cursor-pointer border-2 transition-all ${tipoQuarto === 'luxo' ? 'border-[#F9C400] bg-yellow-50/50' : 'border-slate-50 bg-slate-50 hover:border-slate-200'}`}
-                        >
-                          <div className="flex justify-between items-start mb-2">
-                             <div className="flex items-center gap-2">
-                                <p className="font-bold text-slate-800">{hotel.quarto_luxo_nome}</p>
-                                <Star size={14} className="text-[#F9C400] fill-[#F9C400]"/>
-                             </div>
-                             {tipoQuarto === 'luxo' && <div className="w-4 h-4 bg-[#F9C400] rounded-full border-4 border-white shadow-sm"></div>}
-                          </div>
-                          <p className="text-xs text-slate-500 mb-4">Upgrade para suíte com vista e mimos extras.</p>
+                        <div onClick={() => setTipoQuarto('luxo')} className={`p-6 rounded-3xl cursor-pointer border-2 transition-all ${tipoQuarto === 'luxo' ? 'border-[#F9C400] bg-yellow-50/50' : 'border-slate-50 bg-slate-50 hover:border-slate-200'}`}>
+                          <p className="font-bold text-slate-800 mb-2">{hotel.quarto_luxo_nome} <Star size={14} className="inline text-[#F9C400] fill-[#F9C400]"/></p>
                           <p className="font-black text-[#009640] text-xl">{formatarMoeda(parseValor(hotel.quarto_luxo_preco))}</p>
                         </div>
                       </div>
@@ -271,12 +246,12 @@ export default function DetalhePacotePage() {
               </div>
             </section>
 
-            {/* SELEÇÃO DE GUIA */}
+            {/* SELEÇÃO GUIA */}
             <section>
-              <div className="flex items-center gap-4 mb-8">
+              <h2 className={`${jakarta.className} text-3xl font-bold text-slate-900 mb-8 flex items-center gap-4`}>
                 <div className="w-12 h-12 bg-[#009640] rounded-2xl flex items-center justify-center text-white shadow-lg"><Compass size={24}/></div>
-                <h2 className={`${jakarta.className} text-3xl font-bold text-slate-900`}>2. Guia de Turismo Credenciado</h2>
-              </div>
+                2. Guia de Turismo Credenciado
+              </h2>
               <div className="grid gap-4">
                  {guiasDisponiveis.map(guia => (
                    <label key={guia.id} className={`cursor-pointer p-6 bg-white rounded-[2rem] border-2 flex items-center justify-between transition-all ${guiaSelecionado?.id === guia.id ? 'border-[#009640] shadow-md ring-8 ring-green-50' : 'border-slate-100 hover:border-slate-300'}`}>
@@ -284,19 +259,12 @@ export default function DetalhePacotePage() {
                         <div className="relative w-20 h-20 rounded-2xl overflow-hidden shadow-sm border border-slate-100">
                            <Image src={guia.imagem_url || '/placeholder.png'} alt={guia.nome} fill className="object-cover" />
                         </div>
-                        <div>
-                           <h4 className="text-xl font-bold text-slate-800">{guia.nome}</h4>
-                           <div className="flex items-center gap-2 text-sm text-slate-500 font-medium">
-                              <Award size={14} className="text-[#009640]"/> {guia.especialidade}
-                           </div>
-                        </div>
+                        <h4 className="text-xl font-bold text-slate-800">{guia.nome}</h4>
                       </div>
-                      <div className="flex items-center gap-6">
-                         <div className="text-right">
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Diária do Guia</p>
-                            <p className="text-xl font-black text-slate-900">{formatarMoeda(parseValor(guia.preco_diaria))}</p>
-                         </div>
-                         <input type="radio" name="guia" className="w-6 h-6 text-[#009640]" checked={guiaSelecionado?.id === guia.id} onChange={() => setGuiaSelecionado(guia)} />
+                      <div className="text-right">
+                         <p className="text-xs font-bold text-slate-400 mb-1 uppercase">Diária</p>
+                         <p className="text-xl font-black text-slate-900">{formatarMoeda(parseValor(guia.preco_diaria))}</p>
+                         <input type="radio" name="guia" className="hidden" checked={guiaSelecionado?.id === guia.id} onChange={() => setGuiaSelecionado(guia)} />
                       </div>
                    </label>
                  ))}
@@ -304,98 +272,108 @@ export default function DetalhePacotePage() {
             </section>
           </div>
 
-          {/* ASIDE: CHECKOUT FIXO */}
+          {/* ASIDE CHECKOUT */}
           <aside className="relative">
             <div className="sticky top-28 bg-white p-10 rounded-[3rem] border border-slate-200 shadow-2xl overflow-hidden">
                <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#00577C] via-[#F9C400] to-[#009640]"></div>
-               <h3 className={`${jakarta.className} text-2xl font-bold text-slate-900 mb-8 pb-4 border-b border-slate-50`}>Detalhes da Reserva</h3>
-               
-               <div className="space-y-6 mb-12">
-                  <div className="flex justify-between items-start group">
-                     <div className="flex gap-3 text-slate-500">
-                        <Bed size={18} className="mt-1 text-[#00577C]"/>
-                        <div><p className="font-bold text-slate-800 text-sm">Hospedagem</p><p className="text-xs">{hotelSelecionado?.nome}</p></div>
-                     </div>
-                     <span className="font-black text-slate-700">{formatarMoeda(precoQuarto)}</span>
-                  </div>
-                  <div className="flex justify-between items-start group">
-                     <div className="flex gap-3 text-slate-500">
-                        <Compass size={18} className="mt-1 text-[#009640]"/>
-                        <div><p className="font-bold text-slate-800 text-sm">Guia Local</p><p className="text-xs">{guiaSelecionado?.nome}</p></div>
-                     </div>
-                     <span className="font-black text-slate-700">{formatarMoeda(valorGuia)}</span>
-                  </div>
-                  <div className="flex justify-between items-start group pt-6 border-t border-slate-50">
-                     <div className="flex gap-3 text-slate-500">
-                        <Ticket size={18} className="mt-1 text-[#F9C400]"/>
-                        <div><p className="font-bold text-slate-800 text-sm">Taxas e Atrações</p><p className="text-xs">{atracoesInclusas.length} item(s) inclusos</p></div>
-                     </div>
-                     <span className="font-black text-slate-700">{formatarMoeda(valorAtracoes)}</span>
-                  </div>
+               <h3 className={`${jakarta.className} text-2xl font-bold text-slate-900 mb-8 pb-4 border-b`}>Detalhes da Reserva</h3>
+               <div className="space-y-6 mb-12 text-sm">
+                  <div className="flex justify-between font-bold text-slate-800"><span>Hospedagem</span><span>{formatarMoeda(precoQuarto)}</span></div>
+                  <div className="flex justify-between font-bold text-slate-800"><span>Guia Local</span><span>{formatarMoeda(valorGuia)}</span></div>
+                  <div className="flex justify-between font-bold text-slate-800 pt-6 border-t"><span>Taxas inclusas</span><span>{formatarMoeda(valorAtracoes)}</span></div>
                </div>
-
-               <div className="bg-slate-50 p-8 rounded-[2rem] border border-slate-100 mb-10 text-center">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] mb-2 block">Investimento Total</span>
+               <div className="bg-slate-50 p-8 rounded-[2rem] border mb-10 text-center">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Investimento Total</span>
                   <span className={`${jakarta.className} text-5xl font-black text-[#009640]`}>{formatarMoeda(valorTotal)}</span>
                </div>
-
-               <button 
-                  onClick={() => setModalAberto(true)}
-                  className="w-full bg-[#00577C] hover:bg-[#004a6b] text-white py-6 rounded-3xl font-black text-lg shadow-xl hover:-translate-y-1 transition-all flex items-center justify-center gap-3 group"
-               >
+               <button onClick={() => setModalAberto(true)} className="w-full bg-[#00577C] hover:bg-[#004a6b] text-white py-6 rounded-3xl font-black text-lg shadow-xl hover:-translate-y-1 transition-all flex items-center justify-center gap-3 group">
                  Confirmar Reserva <ChevronRight size={22} className="group-hover:translate-x-1 transition-transform" />
                </button>
-               
-               <p className="mt-8 text-center text-[10px] font-bold text-slate-300 uppercase tracking-widest flex items-center justify-center gap-2">
-                 <ShieldCheck size={14}/> Plataforma de Turismo Oficial SGA
-               </p>
             </div>
           </aside>
+        </div>
+
+        {/* ── SEÇÃO DE GALERIAS COMPLETAS ── */}
+        <div className="mt-32 space-y-32">
+          
+          {/* GALERIA DO ROTEIRO */}
+          <section>
+            <div className="flex items-center gap-4 mb-10">
+              <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-[#00577C] shadow-md border border-slate-100">
+                <ImageIcon size={28}/>
+              </div>
+              <div>
+                <h2 className={`${jakarta.className} text-4xl font-black text-slate-900`}>Galeria da Expedição</h2>
+                <p className="text-slate-500 font-medium">Explore as paisagens e atividades inclusas neste roteiro.</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {imagensRoteiro.map((url, index) => (
+                <div key={index} className="relative aspect-square rounded-[2rem] overflow-hidden shadow-sm hover:shadow-xl transition-all hover:-translate-y-1 group">
+                   <Image src={url} alt={`Roteiro ${index}`} fill className="object-cover group-hover:scale-110 transition-transform duration-700" />
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* GALERIA DO HOTEL SELECIONADO */}
+          <section>
+            <div className="flex items-center gap-4 mb-10">
+              <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-[#009640] shadow-md border border-slate-100">
+                <Bed size={28}/>
+              </div>
+              <div>
+                <h2 className={`${jakarta.className} text-4xl font-black text-slate-900`}>Conheça o {hotelSelecionado?.nome}</h2>
+                <p className="text-slate-500 font-medium">Fotos oficiais das acomodações e áreas de lazer desta hospedagem.</p>
+              </div>
+            </div>
+            
+            {getGaleriaHotel(hotelSelecionado).length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {getGaleriaHotel(hotelSelecionado).map((url: string, index: number) => (
+                  <div key={index} className="relative aspect-[4/3] rounded-[2rem] overflow-hidden shadow-sm hover:shadow-xl transition-all hover:-translate-y-1 group">
+                    <Image src={url} alt={`Hotel ${index}`} fill className="object-cover group-hover:scale-110 transition-transform duration-700" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-white p-20 rounded-[3rem] border-2 border-dashed border-slate-200 text-center">
+                <Camera size={48} className="text-slate-300 mx-auto mb-4" />
+                <p className="text-slate-400 font-bold">Galeria de fotos em processamento para este hotel.</p>
+              </div>
+            )}
+          </section>
 
         </div>
       </div>
 
-      {/* MODAL DE CHECKOUT PIX */}
+      {/* MODAL CHECKOUT */}
       {modalAberto && (
-        <div className="fixed inset-0 z-[100] bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-300">
-          <div className="bg-white rounded-[3.5rem] w-full max-w-lg overflow-hidden shadow-2xl relative border border-white/20">
+        <div className="fixed inset-0 z-[100] bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-white rounded-[3.5rem] w-full max-w-lg overflow-hidden shadow-2xl relative">
             <div className="bg-[#00577C] p-10 text-white relative">
                <button onClick={() => setModalAberto(false)} className="absolute top-8 right-8 p-2 hover:bg-white/10 rounded-full transition"><X/></button>
-               <p className="text-[#F9C400] text-[10px] font-black uppercase tracking-[0.4em] mb-3">Checkout Seguro PagBank</p>
                <h3 className={`${jakarta.className} text-3xl font-bold`}>Pagamento de Reserva</h3>
             </div>
-
             <div className="p-12 text-center">
                {!pixGerado ? (
                  <>
-                   <div className="space-y-4 mb-10">
-                      <p className="text-slate-500 text-lg">Confirme os detalhes e gere a chave PIX para garantir sua vaga neste pacote.</p>
-                      <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 flex flex-col items-center">
-                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Valor a Transferir</span>
-                         <span className={`${jakarta.className} text-4xl font-black text-slate-900`}>{formatarMoeda(valorTotal)}</span>
-                      </div>
+                   <div className="bg-slate-50 p-6 rounded-3xl border mb-10">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Valor total</span>
+                      <span className={`${jakarta.className} text-4xl font-black text-slate-900`}>{formatarMoeda(valorTotal)}</span>
                    </div>
-                   <button 
-                     onClick={() => { setProcessandoPix(true); setTimeout(() => { setProcessandoPix(false); setPixGerado(true); }, 2500); }}
-                     className="w-full bg-[#009640] hover:bg-[#007a33] text-white py-6 rounded-3xl font-black text-xl shadow-2xl transition-all flex items-center justify-center gap-4 active:scale-95"
-                   >
+                   <button onClick={() => { setProcessandoPix(true); setTimeout(() => { setProcessandoPix(false); setPixGerado(true); }, 2500); }} className="w-full bg-[#009640] hover:bg-[#007a33] text-white py-6 rounded-3xl font-black text-xl shadow-2xl transition-all flex items-center justify-center gap-4">
                      {processandoPix ? <Loader2 className="animate-spin" size={28}/> : <><QrCode size={28}/> Gerar QR Code PIX</>}
                    </button>
                  </>
                ) : (
                  <div className="animate-in zoom-in-95 duration-500">
-                    <div className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-8">
-                       <CheckCircle2 size={56} className="text-[#009640]"/>
+                    <CheckCircle2 size={56} className="text-[#009640] mx-auto mb-8"/>
+                    <h4 className="text-2xl font-bold mb-10">Escaneie o QR Code para confirmar sua vaga</h4>
+                    <div className="w-64 h-64 bg-slate-50 mx-auto rounded-[2.5rem] flex items-center justify-center mb-10 border-4 border-dashed">
+                       <QrCode size={140} className="text-slate-300"/>
                     </div>
-                    <h4 className="text-2xl font-bold text-slate-900 mb-4">Tudo Pronto! Chave Gerada.</h4>
-                    <p className="text-slate-500 mb-10 text-sm">Escaneie o código abaixo com o aplicativo do seu banco para processar o Split de Pagamento automático.</p>
-                    <div className="w-64 h-64 bg-slate-50 mx-auto rounded-[2.5rem] flex items-center justify-center mb-10 border-4 border-dashed border-slate-200 relative group">
-                       <QrCode size={140} className="text-slate-300 group-hover:text-slate-400 transition-colors"/>
-                       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-white/40 backdrop-blur-sm rounded-[2.5rem]">
-                          <Smartphone className="text-[#00577C] animate-bounce" size={40}/>
-                       </div>
-                    </div>
-                    <button className="bg-slate-900 text-white w-full py-5 rounded-3xl font-bold transition-all hover:bg-black uppercase text-xs tracking-[0.2em] shadow-lg">Copiar Chave Copia e Cola</button>
+                    <button className="bg-slate-900 text-white w-full py-5 rounded-3xl font-bold">Copiar Chave Pix</button>
                  </div>
                )}
             </div>
