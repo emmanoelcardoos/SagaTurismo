@@ -7,7 +7,7 @@ import QRCode from 'react-qr-code';
 interface CarteiraData {
   sucesso: boolean;
   nome?: string;
-  cpf_mascarado?: string; // Recebendo mascarado do backend
+  cpf_mascarado?: string;
   data_nascimento?: string;
   foto_url?: string;
   status?: string;
@@ -19,7 +19,6 @@ export default function CarteiraDigitalPage({ params }: { params: { token: strin
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Usamos o nosso Route Handler proxy para não expor a secret key
     fetch(`/api/validar?token=${params.token}`)
       .then(res => res.json())
       .then(json => {
@@ -44,23 +43,22 @@ export default function CarteiraDigitalPage({ params }: { params: { token: strin
         <ShieldCheck className="w-16 h-16 text-red-300 mx-auto mb-6" />
         <h2 className="text-xl font-black mb-2">Documento Inválido</h2>
         <p className="text-sm opacity-80 mb-6">{data?.mensagem || "Não encontramos uma carteira ativa para este link."}</p>
-        <Link href="/cadastro" className="inline-block bg-red-600 text-white px-8 py-3.5 rounded-xl font-bold shadow-md hover:bg-red-700">
-          Solicitar Novo Cadastro
+        
+        {/* LIGAÇÃO ATUALIZADA PARA O CHECKOUT */}
+        <Link href="/checkout?tipo=carteira" className="inline-block bg-red-600 text-white px-8 py-3.5 rounded-xl font-bold shadow-md hover:bg-red-700 transition-colors">
+          Finalizar Solicitação
         </Link>
       </div>
     </div>
   );
 
-  // Data de Expiração (Simulada para 1 ano a contar de hoje)
   const expira = "29/04/2027";
 
   return (
     <div className="min-h-screen bg-stone-200 flex flex-col items-center justify-center p-4 md:p-8">
-      
       {/* --- CARTEIRA HORIZONTAL PREMIUM --- */}
       <div id="carteira-digital" className="w-full max-w-[750px] aspect-[1.6/1] bg-white rounded-[2rem] shadow-2xl overflow-hidden relative border border-stone-300 flex flex-col animate-fade-up no-print">
         
-        {/* HEADER GOVERNAMENTAL */}
         <div className="bg-forest p-5 px-10 flex justify-between items-center z-20 shadow-md">
           <div className="flex items-center gap-4">
              <div className="bg-white p-2 rounded-xl shadow-sm">
@@ -77,28 +75,22 @@ export default function CarteiraDigitalPage({ params }: { params: { token: strin
           </div>
         </div>
 
-        {/* CORPO DO DOCUMENTO */}
         <div className="flex-1 flex relative">
-          
-          {/* BACKGROUND: PADRÃO DE SEGURANÇA SUTIL (Substituindo o SVG estranho) */}
           <div className="absolute inset-0 z-0 opacity-[0.03] pointer-events-none p-10 grid grid-cols-3 gap-10 rotate-[-15deg] scale-110">
               {Array.from({length: 12}).map((_, i) => (
                   <p key={i} className="text-sm font-black text-forest uppercase tracking-widest whitespace-nowrap">SERRA DAS ANDORINHAS</p>
               ))}
           </div>
 
-          {/* LADO ESQUERDO: FOTO DO RESIDENTE */}
           <div className="w-[38%] flex flex-col items-center justify-center p-8 z-10 bg-stone-50/40 border-r border-stone-100">
              <div className="w-full aspect-[3/4] bg-white rounded-2xl shadow-xl overflow-hidden border-[6px] border-white relative ring-1 ring-stone-200">
                 {data.foto_url ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
                   <img src={data.foto_url} alt="Foto do Titular" className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-stone-100">
                     <User className="w-20 h-20 text-stone-300" />
                   </div>
                 )}
-                {/* Selo de Autenticidade */}
                 <div className="absolute top-2 right-2 bg-leaf text-white p-1 rounded-full shadow-lg">
                    <ShieldCheck className="w-4 h-4" />
                 </div>
@@ -108,7 +100,6 @@ export default function CarteiraDigitalPage({ params }: { params: { token: strin
              </p>
           </div>
 
-          {/* LADO DIREITO: DADOS E QR CODE */}
           <div className="flex-1 p-10 flex flex-col justify-between z-10 relative">
             <div className="space-y-6">
                <div>
@@ -136,7 +127,6 @@ export default function CarteiraDigitalPage({ params }: { params: { token: strin
                </div>
             </div>
 
-            {/* RODAPÉ DO CONTEÚDO COM QR CODE REAL */}
             <div className="flex items-end justify-between mt-6 pt-4 border-t border-stone-100">
                <div className="space-y-1">
                   <div className="flex items-center gap-2 text-[10px] text-stone-500 font-bold">
@@ -159,7 +149,6 @@ export default function CarteiraDigitalPage({ params }: { params: { token: strin
           </div>
         </div>
 
-        {/* BARRA DE RODAPÉ FINAL */}
         <div className="bg-stone-50 border-t border-stone-200 px-10 py-3 flex justify-between items-center z-10">
            <p className="text-[9px] font-bold text-stone-400 tracking-[0.3em] uppercase">Documento Digital Inviolável</p>
            <div className="flex gap-1.5">
@@ -170,7 +159,6 @@ export default function CarteiraDigitalPage({ params }: { params: { token: strin
         </div>
       </div>
 
-      {/* BOTÕES DE AÇÃO (FORA DO CARD) */}
       <div className="mt-10 flex gap-4 no-print animate-fade-up delay-300">
          <button 
            onClick={() => window.print()}
