@@ -10,14 +10,13 @@ import {
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
 
-// FONTES PADRÃO DO SITE
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '700', '800'] });
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
 
 // ── TIPAGENS DO SUPABASE ──
-type Hotel = { id: string; nome: string; preco_medio: number; };
-type Guia = { id: string; nome: string; preco_diaria: number; especialidade: string; };
-type Atracao = { id: string; nome: string; preco_entrada: number; tipo: string; };
+type Hotel = { id: string; nome: string; preco_medio: any; };
+type Guia = { id: string; nome: string; preco_diaria: any; especialidade: string; };
+type Atracao = { id: string; nome: string; preco_entrada: any; tipo: string; };
 
 type PacoteItem = {
   id: string;
@@ -34,10 +33,21 @@ type Pacote = {
   dias: number;
   noites: number;
   pacote_itens: PacoteItem[];
-  valor_total?: number; // Calculado no frontend
+  valor_total?: number; 
 };
 
-// FORMATADOR DE MOEDA (BRL)
+// ── FUNÇÕES DE SEGURANÇA ──
+// Garante que o valor é sempre um número válido, mesmo se vier null ou string com vírgula do banco
+const parseValor = (valor: any): number => {
+  if (valor === null || valor === undefined || valor === '') return 0;
+  if (typeof valor === 'number') return isNaN(valor) ? 0 : valor;
+  if (typeof valor === 'string') {
+    const formatado = parseFloat(valor.replace(',', '.'));
+    return isNaN(formatado) ? 0 : formatado;
+  }
+  return 0;
+};
+
 const formatarMoeda = (valor: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor || 0);
 };
@@ -50,7 +60,6 @@ export default function PacotesPage() {
 
   useEffect(() => {
     async function fetchPacotes() {
-      // Faz o Join inteligente do Supabase puxando o pacote e TUDO o que está ligado a ele
       const { data, error } = await supabase
         .from('pacotes')
         .select(`
@@ -67,13 +76,13 @@ export default function PacotesPage() {
       if (error) {
         console.error("Erro ao buscar pacotes:", error);
       } else if (data) {
-        // Calcular o valor total de cada pacote somando os itens
+        // Cálculo 100% seguro do valor total usando o parseValor
         const pacotesProcessados = (data as any[]).map((pacote) => {
           let total = 0;
           pacote.pacote_itens.forEach((item: PacoteItem) => {
-            if (item.hoteis) total += Number(item.hoteis.preco_medio);
-            if (item.guias) total += Number(item.guias.preco_diaria);
-            if (item.atracoes) total += Number(item.atracoes.preco_entrada);
+            if (item.hoteis) total += parseValor(item.hoteis.preco_medio);
+            if (item.guias) total += parseValor(item.guias.preco_diaria);
+            if (item.atracoes) total += parseValor(item.atracoes.preco_entrada);
           });
           return { ...pacote, valor_total: total };
         });
@@ -84,7 +93,6 @@ export default function PacotesPage() {
     fetchPacotes();
   }, []);
 
-  // Efeito do Scroll para o Header
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
@@ -100,7 +108,7 @@ export default function PacotesPage() {
   return (
     <main className={`${inter.className} min-h-screen bg-[#FAFAF7] text-slate-900 pb-32`}>
 
-      {/* ── HEADER PADRÃO ── */}
+      {/* ── HEADER ── */}
       <header className={`fixed left-0 top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl transition-transform duration-300 ${showHeader ? 'translate-y-0' : '-translate-y-full'}`}>
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-5">
           <Link href="/" className="flex min-w-0 items-center gap-3 sm:gap-4">
@@ -123,7 +131,7 @@ export default function PacotesPage() {
         </div>
       </header>
 
-      {/* ── HERO SECTION ── */}
+      {/* ── HERO ── */}
       <section className="relative pt-48 pb-24 px-5 bg-[#00577C] text-center text-white overflow-hidden">
         <div className="absolute inset-0 z-0 opacity-20">
           <Image src="https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?q=80&w=1740" alt="Fundo Pacotes" fill className="object-cover" />
@@ -145,7 +153,7 @@ export default function PacotesPage() {
         </div>
       </section>
 
-      {/* ── LISTAGEM DE PACOTES (GRID) ── */}
+      {/* ── GRID ── */}
       <section className="mx-auto max-w-7xl px-5 -mt-10 relative z-20">
         {loading ? (
           <div className="flex justify-center py-20 bg-white rounded-3xl shadow-xl border border-slate-100">
@@ -161,7 +169,6 @@ export default function PacotesPage() {
             {pacotes.map((pacote) => (
               <div key={pacote.id} className="bg-white rounded-[2rem] overflow-hidden shadow-xl border border-slate-100 flex flex-col md:flex-row group transition-transform hover:-translate-y-1">
                 
-                {/* Imagem do Pacote */}
                 <div className="relative h-64 md:h-auto md:w-2/5 flex-shrink-0 bg-slate-200">
                   {pacote.imagem_principal ? (
                     <Image src={pacote.imagem_principal} alt={pacote.titulo} fill className="object-cover group-hover:scale-105 transition-transform duration-700" />
@@ -173,12 +180,10 @@ export default function PacotesPage() {
                   </div>
                 </div>
 
-                {/* Corpo do Pacote */}
                 <div className="p-8 flex flex-col flex-1">
                   <h2 className={`${jakarta.className} text-2xl font-bold text-[#00577C] mb-2 leading-tight`}>{pacote.titulo}</h2>
                   <p className="text-sm text-slate-500 mb-6 line-clamp-2">{pacote.descricao_curta}</p>
 
-                  {/* Detalhamento dos Itens (Transparência de Preços) */}
                   <div className="space-y-3 mb-8 bg-slate-50 p-4 rounded-2xl border border-slate-100 flex-1">
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">O que está incluso neste pacote:</p>
                     
@@ -187,26 +192,25 @@ export default function PacotesPage() {
                         {item.hoteis && (
                           <div className="flex justify-between items-center text-sm mb-2">
                             <span className="flex items-center gap-2 text-slate-700 font-medium"><Bed size={16} className="text-[#00577C]" /> {item.hoteis.nome}</span>
-                            <span className="font-bold text-slate-900">{formatarMoeda(item.hoteis.preco_medio)}</span>
+                            <span className="font-bold text-slate-900">{formatarMoeda(parseValor(item.hoteis.preco_medio))}</span>
                           </div>
                         )}
                         {item.guias && (
                           <div className="flex justify-between items-center text-sm mb-2">
                             <span className="flex items-center gap-2 text-slate-700 font-medium"><Compass size={16} className="text-[#009640]" /> Guia: {item.guias.nome}</span>
-                            <span className="font-bold text-slate-900">{formatarMoeda(item.guias.preco_diaria)}</span>
+                            <span className="font-bold text-slate-900">{formatarMoeda(parseValor(item.guias.preco_diaria))}</span>
                           </div>
                         )}
                         {item.atracoes && (
                           <div className="flex justify-between items-center text-sm mb-2">
                             <span className="flex items-center gap-2 text-slate-700 font-medium"><Ticket size={16} className="text-[#F9C400]" /> {item.atracoes.nome}</span>
-                            <span className="font-bold text-slate-900">{formatarMoeda(item.atracoes.preco_entrada)}</span>
+                            <span className="font-bold text-slate-900">{formatarMoeda(parseValor(item.atracoes.preco_entrada))}</span>
                           </div>
                         )}
                       </div>
                     ))}
                   </div>
 
-                  {/* Rodapé do Card: Preço Total e Botão para a página de detalhes */}
                   <div className="flex items-end justify-between mt-auto">
                     <div>
                       <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Valor Total</p>
@@ -226,7 +230,7 @@ export default function PacotesPage() {
         )}
       </section>
 
-      {/* ── FOOTER PADRÃO ── */}
+      {/* ── FOOTER ── */}
       <footer className="py-20 px-8 border-t border-slate-100 bg-white mt-20">
         <div className="max-w-7xl mx-auto text-center">
            <img src="/logop.png" alt="Prefeitura SGA" className="h-16 object-contain mx-auto mb-6" />
