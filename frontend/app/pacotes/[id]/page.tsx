@@ -523,12 +523,12 @@ export default function DetalhePacotePage() {
 
             {/* ── GUIDE SELECTION ── */}
             <section>
-              <div className="flex items-center gap-4 mb-7">
-                <div className="flex items-center justify-center w-11 h-11 rounded-2xl bg-[#009640] text-white shrink-0">
-                  <UserCheck size={18} />
+              <div className="flex items-center gap-3 mb-6">
+                <div className="flex items-center justify-center w-9 h-9 rounded-2xl bg-[#009640] text-white shrink-0">
+                  <UserCheck size={16} />
                 </div>
                 <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Passo 2</p>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Passo 2</p>
                   <h2 className={`${jakarta.className} text-2xl font-bold text-slate-900 leading-none`}>Escolha o Guia</h2>
                 </div>
               </div>
@@ -539,31 +539,31 @@ export default function DetalhePacotePage() {
                   return (
                     <label
                       key={guia.id}
-                      className={`flex items-center gap-6 bg-white p-6 rounded-3xl border-2 cursor-pointer transition-all ${
+                      className={`flex items-center gap-5 bg-white p-5 rounded-3xl border-2 cursor-pointer transition-all ${
                         selected
                           ? 'border-[#009640] shadow-lg shadow-green-100'
                           : 'border-slate-100 shadow-sm hover:border-slate-200'
                       }`}
                     >
                       {/* Avatar */}
-                      <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-slate-100 shrink-0 border-2 border-white shadow">
+                      <div className="relative w-14 h-14 rounded-2xl overflow-hidden bg-slate-100 shrink-0 border-2 border-white shadow">
                         <Image src={guia.imagem_url || '/placeholder.png'} alt={guia.nome} fill className="object-cover" />
                       </div>
 
                       {/* Info */}
                       <div className="flex-1 min-w-0">
-                        <h4 className="text-base font-bold text-slate-900 mb-1">{guia.nome}</h4>
-                        <div className="flex items-center gap-2 text-slate-500 text-sm font-medium">
-                          <span className="w-2 h-2 rounded-full bg-[#009640]" />
+                        <h4 className="text-sm font-bold text-slate-900 mb-0.5">{guia.nome}</h4>
+                        <div className="flex items-center gap-1.5 text-slate-500 text-xs font-medium">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#009640]" />
                           {guia.especialidade}
                         </div>
                       </div>
 
                       {/* Price + radio */}
-                      <div className="flex items-center gap-5 shrink-0">
+                      <div className="flex items-center gap-4 shrink-0">
                         <div className="text-right hidden sm:block">
-                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">p/ dia</p>
-                          <p className={`${jakarta.className} text-lg font-black text-slate-800 tabular-nums`}>
+                          <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">p/ dia</p>
+                          <p className={`${jakarta.className} text-base font-black text-slate-800 tabular-nums`}>
                             {formatarMoeda(parseValor(guia.preco_diaria))}
                           </p>
                         </div>
@@ -583,12 +583,12 @@ export default function DetalhePacotePage() {
 
             {/* ── EXPEDITION GALLERY ── */}
             <section>
-              <div className="flex items-center justify-between mb-7">
+              <div className="flex items-center justify-between mb-6">
                 <div>
-                  <p className="text-[10px] font-black text-[#00577C] uppercase tracking-[0.3em] mb-1">Galeria</p>
+                  <p className="text-[9px] font-black text-[#00577C] uppercase tracking-[0.3em] mb-1">Galeria</p>
                   <h2 className={`${jakarta.className} text-2xl font-bold text-slate-900`}>Fotos da Expedição</h2>
                 </div>
-                <ImageIcon size={36} className="text-slate-200" />
+                <ImageIcon size={32} className="text-slate-200" />
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -599,7 +599,7 @@ export default function DetalhePacotePage() {
                   >
                     <Image src={url} alt={`Expedição ${i + 1}`} fill className="object-cover group-hover:scale-110 transition-transform duration-700" />
                     <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <Camera size={24} className="text-white" />
+                      <Camera size={22} className="text-white" />
                     </div>
                   </div>
                 ))}
@@ -608,14 +608,14 @@ export default function DetalhePacotePage() {
 
             {/* ── HOTEL GALLERY ── */}
             <section>
-              <div className="flex items-center justify-between mb-7">
+              <div className="flex items-center justify-between mb-6">
                 <div>
-                  <p className="text-[10px] font-black text-[#009640] uppercase tracking-[0.3em] mb-1">Hospedagem</p>
+                  <p className="text-[9px] font-black text-[#009640] uppercase tracking-[0.3em] mb-1">Hospedagem</p>
                   <h2 className={`${jakarta.className} text-2xl font-bold text-slate-900`}>
                     {hotelSelecionado?.nome || 'Hotel'}
                   </h2>
                 </div>
-                <Bed size={36} className="text-slate-200" />
+                <Bed size={32} className="text-slate-200" />
               </div>
 
               {getGaleriaHotel(hotelSelecionado).length > 0 ? (
@@ -631,8 +631,8 @@ export default function DetalhePacotePage() {
                 </div>
               ) : (
                 <div className="bg-white rounded-3xl border-2 border-dashed border-slate-100 p-16 text-center flex flex-col items-center">
-                  <ImageIcon size={36} className="text-slate-200 mb-3" />
-                  <p className="text-sm font-black text-slate-300 uppercase tracking-widest">Galeria em Processamento</p>
+                  <ImageIcon size={32} className="text-slate-200 mb-3" />
+                  <p className="text-xs font-black text-slate-300 uppercase tracking-widest">Galeria em Processamento</p>
                 </div>
               )}
             </section>
@@ -643,33 +643,34 @@ export default function DetalhePacotePage() {
           <aside className="lg:sticky lg:top-32 self-start">
             <div className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden">
 
+              {/* Colored top bar */}
               <div className="h-1.5 bg-gradient-to-r from-[#00577C] via-[#F9C400] to-[#009640]" />
 
-              <div className="p-8">
+              <div className="p-7">
 
                 {/* Price headline */}
-                <div className="mb-7 pb-7 border-b border-slate-100">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Valor Total da Expedição</p>
-                  <p className={`${jakarta.className} text-5xl font-black text-[#009640] tabular-nums leading-none`}>
+                <div className="mb-6 pb-6 border-b border-slate-100">
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Valor Total da Expedição</p>
+                  <p className={`${jakarta.className} text-4xl font-black text-[#009640] tabular-nums leading-none`}>
                     {formatarMoeda(valorTotalFinal)}
                   </p>
                 </div>
 
                 {/* Breakdown */}
-                <div className="space-y-5 mb-7">
+                <div className="space-y-4 mb-6">
 
                   {/* Accommodation row */}
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#00577C]/10 shrink-0">
-                        <Bed size={15} className="text-[#00577C]" />
+                      <div className="flex items-center justify-center w-7 h-7 rounded-xl bg-[#00577C]/10 shrink-0">
+                        <Bed size={13} className="text-[#00577C]" />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-bold text-slate-700 truncate">Hospedagem</p>
-                        <p className="text-xs font-bold text-slate-400 truncate">{hotelSelecionado?.nome}</p>
+                        <p className="text-xs font-bold text-slate-700 truncate">Hospedagem</p>
+                        <p className="text-[9px] font-bold text-slate-400 truncate">{hotelSelecionado?.nome}</p>
                       </div>
                     </div>
-                    <span className="text-base font-black text-slate-800 shrink-0 tabular-nums">
+                    <span className="text-sm font-black text-slate-800 shrink-0 tabular-nums">
                       {formatarMoeda(precoHospedagem)}
                     </span>
                   </div>
@@ -677,39 +678,39 @@ export default function DetalhePacotePage() {
                   {/* Guide row */}
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#009640]/10 shrink-0">
-                        <Compass size={15} className="text-[#009640]" />
+                      <div className="flex items-center justify-center w-7 h-7 rounded-xl bg-[#009640]/10 shrink-0">
+                        <Compass size={13} className="text-[#009640]" />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-bold text-slate-700 truncate">Guia Local</p>
-                        <p className="text-xs font-bold text-slate-400 truncate">{guiaSelecionado?.nome}</p>
+                        <p className="text-xs font-bold text-slate-700 truncate">Guia Local</p>
+                        <p className="text-[9px] font-bold text-slate-400 truncate">{guiaSelecionado?.nome}</p>
                       </div>
                     </div>
-                    <span className="text-base font-black text-slate-800 shrink-0 tabular-nums">
+                    <span className="text-sm font-black text-slate-800 shrink-0 tabular-nums">
                       {formatarMoeda(totalGuias)}
                     </span>
                   </div>
 
                   {/* Attractions row */}
-                  <div className="flex items-center justify-between gap-3 pb-5 border-b border-slate-100">
+                  <div className="flex items-center justify-between gap-3 pb-4 border-b border-slate-100">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#F9C400]/15 shrink-0">
-                        <Ticket size={15} className="text-[#a37c00]" />
+                      <div className="flex items-center justify-center w-7 h-7 rounded-xl bg-[#F9C400]/15 shrink-0">
+                        <Ticket size={13} className="text-[#a37c00]" />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-bold text-slate-700">Atrações & Taxas</p>
-                        <p className="text-xs font-bold text-slate-400">{atracoesInclusas.length} itens</p>
+                        <p className="text-xs font-bold text-slate-700">Atrações & Taxas</p>
+                        <p className="text-[9px] font-bold text-slate-400">{atracoesInclusas.length} itens</p>
                       </div>
                     </div>
-                    <span className="text-base font-black text-slate-800 shrink-0 tabular-nums">
+                    <span className="text-sm font-black text-slate-800 shrink-0 tabular-nums">
                       {formatarMoeda(totalAtracoes)}
                     </span>
                   </div>
 
                   {/* Total row */}
                   <div className="flex items-center justify-between gap-3">
-                    <p className="text-base font-black text-slate-900">Total</p>
-                    <p className={`${jakarta.className} text-2xl font-black text-[#009640] tabular-nums`}>
+                    <p className="text-sm font-black text-slate-900">Total</p>
+                    <p className={`${jakarta.className} text-xl font-black text-[#009640] tabular-nums`}>
                       {formatarMoeda(valorTotalFinal)}
                     </p>
                   </div>
@@ -717,16 +718,19 @@ export default function DetalhePacotePage() {
 
                 {/* CTA */}
                 <button
-                  onClick={() => setModalAberto(true)}
-                  className="w-full bg-[#00577C] hover:bg-[#004a6b] active:scale-[0.98] text-white py-5 rounded-2xl font-black text-lg transition-all flex items-center justify-center gap-3 shadow-lg shadow-[#00577C]/20 group"
+                  onClick={() => {
+                    const urlCheckout = `/checkout?pacote=${pacote.id}&hotel=${hotelSelecionado?.id || ''}&quarto=${tipoQuarto}&guia=${guiaSelecionado?.id || ''}`;
+                    router.push(urlCheckout);
+                  }}
+                  className="w-full bg-[#00577C] hover:bg-[#004a6b] active:scale-[0.98] text-white py-5 rounded-2xl font-black text-base transition-all flex items-center justify-center gap-3 shadow-lg shadow-[#00577C]/20 group"
                 >
                   Reservar Agora
-                  <ChevronRight size={20} className="transition-transform group-hover:translate-x-0.5" />
+                  <ChevronRight size={18} className="transition-transform group-hover:translate-x-0.5" />
                 </button>
 
                 {/* Trust signal */}
-                <p className="mt-4 text-center text-[10px] font-black text-slate-300 uppercase tracking-[0.25em] flex items-center justify-center gap-1.5">
-                  <ShieldCheck size={13} />
+                <p className="mt-4 text-center text-[9px] font-black text-slate-300 uppercase tracking-[0.25em] flex items-center justify-center gap-1.5">
+                  <ShieldCheck size={12} />
                   Pagamento Seguro · SEMTUR Oficial
                 </p>
               </div>
@@ -735,17 +739,17 @@ export default function DetalhePacotePage() {
             {/* Quick-trust chips below card */}
             <div className="mt-4 grid grid-cols-2 gap-3">
               {[
-                { icon: <ShieldCheck size={15} />, text: 'Reserva Garantida' },
-                { icon: <CheckCircle2 size={15} />, text: 'Guias Certificados' },
-                { icon: <Award size={15} />, text: 'Turismo Sustentável' },
-                { icon: <MapPin size={15} />, text: 'Destino Oficial' },
+                { icon: <ShieldCheck size={13} />, text: 'Reserva Garantida' },
+                { icon: <CheckCircle2 size={13} />, text: 'Guias Certificados' },
+                { icon: <Award size={13} />, text: 'Turismo Sustentável' },
+                { icon: <MapPin size={13} />, text: 'Destino Oficial' },
               ].map((c) => (
                 <div
                   key={c.text}
-                  className="bg-white rounded-2xl border border-slate-100 px-4 py-4 flex items-center gap-2.5 shadow-sm"
+                  className="bg-white rounded-2xl border border-slate-100 px-4 py-3 flex items-center gap-2 shadow-sm"
                 >
                   <span className="text-[#00577C] shrink-0">{c.icon}</span>
-                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-wide leading-tight">{c.text}</p>
+                  <p className="text-[9px] font-black text-slate-500 uppercase tracking-wide leading-tight">{c.text}</p>
                 </div>
               ))}
             </div>
@@ -761,16 +765,17 @@ export default function DetalhePacotePage() {
         <div className="fixed inset-0 z-[100] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl relative">
 
+            {/* Modal header */}
             <div className="bg-[#00577C] p-8 text-white relative">
               <button
                 onClick={() => setModalAberto(false)}
                 className="absolute top-6 right-6 p-2 hover:bg-white/10 rounded-full transition"
               >
-                <X size={22} />
+                <X size={20} />
               </button>
               <div className="flex items-center gap-2 mb-3">
-                <ShieldCheck size={15} className="text-[#F9C400]" />
-                <p className="text-[#F9C400] text-[10px] font-black uppercase tracking-[0.4em]">
+                <ShieldCheck size={14} className="text-[#F9C400]" />
+                <p className="text-[#F9C400] text-[9px] font-black uppercase tracking-[0.4em]">
                   Checkout Seguro · PagBank
                 </p>
               </div>
@@ -780,12 +785,12 @@ export default function DetalhePacotePage() {
             <div className="p-8 text-center">
               {!pixGerado ? (
                 <>
-                  <p className="text-slate-500 text-base font-medium leading-relaxed mb-6">
+                  <p className="text-slate-500 text-sm font-medium leading-relaxed mb-6">
                     Você selecionou <b>{pacote.titulo}</b> com hospedagem em <b>{hotelSelecionado?.nome}</b>.
                   </p>
 
                   <div className="bg-slate-50 rounded-2xl border border-slate-100 p-6 mb-6">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2">
                       Valor Final Autorizado
                     </p>
                     <p className={`${jakarta.className} text-5xl font-black text-slate-900 tabular-nums`}>
@@ -801,13 +806,13 @@ export default function DetalhePacotePage() {
                     className="w-full bg-[#009640] hover:bg-[#007a33] text-white py-5 rounded-2xl font-black text-lg transition-all flex items-center justify-center gap-3 active:scale-[0.98] shadow-lg shadow-green-200"
                   >
                     {processandoPix
-                      ? <Loader2 className="animate-spin" size={26} />
-                      : <><QrCode size={24} /> Gerar Chave PIX</>
+                      ? <Loader2 className="animate-spin" size={24} />
+                      : <><QrCode size={22} /> Gerar Chave PIX</>
                     }
                   </button>
 
-                  <p className="mt-4 text-[10px] text-slate-300 font-bold uppercase tracking-widest flex items-center justify-center gap-1.5">
-                    <ShieldAlert size={12} /> Ao clicar, você concorda com os termos da SEMTUR.
+                  <p className="mt-4 text-[9px] text-slate-300 font-bold uppercase tracking-widest flex items-center justify-center gap-1.5">
+                    <ShieldAlert size={11} /> Ao clicar, você concorda com os termos da SEMTUR.
                   </p>
                 </>
               ) : (
@@ -816,19 +821,20 @@ export default function DetalhePacotePage() {
                     <CheckCircle2 size={44} className="text-[#009640]" />
                   </div>
                   <h4 className={`${jakarta.className} text-2xl font-bold text-slate-900 mb-2`}>Chave PIX Emitida!</h4>
-                  <p className="text-slate-500 text-base mb-8 leading-relaxed">
+                  <p className="text-slate-500 text-sm mb-8 leading-relaxed">
                     Escaneie o QR code para confirmar sua vaga imediatamente via PagBank.
                   </p>
 
+                  {/* QR code placeholder */}
                   <div className="w-56 h-56 bg-slate-50 mx-auto rounded-3xl flex items-center justify-center mb-6 border-2 border-dashed border-slate-200 relative group overflow-hidden">
                     <QrCode size={120} className="text-slate-300 group-hover:scale-105 transition-transform duration-500" />
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/70 opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm">
                       <Smartphone size={36} className="text-[#00577C] mb-1.5 animate-pulse" />
-                      <span className="text-[10px] font-black text-[#00577C] uppercase tracking-widest">Escanear</span>
+                      <span className="text-[9px] font-black text-[#00577C] uppercase tracking-widest">Escanear</span>
                     </div>
                   </div>
 
-                  <button className="w-full bg-slate-900 hover:bg-black text-white py-4 rounded-2xl font-black text-sm uppercase tracking-[0.3em] transition-all active:scale-[0.98] shadow-lg">
+                  <button className="w-full bg-slate-900 hover:bg-black text-white py-4 rounded-2xl font-black text-xs uppercase tracking-[0.3em] transition-all active:scale-[0.98] shadow-lg">
                     Copiar Código Copia e Cola
                   </button>
                 </div>
@@ -839,7 +845,7 @@ export default function DetalhePacotePage() {
       )}
 
       {/* ════════════════════════════════════════════════════
-          FOOTER INSTITUCIONAL
+          FOOTER INSTITUCIONAL — exact spec
       ════════════════════════════════════════════════════ */}
       <footer className="py-20 px-8 border-t border-slate-100 bg-white">
         <div className="max-w-7xl mx-auto">
