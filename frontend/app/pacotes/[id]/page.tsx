@@ -48,7 +48,7 @@ type Disponibilidade = {
   quarto_luxo_preco: any; quarto_luxo_disponivel: boolean;
 };
 
-function PacoteDetalheContent() {
+export default function PacoteDetalhePage() {
   const { id } = useParams();
   const router = useRouter();
 
