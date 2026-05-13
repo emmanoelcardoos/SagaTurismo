@@ -15,9 +15,9 @@ const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
 
 // ── TIPAGENS ──
-type Hotel = { id: string; nome: string; preco_medio: number; tipo: string; imagem_url: string; descricao: string; };
-type Guia = { id: string; nome: string; preco_diaria: number; especialidade: string; imagem_url: string; descricao: string; };
-type Atracao = { id: string; nome: string; preco_entrada: number; tipo: string; imagem_url: string; descricao: string; };
+type Hotel = { id: string; nome: string; preco_medio: any; tipo: string; imagem_url: string; descricao: string; };
+type Guia = { id: string; nome: string; preco_diaria: any; especialidade: string; imagem_url: string; descricao: string; };
+type Atracao = { id: string; nome: string; preco_entrada: any; tipo: string; imagem_url: string; descricao: string; };
 
 type Pacote = {
   id: string;
@@ -34,6 +34,17 @@ type Pacote = {
     guias: Guia | null;
     atracoes: Atracao | null;
   }[];
+};
+
+// ── FUNÇÕES DE SEGURANÇA E FORMATAÇÃO ──
+const parseValor = (valor: any): number => {
+  if (valor === null || valor === undefined || valor === '') return 0;
+  if (typeof valor === 'number') return isNaN(valor) ? 0 : valor;
+  if (typeof valor === 'string') {
+    const formatado = parseFloat(valor.replace(',', '.'));
+    return isNaN(formatado) ? 0 : formatado;
+  }
+  return 0;
 };
 
 const formatarMoeda = (valor: number) => {
@@ -53,6 +64,9 @@ export default function DetalhePacotePage() {
 
   const [hotelSelecionado, setHotelSelecionado] = useState<Hotel | null>(null);
   const [guiaSelecionado, setGuiaSelecionado] = useState<Guia | null>(null);
+
+  // Controle da Galeria de Imagens
+  const [abaGaleria, setAbaGaleria] = useState<'roteiro' | 'hotel'>('roteiro');
 
   // Estados do Modal de Checkout
   const [modalAberto, setModalAberto] = useState(false);
@@ -83,7 +97,6 @@ export default function DetalhePacotePage() {
       const pct = data as Pacote;
       setPacote(pct);
 
-      // Agrupar as opções disponíveis baseadas no que a prefeitura cadastrou
       const hoteis = pct.pacote_itens.map(i => i.hoteis).filter(Boolean) as Hotel[];
       const guias = pct.pacote_itens.map(i => i.guias).filter(Boolean) as Guia[];
       const atracoes = pct.pacote_itens.map(i => i.atracoes).filter(Boolean) as Atracao[];
@@ -92,7 +105,6 @@ export default function DetalhePacotePage() {
       setGuiasDisponiveis(guias);
       setAtracoesInclusas(atracoes);
 
-      // Selecionar a primeira opção por padrão
       if (hoteis.length > 0) setHotelSelecionado(hoteis[0]);
       if (guias.length > 0) setGuiaSelecionado(guias[0]);
 
@@ -101,10 +113,10 @@ export default function DetalhePacotePage() {
     if (id) fetchPacoteCompleto();
   }, [id, router]);
 
-  // Cálculo Dinâmico do Total
-  const valorAtracoes = atracoesInclusas.reduce((acc, curr) => acc + Number(curr.preco_entrada), 0);
-  const valorHotel = hotelSelecionado ? Number(hotelSelecionado.preco_medio) : 0;
-  const valorGuia = guiaSelecionado ? Number(guiaSelecionado.preco_diaria) : 0;
+  // Cálculo Dinâmico do Total 100% Protegido contra NaN
+  const valorAtracoes = atracoesInclusas.reduce((acc, curr) => acc + parseValor(curr.preco_entrada), 0);
+  const valorHotel = hotelSelecionado ? parseValor(hotelSelecionado.preco_medio) : 0;
+  const valorGuia = guiaSelecionado ? parseValor(guiaSelecionado.preco_diaria) : 0;
   const valorTotal = valorAtracoes + valorHotel + valorGuia;
 
   // Funções do Checkout
@@ -132,13 +144,11 @@ export default function DetalhePacotePage() {
 
   if (!pacote) return null;
 
-  // Galeria Híbrida (Imagem Principal + Galeria extra se existir)
-  const imagens = [pacote.imagem_principal, ...(pacote.imagens_galeria || [])].slice(0, 5);
+  const imagensRoteiro = [pacote.imagem_principal, ...(pacote.imagens_galeria || [])].slice(0, 5);
 
   return (
     <main className={`${inter.className} bg-slate-50 min-h-screen pb-32`}>
       
-      {/* HEADER DE NAVEGAÇÃO */}
       <nav className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
         <div className="max-w-7xl mx-auto px-5 h-20 flex items-center justify-between">
           <button onClick={() => router.back()} className="flex items-center gap-2 text-slate-600 hover:text-[#00577C] font-semibold transition-colors">
@@ -152,7 +162,7 @@ export default function DetalhePacotePage() {
 
       <div className="max-w-7xl mx-auto px-5 mt-8">
         
-        {/* CABEÇALHO DO PACOTE */}
+        {/* CABEÇALHO */}
         <div className="mb-8">
           <div className="inline-flex items-center gap-2 bg-blue-50 text-[#00577C] px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest mb-4 border border-blue-100">
             <MapPin size={12} /> Destino Oficial: São Geraldo do Araguaia
@@ -170,27 +180,71 @@ export default function DetalhePacotePage() {
           </div>
         </div>
 
-        {/* GALERIA DE IMAGENS PROFISSIONAL */}
+        {/* GALERIA DE IMAGENS PROFISSIONAL (COM ABAS INTERATIVAS) */}
         <section className="mb-12">
-          {imagens.length === 1 ? (
-            <div className="relative w-full h-[500px] rounded-3xl overflow-hidden shadow-lg">
-              <Image src={imagens[0]} alt="Imagem do Pacote" fill className="object-cover" priority />
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-4 grid-rows-2 gap-4 h-[500px] rounded-3xl overflow-hidden shadow-lg">
-              <div className="relative md:col-span-2 md:row-span-2 h-full w-full">
-                <Image src={imagens[0]} alt="Principal" fill className="object-cover hover:scale-105 transition-transform duration-700" priority />
-              </div>
-              {imagens.slice(1, 5).map((img, i) => (
-                <div key={i} className="relative h-full w-full hidden md:block">
-                  <Image src={img} alt={`Galeria ${i}`} fill className="object-cover hover:scale-105 transition-transform duration-700" />
+          {/* Controles das Abas */}
+          <div className="flex flex-wrap items-center gap-4 mb-6">
+            <button 
+              onClick={() => setAbaGaleria('roteiro')}
+              className={`px-6 py-2.5 rounded-full font-bold text-sm flex items-center gap-2 transition-all ${abaGaleria === 'roteiro' ? 'bg-[#00577C] text-white shadow-md ring-2 ring-offset-2 ring-[#00577C]' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
+            >
+              <Camera size={16} /> Destino e Trilhas
+            </button>
+            <button 
+              onClick={() => setAbaGaleria('hotel')}
+              className={`px-6 py-2.5 rounded-full font-bold text-sm flex items-center gap-2 transition-all ${abaGaleria === 'hotel' ? 'bg-[#00577C] text-white shadow-md ring-2 ring-offset-2 ring-[#00577C]' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
+            >
+              <Bed size={16} /> Ver Hospedagem Selecionada
+            </button>
+          </div>
+
+          {/* Área das Fotos */}
+          <div className="w-full h-[500px] rounded-3xl overflow-hidden shadow-lg border border-slate-200 bg-white">
+            {abaGaleria === 'roteiro' ? (
+              /* Bento Box do Roteiro */
+              imagensRoteiro.length === 1 ? (
+                <div className="relative w-full h-full">
+                  <Image src={imagensRoteiro[0]} alt="Imagem do Roteiro" fill className="object-cover" priority />
                 </div>
-              ))}
-            </div>
-          )}
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-4 grid-rows-2 gap-2 h-full p-2">
+                  <div className="relative md:col-span-2 md:row-span-2 h-full w-full rounded-2xl overflow-hidden">
+                    <Image src={imagensRoteiro[0]} alt="Principal" fill className="object-cover hover:scale-105 transition-transform duration-700" priority />
+                  </div>
+                  {imagensRoteiro.slice(1, 5).map((img, i) => (
+                    <div key={i} className="relative h-full w-full hidden md:block rounded-2xl overflow-hidden">
+                      <Image src={img} alt={`Galeria ${i}`} fill className="object-cover hover:scale-105 transition-transform duration-700" />
+                    </div>
+                  ))}
+                </div>
+              )
+            ) : (
+              /* Foto Interativa do Hotel Escolhido */
+              <div className="relative w-full h-full bg-slate-100 flex flex-col items-center justify-center">
+                {hotelSelecionado?.imagem_url ? (
+                  <>
+                    <Image src={hotelSelecionado.imagem_url} alt={hotelSelecionado.nome} fill className="object-cover animate-in fade-in duration-500" priority />
+                    <div className="absolute bottom-8 left-8 bg-white/95 backdrop-blur px-6 py-4 rounded-2xl shadow-xl border border-white/20">
+                      <p className={`${jakarta.className} text-xl font-bold text-[#00577C]`}>{hotelSelecionado.nome}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs font-black text-slate-500 uppercase tracking-widest">{hotelSelecionado.tipo}</span>
+                        <span className="text-slate-300">•</span>
+                        <span className="text-sm font-bold text-[#009640]">Incluso no resumo</span>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center">
+                    <Bed size={48} className="text-slate-300 mx-auto mb-4" />
+                    <p className="text-slate-500 font-medium">Selecione uma hospedagem abaixo para ver as fotos</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </section>
 
-        {/* ESTRUTURA PRINCIPAL: ESQUERDA (DADOS) / DIREITA (CHECKOUT) */}
+        {/* ESTRUTURA PRINCIPAL */}
         <div className="grid lg:grid-cols-[1.5fr_1fr] gap-12">
           
           <div className="space-y-12">
@@ -204,7 +258,6 @@ export default function DetalhePacotePage() {
               </p>
               
               <div className="relative border-l-2 border-slate-100 pl-6 pb-2 space-y-8">
-                {/* Roteiro formatado mantendo quebras de linha */}
                 <div className="prose prose-slate max-w-none text-slate-700 whitespace-pre-line">
                   {pacote.roteiro_detalhado || "Consulte a prefeitura para o roteiro detalhado diário deste pacote."}
                 </div>
@@ -245,7 +298,7 @@ export default function DetalhePacotePage() {
                           />
                         </div>
                         <p className="text-sm text-slate-500 mt-2 line-clamp-2">{hotel.descricao}</p>
-                        <p className="text-[#009640] font-bold mt-3">+ {formatarMoeda(hotel.preco_medio)} / pacote</p>
+                        <p className="text-[#009640] font-bold mt-3">+ {formatarMoeda(parseValor(hotel.preco_medio))} / pacote</p>
                       </div>
                     </label>
                   ))}
@@ -287,7 +340,7 @@ export default function DetalhePacotePage() {
                           />
                         </div>
                         <p className="text-sm text-slate-500 mt-2 line-clamp-2">{guia.descricao}</p>
-                        <p className="text-[#009640] font-bold mt-3">+ {formatarMoeda(guia.preco_diaria)} / diária</p>
+                        <p className="text-[#009640] font-bold mt-3">+ {formatarMoeda(parseValor(guia.preco_diaria))} / diária</p>
                       </div>
                     </label>
                   ))}
@@ -308,7 +361,7 @@ export default function DetalhePacotePage() {
                         <p className="font-bold text-slate-800">{atracao.nome}</p>
                         <p className="text-xs text-slate-500 uppercase">{atracao.tipo}</p>
                       </div>
-                      <p className="font-bold text-slate-600">{formatarMoeda(atracao.preco_entrada)}</p>
+                      <p className="font-bold text-slate-600">{formatarMoeda(parseValor(atracao.preco_entrada))}</p>
                     </div>
                   ))}
                 </div>
