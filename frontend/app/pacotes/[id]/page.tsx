@@ -28,6 +28,16 @@ const parseValor = (valor: any): number => {
 const formatarMoeda = (valor: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor || 0);
 
+// ── BLINDAGEM DE ARRAYS (Evita o erro de string spread no Next.js) ──
+const getArraySeguro = (item: any) => {
+  if (!item) return [];
+  if (Array.isArray(item)) return item;
+  if (typeof item === 'string') {
+    try { return JSON.parse(item); } catch (e) { return []; }
+  }
+  return [];
+};
+
 // ── TIPAGENS RÍGIDAS ──
 type Hotel = {
   id: string; nome: string; tipo: string; imagem_url: string; descricao: string;
@@ -73,6 +83,11 @@ export default function PacoteDetalhePage() {
   const [fotoExpandidaIndex, setFotoExpandidaIndex] = useState<number | null>(null);
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const [mounted, setMounted] = useState(false); // Resolve erros de hidratação do React no calendário
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // 1. Efeito de Scroll
   useEffect(() => {
@@ -184,17 +199,11 @@ export default function PacoteDetalhePage() {
   const valorAtracoes = atracoesInclusas.reduce((acc, curr) => acc + parseValor(curr.preco_entrada), 0);
   const valorTotalFinal = totalHospedagem + valorGuia + valorAtracoes;
 
-  // ── LÓGICA DA GALERIA (LIGHTBOX) ──
-  // Junta as fotos da trilha com as fotos do hotel atual (convertendo JSON se necessário)
-  const getGaleriaHotel = (hotel: Hotel | null) => {
-    if (!hotel || !hotel.galeria) return [];
-    if (Array.isArray(hotel.galeria)) return hotel.galeria;
-    try { return JSON.parse(hotel.galeria); } catch (e) { return []; }
-  };
+  // ── LÓGICA DA GALERIA (LIGHTBOX BLINDADO) ──
   const galeriaCombinada = [
     ...(pacote?.imagem_principal ? [pacote.imagem_principal] : []),
-    ...(pacote?.imagens_galeria || []), 
-    ...getGaleriaHotel(hotelSelecionado)
+    ...getArraySeguro(pacote?.imagens_galeria), 
+    ...getArraySeguro(hotelSelecionado?.galeria)
   ];
 
   const fecharGaleria = () => setFotoExpandidaIndex(null);
@@ -316,7 +325,10 @@ export default function PacoteDetalhePage() {
                       <div className="relative w-32 h-32 rounded-[2rem] overflow-hidden shadow-md border-4 border-white"><Image src={hotel.imagem_url} alt={hotel.nome} fill className="object-cover" /></div>
                       <div>
                         <h4 className="text-3xl font-bold text-slate-800 mb-3">{hotel.nome}</h4>
-                        <span className="text-[10px] font-black uppercase tracking-widest text-[#009640] bg-green-50 px-3 py-1.5 rounded-lg border border-green-100">{hotel.tipo}</span>
+                        <div className="flex items-center gap-4">
+                           <span className="text-[10px] font-black uppercase tracking-widest text-[#009640] bg-green-50 px-3 py-1.5 rounded-lg border border-green-100">{hotel.tipo}</span>
+                           <div className="flex text-[#F9C400] gap-1"><Star size={18} fill="currentColor"/><Star size={18} fill="currentColor"/><Star size={18} fill="currentColor"/><Star size={18} fill="currentColor"/></div>
+                        </div>
                       </div>
                     </div>
                     <div className={`w-12 h-12 rounded-full border-4 flex items-center justify-center transition-all ${selected ? 'border-[#00577C] bg-[#00577C] text-white' : 'border-slate-200 text-transparent'}`}><CheckCircle2 size={24} /></div>
@@ -332,7 +344,7 @@ export default function PacoteDetalhePage() {
                              {tipoQuarto === 'standard' && <CheckCircle2 className="text-[#F9C400]" size={20}/>}
                            </div>
                            <div className="flex flex-wrap gap-2">
-                             {hotel.quarto_standard_comodidades?.map((c: string, i: number) => <span key={i} className="text-[9px] font-black bg-white border border-slate-200 px-2 py-1 rounded-md text-slate-500 uppercase">{c}</span>)}
+                             {getArraySeguro(hotel.quarto_standard_comodidades).map((c: string, i: number) => <span key={i} className="text-[9px] font-black bg-white border border-slate-200 px-2 py-1 rounded-md text-slate-500 uppercase">{c}</span>)}
                            </div>
                         </div>
                         <p className="text-3xl font-black text-[#009640]">{formatarMoeda(parseValor(hotel.quarto_standard_preco))}</p>
@@ -346,7 +358,7 @@ export default function PacoteDetalhePage() {
                              {tipoQuarto === 'luxo' && <CheckCircle2 className="text-[#00577C]" size={20}/>}
                            </div>
                            <div className="flex flex-wrap gap-2">
-                             {hotel.quarto_luxo_comodidades?.map((c: string, i: number) => <span key={i} className="text-[9px] font-black bg-[#00577C] text-white px-2 py-1 rounded-md uppercase shadow-sm">{c}</span>)}
+                             {getArraySeguro(hotel.quarto_luxo_comodidades).map((c: string, i: number) => <span key={i} className="text-[9px] font-black bg-[#00577C] text-white px-2 py-1 rounded-md uppercase shadow-sm">{c}</span>)}
                            </div>
                         </div>
                         <p className="text-3xl font-black text-[#009640]">{formatarMoeda(parseValor(hotel.quarto_luxo_preco))}</p>
@@ -374,7 +386,7 @@ export default function PacoteDetalhePage() {
                       <div className="relative w-24 h-24 rounded-2xl overflow-hidden shadow-sm border border-slate-100"><Image src={guia.imagem_url} alt={guia.nome} fill className="object-cover" /></div>
                       <div>
                          <p className="font-bold text-2xl text-slate-800 mb-2">{guia.nome}</p>
-                         <p className="text-sm font-bold text-slate-500 flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-[#009640]"></div>{guia.especialidade}</p>
+                         <div className="text-sm font-bold text-slate-500 flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-[#009640]"></div>{guia.especialidade}</div>
                       </div>
                     </div>
                     <div className="flex items-center gap-8">
@@ -402,7 +414,9 @@ export default function PacoteDetalhePage() {
             <div className="bg-slate-50 rounded-[2.5rem] p-6 mb-10 border border-slate-100 shadow-inner">
                <div className="flex justify-between items-center mb-6 px-2">
                  <button onClick={() => setMesAtualCalendario(new Date(anoCorrente, mesCorrente - 1))} className="p-2 hover:bg-slate-200 rounded-full transition-colors"><ChevronLeft size={24} className="text-slate-600"/></button>
-                 <span className="font-black text-slate-800 text-lg capitalize">{mesAtualCalendario.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}</span>
+                 <span className="font-black text-slate-800 text-lg capitalize">
+                   {mounted ? mesAtualCalendario.toLocaleString('pt-BR', { month: 'long', year: 'numeric' }) : 'Carregando...'}
+                 </span>
                  <button onClick={() => setMesAtualCalendario(new Date(anoCorrente, mesCorrente + 1))} className="p-2 hover:bg-slate-200 rounded-full transition-colors"><ChevronRight size={24} className="text-slate-600"/></button>
                </div>
                
