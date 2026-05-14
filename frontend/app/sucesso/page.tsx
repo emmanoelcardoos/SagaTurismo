@@ -64,27 +64,33 @@ function SucessoContent() {
       }
 
       try {
+        // Tentativa de busca
         const { data, error } = await supabase
           .from('pedidos') 
           .select(`
             *,
-            hoteis (nome, imagem_url),
-            pacotes (titulo, imagem_principal)
+            hoteis:item_id (nome, imagem_url),
+            pacotes:item_id (titulo, imagem_principal)
           `)
-          .eq('codigo_pedido', pedidoId) 
-          .single();
+          .ilike('codigo_pedido', pedidoId) 
+          .maybeSingle();
 
-        // Se der erro ou não encontrar, e ainda tivermos tentativas, espera 2 segundos e tenta de novo
-        if ((error || !data) && tentativas < MAX_TENTATIVAS) {
+        if (error) {
+          // Isso vai mostrar no console do F12 o erro real (provavelmente 402 ou 401)
+          console.error("ERRO DE PERMISSÃO/ESTRUTURA:", error);
+          throw error;
+        }
+
+        if (!data && tentativas < MAX_TENTATIVAS) {
           tentativas++;
+          console.log(`Tentativa ${tentativas}: Aguardando banco de dados...`);
           setTimeout(fetchPedido, 2000); 
           return;
         }
 
-        if (error || !data) throw new Error('A reserva ainda não foi processada ou o código é inválido.');
+        if (!data) throw new Error('A reserva existe no banco, mas o seu navegador não tem permissão para lê-la (RLS).');
         
         setPedido(data as Pedido);
-        setErro(''); // Limpa qualquer erro prévio se encontrar o pedido
         setLoading(false);
       } catch (err: any) {
         console.error("Erro Supabase:", err);
