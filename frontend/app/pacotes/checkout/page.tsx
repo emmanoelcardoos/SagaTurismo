@@ -590,6 +590,12 @@ function CheckoutContent() {
 export default function CheckoutPage() {
   return (
     <main className={`${inter.className} bg-[#F8F9FA] min-h-screen`}>
+      {/* O Script do PagBank deve ficar aqui, fora das lógicas de loading e Suspense */}
+      <Script 
+        src="https://assets.pagseguro.com.br/checkout-sdk-js/rc/dist/browser/pagseguro.min.js" 
+        strategy="afterInteractive" 
+      />
+      
       <Suspense fallback={
         <div className="min-h-screen flex flex-col items-center justify-center bg-white">
           <Loader2 className="animate-spin text-[#00577C] w-16 h-16 mb-6" />
