@@ -1,7 +1,8 @@
 'use client';
+
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Bird, MapPin, ShieldCheck, User, Calendar, CreditCard, Printer, Loader2, QrCode } from 'lucide-react';
+import { Bird, MapPin, ShieldCheck, User, Calendar, CreditCard, Printer, Loader2, QrCode, ArrowRight } from 'lucide-react';
 import QRCode from 'react-qr-code';
 
 interface CarteiraData {
@@ -32,26 +33,57 @@ export default function CarteiraDigitalPage({ params }: { params: { token: strin
     <div className="min-h-screen flex items-center justify-center bg-stone-100">
       <div className="text-center space-y-4">
         <Loader2 className="w-12 h-12 animate-spin text-forest mx-auto" />
-        <p className="text-sm font-medium text-stone-500">A carregar sua Carteira Digital...</p>
+        <p className="text-sm font-bold text-stone-500 uppercase tracking-widest">A validar documentação com a IA...</p>
       </div>
     </div>
   );
 
+  // ── 1. ESTADO DE ERRO OU REPROVADO PELA IA ──
   if (!data || !data.sucesso) return (
     <div className="min-h-screen flex items-center justify-center p-6 text-center bg-stone-100">
       <div className="bg-red-50 text-red-600 p-8 rounded-[2rem] border border-red-100 max-w-sm shadow-xl animate-fade-up">
         <ShieldCheck className="w-16 h-16 text-red-300 mx-auto mb-6" />
-        <h2 className="text-xl font-black mb-2">Documento Inválido</h2>
-        <p className="text-sm opacity-80 mb-6">{data?.mensagem || "Não encontramos uma carteira ativa para este link."}</p>
+        <h2 className="text-xl font-black mb-2">Documentação Inválida</h2>
+        <p className="text-sm opacity-80 mb-6">{data?.mensagem || "A inteligência artificial não conseguiu validar os seus dados. Por favor, tente novamente."}</p>
         
-        {/* LIGAÇÃO ATUALIZADA PARA O CHECKOUT */}
-        <Link href="/checkout-carteira" className="inline-block bg-red-600 text-white px-8 py-3.5 rounded-xl font-bold shadow-md hover:bg-red-700 transition-colors">
-          Finalizar Solicitação
+        <Link href="/cadastro" className="inline-block bg-red-600 text-white px-8 py-3.5 rounded-xl font-bold shadow-md hover:bg-red-700 transition-colors">
+          Refazer Solicitação
         </Link>
       </div>
     </div>
   );
 
+  // ── 2. BARREIRA DE PAGAMENTO: APROVADO PELA IA MAS NÃO PAGO ──
+  // (Impede que o utilizador veja a carteira antes de pagar)
+  if (data.sucesso && (data.status === 'aguardando_pagamento' || data.status === 'pendente' || data.status === 'aprovada')) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6 text-center bg-stone-100">
+        <div className="bg-white p-10 rounded-[3rem] border border-stone-200 max-w-lg shadow-2xl animate-fade-up relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-2 bg-[#F9C400]"></div>
+          <div className="w-24 h-24 bg-yellow-50 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner border-4 border-white">
+            <ShieldCheck className="w-12 h-12 text-[#F9C400]" />
+          </div>
+          <h2 className="text-3xl font-black text-slate-900 mb-4 tracking-tight">Análise Aprovada!</h2>
+          <p className="text-stone-500 mb-10 text-lg leading-relaxed px-4">
+            A sua documentação foi <b>aprovada pelo nosso sistema</b>. Para emitir o seu cartão virtual e ativar os benefícios em SGA, conclua o pagamento da taxa de emissão.
+          </p>
+          
+          {/* O ÚNICO CAMINHO POSSÍVEL É IR PARA O CHECKOUT */}
+          <Link 
+            href={`/checkout-carteira?token=${params.token}`} 
+            className="flex items-center justify-center gap-3 w-full bg-[#009640] hover:bg-green-700 text-white py-5 rounded-2xl font-black text-lg transition-transform hover:-translate-y-1 shadow-xl active:scale-95"
+          >
+            Prosseguir para Pagamento <ArrowRight className="w-5 h-5" />
+          </Link>
+          <p className="mt-6 text-[10px] font-bold text-stone-400 uppercase tracking-widest flex items-center justify-center gap-2">
+            <ShieldCheck className="w-3.5 h-3.5 text-[#009640]" /> Integração com PagBank Oficial
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── 3. ESTADO FINAL: CARTEIRA ATIVA (APROVADO E PAGO) ──
   const expira = "29/04/2027";
 
   return (
@@ -59,18 +91,18 @@ export default function CarteiraDigitalPage({ params }: { params: { token: strin
       {/* --- CARTEIRA HORIZONTAL PREMIUM --- */}
       <div id="carteira-digital" className="w-full max-w-[750px] aspect-[1.6/1] bg-white rounded-[2rem] shadow-2xl overflow-hidden relative border border-stone-300 flex flex-col animate-fade-up no-print">
         
-        <div className="bg-forest p-5 px-10 flex justify-between items-center z-20 shadow-md">
+        <div className="bg-[#00577C] p-5 px-10 flex justify-between items-center z-20 shadow-md">
           <div className="flex items-center gap-4">
              <div className="bg-white p-2 rounded-xl shadow-sm">
-                <Bird className="w-6 h-6 text-forest" />
+                <Bird className="w-6 h-6 text-[#00577C]" />
              </div>
              <div>
-                <p className="text-[10px] font-bold text-leaf leading-none uppercase tracking-widest">Prefeitura Municipal de</p>
+                <p className="text-[10px] font-bold text-white/80 leading-none uppercase tracking-widest">Prefeitura Municipal de</p>
                 <h2 className="text-lg font-black text-white leading-tight">SÃO GERALDO DO ARAGUAIA</h2>
              </div>
           </div>
           <div className="text-right border-l border-white/20 pl-6">
-             <p className="text-[11px] font-black text-leaf uppercase">Cartão do Residente</p>
+             <p className="text-[11px] font-black text-[#F9C400] uppercase">Cartão do Residente</p>
              <p className="text-[9px] font-bold text-white/40 uppercase tracking-tighter">SagaTurismo Oficial</p>
           </div>
         </div>
@@ -78,7 +110,7 @@ export default function CarteiraDigitalPage({ params }: { params: { token: strin
         <div className="flex-1 flex relative">
           <div className="absolute inset-0 z-0 opacity-[0.03] pointer-events-none p-10 grid grid-cols-3 gap-10 rotate-[-15deg] scale-110">
               {Array.from({length: 12}).map((_, i) => (
-                  <p key={i} className="text-sm font-black text-forest uppercase tracking-widest whitespace-nowrap">SERRA DAS ANDORINHAS</p>
+                  <p key={i} className="text-sm font-black text-[#00577C] uppercase tracking-widest whitespace-nowrap">SAGA TURISMO OFICIAL</p>
               ))}
           </div>
 
@@ -91,12 +123,12 @@ export default function CarteiraDigitalPage({ params }: { params: { token: strin
                     <User className="w-20 h-20 text-stone-300" />
                   </div>
                 )}
-                <div className="absolute top-2 right-2 bg-leaf text-white p-1 rounded-full shadow-lg">
+                <div className="absolute top-2 right-2 bg-[#009640] text-white p-1 rounded-full shadow-lg">
                    <ShieldCheck className="w-4 h-4" />
                 </div>
              </div>
-             <p className="mt-4 text-[10px] font-black text-forest bg-leaf/20 px-4 py-1 rounded-full tracking-widest uppercase">
-                Residente Ativo
+             <p className="mt-4 text-[10px] font-black text-[#009640] bg-green-50 border border-green-100 px-4 py-1 rounded-full tracking-widest uppercase">
+                Status: Ativo
              </p>
           </div>
 
@@ -104,7 +136,7 @@ export default function CarteiraDigitalPage({ params }: { params: { token: strin
             <div className="space-y-6">
                <div>
                   <label className="text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em]">Nome do Titular</label>
-                  <p className="text-2xl font-black text-forest leading-tight uppercase tracking-tight break-words">{data.nome}</p>
+                  <p className="text-2xl font-black text-slate-800 leading-tight uppercase tracking-tight break-words">{data.nome}</p>
                </div>
 
                <div className="grid grid-cols-2 gap-8">
@@ -121,16 +153,16 @@ export default function CarteiraDigitalPage({ params }: { params: { token: strin
                   </div>
                </div>
 
-               <div className="bg-green-50 rounded-xl p-3 border border-green-100 flex items-center gap-3">
-                  <CreditCard className="w-5 h-5 text-leaf" />
-                  <p className="text-[11px] font-black text-forest uppercase">Benefício: 50% de Desconto no Parque</p>
+               <div className="bg-blue-50/50 rounded-xl p-3 border border-blue-100 flex items-center gap-3">
+                  <CreditCard className="w-5 h-5 text-[#00577C]" />
+                  <p className="text-[11px] font-black text-[#00577C] uppercase">Acesso Liberado a Benefícios Locais</p>
                </div>
             </div>
 
             <div className="flex items-end justify-between mt-6 pt-4 border-t border-stone-100">
                <div className="space-y-1">
                   <div className="flex items-center gap-2 text-[10px] text-stone-500 font-bold">
-                    <MapPin className="w-3.5 h-3.5 text-leaf" /> São Geraldo do Araguaia - PA
+                    <MapPin className="w-3.5 h-3.5 text-[#009640]" /> São Geraldo do Araguaia - PA
                   </div>
                   <p className="text-[8px] font-mono text-stone-300">TOKEN: {params.token.slice(0, 18)}...</p>
                </div>
@@ -141,8 +173,8 @@ export default function CarteiraDigitalPage({ params }: { params: { token: strin
                     size={85} 
                     level="H"
                   />
-                  <div className="absolute inset-0 bg-forest/90 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <QrCode className="w-8 h-8 text-leaf" />
+                  <div className="absolute inset-0 bg-[#00577C]/90 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <QrCode className="w-8 h-8 text-white" />
                   </div>
                </div>
             </div>
@@ -152,9 +184,9 @@ export default function CarteiraDigitalPage({ params }: { params: { token: strin
         <div className="bg-stone-50 border-t border-stone-200 px-10 py-3 flex justify-between items-center z-10">
            <p className="text-[9px] font-bold text-stone-400 tracking-[0.3em] uppercase">Documento Digital Inviolável</p>
            <div className="flex gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-full bg-forest opacity-20"></div>
-              <div className="w-2.5 h-2.5 rounded-full bg-leaf opacity-40"></div>
-              <div className="w-2.5 h-2.5 rounded-full bg-forest"></div>
+              <div className="w-2.5 h-2.5 rounded-full bg-[#00577C] opacity-20"></div>
+              <div className="w-2.5 h-2.5 rounded-full bg-[#F9C400] opacity-40"></div>
+              <div className="w-2.5 h-2.5 rounded-full bg-[#009640]"></div>
            </div>
         </div>
       </div>
@@ -162,7 +194,7 @@ export default function CarteiraDigitalPage({ params }: { params: { token: strin
       <div className="mt-10 flex gap-4 no-print animate-fade-up delay-300">
          <button 
            onClick={() => window.print()}
-           className="flex items-center gap-2.5 bg-forest text-white px-8 py-4 rounded-2xl font-bold hover:bg-forest-mid shadow-xl transition-all active:scale-95"
+           className="flex items-center gap-2.5 bg-[#00577C] text-white px-8 py-4 rounded-2xl font-bold hover:bg-[#004a6b] shadow-xl transition-all active:scale-95"
          >
             <Printer className="w-5 h-5" />
             Imprimir ou Salvar PDF
