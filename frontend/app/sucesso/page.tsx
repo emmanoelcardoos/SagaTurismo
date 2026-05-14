@@ -1,13 +1,13 @@
 'use client';
 
 import { useEffect, useState, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { 
   Loader2, CheckCircle2, Mail, FileText, Calendar, 
   MapPin, Bed, Compass, User, ShieldCheck, 
-  ArrowRight, ArrowLeft, Info, Printer, Lock, Check, Menu
+  ArrowRight, ArrowLeft, Info, Printer, Lock, Check, Menu, Wallet
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -39,13 +39,11 @@ function SucessoContent() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState('');
   
-  // Estados para o Header
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
 
   useEffect(() => { setIsMounted(true); }, []);
 
-  // Lógica de Scroll do Header
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
@@ -56,7 +54,6 @@ function SucessoContent() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
-  // Lógica de Busca de Dados
   useEffect(() => {
     let tentativas = 0;
     const MAX_TENTATIVAS = 5; 
@@ -87,7 +84,6 @@ function SucessoContent() {
         
         setPedido(pData);
 
-        // Busca os detalhes (Hotel/Pacote)
         const tabela = pData.tipo_item === 'hotel' ? 'hoteis' : 'pacotes';
         if (pData.item_id) {
           const { data: iData } = await supabase.from(tabela).select('*').eq('id', pData.item_id).maybeSingle();
@@ -109,7 +105,7 @@ function SucessoContent() {
   if (loading) return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center">
       <Loader2 className="animate-spin text-[#009640] w-16 h-16 mb-4" />
-      <p className={`${jakarta.className} text-xs font-black text-slate-400 uppercase tracking-widest`}>Sincronizando com a Base de Dados...</p>
+      <p className={`${jakarta.className} text-xs font-black text-slate-400 uppercase tracking-widest`}>Sincronizando dados oficiais...</p>
     </div>
   );
 
@@ -133,66 +129,22 @@ function SucessoContent() {
     <main className={`${inter.className} min-h-screen bg-[#F8F9FA] text-slate-900 flex flex-col`}>
       
       {/* HEADER OFICIAL */}
-      <header
-        className={`fixed left-0 top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl transition-transform duration-300 ${
-          showHeader ? 'translate-y-0' : '-translate-y-full'
-        }`}
-      >
+      <header className={`fixed left-0 top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl transition-transform duration-300 ${showHeader ? 'translate-y-0' : '-translate-y-full'}`}>
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-5">
           <Link href="/" className="flex min-w-0 items-center gap-3 sm:gap-4">
             <div className="relative h-12 w-36 shrink-0 sm:h-16 sm:w-56">
-              <Image
-                src="/logop.png"
-                alt="Prefeitura de São Geraldo do Araguaia"
-                fill
-                priority
-                className="object-contain object-left"
-              />
+              <Image src="/logop.png" alt="Prefeitura" fill priority className="object-contain object-left" />
             </div>
-
             <div className="hidden border-l border-slate-200 pl-4 lg:block">
-              <p className={`${jakarta.className} text-2xl font-bold leading-none text-[#00577C]`}>
-                SagaTurismo
-              </p>
-              <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
-                Secretaria de Turismo de São Geraldo do Araguaia
-              </p>
+              <p className={`${jakarta.className} text-2xl font-bold leading-none text-[#00577C]`}>SagaTurismo</p>
+              <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Secretaria de Turismo</p>
             </div>
           </Link>
-
           <nav className="hidden items-center gap-7 md:flex">
-            <Link href="/roteiro" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
-              Rota Turística
-            </Link>
-
-            <Link href="/aldeias" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
-              Aldeias
-            </Link>
-
-            <a href="#historia" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
-              História
-            </a>
-
-            <a
-              href="https://saogeraldodoaraguaia.pa.gov.br"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm font-semibold text-slate-600 hover:text-[#00577C]"
-            >
-              Governo
-            </a>
-
-            <Link
-              href="/cadastro"
-              className="rounded-full bg-[#F9C400] px-5 py-3 text-sm font-bold text-[#00577C] shadow-lg transition hover:bg-[#ffd633]"
-            >
-              Cartão Residente
-            </Link>
+            <Link href="/roteiro" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Rota Turística</Link>
+            <Link href="/cadastro" className="rounded-full bg-[#F9C400] px-5 py-3 text-sm font-bold text-[#00577C] shadow-lg transition hover:bg-[#ffd633]">Cartão Residente</Link>
           </nav>
-
-          <button className="rounded-xl border border-slate-200 p-2 md:hidden">
-            <Menu className="h-5 w-5 text-[#00577C]" />
-          </button>
+          <button className="rounded-xl border border-slate-200 p-2 md:hidden"><Menu className="h-5 w-5 text-[#00577C]" /></button>
         </div>
       </header>
 
@@ -207,12 +159,13 @@ function SucessoContent() {
              Pedido Confirmado
            </h1>
            <p className="text-lg text-slate-600 max-w-2xl mx-auto font-medium leading-relaxed">
-             Pagamento confirmado, <span className="text-[#00577C] font-bold">{nomeExibicao}</span>. O seu número de pedido é <span className="font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">{pedido?.codigo_pedido || '---'}</span>.<br/>A sua reserva em São Geraldo do Araguaia foi processada com sucesso.
+             Olá <span className="text-[#00577C] font-bold">{nomeExibicao}</span>, o seu pagamento foi confirmado!O seu número de pedido é <span className="font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">{pedido?.codigo_pedido || '---'}</span>.<br/>
+             A sua reserva no <span className="text-[#00577C] font-bold">{tituloReserva || 'hotel'}</span> foi confirmada com sucesso.
            </p>
         </div>
 
         {/* COMPROVATIVOS E VOUCHER */}
-        <div className="grid md:grid-cols-2 gap-6 mb-14 animate-in slide-in-from-bottom-6">
+        <div className="grid md:grid-cols-2 gap-6 mb-14">
            <div className="bg-white border border-slate-200 rounded-[2rem] p-8 shadow-sm flex flex-col gap-4">
               <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-[#00577C] shadow-sm"><Mail size={24}/></div>
               <div>
@@ -225,37 +178,34 @@ function SucessoContent() {
               <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center text-white backdrop-blur-md shadow-sm"><FileText size={24}/></div>
               <div>
                  <h3 className={`${jakarta.className} text-lg font-bold mb-1`}>Voucher Digital</h3>
-                 <p className="text-sm text-white/80 leading-relaxed mb-4">O seu voucher PDF será enviado em instantes para o seu e-mail.</p>
-                 <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[#F9C400]">
-                    <Check size={14}/> Anexado
-                 </div>
+                 <p className="text-sm text-white/80 leading-relaxed">O seu voucher oficial PDF será enviado em instantes para o seu e-mail.</p>
               </div>
            </div>
         </div>
 
-        {/* CARTÃO DA RESERVA */}
+        {/* CARTÃO DA RESERVA (Design Profissional sem o card preto) */}
         <div className="w-full bg-white rounded-[2.5rem] border border-slate-200 shadow-xl overflow-hidden relative animate-in slide-in-from-bottom-10 duration-1000">
            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#00577C] via-[#F9C400] to-[#009640]" />
            
-           <div className="p-8 md:p-10">
-              <div className="flex flex-col md:flex-row gap-8 items-center mb-10 border-b border-slate-100 pb-10">
-                 <div className="relative w-full md:w-48 h-32 rounded-2xl overflow-hidden shadow-md shrink-0 bg-slate-100 border-2 border-white">
+           <div className="p-8 md:p-12">
+              <div className="flex flex-col md:flex-row gap-10 items-center mb-10 border-b border-slate-100 pb-10">
+                 <div className="relative w-full md:w-56 h-40 rounded-3xl overflow-hidden shadow-md shrink-0 bg-slate-100 border-2 border-white">
                     <img src={imagemReserva || 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?q=80&w=1740'} alt="Local" className="w-full h-full object-cover" />
                  </div>
                  
                  <div className="flex-1 text-center md:text-left">
-                    <div className="inline-flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg mb-3 text-[#00577C] font-black uppercase text-[10px] tracking-widest">
+                    <div className="inline-flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg mb-4 text-[#00577C] font-black uppercase text-[10px] tracking-widest">
                        {isHotel ? <Bed size={14}/> : <Compass size={14}/>} {isHotel ? 'Alojamento Oficial' : 'Pacote Turístico'}
                     </div>
-                    <h2 className={`${jakarta.className} text-3xl font-black text-slate-900 leading-tight mb-2`}>{tituloReserva || 'Reserva Oficial'}</h2>
+                    <h2 className={`${jakarta.className} text-4xl font-black text-slate-900 leading-tight mb-2`}>{tituloReserva || 'Reserva Oficial'}</h2>
                     <p className="text-slate-500 font-bold text-sm flex items-center justify-center md:justify-start gap-2"><MapPin size={16} className="text-[#009640]"/> São Geraldo do Araguaia - PA</p>
                  </div>
               </div>
 
-              <div className="grid sm:grid-cols-2 gap-10">
-                 <div className="space-y-6">
+              <div className="grid md:grid-cols-[1.2fr_1fr] gap-12 items-center">
+                 <div className="space-y-8">
                     {isHotel && (
-                       <div className="grid grid-cols-2 gap-4 bg-slate-50 rounded-2xl p-6 border border-slate-100">
+                       <div className="grid grid-cols-2 gap-4 bg-slate-50 rounded-3xl p-6 border border-slate-100">
                           <div>
                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 flex items-center gap-1.5"><Calendar size={14}/> Check-in</p>
                             <p className="font-black text-slate-800 text-lg">{formatarData(pedido?.data_checkin)}</p>
@@ -268,7 +218,7 @@ function SucessoContent() {
                     )}
                     
                     {!isHotel && (
-                       <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100 flex items-center gap-4 text-left">
+                       <div className="bg-slate-50 rounded-3xl p-6 border border-slate-100 flex items-center gap-4 text-left">
                           <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-[#F9C400] shadow-sm"><Calendar size={24}/></div>
                           <div>
                              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Data de Início</p>
@@ -277,35 +227,39 @@ function SucessoContent() {
                        </div>
                     )}
 
-                    <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100 space-y-4 text-left">
-                       <div className="flex items-center gap-3 text-slate-600 font-bold">
-                          <User size={18} className="text-slate-400"/>
+                    <div className="space-y-4 text-left">
+                       <div className="flex items-center gap-4 text-slate-600 font-bold">
+                          <User size={20} className="text-slate-300"/>
                           <div className="flex flex-col">
                              <span className="text-[10px] uppercase font-black tracking-widest text-slate-400 mb-0.5">Hóspede Principal</span>
-                             <span className="text-slate-800 text-sm uppercase">{pedido?.nome_cliente || '---'}</span>
+                             <span className="text-slate-800 text-base uppercase">{pedido?.nome_cliente || '---'}</span>
                           </div>
                        </div>
                     </div>
                  </div>
 
-                 <div className="flex flex-col">
-                    <div className="bg-slate-900 rounded-[2rem] p-8 flex flex-col justify-center items-center text-center relative overflow-hidden flex-1 shadow-xl">
-                       <div className="absolute inset-0 bg-[#009640] opacity-10 pointer-events-none" />
-                       <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/50 mb-3">Total Pago</p>
-                       <p className={`${jakarta.className} text-4xl font-black text-white`}>{formatarMoeda(pedido?.valor_total)}</p>
-                       <div className="mt-6 flex items-center gap-2 text-[10px] font-bold text-white/40 uppercase tracking-widest bg-white/5 px-3 py-1.5 rounded-md">
-                          <Lock size={12}/> Oficial e Seguro
-                       </div>
+                 {/* Resumo de Pagamento Elegante (Substituiu o Card Preto) */}
+                 <div className="bg-white border-2 border-slate-100 rounded-[2.5rem] p-8 space-y-6 relative overflow-hidden">
+                    <div className="flex justify-between items-center text-sm font-bold text-slate-500 uppercase tracking-widest">
+                       <span>Total Pago</span>
+                       <span className="bg-green-100 text-[#009640] px-3 py-1 rounded-full text-[10px] flex items-center gap-1.5">
+                          <ShieldCheck size={12}/> Confirmado
+                       </span>
+                    </div>
+                    <p className={`${jakarta.className} text-5xl font-black text-slate-900`}>{formatarMoeda(pedido?.valor_total)}</p>
+                    
+                    <div className="pt-6 border-t border-slate-100 flex items-center gap-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                       <Lock size={14} className="text-slate-300"/> Transação Segura PagBank
                     </div>
                  </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-6 mt-10 pt-6 border-t border-slate-100">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-6 mt-12 pt-8 border-t border-slate-100">
                  <Link href="/" className="text-slate-500 hover:text-[#00577C] font-bold text-sm flex items-center gap-2 transition-colors">
                     <ArrowLeft size={16}/> Voltar ao Portal Principal
                  </Link>
-                 <button onClick={() => window.print()} className="w-full sm:w-auto bg-white border-2 border-slate-200 text-slate-700 px-6 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-slate-50 transition-all active:scale-95 shadow-sm">
-                    <Printer size={16}/> Imprimir Recibo
+                 <button onClick={() => window.print()} className="w-full sm:w-auto bg-slate-50 border border-slate-200 text-slate-700 px-8 py-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 hover:bg-white transition-all active:scale-95 shadow-sm">
+                    <Printer size={18}/> Imprimir Recibo
                  </button>
               </div>
            </div>
@@ -313,8 +267,8 @@ function SucessoContent() {
 
       </div>
 
-      <footer className="mt-auto py-10 text-center border-t border-slate-200 bg-white">
-         <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">
+      <footer className="mt-auto py-12 text-center border-t border-slate-200 bg-white">
+         <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.5em]">
             © {new Date().getFullYear()} · Secretaria de Turismo de São Geraldo do Araguaia
          </p>
       </footer>
