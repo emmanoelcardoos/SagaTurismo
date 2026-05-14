@@ -8,7 +8,7 @@ import {
   ArrowLeft, MapPin, Star, CheckCircle2, Info, 
   Loader2, Menu, X, ChevronLeft, ChevronRight, ZoomIn, 
   Calendar as CalendarIcon, Bed, ChevronRight as ChevronRightIcon,
-  Users, Baby, DoorOpen
+  Users, Baby, DoorOpen, Award
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -47,6 +47,8 @@ type Hotel = {
   quarto_standard_nome?: string; quarto_standard_preco?: any;
   quarto_luxo_nome?: string; quarto_luxo_preco?: any;
   comodidades?: string[]; galeria?: string[];
+  quarto_standard_comodidades?: any;
+  quarto_luxo_comodidades?: any;
 };
 
 type Disponibilidade = {
@@ -190,7 +192,6 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
       alert("Por favor, selecione as datas de Check-in e Check-out no calendário.");
       return;
     }
-    // LIGAÇÃO ATUALIZADA ENVIANDO TODOS OS PARÂMETROS PARA O CHECKOUT
     router.push(`/checkout-hotel?hotel=${hotel?.id}&quarto=${tipoQuarto}&checkin=${formatarDataIso(checkin)}&checkout=${formatarDataIso(checkout)}&adultos=${adultos}&criancas=${criancas}&quartos=${quartos}`);
   };
 
@@ -261,8 +262,10 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
 
       <div className="mx-auto w-full max-w-7xl px-5 py-12 flex flex-col lg:flex-row items-start gap-12 relative z-10 -mt-20">
         
-        {/* ── COLUNA ESQUERDA: INFORMAÇÕES DO HOTEL ── */}
-        <div className="flex-1 w-full min-w-0">
+        {/* ── COLUNA ESQUERDA: INFORMAÇÕES DO HOTEL E COMPARATIVO ── */}
+        <div className="flex-1 w-full min-w-0 flex flex-col gap-10">
+          
+          {/* Info Principal do Hotel */}
           <section className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-2xl border border-slate-100 relative">
             <div className="flex items-center gap-3 mb-4">
               <span className="bg-[#F9C400] text-[#00577C] px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest shadow-sm">
@@ -289,7 +292,7 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
 
             {hotel.comodidades && hotel.comodidades.length > 0 && (
               <div>
-                <h3 className={`${jakarta.className} text-2xl font-black text-[#00577C] mb-6`}>Comodidades</h3>
+                <h3 className={`${jakarta.className} text-2xl font-black text-[#00577C] mb-6`}>Instalações Gerais</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {getArraySeguro(hotel.comodidades).map((item, idx) => (
                     <div key={idx} className="flex items-center gap-3 text-slate-700 font-medium bg-slate-50 px-4 py-3 rounded-xl border border-slate-100">
@@ -300,6 +303,49 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
               </div>
             )}
           </section>
+
+          {/* ── NOVO CARD: COMPARATIVO DE QUARTOS ── */}
+          {(hotel.quarto_standard_comodidades || hotel.quarto_luxo_comodidades) && (
+            <section className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-2xl border border-slate-100 relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none"><Bed size={150}/></div>
+              <h3 className={`${jakarta.className} text-3xl font-black text-slate-900 mb-10 flex items-center gap-4`}>
+                <div className="w-12 h-12 bg-[#00577C] text-white rounded-2xl flex items-center justify-center shadow-lg"><Info size={24}/></div>
+                Comparativo de Acomodações
+              </h3>
+              
+              <div className="grid md:grid-cols-2 gap-8 relative z-10">
+                {/* Quarto Standard */}
+                <div className="bg-slate-50 rounded-3xl p-8 border-2 border-slate-100 flex flex-col">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-[#00577C] mb-2">Opção Económica</p>
+                  <h4 className="text-2xl font-bold text-slate-800 mb-6">{hotel.quarto_standard_nome || 'Quarto Standard'}</h4>
+                  <ul className="space-y-4 mb-8 flex-1">
+                    {getArraySeguro(hotel.quarto_standard_comodidades).map((c, i) => (
+                      <li key={i} className="flex items-start gap-3 text-slate-700 font-medium">
+                        <CheckCircle2 size={20} className="text-[#009640] shrink-0" /> {c}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Suíte Luxo */}
+                <div className="bg-blue-50/30 rounded-3xl p-8 border-2 border-[#00577C]/20 flex flex-col relative shadow-inner">
+                  <div className="absolute -top-4 right-8 bg-[#00577C] text-white text-[10px] font-black px-4 py-1.5 rounded-full shadow-lg flex items-center gap-2">
+                     <Award size={14}/> RECOMENDADO
+                  </div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-[#00577C] mb-2">Experiência Premium</p>
+                  <h4 className="text-2xl font-bold text-slate-800 mb-6">{hotel.quarto_luxo_nome || 'Suíte Luxo'}</h4>
+                  <ul className="space-y-4 mb-8 flex-1">
+                    {getArraySeguro(hotel.quarto_luxo_comodidades).map((c, i) => (
+                      <li key={i} className="flex items-start gap-3 text-slate-700 font-medium">
+                        <Star size={20} className="text-[#F9C400] shrink-0" fill="currentColor" /> {c}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </section>
+          )}
+
         </div>
 
         {/* ── COLUNA DIREITA: MOTOR DE RESERVAS COM CALENDÁRIO ── */}
@@ -332,7 +378,7 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
                 </label>
               </div>
 
-              {/* 2. SELEÇÃO DE HÓSPEDES E QUARTOS (NOVIDADE) */}
+              {/* 2. SELEÇÃO DE HÓSPEDES E QUARTOS */}
               <div className="mb-8 space-y-4">
                  <p className="text-[10px] font-black uppercase tracking-widest text-[#00577C]">2. Hóspedes e Quartos</p>
                  <div className="bg-slate-50 border border-slate-200 rounded-[1.5rem] p-5 space-y-5 shadow-inner">
