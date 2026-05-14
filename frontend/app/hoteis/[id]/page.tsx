@@ -179,7 +179,7 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
   if (loading) return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-white text-[#00577C]">
       <Loader2 className="w-12 h-12 animate-spin mb-4" />
-      <p className="font-bold uppercase tracking-widest text-xs">Preparando o Motor de Reservas...</p>
+      <p className="font-bold uppercase tracking-widest text-xs">Carregando detalhes do hotel...</p>
     </div>
   );
 
