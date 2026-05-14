@@ -4,6 +4,7 @@ from typing import Optional
 import httpx
 import os
 import uuid
+from datetime import datetime
 from supabase import create_client, Client
 
 router = APIRouter()
@@ -13,20 +14,32 @@ SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 PAGBANK_TOKEN = os.environ.get("PAGBANK_TOKEN")
 CHAVE_PAGBANK_PREFEITURA = os.environ.get("CHAVE_PAGBANK_PREFEITURA") # A "Conta Mãe"
+PAGBANK_API_URL = os.environ.get("PAGBANK_API_URL", "https://sandbox.api.pagseguro.com")
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# 2. O Modelo de Dados unificado
+# 2. O Modelo de Dados Unificado Completo
 class PedidoPagamento(BaseModel):
     tipo_item: str # 'carteira', 'hotel' ou 'pacote'
-    
-    # IDs dinâmicos (dependendo do que está a ser comprado)
+    quantidade: Optional[int] = 1 # Usado para número de carteiras ou número de quartos
+
+    # IDs dinâmicos
     pacote_id: Optional[str] = None
     hotel_id: Optional[str] = None
     tipo_quarto: Optional[str] = "standard"
     guia_id: Optional[str] = None
     
-    # Dados do Cidadão/Turista
+    # Dados Específicos para Hotel
+    data_checkin: Optional[str] = None
+    data_checkout: Optional[str] = None
+    endereco_completo: Optional[str] = None
+    
+    # Dados Específicos para Carteirinha
+    foto_url: Optional[str] = None
+    data_nascimento: Optional[str] = None
+    telefone_cliente: Optional[str] = None
+    
+    # Dados do Cidadão/Turista (Comuns)
     nome_cliente: str
     cpf_cliente: str
     email_cliente: str
@@ -52,23 +65,32 @@ async def processar_pagamento(pedido: PedidoPagamento):
         
         # --- CENÁRIO A: CARTEIRA DIGITAL ---
         if pedido.tipo_item == "carteira":
-            valor_total = 10.00
-            nome_item_checkout = "Taxa de Emissão - Carteira Digital de Residente"
+            valor_total = 10.00 * pedido.quantidade # Multiplica por 10 reais
+            nome_item_checkout = f"Taxa de Emissão - Carteira Digital ({pedido.quantidade}x)"
             item_id_db = None
-            # Sem split: 100% do valor vai automaticamente para a conta principal (Prefeitura)
 
         # --- CENÁRIO B: HOTEL AVULSO ---
         elif pedido.tipo_item == "hotel":
-            if not pedido.hotel_id:
-                raise HTTPException(status_code=400, detail="ID do hotel não fornecido.")
+            if not all([pedido.hotel_id, pedido.data_checkin, pedido.data_checkout]):
+                raise HTTPException(status_code=400, detail="Dados de reserva de hotel incompletos.")
                 
             res_hotel = supabase.table("hoteis").select("*").eq("id", pedido.hotel_id).single().execute()
             if not res_hotel.data:
                 raise HTTPException(status_code=404, detail="Hotel não encontrado.")
+            
+            # Cálculo de Noites
+            d1 = datetime.strptime(pedido.data_checkin, "%Y-%m-%d")
+            d2 = datetime.strptime(pedido.data_checkout, "%Y-%m-%d")
+            quantidade_noites = (d2 - d1).days
+            if quantidade_noites <= 0:
+                raise HTTPException(status_code=400, detail="A data de checkout deve ser posterior ao checkin.")
                 
             hotel_data = res_hotel.data
-            valor_total = float(hotel_data["quarto_luxo_preco"] if pedido.tipo_quarto == 'luxo' else hotel_data["quarto_standard_preco"])
-            nome_item_checkout = f"Reserva de Hospedagem - {hotel_data['nome']}"
+            preco_diaria = float(hotel_data["quarto_luxo_preco"] if pedido.tipo_quarto == 'luxo' else hotel_data["quarto_standard_preco"])
+            
+            # Valor Total = Diária * Noites * Quartos (quantidade)
+            valor_total = preco_diaria * quantidade_noites * pedido.quantidade
+            nome_item_checkout = f"Hospedagem - {hotel_data['nome']} ({quantidade_noites} noites)"
             item_id_db = pedido.hotel_id
             
             # Repasse para o Hotel
@@ -125,21 +147,27 @@ async def processar_pagamento(pedido: PedidoPagamento):
         # ==========================================
         # FASE 2: GRAVAR NO SUPABASE (O Cofre)
         # ==========================================
-        # Anotamos o pedido ANTES de ir para o PagBank. Assim, o Webhook já sabe quem cobrar!
         
         pedido_db = {
             "codigo_pedido": codigo_pedido,
             "tipo_item": pedido.tipo_item,
+            "quantidade": pedido.quantidade,
             "item_id": item_id_db,
             "nome_cliente": pedido.nome_cliente,
             "cpf_cliente": pedido.cpf_cliente,
             "email_cliente": pedido.email_cliente,
             "valor_total": valor_total,
             "metodo_pagamento": pedido.metodo_pagamento,
-            "status_pagamento": "aguardando"
+            "status_pagamento": "aguardando",
+            # Novos campos que o Frontend agora envia
+            "data_checkin": pedido.data_checkin,
+            "data_checkout": pedido.data_checkout,
+            "endereco_completo": pedido.endereco_completo,
+            "telefone_cliente": pedido.telefone_cliente,
+            "data_nascimento": pedido.data_nascimento,
+            "foto_url": pedido.foto_url
         }
         
-        # Insere na nova tabela unificada que criámos
         supabase.table("pedidos").insert(pedido_db).execute()
 
         # ==========================================
@@ -200,7 +228,7 @@ async def processar_pagamento(pedido: PedidoPagamento):
             "Accept": "application/json"
         }
         
-        URL_PAGBANK = "https://sandbox.api.pagseguro.com/orders" 
+        URL_PAGBANK = f"{PAGBANK_API_URL}/orders"
 
         async with httpx.AsyncClient() as client:
             resposta = await client.post(URL_PAGBANK, json=payload_pagbank, headers=headers, timeout=30.0)
