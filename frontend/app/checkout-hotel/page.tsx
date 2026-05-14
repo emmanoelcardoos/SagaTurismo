@@ -90,7 +90,7 @@ function CronometroPix({ onExpirado }: { onExpirado: () => void }) {
   const percent = (segundos / 900) * 100;
 
   return (
-    <div className={`rounded-3xl border-2 p-6 transition-all bg-slate-50 border-slate-200`}>
+    <div className={`rounded-3xl border-2 p-6 transition-all bg-slate-50 border-slate-200 text-left`}>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Clock className="text-[#00577C]" size={20} />
@@ -213,15 +213,31 @@ function CheckoutHotelContent() {
       const data = await res.json();
 
       if (data.sucesso) {
+        // ── CORREÇÃO: Captura a chave 'codigo_pedido' retornada pelo backend ──
+        const codigoFinal = data.codigo_pedido;
+
         if (metodoPagamento === 'pix') {
-          setQrCodeData({ link: data.qr_code_link, texto: data.qr_code_text, id_pedido: data.pedido_id });
+          setQrCodeData({ 
+            link: data.qr_code_link, 
+            texto: data.qr_code_text, 
+            id_pedido: codigoFinal // SAGA-XXXX
+          });
         } else {
-          router.push(`/sucesso?pedido=${data.pedido_id}`);
+          // Redireciona usando a chave codigo_pedido
+          router.push(`/sucesso?pedido=${codigoFinal}`);
         }
       } else {
         setErroApi(data.mensagem || 'Erro no processamento.');
       }
     } catch (err: any) { setErroApi(err.message); } finally { setIsSubmitting(false); }
+  };
+
+  const copiarCodigo = () => {
+    if (qrCodeData?.texto) {
+      navigator.clipboard.writeText(qrCodeData.texto);
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 2000);
+    }
   };
 
   if (!isMounted) return null;
@@ -231,6 +247,8 @@ function CheckoutHotelContent() {
       <p className="font-bold text-slate-400 uppercase tracking-widest text-xs">Preparando Ambiente Seguro...</p>
     </div>
   );
+
+  const nomeQuarto = hotel ? (quartoTipo === 'luxo' ? hotel.quarto_luxo_nome : hotel.quarto_standard_nome) : '';
 
   return (
     <div className={`${inter.className} bg-[#F8F9FA] min-h-screen`}>
@@ -255,8 +273,7 @@ function CheckoutHotelContent() {
       </header>
 
       <div className="max-w-7xl mx-auto px-6 py-12 lg:py-20 mt-[80px]">
-        {/* Breadcrumb / Top Info */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-16 border-b-2 border-slate-100 pb-8 gap-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-16 border-b-2 border-slate-100 pb-8 gap-6 text-left">
           <button onClick={() => router.back()} className="flex items-center gap-2 text-slate-500 hover:text-[#00577C] font-bold transition-all w-fit">
             <ArrowLeft size={20} /> Alterar Reserva
           </button>
@@ -270,8 +287,6 @@ function CheckoutHotelContent() {
           <div className="space-y-12">
             {!qrCodeData ? (
               <form onSubmit={handlePagamento} className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
-                
-                {/* 1. DADOS DO HÓSPEDE */}
                 <section className="bg-white p-10 md:p-12 rounded-[3.5rem] shadow-sm border border-slate-100 relative overflow-hidden">
                   <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none"><User size={120}/></div>
                   <h2 className={`${jakarta.className} text-2xl font-bold text-slate-900 mb-10 flex items-center gap-4`}>
@@ -279,33 +294,20 @@ function CheckoutHotelContent() {
                     Identificação do Hóspede
                   </h2>
                   <div className="space-y-8">
-                    <div>
-                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Nome Completo</label>
-                      <input required value={nome} onChange={e => setNome(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 font-bold text-slate-800 text-lg outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="Como no documento" />
-                    </div>
+                    <input required value={nome} onChange={e => setNome(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 font-bold text-slate-800 text-lg" placeholder="Nome Completo" />
                     <div className="grid sm:grid-cols-2 gap-8">
-                      <div>
-                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">CPF</label>
-                        <input required value={cpf} onChange={e => setCpf(mascaraCPF(e.target.value))} maxLength={14} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 font-bold text-slate-800 text-lg outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="000.000.000-00" />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">WhatsApp</label>
-                        <input required value={telefone} onChange={e => setTelefone(mascaraTelefone(e.target.value))} maxLength={15} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 font-bold text-slate-800 text-lg outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="(99) 99999-9999" />
-                      </div>
+                      <input required value={cpf} onChange={e => setCpf(mascaraCPF(e.target.value))} maxLength={14} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 font-bold" placeholder="CPF" />
+                      <input required value={telefone} onChange={e => setTelefone(mascaraTelefone(e.target.value))} maxLength={15} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 font-bold" placeholder="WhatsApp" />
                     </div>
-                    <div>
-                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">E-mail para o Voucher</label>
-                      <input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 font-bold text-slate-800 text-lg outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="exemplo@email.com" />
-                    </div>
+                    <input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 font-bold" placeholder="E-mail" />
                   </div>
                 </section>
 
-                {/* 2. ENDEREÇO DE FATURAÇÃO */}
                 <section className="bg-white p-10 md:p-12 rounded-[3.5rem] shadow-sm border border-slate-100 relative overflow-hidden">
                   <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none"><Home size={120}/></div>
                   <h2 className={`${jakarta.className} text-2xl font-bold text-slate-900 mb-10 flex items-center gap-4`}>
                     <span className="bg-[#00577C] text-white w-10 h-10 rounded-2xl flex items-center justify-center text-sm shadow-md">2</span> 
-                    Endereço de Cobrança
+                    Endereço de Registo
                   </h2>
                   <div className="space-y-8">
                     <div className="grid sm:grid-cols-[1fr_120px] gap-8">
@@ -323,33 +325,29 @@ function CheckoutHotelContent() {
                   </div>
                 </section>
 
-                {/* 3. PAGAMENTO */}
                 <section className="bg-white p-10 md:p-12 rounded-[3.5rem] shadow-sm border border-slate-100">
                   <h2 className={`${jakarta.className} text-2xl font-bold text-slate-900 mb-10 flex items-center gap-4`}>
                     <span className="bg-[#009640] text-white w-10 h-10 rounded-2xl flex items-center justify-center text-sm shadow-md">3</span> 
-                    Forma de Pagamento
+                    Pagamento Oficial
                   </h2>
                   <div className="grid grid-cols-2 gap-6 mb-12">
                     <button type="button" onClick={() => setMetodoPagamento('pix')} className={`p-8 rounded-[2.5rem] border-4 flex flex-col items-center gap-4 transition-all ${metodoPagamento === 'pix' ? 'border-[#009640] bg-green-50/50' : 'border-slate-50 opacity-60'}`}>
                       <QrCode size={32} className={metodoPagamento === 'pix' ? 'text-[#009640]' : 'text-slate-400'} />
-                      <span className="font-black text-xs uppercase tracking-widest">PIX Instantâneo</span>
+                      <span className="font-black text-xs uppercase">PIX Instantâneo</span>
                     </button>
                     <button type="button" onClick={() => setMetodoPagamento('cartao')} className={`p-8 rounded-[2.5rem] border-4 flex flex-col items-center gap-4 transition-all ${metodoPagamento === 'cartao' ? 'border-[#00577C] bg-blue-50/50' : 'border-slate-50 opacity-60'}`}>
                       <CreditCard size={32} className={metodoPagamento === 'cartao' ? 'text-[#00577C]' : 'text-slate-400'} />
-                      <span className="font-black text-xs uppercase tracking-widest">Cartão de Crédito</span>
+                      <span className="font-black text-xs uppercase">Cartão de Crédito</span>
                     </button>
                   </div>
 
                   {metodoPagamento === 'cartao' && (
-                    <div className="space-y-6 bg-slate-50 p-10 rounded-[2.5rem] border-2 border-slate-100 mb-10 animate-in slide-in-from-top-4">
-                      <input required value={nomeCartao} onChange={e => setNomeCartao(e.target.value.toUpperCase())} className="w-full p-4 rounded-xl font-bold border-2" placeholder="NOME IMPRESSO NO CARTÃO" />
-                      <div className="relative">
-                        <input required value={numeroCartao} onChange={e => setNumeroCartao(mascaraCartao(e.target.value))} maxLength={19} className="w-full p-4 rounded-xl font-bold border-2" placeholder="0000 0000 0000 0000" />
-                        <CreditCard className="absolute right-4 top-4 text-slate-300" />
-                      </div>
+                    <div className="space-y-6 bg-slate-50 p-10 rounded-[2.5rem] border-2 border-slate-100 mb-10">
+                      <input required value={nomeCartao} onChange={e => setNomeCartao(e.target.value.toUpperCase())} className="w-full p-4 rounded-xl font-bold border-2" placeholder="NOME NO CARTÃO" />
+                      <input required value={numeroCartao} onChange={e => setNumeroCartao(mascaraCartao(e.target.value))} maxLength={19} className="w-full p-4 rounded-xl font-bold border-2" placeholder="0000 0000 0000 0000" />
                       <div className="grid grid-cols-3 gap-4">
-                        <input required value={mesCartao} maxLength={2} className="p-4 rounded-xl border-2 text-center font-bold" placeholder="Mês" onChange={e => setMesCartao(e.target.value.replace(/\D/g,''))} />
-                        <input required value={anoCartao} maxLength={4} className="p-4 rounded-xl border-2 text-center font-bold" placeholder="Ano" onChange={e => setAnoCartao(e.target.value.replace(/\D/g,''))} />
+                        <input required value={mesCartao} maxLength={2} className="p-4 rounded-xl border-2 text-center font-bold" placeholder="MM" onChange={e => setMesCartao(e.target.value.replace(/\D/g,''))} />
+                        <input required value={anoCartao} maxLength={4} className="p-4 rounded-xl border-2 text-center font-bold" placeholder="AAAA" onChange={e => setAnoCartao(e.target.value.replace(/\D/g,''))} />
                         <input required type="password" value={cvvCartao} maxLength={4} className="p-4 rounded-xl border-2 text-center font-bold" placeholder="CVV" onChange={e => setCvvCartao(e.target.value.replace(/\D/g,''))} />
                       </div>
                       <select value={parcelas} onChange={e => setParcelas(Number(e.target.value))} className="w-full p-5 rounded-xl border-2 font-bold bg-white">
@@ -360,8 +358,8 @@ function CheckoutHotelContent() {
 
                   {erroApi && <div className="p-6 bg-red-50 text-red-600 rounded-3xl mb-8 font-bold flex gap-3 shadow-sm border border-red-100"><AlertCircle/> {erroApi}</div>}
                   
-                  <button type="submit" disabled={isSubmitting} className="w-full py-8 rounded-[2rem] font-black text-2xl text-white shadow-xl bg-slate-900 hover:bg-black transition-all active:scale-95 flex items-center justify-center gap-4">
-                    {isSubmitting ? <Loader2 className="animate-spin" size={32}/> : `Confirmar e Pagar ${formatarMoeda(valorTotalReserva)}`}
+                  <button type="submit" disabled={isSubmitting} className="w-full py-8 rounded-[2rem] font-black text-2xl text-white shadow-xl bg-slate-900 hover:bg-black transition-all">
+                    {isSubmitting ? <Loader2 className="animate-spin mx-auto" size={32}/> : `Pagar ${formatarMoeda(valorTotalReserva)}`}
                   </button>
                   <p className="mt-8 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] flex items-center justify-center gap-3">
                     <ShieldCheck size={16} className="text-[#009640]"/> Transação 256-bit SSL segura
@@ -369,27 +367,20 @@ function CheckoutHotelContent() {
                 </section>
               </form>
             ) : (
-              /* TELA PIX QR CODE */
               <div className="space-y-6 animate-in zoom-in-95 duration-700">
                 <div className="bg-white p-16 rounded-[4rem] shadow-2xl border text-center relative overflow-hidden">
                   <div className="absolute top-0 left-0 w-full h-3 bg-[#009640]" />
                   <CheckCircle2 size={64} className="text-[#009640] mx-auto mb-10"/>
                   <h2 className={`${jakarta.className} text-4xl font-black mb-10 text-slate-900`}>Aguardando Pagamento</h2>
-                  
                   {!pixExpirado ? (
                     <>
                       <CronometroPix onExpirado={() => setPixExpirado(true)} />
                       <div className="w-72 h-72 bg-slate-50 mx-auto rounded-[3.5rem] p-8 my-10 border-4 border-dashed relative">
                          <img src={qrCodeData.link} alt="QR" className="w-full h-full mix-blend-multiply" />
                       </div>
-                      <div className="space-y-4">
-                        <button onClick={copiarPix} className="p-6 rounded-2xl bg-[#009640] text-white font-black w-full uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95">
-                          {copiado ? <><CheckCircle2/> Copiado!</> : <><Copy/> Copiar Chave PIX</>}
-                        </button>
-                        <p className="text-slate-400 font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 mt-4">
-                          <Loader2 className="animate-spin" size={14}/> Sincronizando com o banco...
-                        </p>
-                      </div>
+                      <button onClick={copiarCodigo} className="p-6 rounded-2xl bg-[#009640] text-white font-black w-full uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95">
+                        {copiado ? <><CheckCircle2/> Copiado!</> : <><Copy/> Copiar Chave PIX</>}
+                      </button>
                     </>
                   ) : (
                     <div className="p-10 bg-red-50 rounded-3xl border border-red-100">
@@ -403,13 +394,10 @@ function CheckoutHotelContent() {
             )}
           </div>
 
-          {/* ── ASIDE: RESUMO ── */}
           <aside className="lg:sticky lg:top-32">
             <div className="bg-white rounded-[3.5rem] border border-slate-100 shadow-2xl overflow-hidden relative">
               <div className="absolute top-0 left-0 w-full h-3 bg-gradient-to-r from-[#00577C] via-[#F9C400] to-[#009640]" />
-              
               <div className="p-10 border-b-2 border-slate-50">
-                <p className="text-[11px] font-black uppercase text-slate-400 tracking-[0.4em] mb-6">Sua Viagem</p>
                 <div className="flex gap-5 items-center">
                   <div className="relative w-24 h-24 rounded-3xl overflow-hidden shrink-0 border-4 border-white shadow-xl bg-slate-100">
                     {hotel?.imagem_url && <Image src={hotel.imagem_url} alt="Hotel" fill className="object-cover" />}
@@ -421,31 +409,21 @@ function CheckoutHotelContent() {
                 </div>
               </div>
 
-              <div className="p-10 space-y-8">
+              <div className="p-10 space-y-8 text-left">
                 <div className="grid grid-cols-2 gap-6 p-6 bg-slate-50 rounded-[2.5rem] border border-slate-100 shadow-inner">
                    <div>
-                     <p className="text-[9px] font-black uppercase text-slate-400 mb-2 flex items-center gap-1"><Calendar size={12}/> Check-in</p>
+                     <p className="text-[9px] font-black uppercase text-slate-400 mb-2">Check-in</p>
                      <p className="font-black text-slate-800 text-lg leading-none">{formatarData(checkinData || '')}</p>
                    </div>
                    <div className="border-l-2 border-slate-200 pl-6">
-                     <p className="text-[9px] font-black uppercase text-slate-400 mb-2 flex items-center gap-1"><Calendar size={12}/> Check-out</p>
+                     <p className="text-[9px] font-black uppercase text-slate-400 mb-2">Check-out</p>
                      <p className="font-black text-slate-800 text-lg leading-none">{formatarData(checkoutData || '')}</p>
                    </div>
                 </div>
-
                 <div className="space-y-4">
-                  <div className="flex justify-between items-center text-sm font-bold text-slate-500">
-                    <div className="flex items-center gap-3"><Users size={18}/> Hóspedes</div>
-                    <span className="text-slate-800">{adultosParam} Adultos {criancasParam > 0 && `+ ${criancasParam} Crianças`}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm font-bold text-slate-500">
-                    <div className="flex items-center gap-3"><DoorOpen size={18}/> Acomodações</div>
-                    <span className="text-slate-800">{quartosParam} {quartosParam === 1 ? 'Quarto' : 'Quartos'}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm font-bold text-slate-500 pt-4 border-t-2 border-slate-50">
-                    <div className="flex items-center gap-3 text-[#00577C]"><Info size={18}/> Estadia Total</div>
-                    <span className="text-[#00577C] font-black text-lg">{numNoites} {numNoites === 1 ? 'Noite' : 'Noites'}</span>
-                  </div>
+                  <div className="flex justify-between items-center text-sm font-bold text-slate-500"><div className="flex items-center gap-3"><Users size={18}/> Hóspedes</div><span className="text-slate-800">{adultosParam} Adultos {criancasParam > 0 && `+ ${criancasParam} Crianças`}</span></div>
+                  <div className="flex justify-between items-center text-sm font-bold text-slate-500"><div className="flex items-center gap-3"><DoorOpen size={18}/> Acomodações</div><span className="text-slate-800">{quartosParam} {quartosParam === 1 ? 'Quarto' : 'Quartos'}</span></div>
+                  <div className="flex justify-between items-center text-sm font-bold text-slate-500 pt-4 border-t-2 border-slate-50"><div className="flex items-center gap-3 text-[#00577C]"><Info size={18}/> Estadia Total</div><span className="text-[#00577C] font-black text-lg">{numNoites} {numNoites === 1 ? 'Noite' : 'Noites'}</span></div>
                 </div>
               </div>
 
@@ -454,13 +432,6 @@ function CheckoutHotelContent() {
                  <p className="text-[11px] font-black uppercase tracking-[0.5em] text-white/50 mb-4">Investimento Total</p>
                  <p className={`${jakarta.className} text-6xl font-black tabular-nums`}>{formatarMoeda(valorTotalReserva)}</p>
               </div>
-            </div>
-
-            <div className="mt-8 flex flex-col gap-4">
-               <div className="bg-white p-5 rounded-2xl border border-slate-100 flex items-start gap-4 shadow-sm">
-                  <ShieldAlert className="text-[#009640] shrink-0" size={20}/>
-                  <div><p className="text-[10px] font-black uppercase text-slate-800">Confirmação Imediata</p><p className="text-[9px] font-bold text-slate-400 mt-1 uppercase leading-relaxed">Voucher emitido assim que o banco aprovar.</p></div>
-               </div>
             </div>
           </aside>
         </div>
