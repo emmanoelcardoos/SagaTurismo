@@ -6,8 +6,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { 
   Loader2, CheckCircle2, Mail, FileText, Calendar, 
-  MapPin, Bed, Compass, User, Clock, ShieldCheck, 
-  ArrowRight, Info, Printer, Lock, Check as CheckIcon, Menu
+  MapPin, Bed, Compass, User, ShieldCheck, 
+  ArrowRight, Info, Printer, Lock, Check, Menu
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -89,8 +89,10 @@ function SucessoContent() {
 
         // Busca os detalhes (Hotel/Pacote)
         const tabela = pData.tipo_item === 'hotel' ? 'hoteis' : 'pacotes';
-        const { data: iData } = await supabase.from(tabela).select('*').eq('id', pData.item_id).maybeSingle();
-        if (iData) setDetalhesItem(iData);
+        if (pData.item_id) {
+          const { data: iData } = await supabase.from(tabela).select('*').eq('id', pData.item_id).maybeSingle();
+          if (iData) setDetalhesItem(iData);
+        }
 
         setLoading(false);
       } catch (err: any) {
@@ -223,7 +225,10 @@ function SucessoContent() {
               <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center text-white backdrop-blur-md shadow-sm"><FileText size={24}/></div>
               <div>
                  <h3 className={`${jakarta.className} text-lg font-bold mb-1`}>Voucher Digital</h3>
-                 <p className="text-sm text-white/80 leading-relaxed">O seu voucher PDF será enviado em instantes para o seu e-mail.</p>
+                 <p className="text-sm text-white/80 leading-relaxed mb-4">O seu voucher PDF será enviado em instantes para o seu e-mail.</p>
+                 <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[#F9C400]">
+                    <Check size={14}/> Anexado
+                 </div>
               </div>
            </div>
         </div>
