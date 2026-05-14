@@ -18,7 +18,7 @@ import { supabase } from '@/lib/supabase';
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '700', '800'] });
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
 
-// ── IMAGEM DE SEGURANÇA PARA EVITAR CRASHES DO NEXT.JS ──
+// ── IMAGEM DE SEGURANÇA ──
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?q=80&w=1740";
 
 // ── UTILITÁRIOS E MATEMÁTICA ──
@@ -31,7 +31,7 @@ const parseValor = (valor: any): number => {
 const formatarMoeda = (valor: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor || 0);
 
-// ── BLINDAGEM DE ARRAYS (Filtra links quebrados que causam erro na galeria) ──
+// ── BLINDAGEM DE ARRAYS ──
 const getArraySeguro = (item: any): string[] => {
   let arr: string[] = [];
   if (!item) return [];
@@ -79,11 +79,15 @@ export default function PacoteDetalhePage() {
   const [loading, setLoading] = useState(true);
   const [disponibilidadeDb, setDisponibilidadeDb] = useState<Record<string, Disponibilidade>>({});
 
+  // 🔴 AQUI ESTAVA O ERRO! As variáveis estavam em falta.
+  const [hoteisDisponiveis, setHoteisDisponiveis] = useState<Hotel[]>([]);
+  const [guiasDisponiveis, setGuiasDisponiveis] = useState<Guia[]>([]);
+  const [atracoesInclusas, setAtracoesInclusas] = useState<Atracao[]>([]);
+
   // Seleções do Usuário
   const [hotelSelecionado, setHotelSelecionado] = useState<Hotel | null>(null);
   const [tipoQuarto, setTipoQuarto] = useState<'standard' | 'luxo'>('standard');
   const [guiaSelecionado, setGuiaSelecionado] = useState<Guia | null>(null);
-  const [atracoesInclusas, setAtracoesInclusas] = useState<Atracao[]>([]);
 
   // Calendário Inteligente
   const [checkin, setCheckin] = useState<Date | null>(null);
@@ -95,8 +99,6 @@ export default function PacoteDetalhePage() {
   const [fotoExpandidaIndex, setFotoExpandidaIndex] = useState<number | null>(null);
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
-  
-  // PROTEÇÃO VITAL: Resolve o erro "Client-side exception" da Vercel
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -116,7 +118,7 @@ export default function PacoteDetalhePage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
-  // 2. Carregar Pacote Blindado
+  // 2. Carregar Pacote
   useEffect(() => {
     async function fetchData() {
       try {
@@ -134,11 +136,15 @@ export default function PacoteDetalhePage() {
         const pct = data as Pacote;
         setPacote(pct);
         
-        // Proteção contra undefined no banco de dados
         const itens = pct.pacote_itens || [];
         const hoteis = itens.map((i: any) => i?.hoteis).filter(Boolean) as Hotel[];
         const guias = itens.map((i: any) => i?.guias).filter(Boolean) as Guia[];
-        setAtracoesInclusas(itens.map((i: any) => i?.atracoes).filter(Boolean) as Atracao[]);
+        const atracoes = itens.map((i: any) => i?.atracoes).filter(Boolean) as Atracao[];
+        
+        // 🔴 E FALTAVA PREENCHÊ-LAS AQUI!
+        setHoteisDisponiveis(hoteis);
+        setGuiasDisponiveis(guias);
+        setAtracoesInclusas(atracoes);
 
         if (hoteis.length > 0) setHotelSelecionado(hoteis[0]);
         if (guias.length > 0) setGuiaSelecionado(guias[0]);
@@ -152,7 +158,7 @@ export default function PacoteDetalhePage() {
     if (id) fetchData();
   }, [id, router]);
 
-  // 3. Carregar Disponibilidade Dinâmica do Hotel Selecionado
+  // 3. Carregar Disponibilidade
   useEffect(() => {
     async function fetchDisp() {
       if (!hotelSelecionado) return;
@@ -197,11 +203,9 @@ export default function PacoteDetalhePage() {
         }
         diaAtual.setDate(diaAtual.getDate() + 1);
       }
-      
-      if (reservaValida) {
-        setCheckout(data);
-      } else {
-        alert("A sua seleção inclui dias que já estão esgotados. Por favor, selecione outro período.");
+      if (reservaValida) setCheckout(data);
+      else {
+        alert("A sua seleção inclui dias esgotados. Selecione outro período.");
         setCheckin(data);
         setCheckout(null);
       }
@@ -210,7 +214,7 @@ export default function PacoteDetalhePage() {
     }
   };
 
-  // ── MATEMÁTICA DE PREÇOS DA RESERVA ──
+  // ── MATEMÁTICA DA RESERVA ──
   let totalHospedagem = 0;
   let totalNoites = 0;
   
@@ -235,21 +239,14 @@ export default function PacoteDetalhePage() {
   ];
 
   const fecharGaleria = () => setFotoExpandidaIndex(null);
-  const proximaFoto = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setFotoExpandidaIndex((prev) => (prev! + 1) % galeriaCombinada.length);
-  };
-  const fotoAnterior = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setFotoExpandidaIndex((prev) => (prev! - 1 + galeriaCombinada.length) % galeriaCombinada.length);
-  };
+  const proximaFoto = (e: React.MouseEvent) => { e.stopPropagation(); setFotoExpandidaIndex((prev) => (prev! + 1) % galeriaCombinada.length); };
+  const fotoAnterior = (e: React.MouseEvent) => { e.stopPropagation(); setFotoExpandidaIndex((prev) => (prev! - 1 + galeriaCombinada.length) % galeriaCombinada.length); };
 
   const handleReserva = () => {
-    if (!checkin || !checkout) return alert("Por favor, selecione as datas de Check-in e Check-out no calendário antes de prosseguir.");
+    if (!checkin || !checkout) return alert("Por favor, selecione Check-in e Check-out no calendário antes de prosseguir.");
     router.push(`/checkout?pacote=${pacote?.id}&hotel=${hotelSelecionado?.id}&quarto=${tipoQuarto}&guia=${guiaSelecionado?.id}&checkin=${formatarDataIso(checkin)}&checkout=${formatarDataIso(checkout)}`);
   };
 
-  // RETORNO DE SEGURANÇA (Impede o erro fatal da Vercel)
   if (!mounted || loading || !pacote) return (
     <div className="min-h-screen flex items-center justify-center bg-[#F8F9FA]">
       <div className="text-center">
@@ -289,7 +286,6 @@ export default function PacoteDetalhePage() {
 
       {/* ── HERO IMPONENTE ── */}
       <section className="relative h-[75vh] min-h-[600px] w-full mt-[70px]">
-        {/* IMAGEM PROTEGIDA */}
         <Image src={pacote.imagem_principal || FALLBACK_IMAGE} alt={pacote.titulo || 'Pacote'} fill className="object-cover" priority />
         <div className="absolute inset-0 bg-gradient-to-t from-[#001E2B] via-[#001E2B]/40 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-r from-black/50 to-transparent" />
@@ -352,7 +348,6 @@ export default function PacoteDetalhePage() {
                   
                   <button className="w-full flex items-center justify-between mb-8 pb-8 border-b-2 border-slate-50 text-left" onClick={() => setHotelSelecionado(hotel)}>
                     <div className="flex items-center gap-8">
-                      {/* IMAGEM PROTEGIDA */}
                       <div className="relative w-32 h-32 rounded-[2rem] overflow-hidden shadow-md border-4 border-white"><Image src={hotel.imagem_url || FALLBACK_IMAGE} alt={hotel.nome} fill className="object-cover" /></div>
                       <div>
                         <h4 className="text-3xl font-bold text-slate-800 mb-3">{hotel.nome}</h4>
@@ -414,7 +409,6 @@ export default function PacoteDetalhePage() {
                 return (
                   <label key={guia.id} className={`flex items-center justify-between p-8 bg-white rounded-[3rem] border-2 transition-all cursor-pointer ${selected ? 'border-[#009640] ring-8 ring-green-50 shadow-xl' : 'border-slate-100 hover:border-slate-300'}`}>
                     <div className="flex items-center gap-8">
-                      {/* IMAGEM PROTEGIDA */}
                       <div className="relative w-24 h-24 rounded-2xl overflow-hidden shadow-sm border border-slate-100"><Image src={guia.imagem_url || FALLBACK_IMAGE} alt={guia.nome} fill className="object-cover" /></div>
                       <div>
                          <p className="font-bold text-2xl text-slate-800 mb-2">{guia.nome}</p>
@@ -442,7 +436,7 @@ export default function PacoteDetalhePage() {
             
             <h3 className={`${jakarta.className} text-2xl font-black mb-8 border-b-2 border-slate-50 pb-6 text-slate-900`}>Detalhes da Reserva</h3>
             
-            {/* Calendário Avançado Airbnb-style */}
+            {/* Calendário Avançado */}
             <div className="bg-slate-50 rounded-[2.5rem] p-6 mb-10 border border-slate-100 shadow-inner">
                <div className="flex justify-between items-center mb-6 px-2">
                  <button onClick={() => setMesAtualCalendario(new Date(anoCorrente, mesCorrente - 1))} className="p-2 hover:bg-slate-200 rounded-full transition-colors"><ChevronLeft size={24} className="text-slate-600"/></button>
