@@ -182,12 +182,28 @@ function CheckoutHotelContent() {
     setIsSubmitting(true);
 
     const payload: any = {
-      tipo_item: "hotel", hotel_id: hotelId, tipo_quarto: quartoTipo, 
-      data_checkin: checkinData, data_checkout: checkoutData,
-      adultos: adultosParam, quartos: quartosParam,
-      nome_cliente: nome, cpf_cliente: cpf.replace(/\D/g, ''), email_cliente: email,
-      telefone_cliente: telefone.replace(/\D/g, ''), valor_total: valorTotalReserva,
-      endereco_faturacao: `${rua}, ${numero}, ${bairro}, ${cidade}-${estado}, ${cep}`
+      tipo_item: "hotel", 
+      hotel_id: hotelId, 
+      tipo_quarto: quartoTipo, 
+      data_checkin: checkinData, 
+      data_checkout: checkoutData,
+      adultos: adultosParam, 
+      quartos: quartosParam,
+      nome_cliente: nome, 
+      cpf_cliente: cpf.replace(/\D/g, ''), 
+      email_cliente: email,
+      telefone_cliente: telefone.replace(/\D/g, ''), 
+      valor_total: valorTotalReserva,
+      // ENDEREÇO ESTRUTURADO PARA O PAGBANK
+      endereco_faturacao: {
+        street: rua,
+        number: numero,
+        locality: bairro,
+        city: cidade,
+        region_code: estado.replace(/\s/g, ''), // Garante que seja a sigla limpa (ex: "SP", "PA")
+        country: "BRA",
+        postal_code: cep.replace(/\D/g, '') // Apenas números
+      }
     };
 
     try {

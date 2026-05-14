@@ -184,7 +184,16 @@ function CheckoutPacoteContent() {
       email_cliente: email,
       telefone_cliente: telefone.replace(/\D/g, ''),
       valor_total: totalPagamento,
-      endereco_faturacao: `${rua}, ${numero}, ${bairro}, ${cidade}-${estado}, ${cep}`
+      // ENDEREÇO ESTRUTURADO PARA O PAGBANK
+      endereco_faturacao: {
+        street: rua,
+        number: numero,
+        locality: bairro,
+        city: cidade,
+        region_code: estado.replace(/\s/g, ''), 
+        country: "BRA",
+        postal_code: cep.replace(/\D/g, '')
+      }
     };
 
     try {
