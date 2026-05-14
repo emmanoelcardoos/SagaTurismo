@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Bird, MapPin, ShieldCheck, User, Calendar, CreditCard, Printer, Loader2, QrCode, ArrowRight } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Bird, MapPin, ShieldCheck, User, Calendar, CreditCard, Printer, Loader2, QrCode } from 'lucide-react';
 import QRCode from 'react-qr-code';
 
 interface CarteiraData {
@@ -16,6 +17,7 @@ interface CarteiraData {
 }
 
 export default function CarteiraDigitalPage({ params }: { params: { token: string } }) {
+  const router = useRouter();
   const [data, setData] = useState<CarteiraData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -24,21 +26,28 @@ export default function CarteiraDigitalPage({ params }: { params: { token: strin
       .then(res => res.json())
       .then(json => {
         setData(json);
+        
+        // ── 1. REDIRECIONAMENTO AUTOMÁTICO SE A IA APROVAR, MAS NÃO ESTIVER PAGO ──
+        if (json.sucesso && (json.status === 'aguardando_pagamento' || json.status === 'pendente' || json.status === 'aprovada')) {
+          router.push(`/checkout-carteira?token=${params.token}`);
+          return; // Interrompe a execução para não tirar o loader enquanto redireciona
+        }
+        
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [params.token]);
+  }, [params.token, router]);
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-stone-100">
       <div className="text-center space-y-4">
-        <Loader2 className="w-12 h-12 animate-spin text-forest mx-auto" />
+        <Loader2 className="w-12 h-12 animate-spin text-[#00577C] mx-auto" />
         <p className="text-sm font-bold text-stone-500 uppercase tracking-widest">A validar documentação com a IA...</p>
       </div>
     </div>
   );
 
-  // ── 1. ESTADO DE ERRO OU REPROVADO PELA IA ──
+  // ── 2. ESTADO DE ERRO OU REPROVADO PELA IA ──
   if (!data || !data.sucesso) return (
     <div className="min-h-screen flex items-center justify-center p-6 text-center bg-stone-100">
       <div className="bg-red-50 text-red-600 p-8 rounded-[2rem] border border-red-100 max-w-sm shadow-xl animate-fade-up">
@@ -52,36 +61,6 @@ export default function CarteiraDigitalPage({ params }: { params: { token: strin
       </div>
     </div>
   );
-
-  // ── 2. BARREIRA DE PAGAMENTO: APROVADO PELA IA MAS NÃO PAGO ──
-  // (Impede que o utilizador veja a carteira antes de pagar)
-  if (data.sucesso && (data.status === 'aguardando_pagamento' || data.status === 'pendente' || data.status === 'aprovada')) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-6 text-center bg-stone-100">
-        <div className="bg-white p-10 rounded-[3rem] border border-stone-200 max-w-lg shadow-2xl animate-fade-up relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-2 bg-[#F9C400]"></div>
-          <div className="w-24 h-24 bg-yellow-50 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner border-4 border-white">
-            <ShieldCheck className="w-12 h-12 text-[#F9C400]" />
-          </div>
-          <h2 className="text-3xl font-black text-slate-900 mb-4 tracking-tight">Análise Aprovada!</h2>
-          <p className="text-stone-500 mb-10 text-lg leading-relaxed px-4">
-            A sua documentação foi <b>aprovada pelo nosso sistema</b>. Para emitir o seu cartão virtual e ativar os benefícios em SGA, conclua o pagamento da taxa de emissão.
-          </p>
-          
-          {/* O ÚNICO CAMINHO POSSÍVEL É IR PARA O CHECKOUT */}
-          <Link 
-            href={`/checkout-carteira?token=${params.token}`} 
-            className="flex items-center justify-center gap-3 w-full bg-[#009640] hover:bg-green-700 text-white py-5 rounded-2xl font-black text-lg transition-transform hover:-translate-y-1 shadow-xl active:scale-95"
-          >
-            Prosseguir para Pagamento <ArrowRight className="w-5 h-5" />
-          </Link>
-          <p className="mt-6 text-[10px] font-bold text-stone-400 uppercase tracking-widest flex items-center justify-center gap-2">
-            <ShieldCheck className="w-3.5 h-3.5 text-[#009640]" /> Integração com PagBank Oficial
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   // ── 3. ESTADO FINAL: CARTEIRA ATIVA (APROVADO E PAGO) ──
   const expira = "29/04/2027";
