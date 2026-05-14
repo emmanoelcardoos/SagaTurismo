@@ -13,7 +13,6 @@ router = APIRouter()
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 PAGBANK_TOKEN = os.environ.get("PAGBANK_TOKEN")
-CHAVE_PAGBANK_PREFEITURA = os.environ.get("CHAVE_PAGBANK_PREFEITURA") # A "Conta Mãe"
 PAGBANK_API_URL = os.environ.get("PAGBANK_API_URL", "https://sandbox.api.pagseguro.com")
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -93,12 +92,12 @@ async def processar_pagamento(pedido: PedidoPagamento):
             nome_item_checkout = f"Hospedagem - {hotel_data['nome']} ({quantidade_noites} noites)"
             item_id_db = pedido.hotel_id
             
-            # Repasse para o Hotel
+            # Repasse para o Hotel (CORRIGIDO PARA ACCOUNT ID)
             conta_pagbank_hotel = hotel_data.get("pagbank_recebedor_id")
             if conta_pagbank_hotel:
                 splits_array.append({
                     "method": "FIXED",
-                    "receivers": [{"account": {"public_key": conta_pagbank_hotel}, "amount": {"value": int(valor_total * 100)}}]
+                    "receivers": [{"account": {"id": conta_pagbank_hotel}, "amount": {"value": int(valor_total * 100)}}]
                 })
 
         # --- CENÁRIO C: PACOTE TURÍSTICO ---
@@ -114,15 +113,17 @@ async def processar_pagamento(pedido: PedidoPagamento):
                 res_hotel = supabase.table("hoteis").select("*").eq("id", pedido.hotel_id).single().execute()
                 if res_hotel.data:
                     valor_hotel = float(res_hotel.data["quarto_luxo_preco"] if pedido.tipo_quarto == 'luxo' else res_hotel.data["quarto_standard_preco"])
+                    # CORRIGIDO PARA ACCOUNT ID
                     if res_hotel.data.get("pagbank_recebedor_id"):
-                        splits_array.append({"method": "FIXED", "receivers": [{"account": {"public_key": res_hotel.data["pagbank_recebedor_id"]}, "amount": {"value": int(valor_hotel * 100)}}]})
+                        splits_array.append({"method": "FIXED", "receivers": [{"account": {"id": res_hotel.data["pagbank_recebedor_id"]}, "amount": {"value": int(valor_hotel * 100)}}]})
 
             if pedido.guia_id:
                 res_guia = supabase.table("guias").select("*").eq("id", pedido.guia_id).single().execute()
                 if res_guia.data:
                     valor_guia = float(res_guia.data["preco_diaria"])
+                    # CORRIGIDO PARA ACCOUNT ID
                     if res_guia.data.get("pagbank_recebedor_id"):
-                        splits_array.append({"method": "FIXED", "receivers": [{"account": {"public_key": res_guia.data["pagbank_recebedor_id"]}, "amount": {"value": int(valor_guia * 100)}}]})
+                        splits_array.append({"method": "FIXED", "receivers": [{"account": {"id": res_guia.data["pagbank_recebedor_id"]}, "amount": {"value": int(valor_guia * 100)}}]})
 
             res_itens = supabase.table("pacote_itens").select("atracao_id").eq("pacote_id", pedido.pacote_id).execute()
             for item in res_itens.data:
@@ -131,9 +132,7 @@ async def processar_pagamento(pedido: PedidoPagamento):
                     if res_atracao.data:
                         valor_atracoes += float(res_atracao.data["preco_entrada"])
             
-            if valor_atracoes > 0 and CHAVE_PAGBANK_PREFEITURA:
-                 splits_array.append({"method": "FIXED", "receivers": [{"account": {"public_key": CHAVE_PAGBANK_PREFEITURA}, "amount": {"value": int(valor_atracoes * 100)}}]})
-
+            # REMOVIDO: A chave da Prefeitura não é necessária aqui, o que sobra do split cai para o dono do Token.
             valor_total = valor_hotel + valor_guia + valor_atracoes
             nome_item_checkout = "Pacote Turístico Oficial - SagaTurismo"
             item_id_db = pedido.pacote_id
@@ -159,7 +158,6 @@ async def processar_pagamento(pedido: PedidoPagamento):
             "valor_total": valor_total,
             "metodo_pagamento": pedido.metodo_pagamento,
             "status_pagamento": "aguardando",
-            # Novos campos que o Frontend agora envia
             "data_checkin": pedido.data_checkin,
             "data_checkout": pedido.data_checkout,
             "endereco_completo": pedido.endereco_completo,
