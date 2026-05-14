@@ -7,8 +7,7 @@ import Link from 'next/link';
 import { 
   Loader2, CheckCircle2, Mail, FileText, Calendar, 
   MapPin, Bed, Compass, User, Clock, ShieldCheck, 
-  ArrowRight, Download, Info, ChevronRight, Printer,
-  Check
+  ArrowRight, Download, Info, ChevronRight, Printer
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -29,7 +28,7 @@ const formatarData = (dataStr: string) => {
 // ── TIPAGEM ──
 type Pedido = {
   id: string;
-  codigo_pedido: string; // Adicionado para consistência
+  codigo_pedido: string;
   tipo_item: 'hotel' | 'pacote';
   nome_cliente: string;
   email_cliente: string;
@@ -43,7 +42,7 @@ type Pedido = {
 
 function SucessoContent() {
   const searchParams = useSearchParams();
-  const pedidoId = searchParams.get('pedido'); // Recebe o SAGA-XXXX
+  const pedidoId = searchParams.get('pedido');
 
   const [isMounted, setIsMounted] = useState(false);
   const [pedido, setPedido] = useState<Pedido | null>(null);
@@ -52,7 +51,11 @@ function SucessoContent() {
 
   useEffect(() => { setIsMounted(true); }, []);
 
+  // ── LÓGICA DE PERSISTÊNCIA COM TENTATIVAS ──
   useEffect(() => {
+    let tentativas = 0;
+    const MAX_TENTATIVAS = 5; // Tenta 5 vezes (total de 10 segundos)
+
     async function fetchPedido() {
       if (!pedidoId) {
         setErro('O número do protocolo não foi identificado na URL.');
@@ -68,16 +71,24 @@ function SucessoContent() {
             hoteis (nome, imagem_url),
             pacotes (titulo, imagem_principal)
           `)
-          // ── CORREÇÃO AQUI: Filtrando pelo código público (SAGA-XXXX) ──
           .eq('codigo_pedido', pedidoId) 
           .single();
+
+        // Se der erro ou não encontrar, e ainda tivermos tentativas, espera 2 segundos e tenta de novo
+        if ((error || !data) && tentativas < MAX_TENTATIVAS) {
+          tentativas++;
+          setTimeout(fetchPedido, 2000); 
+          return;
+        }
 
         if (error || !data) throw new Error('A reserva ainda não foi processada ou o código é inválido.');
         
         setPedido(data as Pedido);
+        setErro(''); // Limpa qualquer erro prévio se encontrar o pedido
+        setLoading(false);
       } catch (err: any) {
+        console.error("Erro Supabase:", err);
         setErro(err.message);
-      } finally {
         setLoading(false);
       }
     }
@@ -91,7 +102,7 @@ function SucessoContent() {
     <div className="min-h-screen bg-white flex flex-col items-center justify-center">
       <div className="relative flex flex-col items-center">
         <Loader2 className="animate-spin text-[#009640] w-16 h-16 mb-4" strokeWidth={1.5} />
-        <p className={`${jakarta.className} text-xs font-black text-slate-400 uppercase tracking-[0.3em]`}>Validando Protocolo...</p>
+        <p className={`${jakarta.className} text-xs font-black text-slate-400 uppercase tracking-[0.3em]`}>Confirmando com a Base de Dados...</p>
       </div>
     </div>
   );
@@ -168,7 +179,7 @@ function SucessoContent() {
                    O seu voucher oficial foi gerado. Ele contém os dados de check-in e o roteiro completo.
                  </p>
                  <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[#F9C400]">
-                    <Check size={14}/> Anexado no seu e-mail
+                    <CheckIcon size={14}/> Anexado no seu e-mail
                  </div>
               </div>
            </div>
@@ -280,6 +291,12 @@ function SucessoContent() {
     </main>
   );
 }
+
+const CheckIcon = ({className}: {className?: string}) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+  </svg>
+)
 
 export default function SucessoReservaPage() {
   return (
