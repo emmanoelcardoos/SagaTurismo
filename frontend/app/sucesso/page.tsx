@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { 
   Loader2, CheckCircle2, Mail, FileText, Calendar, 
   MapPin, Bed, Compass, User, ShieldCheck, 
-  ArrowRight, Info, Printer, Lock, Check, Menu
+  ArrowRight, ArrowLeft, Info, Printer, Lock, Check, Menu
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -198,7 +198,7 @@ function SucessoContent() {
 
       <div className="flex-1 max-w-4xl mx-auto w-full px-6 py-12 mt-[80px] lg:mt-[100px] text-left">
         
-        {/* MENSAGEM PRINCIPAL (Mais Sóbria) */}
+        {/* MENSAGEM PRINCIPAL */}
         <div className="text-center mb-14 animate-in fade-in zoom-in-95 duration-700">
            <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner border-4 border-white">
               <CheckCircle2 size={40} className="text-[#009640]"/>
