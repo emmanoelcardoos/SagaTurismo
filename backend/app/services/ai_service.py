@@ -33,7 +33,25 @@ def validar_endereco_com_ia(imagem_bytes: bytes, lista_nomes: list, mime_type: s
             "## REGRAS DE VALIDAÇÃO (Tolerância Zero)\n\n"
 
             "### REGRA 1 — MUNICÍPIO (Crítico)\n"
-            "Verifique se o documento é de são geraldo do araguaia. Se for de outro município, o comprovante é inválido.\n\n"
+            "Veja se no documento apresentado há explicitamente o nome de São Geraldo do Araguaia, ou alguma referência clara ao município. Documentos de outros municípios são automaticamente inválidos.\n\n"
+            "Deolva neste formato json:"## FORMATO DE RESPOSTA (APENAS JSON)\n"
+            "{\n"
+            "  \"valido\": true | false,\n"
+            "  \"status\": \"aprovado_direto\" | \"aprovado_parentesco\" | \"aprovado_ensino\" | \"aprovado_trabalho\" | \"aprovado_saude\" | \"rejeitado\",\n"
+            "  \"dados_extraidos\": {\n"
+            "    \"nome_no_documento\": \"string\",\n"
+            "    \"endereco_completo\": \"string\",\n"
+            "    \"data_emissao\": \"string\",\n"
+            "    \"tipo_identificado\": \"string\"\n"
+            "  },\n"
+            "  \"checklist_auditoria\": {\n"
+            "    \"cidade_correta\": true | false,\n"
+            "    \"tipo_aceito\": true | false,\n"
+            "    \"nome_ou_parentesco_confere\": true | false,\n"
+            "    \"data_recente\": true | false\n"
+            "  },\n"
+            "  \"motivo\": \"Explicação direta do veredito.\"\n"
+        
         )
 
         response = client.models.generate_content(
