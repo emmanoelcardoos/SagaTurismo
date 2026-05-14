@@ -546,10 +546,11 @@ function SeccaoPacotes() {
 
   useEffect(() => {
     async function fetchPacotes() {
+      // Nota: Verifique se no seu banco a coluna é 'preco_base' ou 'preco'
       const { data } = await supabase
         .from('pacotes')
         .select('*')
-        .limit(3); // Mostra apenas os 3 primeiros na Home
+        .limit(3);
 
       if (data) setPacotes(data);
       setLoading(false);
@@ -560,52 +561,68 @@ function SeccaoPacotes() {
   return (
     <section id="pacotes" className="bg-slate-50 py-24 border-t border-slate-100 text-left">
       <div className="mx-auto max-w-7xl px-5">
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
-          <div className="max-w-2xl text-left">
-            <p className="mb-3 text-sm font-extrabold uppercase tracking-[0.22em] text-[#00577C] flex items-center gap-2">
-              <Compass size={16} /> Experiência Completa
-            </p>
-            <h2 className={`${jakarta.className} text-4xl font-bold text-slate-950 md:text-6xl tracking-tight`}>
-              Pacotes Turísticos
-            </h2>
-            <p className="mt-5 text-slate-600 text-lg">
-              Roteiros prontos com guia, alojamento e lazer para você apenas aproveitar o melhor do Araguaia.
-            </p>
-          </div>
-          <Link href="/pacotes" className="inline-flex items-center gap-3 rounded-full bg-[#00577C] px-8 py-4 font-bold text-white shadow-lg hover:bg-[#004a6b] transition-all hover:gap-5">
-            Explorar todos os pacotes <ArrowRight size={18} />
-          </Link>
+        <div className="mb-14 text-center">
+          <p className="mb-3 text-sm font-extrabold uppercase tracking-[0.22em] text-[#00577C]">
+            Experiência Completa
+          </p>
+          <h2 className={`${jakarta.className} text-4xl font-bold text-slate-950 md:text-6xl tracking-tight`}>
+            Pacotes Turísticos
+          </h2>
+          <p className="mx-auto mt-5 max-w-2xl text-slate-600 text-lg">
+            Roteiros planejados para você aproveitar o melhor do Araguaia com total conforto.
+          </p>
         </div>
 
         {loading ? (
           <div className="flex justify-center py-12 text-[#00577C]"><Loader2 className="animate-spin w-10 h-10" /></div>
         ) : (
-          <div className="grid gap-8 md:grid-cols-3">
+          <div className="grid gap-7 md:grid-cols-3">
             {pacotes.map((pacote) => (
-              <article key={pacote.id} className="group bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-sm hover:shadow-2xl transition-all hover:-translate-y-2 flex flex-col h-full">
-                <div className="relative h-64 overflow-hidden shrink-0">
-                  <Image src={pacote.imagem_principal} alt={pacote.titulo} fill className="object-cover transition-transform duration-700 group-hover:scale-110" />
-                  <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1.5 rounded-xl flex items-center gap-2 text-[10px] font-black uppercase text-[#00577C] shadow-sm">
-                    <Sparkles size={12}/> Destaque SagaTurismo
+              <article
+                key={pacote.id}
+                className="group overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl flex flex-col"
+              >
+                {/* Imagem com altura h-48 igual aos hotéis */}
+                <div className="relative h-48 w-full bg-slate-50 flex items-center justify-center overflow-hidden shrink-0">
+                  <Image 
+                    src={pacote.imagem_principal} 
+                    alt={pacote.titulo} 
+                    fill 
+                    className="object-cover transition-transform duration-500 group-hover:scale-110" 
+                  />
+                  <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1 rounded-lg text-[9px] font-black uppercase text-[#00577C] shadow-sm">
+                    Destaque
                   </div>
                 </div>
-                <div className="p-8 flex flex-col flex-1 text-left">
-                  <div className="flex items-center gap-2 text-[#009640] mb-4">
-                     <CheckCircle2 size={16}/>
-                     <span className="text-[10px] font-black uppercase tracking-widest text-left">Reserva Imediata</span>
+
+                {/* Padding p-7 igual aos hotéis */}
+                <div className="p-7 flex flex-col flex-1">
+                  <div className="mb-4 flex items-center gap-2">
+                    <CheckCircle2 size={14} className="text-[#009640]"/>
+                    <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Reserva Imediata</span>
                   </div>
-                  <h3 className={`${jakarta.className} text-2xl font-black text-slate-900 mb-3`}>{pacote.titulo}</h3>
-                  <p className="text-slate-500 text-sm leading-relaxed line-clamp-3 mb-8 flex-1">{pacote.descricao}</p>
-                  
-                  <div className="flex items-center justify-between pt-6 border-t border-slate-100 mt-auto">
-                    <div className="text-left">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">A partir de</p>
-                      <p className={`${jakarta.className} text-2xl font-black text-[#00577C]`}>
-                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(pacote.preco_base)}
+
+                  <h3 className={`${jakarta.className} text-2xl font-bold text-slate-950 mb-3 line-clamp-1`}>
+                    {pacote.titulo}
+                  </h3>
+
+                  <p className="leading-relaxed text-slate-600 flex-1 line-clamp-3 text-sm">
+                    {pacote.descricao}
+                  </p>
+
+                  <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
+                    <div>
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">A partir de</p>
+                      <p className={`${jakarta.className} text-xl font-black text-[#00577C]`}>
+                        {/* Correção do NaN: Adicionado fallback Number() e valor 0 */}
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(pacote.preco_base || 0))}
                       </p>
                     </div>
-                    <Link href={`/pacotes/${pacote.id}`} className="bg-slate-50 hover:bg-[#F9C400] text-[#00577C] p-4 rounded-2xl transition-all group-hover:rotate-12">
-                      <ChevronRight size={24} />
+                    <Link
+                      href={`/pacotes/${pacote.id}`}
+                      className="bg-slate-50 hover:bg-[#F9C400] text-[#00577C] p-3 rounded-xl transition-all group-hover:translate-x-1"
+                    >
+                      <ChevronRight size={20} />
                     </Link>
                   </div>
                 </div>
@@ -613,6 +630,12 @@ function SeccaoPacotes() {
             ))}
           </div>
         )}
+
+        <div className="mt-12 text-center">
+          <Link href="/pacotes" className="inline-flex items-center gap-2 font-bold text-[#00577C] hover:text-[#004766] transition-all">
+            Ver todos os pacotes disponíveis <ArrowRight size={18} />
+          </Link>
+        </div>
       </div>
     </section>
   );
