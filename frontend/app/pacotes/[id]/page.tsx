@@ -10,7 +10,7 @@ import {
   ChevronRight, Camera, Info, QrCode, Wallet, X, Star,
   Award, ImageIcon, Smartphone, Map, UserCheck,
   ChevronLeft, ChevronRight as ChevronRightIcon, ZoomIn,
-  Landmark
+  Landmark, Check
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -21,7 +21,7 @@ const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] }
 // ── IMAGEM DE SEGURANÇA ──
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?q=80&w=1740";
 
-// ── UTILITÁRIOS E MATEMÁTICA (sem alterações) ──
+// ── UTILITÁRIOS E MATEMÁTICA ──
 const parseValor = (valor: any): number => {
   if (valor === null || valor === undefined || valor === '') return 0;
   const num = typeof valor === 'string' ? parseFloat(valor.replace(',', '.')) : valor;
@@ -31,7 +31,7 @@ const parseValor = (valor: any): number => {
 const formatarMoeda = (valor: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor || 0);
 
-// ── BLINDAGEM DE ARRAYS (sem alterações) ──
+// ── BLINDAGEM DE ARRAYS ──
 const getArraySeguro = (item: any): string[] => {
   if (!item) return [];
   if (Array.isArray(item)) return item;
@@ -48,7 +48,7 @@ const getArraySeguro = (item: any): string[] => {
   return [];
 };
 
-// ── TIPAGENS RÍGIDAS (sem alterações) ──
+// ── TIPAGENS RÍGIDAS ──
 type Hotel = {
   id: string; nome: string; tipo: string; imagem_url: string; descricao: string;
   quarto_standard_nome: string; quarto_standard_preco: any; quarto_standard_comodidades: string[];
@@ -169,7 +169,7 @@ export default function PacoteDetalhePage() {
     fetchDisp();
   }, [hotelSelecionado]);
 
-  // ── LÓGICA DO CALENDÁRIO (sem alterações) ──
+  // ── LÓGICA DO CALENDÁRIO ──
   const diasDoMes = (ano: number, mes: number) => new Date(ano, mes + 1, 0).getDate();
   const primeiroDiaDoMes = (ano: number, mes: number) => new Date(ano, mes, 1).getDay();
   const formatarDataIso = (data: Date) =>
@@ -212,7 +212,7 @@ export default function PacoteDetalhePage() {
     }
   };
 
-  // ── MATEMÁTICA DA RESERVA (sem alterações) ──
+  // ── MATEMÁTICA DA RESERVA ──
   let totalHospedagem = 0;
   let totalNoites = 0;
   if (checkin && checkout && checkin < checkout) {
@@ -228,7 +228,7 @@ export default function PacoteDetalhePage() {
   const valorAtracoes = atracoesInclusas.reduce((acc, curr) => acc + parseValor(curr.preco_entrada), 0);
   const valorTotalFinal = totalHospedagem + valorGuia + valorAtracoes;
 
-  // ── GALERIA (sem alterações) ──
+  // ── GALERIA ──
   const galeriaCombinada = [
     ...(pacote?.imagem_principal ? [pacote.imagem_principal] : []),
     ...getArraySeguro(pacote?.imagens_galeria),
@@ -307,7 +307,7 @@ export default function PacoteDetalhePage() {
               </span>
             </div>
 
-            <h1 className={`${jakarta.className} text-4xl sm:text-5xl font-black text-slate-900 tracking-tight mb-4`}>
+            <h1 className={`${jakarta.className} text-4xl sm:text-5xl font-black text-slate-900 tracking-tight mb-4 text-left`}>
               {pacote.titulo}
             </h1>
 
@@ -317,15 +317,15 @@ export default function PacoteDetalhePage() {
               </span>
             </div>
 
-            <div className="mb-12">
+            <div className="mb-12 text-left">
               <h3 className={`${jakarta.className} text-2xl font-black text-[#00577C] mb-6`}>Sobre o Roteiro</h3>
               <p className="text-lg text-slate-500 italic font-medium border-l-4 border-[#F9C400] pl-5 mb-8">{pacote.descricao_curta}</p>
               <div className="text-slate-600 font-medium leading-relaxed whitespace-pre-line">{pacote.roteiro_detalhado}</div>
             </div>
           </section>
 
-          {/* ── ACOMODAÇÃO ── */}
-          <section className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-2xl border border-slate-100">
+          {/* ── ACOMODAÇÃO (DESIGN HOTEL RESTAURADO) ── */}
+          <section className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-2xl border border-slate-100 text-left">
             <h3 className={`${jakarta.className} text-3xl font-black text-slate-900 mb-10 flex items-center gap-4`}>
               <div className="w-12 h-12 bg-[#00577C] text-white rounded-2xl flex items-center justify-center shadow-lg">
                 <Bed size={24} />
@@ -333,86 +333,99 @@ export default function PacoteDetalhePage() {
               1. Escolha a Acomodação
             </h3>
 
-            <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-8">
               {hoteisDisponiveis.map((hotel: any) => {
-                const selected = hotelSelecionado?.id === hotel.id;
+                const isHotelSelected = hotelSelecionado?.id === hotel.id;
                 return (
-                  <div
-                    key={hotel.id}
-                    className={`rounded-[2rem] border-2 transition-all duration-300 overflow-hidden ${selected ? 'border-[#00577C] shadow-xl' : 'border-slate-100 hover:border-slate-200'}`}
-                  >
-                    <button
-                      className="w-full flex items-center justify-between p-6 text-left gap-6 bg-white"
+                  <div key={hotel.id} className="space-y-6">
+                    {/* Botão de Seleção do Hotel */}
+                    <button 
                       onClick={() => setHotelSelecionado(hotel)}
+                      className={`w-full flex items-center justify-between p-6 rounded-[2rem] border-2 transition-all ${isHotelSelected ? 'border-[#00577C] bg-blue-50/10 shadow-lg' : 'border-slate-100 bg-white hover:border-slate-200'}`}
                     >
-                      <div className="flex items-center gap-5">
-                        <div className="relative w-20 h-20 rounded-2xl overflow-hidden shadow-sm border border-slate-100 shrink-0">
-                          <Image src={hotel.imagem_url || FALLBACK_IMAGE} alt={hotel.nome} fill className="object-cover" />
+                      <div className="flex items-center gap-5 text-left">
+                        <div className="relative w-20 h-20 rounded-2xl overflow-hidden border shrink-0">
+                          <Image src={hotel.imagem_url || FALLBACK_IMAGE} alt="Hotel" fill className="object-cover" />
                         </div>
-                        <div className="text-left">
-                          <h4 className={`${jakarta.className} text-xl font-black text-slate-800 mb-2`}>{hotel.nome}</h4>
-                          <div className="flex items-center gap-3">
-                            <span className="bg-[#F9C400] text-[#00577C] px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest">{hotel.tipo}</span>
-                            <div className="flex text-[#F9C400] gap-0.5">
-                              {[...Array(4)].map((_, i) => <Star key={i} size={13} fill="currentColor" />)}
-                            </div>
+                        <div>
+                          <h4 className={`${jakarta.className} text-xl font-black text-slate-800`}>{hotel.nome}</h4>
+                          <div className="flex items-center gap-3 mt-1">
+                            <span className="bg-[#F9C400] text-[#00577C] px-2 py-0.5 rounded text-[9px] font-black uppercase">{hotel.tipo}</span>
+                            <div className="flex text-[#F9C400] gap-0.5">{[...Array(4)].map((_, i) => <Star key={i} size={12} fill="currentColor" />)}</div>
                           </div>
                         </div>
                       </div>
-                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${selected ? 'border-[#00577C] bg-[#00577C]' : 'border-slate-300'}`}>
-                        {selected && <CheckCircle2 size={14} className="text-white" />}
+                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${isHotelSelected ? 'border-[#00577C] bg-[#00577C]' : 'border-slate-300'}`}>
+                        {isHotelSelected && <Check size={14} className="text-white" strokeWidth={4} />}
                       </div>
                     </button>
 
-                    {selected && (
-                      <div className="border-t border-slate-100 bg-slate-50/50 px-6 pb-6 pt-5 animate-in fade-in slide-in-from-top-2 duration-300">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-[#00577C] mb-4">Tipo de Quarto</p>
-                        <div className="grid md:grid-cols-2 gap-4">
-
-                          {/* Standard */}
-                          <div
-                            onClick={() => setTipoQuarto('standard')}
-                            className={`cursor-pointer p-6 rounded-[1.5rem] border-2 transition-all flex flex-col justify-between ${tipoQuarto === 'standard' ? 'border-[#00577C] bg-blue-50/50' : 'border-slate-100 bg-white hover:border-slate-200'}`}
-                          >
-                            <div className="flex justify-between items-start mb-4">
+                    {/* Comparativo de Quartos (Estilo Premium do Hotel) */}
+                    {isHotelSelected && (
+                      <div className="grid md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-top-4 duration-500">
+                        
+                        {/* Opção Standard */}
+                        <div 
+                          onClick={() => setTipoQuarto('standard')}
+                          className={`relative cursor-pointer flex flex-col p-8 rounded-[2rem] border-2 transition-all h-full ${tipoQuarto === 'standard' ? 'border-[#00577C] bg-white shadow-xl ring-4 ring-blue-50/50' : 'border-slate-100 bg-slate-50/50 opacity-80'}`}
+                        >
+                           <div className="flex justify-between items-start mb-6">
                               <div>
-                                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Opção Económica</p>
-                                <p className="font-bold text-slate-800">{hotel.quarto_standard_nome || 'Standard'}</p>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Opção Económica</p>
+                                <h5 className={`${jakarta.className} text-2xl font-black text-slate-900`}>{hotel.quarto_standard_nome}</h5>
                               </div>
-                              <input type="radio" checked={tipoQuarto === 'standard'} readOnly className="w-5 h-5 accent-[#00577C] mt-0.5 shrink-0" />
-                            </div>
-                            <div className="flex flex-wrap gap-1.5 mb-4">
-                              {getArraySeguro(hotel.quarto_standard_comodidades).map((c: string, i: number) => (
-                                <span key={i} className="text-[9px] font-bold bg-white border border-slate-200 text-slate-500 px-2 py-1 rounded-lg uppercase">{c}</span>
-                              ))}
-                            </div>
-                            <p className={`${jakarta.className} text-2xl font-black text-[#009640]`}>{formatarMoeda(parseValor(hotel.quarto_standard_preco))}</p>
-                          </div>
-
-                          {/* Luxo */}
-                          <div
-                            onClick={() => setTipoQuarto('luxo')}
-                            className={`cursor-pointer p-6 rounded-[1.5rem] border-2 transition-all flex flex-col justify-between relative ${tipoQuarto === 'luxo' ? 'border-[#F9C400] bg-yellow-50/50' : 'border-slate-100 bg-white hover:border-slate-200'}`}
-                          >
-                            <div className="absolute -top-3.5 right-5 bg-[#00577C] text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg flex items-center gap-1">
-                              <Award size={12} /> RECOMENDADO
-                            </div>
-                            <div className="flex justify-between items-start mb-4 mt-1">
-                              <div>
-                                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Experiência Premium</p>
-                                <p className="font-bold text-slate-800">{hotel.quarto_luxo_nome || 'Suíte Luxo'}</p>
+                              <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${tipoQuarto === 'standard' ? 'border-[#00577C] bg-[#00577C]' : 'border-slate-300'}`}>
+                                {tipoQuarto === 'standard' && <Check size={14} className="text-white" strokeWidth={4} />}
                               </div>
-                              <input type="radio" checked={tipoQuarto === 'luxo'} readOnly className="w-5 h-5 accent-[#F9C400] mt-0.5 shrink-0" />
-                            </div>
-                            <div className="flex flex-wrap gap-1.5 mb-4">
-                              {getArraySeguro(hotel.quarto_luxo_comodidades).map((c: string, i: number) => (
-                                <span key={i} className="text-[9px] font-bold bg-[#00577C] text-white px-2 py-1 rounded-lg uppercase shadow-sm">{c}</span>
-                              ))}
-                            </div>
-                            <p className={`${jakarta.className} text-2xl font-black text-[#009640]`}>{formatarMoeda(parseValor(hotel.quarto_luxo_preco))}</p>
-                          </div>
+                           </div>
 
+                           <ul className="space-y-3 mb-10 flex-1">
+                              {getArraySeguro(hotel.quarto_standard_comodidades).map((item, idx) => (
+                                <li key={idx} className="flex items-center gap-3 text-slate-600 font-bold text-sm">
+                                   <CheckCircle2 size={18} className="text-[#009640] shrink-0" /> {item}
+                                </li>
+                              ))}
+                           </ul>
+
+                           <div className="pt-6 border-t border-slate-100">
+                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Preço do Quarto</p>
+                             <p className={`${jakarta.className} text-3xl font-black text-[#009640]`}>{formatarMoeda(parseValor(hotel.quarto_standard_preco))}</p>
+                           </div>
                         </div>
+
+                        {/* Opção Luxo */}
+                        <div 
+                          onClick={() => setTipoQuarto('luxo')}
+                          className={`relative cursor-pointer flex flex-col p-8 rounded-[2rem] border-2 transition-all h-full ${tipoQuarto === 'luxo' ? 'border-[#F9C400] bg-white shadow-xl ring-4 ring-yellow-50/50' : 'border-slate-100 bg-slate-50/50 opacity-80'}`}
+                        >
+                           <div className="absolute -top-3.5 right-8 bg-[#00577C] text-white text-[9px] font-black px-4 py-1.5 rounded-full shadow-lg flex items-center gap-1.5">
+                              <Award size={14} /> RECOMENDADO
+                           </div>
+
+                           <div className="flex justify-between items-start mb-6">
+                              <div>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-[#00577C] mb-1">Experiência Premium</p>
+                                <h5 className={`${jakarta.className} text-2xl font-black text-slate-900`}>{hotel.quarto_luxo_nome}</h5>
+                              </div>
+                              <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${tipoQuarto === 'luxo' ? 'border-[#F9C400] bg-[#F9C400]' : 'border-slate-300'}`}>
+                                {tipoQuarto === 'luxo' && <Check size={14} className="text-white" strokeWidth={4} />}
+                              </div>
+                           </div>
+
+                           <ul className="space-y-3 mb-10 flex-1">
+                              {getArraySeguro(hotel.quarto_luxo_comodidades).map((item, idx) => (
+                                <li key={idx} className="flex items-center gap-3 text-slate-700 font-black text-sm">
+                                   <Star size={18} className="text-[#F9C400] fill-[#F9C400] shrink-0" /> {item}
+                                </li>
+                              ))}
+                           </ul>
+
+                           <div className="pt-6 border-t border-slate-100">
+                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Preço do Quarto</p>
+                             <p className={`${jakarta.className} text-3xl font-black text-[#009640]`}>{formatarMoeda(parseValor(hotel.quarto_luxo_preco))}</p>
+                           </div>
+                        </div>
+
                       </div>
                     )}
                   </div>
@@ -422,7 +435,7 @@ export default function PacoteDetalhePage() {
           </section>
 
           {/* ── GUIA OFICIAL ── */}
-          <section className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-2xl border border-slate-100">
+          <section className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-2xl border border-slate-100 text-left">
             <h3 className={`${jakarta.className} text-3xl font-black text-slate-900 mb-10 flex items-center gap-4`}>
               <div className="w-12 h-12 bg-[#009640] text-white rounded-2xl flex items-center justify-center shadow-lg">
                 <UserCheck size={24} />
@@ -436,22 +449,22 @@ export default function PacoteDetalhePage() {
                 return (
                   <label
                     key={guia.id}
-                    className={`flex items-center justify-between p-6 bg-white rounded-[2rem] border-2 transition-all cursor-pointer ${selected ? 'border-[#009640] shadow-lg' : 'border-slate-100 hover:border-slate-200'}`}
+                    className={`flex items-center justify-between p-6 bg-white rounded-[2rem] border-2 transition-all cursor-pointer ${selected ? 'border-[#009640] shadow-lg' : 'border-slate-100 bg-white hover:border-slate-200'}`}
                   >
-                    <div className="flex items-center gap-5">
+                    <div className="flex items-center gap-5 text-left">
                       <div className="relative w-16 h-16 rounded-2xl overflow-hidden shadow-sm border border-slate-100 shrink-0">
                         <Image src={guia.imagem_url || FALLBACK_IMAGE} alt={guia.nome} fill className="object-cover" />
                       </div>
                       <div>
                         <p className={`${jakarta.className} font-black text-lg text-slate-800 mb-1`}>{guia.nome}</p>
-                        <p className="text-xs font-bold text-slate-500 flex items-center gap-2">
+                        <p className="text-xs font-bold text-slate-500 flex items-center gap-2 text-left">
                           <span className="w-2 h-2 rounded-full bg-[#009640]" />{guia.especialidade}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-5">
                       <div className="text-right hidden sm:block">
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Diária</p>
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 text-left">Diária</p>
                         <p className={`${jakarta.className} text-xl font-black text-slate-900`}>{formatarMoeda(parseValor(guia.preco_diaria))}</p>
                       </div>
                       <input
@@ -470,12 +483,11 @@ export default function PacoteDetalhePage() {
         </div>
 
         {/* ── COLUNA DIREITA — MOTOR DE RESERVAS ── */}
-        <div className="w-full lg:w-[420px] shrink-0 lg:self-start">
+        <div className="w-full lg:w-[420px] shrink-0 lg:self-start text-left">
           <aside className="lg:sticky lg:top-32 space-y-6">
 
             <div className="bg-white p-8 rounded-[3rem] shadow-2xl border border-slate-200 overflow-hidden">
 
-              {/* Preço estimado */}
               <div className="border-b border-slate-100 pb-6 mb-6">
                 <p className="text-[10px] font-black uppercase tracking-widest text-[#00577C] mb-1">Valor Estimado</p>
                 <div className="flex items-end gap-2">
@@ -484,7 +496,6 @@ export default function PacoteDetalhePage() {
                 </div>
               </div>
 
-              {/* 1. Escolha da Acomodação */}
               <div className="space-y-3 mb-8">
                 <p className="text-[10px] font-black uppercase tracking-widest text-[#00577C]">1. Acomodação</p>
                 {hoteisDisponiveis.map((hotel: any) => (
@@ -504,7 +515,6 @@ export default function PacoteDetalhePage() {
                 ))}
               </div>
 
-              {/* 2. Tipo de Quarto */}
               <div className="space-y-3 mb-8">
                 <p className="text-[10px] font-black uppercase tracking-widest text-[#00577C]">2. Tipo de Quarto</p>
                 <label className={`flex items-center gap-3 p-4 rounded-2xl border-2 cursor-pointer transition-all ${tipoQuarto === 'standard' ? 'border-[#00577C] bg-blue-50/50' : 'border-slate-100 hover:border-slate-200'}`}>
@@ -517,7 +527,6 @@ export default function PacoteDetalhePage() {
                 </label>
               </div>
 
-              {/* 3. Calendário */}
               <div className="mb-8">
                 <p className="text-[10px] font-black uppercase tracking-widest text-[#00577C] mb-4">3. Selecione as Datas</p>
                 <div className="bg-slate-50 border border-slate-200 rounded-[2rem] p-5 shadow-inner">
@@ -583,7 +592,6 @@ export default function PacoteDetalhePage() {
                 </div>
               </div>
 
-              {/* Resumo Financeiro */}
               <div className="space-y-3 mb-6 text-sm font-semibold">
                 <div className="flex justify-between items-center text-slate-600">
                   <span className="flex items-center gap-2"><Bed size={14} className="text-[#00577C]" /> Hospedagem ({totalNoites} nts)</span>
@@ -599,12 +607,11 @@ export default function PacoteDetalhePage() {
                 </div>
               </div>
 
-              {/* Total */}
               {checkin && checkout && (
                 <div className="flex flex-col gap-2 bg-[#009640]/10 p-6 rounded-2xl mb-6 border border-[#009640]/20 animate-in zoom-in-95 duration-300">
                   <div className="flex justify-between items-end">
                     <div>
-                      <span className="text-[10px] font-black text-[#009640] uppercase block mb-1">Total Estimado</span>
+                      <span className="text-[10px] font-black text-[#009640] uppercase block mb-1 text-left">Total Estimado</span>
                       <span className="text-xs font-bold text-slate-600">{totalNoites} {totalNoites === 1 ? 'noite' : 'noites'}</span>
                     </div>
                     <span className={`${jakarta.className} text-3xl font-black text-[#009640]`}>{formatarMoeda(valorTotalFinal)}</span>
@@ -630,7 +637,7 @@ export default function PacoteDetalhePage() {
 
       {/* ── GALERIA ── */}
       {galeriaCombinada.length > 0 && (
-        <div className="mx-auto w-full max-w-7xl px-5 pb-20 relative z-10">
+        <div className="mx-auto w-full max-w-7xl px-5 pb-20 relative z-10 text-left">
           <section className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-xl border border-slate-100">
             <h3 className={`${jakarta.className} text-3xl font-black text-slate-900 mb-8`}>Galeria de Imagens</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
@@ -681,7 +688,7 @@ export default function PacoteDetalhePage() {
       )}
 
       {/* ── FOOTER ── */}
-      <footer className="border-t border-slate-200 bg-white mt-auto">
+      <footer className="border-t border-slate-200 bg-white mt-auto text-left">
         <div className="mx-auto flex max-w-7xl flex-col gap-8 px-5 py-12 md:flex-row md:items-center md:justify-between text-center md:text-left">
           <div className="flex flex-col md:flex-row items-center gap-4">
             <div className="relative h-14 w-40">
