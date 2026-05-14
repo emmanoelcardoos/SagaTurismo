@@ -10,7 +10,7 @@ import {
   Bed, Compass, Ticket, QrCode, CheckCircle2, 
   User, Mail, FileText, Smartphone, Copy, AlertCircle,
   CreditCard, Home, Clock, Lock, ShieldAlert, Menu, Info,
-  ChevronRight
+  ChevronRight, Wallet, Check
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -38,41 +38,61 @@ const parseValor = (valor: any): number => {
   const num = typeof valor === 'string' ? parseFloat(valor.replace(',', '.')) : valor;
   return isNaN(num) ? 0 : num;
 };
-
 const formatarMoeda = (valor: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
-
 const mascaraCPF = (v: string) => v.replace(/\D/g, '').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})/, '$1-$2').slice(0, 14);
 const mascaraCartao = (v: string) => v.replace(/\D/g, '').replace(/(\d{4})(?=\d)/g, '$1 ').slice(0, 19);
 const mascaraTelefone = (v: string) => v.replace(/\D/g, '').replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d{4})/, '$1-$2').slice(0, 15);
 const mascaraCEP = (v: string) => v.replace(/\D/g, '').replace(/(\d{5})(\d)/, '$1-$2').slice(0, 9);
 
-// ─── COMPONENTE: CRONÓMETRO ───
-function CronometroPix({ onExpirado }: { onExpirado: () => void }) {
-  const [segundos, setSegundos] = useState(900);
-  const jaDisparou = useRef(false);
+// ─── COMPONENTES UI ESTILO NOVO ───
+
+function SectionCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div className={`rounded-3xl border border-slate-100 bg-white shadow-sm overflow-hidden ${className}`}>
+      {children}
+    </div>
+  )
+}
+
+function SectionHeader({ step, title, icon }: { step: number; title: string; icon: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-3 mb-8">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#00577C] text-white text-xs font-black">
+        {step}
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-[#00577C]">{icon}</span>
+        <h2 className={`${jakarta.className} text-lg font-black text-slate-900 tracking-tight`}>{title}</h2>
+      </div>
+    </div>
+  )
+}
+
+function BarraTempoReserva() {
+  const [segundos, setSegundos] = useState(900); // 15 min
   useEffect(() => {
-    const id = setInterval(() => {
-      setSegundos((prev) => {
-        if (prev <= 1) {
-          clearInterval(id);
-          if (!jaDisparou.current) { jaDisparou.current = true; onExpirado(); }
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    const id = setInterval(() => setSegundos(s => Math.max(0, s - 1)), 1000);
     return () => clearInterval(id);
-  }, [onExpirado]);
+  }, []);
   const min = Math.floor(segundos / 60);
   const seg = segundos % 60;
   const percent = (segundos / 900) * 100;
+
   return (
-    <div className="rounded-3xl border-2 p-6 bg-slate-50 border-slate-200 mb-8">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2"><Clock className="text-[#00577C]" size={20} /><p className="text-xs font-black uppercase text-slate-500">Tempo de Reserva</p></div>
-        <div className="text-3xl font-black text-slate-800">{String(min).padStart(2, "0")}:{String(seg).padStart(2, "0")}</div>
+    <div className="mb-8 overflow-hidden rounded-2xl border border-blue-100 bg-blue-50/50 shadow-sm">
+      <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-left">
+        <div>
+          <p className="font-black text-sm text-[#00577C]">Disponibilidade garantida por {min} minutos</p>
+          <p className="text-xs font-medium text-slate-500 mt-1">Conclua o pagamento para garantir este pacote turístico exclusivo.</p>
+        </div>
+        <div className="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-white px-4 py-2 shadow-sm border border-blue-100">
+          <Clock size={16} className="text-[#00577C]" />
+          <span className="text-xl font-black text-[#00577C] tabular-nums">{String(min).padStart(2, "0")}:{String(seg).padStart(2, "0")}</span>
+        </div>
       </div>
-      <div className="h-2 w-full bg-slate-200 rounded-full overflow-hidden"><div className="h-full bg-[#00577C] transition-all" style={{ width: `${percent}%` }} /></div>
+      <div className="h-1.5 w-full bg-slate-200">
+        <div className="h-full bg-[#00577C] transition-all duration-1000 ease-linear" style={{ width: `${percent}%` }} />
+      </div>
     </div>
   );
 }
@@ -80,11 +100,8 @@ function CronometroPix({ onExpirado }: { onExpirado: () => void }) {
 function CheckoutPacoteContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [isMounted, setIsMounted] = useState(false);
-  const [showHeader, setShowHeader] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
 
-  // Parâmetros
+  // Parâmetros da URL
   const pacoteId = searchParams.get('pacote');
   const hotelId = searchParams.get('hotel');
   const quartoTipo = searchParams.get('quarto') as 'standard' | 'luxo' | null;
@@ -96,6 +113,8 @@ function CheckoutPacoteContent() {
   const [guiaSel, setGuiaSel] = useState<Guia | null>(null);
   const [atracoes, setAtracoes] = useState<Atracao[]>([]);
   const [loadingInitial, setLoadingInitial] = useState(true);
+  const [showHeader, setShowHeader] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
 
   // Estados do Formulário
   const [nome, setNome] = useState('');
@@ -118,10 +137,7 @@ function CheckoutPacoteContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [erroApi, setErroApi] = useState('');
   const [qrCodeData, setQrCodeData] = useState<{ link: string; texto: string; id_pedido: string } | null>(null);
-  const [copiado, setCopiado] = useState(false);
-  const [pixExpirado, setPixExpirado] = useState(false);
 
-  useEffect(() => { setIsMounted(true); }, []);
   useEffect(() => {
     const handleScroll = () => {
       const cur = window.scrollY;
@@ -173,13 +189,13 @@ function CheckoutPacoteContent() {
 
     try {
       if (metodoPagamento === 'cartao') {
-        if (!window.PagSeguro) throw new Error('PagSeguro não carregado.');
+        if (!window.PagSeguro) throw new Error('Sistema de criptografia não carregado.');
         const result = window.PagSeguro.encryptCard({
           publicKey: process.env.NEXT_PUBLIC_PAGBANK_PUBLIC_KEY,
           holder: nomeCartao, number: numeroCartao.replace(/\D/g,''),
           expMonth: mesCartao, expYear: anoCartao, securityCode: cvvCartao
         });
-        if (result.hasErrors) throw new Error('Cartão inválido.');
+        if (result.hasErrors) throw new Error('Dados do cartão inválidos.');
         payload.metodo_pagamento = 'cartao';
         payload.encrypted_card = result.encryptedCard;
         payload.parcelas = parcelas;
@@ -205,204 +221,222 @@ function CheckoutPacoteContent() {
     } catch (err: any) { setErroApi(err.message); } finally { setIsSubmitting(false); }
   };
 
-  if (!isMounted) return null;
-  if (loadingInitial) return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center">
-      <Loader2 className="animate-spin text-[#00577C] w-12 h-12 mb-4" />
-      <p className="font-bold text-slate-400 uppercase tracking-widest text-xs">Preparando Pacote Turístico...</p>
-    </div>
-  );
+  if (loadingInitial) return <div className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="animate-spin text-[#00577C]" size={40} /></div>;
 
   return (
-    <div className={`${inter.className} bg-[#F8F9FA] min-h-screen`}>
+    <main className={`${inter.className} min-h-screen bg-[#F8F9FA] text-slate-900 pb-20`}>
       <Script src="https://assets.pagseguro.com.br/checkout-sdk-js/rc/dist/browser/pagseguro.min.js" strategy="afterInteractive" />
 
-      {/* HEADER OFICIAL */}
+      {/* HEADER */}
       <header className={`fixed left-0 top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl transition-transform duration-300 ${showHeader ? 'translate-y-0' : '-translate-y-full'}`}>
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-5">
-          <Link href="/" className="flex min-w-0 items-center gap-4">
-            <div className="relative h-12 w-36 sm:h-16 sm:w-56"><Image src="/logop.png" alt="Prefeitura" fill priority className="object-contain object-left" /></div>
-            <div className="hidden border-l border-slate-200 pl-4 lg:block text-left">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-5 text-left">
+          <Link href="/" className="flex items-center gap-3">
+            <div className="relative h-12 w-36 shrink-0 sm:h-16 sm:w-56"><Image src="/logop.png" alt="Prefeitura" fill priority className="object-contain object-left" /></div>
+            <div className="hidden border-l border-slate-200 pl-4 lg:block">
               <p className={`${jakarta.className} text-2xl font-bold leading-none text-[#00577C]`}>SagaTurismo</p>
               <p className="mt-1 text-[11px] font-bold uppercase tracking-widest text-slate-500">Secretaria de Turismo</p>
             </div>
           </Link>
-          <nav className="hidden items-center gap-7 md:flex">
-             <Link href="/cadastro" className="rounded-full bg-[#F9C400] px-6 py-3 text-sm font-bold text-[#00577C] shadow-lg hover:bg-[#ffd633] transition-all">Cartão Residente</Link>
-          </nav>
+          <Link href="/cadastro" className="hidden sm:block rounded-full bg-[#F9C400] px-5 py-3 text-sm font-bold text-[#00577C] shadow-lg hover:bg-[#ffd633] transition-all">Cartão Residente</Link>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-6 py-12 lg:py-20 mt-[80px]">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-16 border-b-2 border-slate-100 pb-8 gap-6 text-left">
-          <button onClick={() => router.back()} className="flex items-center gap-2 text-slate-500 hover:text-[#00577C] font-bold transition-all"><ArrowLeft size={20} /> Alterar Escolhas</button>
-          <div className="flex items-center gap-4 bg-green-50 px-6 py-3 rounded-full border border-green-100"><ShieldCheck className="text-[#009640]" size={24} /><span className={`${jakarta.className} text-xl font-black text-[#009640]`}>Checkout Seguro SGA</span></div>
+      {/* PROGRESS BAR */}
+      <div className="bg-white border-b border-slate-100 mt-[80px] sm:mt-[90px]">
+        <div className="mx-auto max-w-7xl px-4 md:px-8 py-3">
+          <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest font-black text-slate-400">
+            <span>Pacote</span> <ChevronRight size={12}/> <span>Escolha</span> <ChevronRight size={12}/> <span className="text-[#00577C]">Pagamento Seguro</span> <ChevronRight size={12}/> <span>Sucesso</span>
+          </div>
         </div>
+      </div>
 
-        <div className="grid lg:grid-cols-[1.5fr_1fr] gap-16 items-start text-left">
-          <div className="space-y-12">
+      <div className="mx-auto max-w-7xl px-4 md:px-8 py-8 md:py-12">
+        <BarraTempoReserva />
+
+        <div className="grid gap-8 lg:grid-cols-[1fr_400px] items-start">
+          
+          {/* COLUNA ESQUERDA */}
+          <div className="space-y-6">
+            
+            {/* CARD DO PACOTE (Topo da Esquerda) */}
+            <SectionCard>
+               <div className="flex flex-col md:flex-row">
+                  <div className="relative h-48 md:h-auto md:w-64 shrink-0 overflow-hidden bg-slate-100">
+                    {pacote?.imagem_principal && <img src={pacote.imagem_principal} alt={pacote.titulo} className="h-full w-full object-cover" />}
+                  </div>
+                  <div className="p-6 flex flex-col justify-center text-left">
+                     <div className="flex items-center gap-2 text-[10px] font-black uppercase text-[#009640] mb-2 bg-green-50 w-fit px-2 py-1 rounded">
+                        <ShieldCheck size={12}/> Pacote Oficial SagaTurismo
+                     </div>
+                     <h2 className={`${jakarta.className} text-2xl font-black text-slate-900 mb-2`}>{pacote?.titulo}</h2>
+                     <p className="text-slate-500 flex items-center gap-2 text-sm font-bold"><MapPin size={16} className="text-red-400"/> São Geraldo do Araguaia - PA</p>
+                  </div>
+               </div>
+            </SectionCard>
+
             {!qrCodeData ? (
-              <form onSubmit={handlePagamento} className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
+              <form onSubmit={handlePagamento} className="space-y-6">
                 
-                {/* 1. IDENTIFICAÇÃO */}
-                <section className="bg-white p-10 md:p-12 rounded-[3.5rem] shadow-sm border border-slate-100 relative overflow-hidden">
-                  <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none"><User size={120}/></div>
-                  <h2 className={`${jakarta.className} text-2xl font-bold text-slate-900 mb-10 flex items-center gap-4`}>
-                    <span className="bg-[#00577C] text-white w-10 h-10 rounded-2xl flex items-center justify-center text-sm shadow-md">1</span> 
-                    Hóspede Principal
-                  </h2>
-                  <div className="space-y-8">
-                    <input required value={nome} onChange={e => setNome(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 font-bold text-slate-800 text-lg outline-none focus:border-[#00577C] transition-all" placeholder="Nome Completo" />
-                    <div className="grid sm:grid-cols-2 gap-8">
-                      <input required value={cpf} onChange={e => setCpf(mascaraCPF(e.target.value))} maxLength={14} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 font-bold text-lg outline-none focus:border-[#00577C] transition-all" placeholder="CPF" />
-                      <input required value={telefone} onChange={e => setTelefone(mascaraTelefone(e.target.value))} maxLength={15} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 font-bold text-lg outline-none focus:border-[#00577C] transition-all" placeholder="WhatsApp" />
+                {/* 1. DADOS DO HÓSPEDE */}
+                <SectionCard className="p-8 text-left">
+                  <SectionHeader step={1} title="Hóspede Principal" icon={<User size={18} />} />
+                  <div className="grid gap-6 sm:grid-cols-2">
+                    <div className="sm:col-span-2">
+                      <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Nome Completo</label>
+                      <input required value={nome} onChange={e => setNome(e.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="Como no documento oficial" />
                     </div>
-                    <input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 font-bold text-lg outline-none focus:border-[#00577C] transition-all" placeholder="E-mail para o Voucher" />
+                    <div>
+                      <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">CPF</label>
+                      <input required value={cpf} onChange={e => setCpf(mascaraCPF(e.target.value))} maxLength={14} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-bold outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="000.000.000-00" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">WhatsApp</label>
+                      <input required value={telefone} onChange={e => setTelefone(mascaraTelefone(e.target.value))} maxLength={15} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-bold outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="(99) 99999-9999" />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">E-mail para o Voucher</label>
+                      <input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-bold outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="exemplo@email.com" />
+                    </div>
                   </div>
-                </section>
+                </SectionCard>
 
-                {/* 2. ENDEREÇO (EXIGIDO PELO PAGBANK) */}
-                <section className="bg-white p-10 md:p-12 rounded-[3.5rem] shadow-sm border border-slate-100 relative overflow-hidden">
-                  <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none"><Home size={120}/></div>
-                  <h2 className={`${jakarta.className} text-2xl font-bold text-slate-900 mb-10 flex items-center gap-4`}>
-                    <span className="bg-[#00577C] text-white w-10 h-10 rounded-2xl flex items-center justify-center text-sm shadow-md">2</span> 
-                    Endereço de Registo
-                  </h2>
-                  <div className="space-y-8">
-                    <div className="grid sm:grid-cols-[1fr_120px] gap-8">
-                      <input required value={rua} onChange={e => setRua(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 font-bold outline-none focus:border-[#00577C]" placeholder="Rua / Avenida" />
-                      <input required value={numero} onChange={e => setNumero(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 font-bold text-center outline-none focus:border-[#00577C]" placeholder="Nº" />
+                {/* 2. ENDEREÇO (PAGBANK REQUISITO) */}
+                <SectionCard className="p-8 text-left">
+                  <SectionHeader step={2} title="Endereço de Faturação" icon={<Home size={18} />} />
+                  <div className="grid gap-6 sm:grid-cols-2">
+                    <div className="sm:col-span-2 grid grid-cols-[1fr_100px] gap-4">
+                      <input required value={rua} onChange={e => setRua(e.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-bold" placeholder="Rua / Avenida" />
+                      <input required value={numero} onChange={e => setNumero(e.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-bold text-center" placeholder="Nº" />
                     </div>
-                    <div className="grid sm:grid-cols-2 gap-8">
-                      <input required value={bairro} onChange={e => setBairro(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 font-bold outline-none focus:border-[#00577C]" placeholder="Bairro" />
-                      <input required value={cep} onChange={e => setCep(mascaraCEP(e.target.value))} maxLength={9} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 font-bold outline-none focus:border-[#00577C]" placeholder="CEP" />
-                    </div>
-                    <div className="grid sm:grid-cols-[1fr_100px] gap-8">
-                      <input required value={cidade} onChange={e => setCidade(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 font-bold outline-none focus:border-[#00577C]" placeholder="Cidade" />
-                      <input required value={estado} onChange={e => setEstado(e.target.value.toUpperCase())} maxLength={2} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 font-bold text-center outline-none focus:border-[#00577C]" placeholder="UF" />
-                    </div>
+                    <input required value={bairro} onChange={e => setBairro(e.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-bold" placeholder="Bairro" />
+                    <input required value={cep} onChange={e => setCep(mascaraCEP(e.target.value))} maxLength={9} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-bold" placeholder="CEP" />
+                    <input required value={cidade} onChange={e => setCidade(e.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-bold" placeholder="Cidade" />
+                    <input required value={estado} onChange={e => setEstado(e.target.value.toUpperCase())} maxLength={2} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-bold text-center" placeholder="UF" />
                   </div>
-                </section>
+                </SectionCard>
 
                 {/* 3. PAGAMENTO */}
-                <section className="bg-white p-10 md:p-12 rounded-[3.5rem] shadow-sm border border-slate-100">
-                  <h2 className={`${jakarta.className} text-2xl font-bold text-slate-900 mb-10 flex items-center gap-4`}>
-                    <span className="bg-[#009640] text-white w-10 h-10 rounded-2xl flex items-center justify-center text-sm shadow-md">3</span> 
-                    Pagamento Oficial
-                  </h2>
-                  <div className="grid grid-cols-2 gap-6 mb-12">
-                    <button type="button" onClick={() => setMetodoPagamento('pix')} className={`p-8 rounded-[2.5rem] border-4 flex flex-col items-center gap-4 transition-all ${metodoPagamento === 'pix' ? 'border-[#009640] bg-green-50/50' : 'border-slate-50 opacity-60'}`}><QrCode size={32} className={metodoPagamento === 'pix' ? 'text-[#009640]' : 'text-slate-400'} /><span className="font-black text-xs uppercase">PIX Instantâneo</span></button>
-                    <button type="button" onClick={() => setMetodoPagamento('cartao')} className={`p-8 rounded-[2.5rem] border-4 flex flex-col items-center gap-4 transition-all ${metodoPagamento === 'cartao' ? 'border-[#00577C] bg-blue-50/50' : 'border-slate-50 opacity-60'}`}><CreditCard size={32} className={metodoPagamento === 'cartao' ? 'text-[#00577C]' : 'text-slate-400'} /><span className="font-black text-xs uppercase">Cartão de Crédito</span></button>
+                <SectionCard className="p-8 text-left">
+                  <SectionHeader step={3} title="Método de Pagamento" icon={<Wallet size={18} />} />
+                  <div className="grid grid-cols-2 gap-4 mb-8">
+                    <button type="button" onClick={() => setMetodoPagamento('pix')} className={`flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all ${metodoPagamento === 'pix' ? 'border-[#009640] bg-green-50 text-[#009640]' : 'border-slate-100 text-slate-400 hover:border-slate-200'}`}>
+                      <QrCode size={32} /> <span className="text-xs font-black uppercase">PIX Instantâneo</span>
+                    </button>
+                    <button type="button" onClick={() => setMetodoPagamento('cartao')} className={`flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all ${metodoPagamento === 'cartao' ? 'border-[#00577C] bg-blue-50 text-[#00577C]' : 'border-slate-100 text-slate-400 hover:border-slate-200'}`}>
+                      <CreditCard size={32} /> <span className="text-xs font-black uppercase">Cartão de Crédito</span>
+                    </button>
                   </div>
 
                   {metodoPagamento === 'cartao' && (
-                    <div className="space-y-6 bg-slate-50 p-10 rounded-[2.5rem] border-2 border-slate-100 mb-10 animate-in slide-in-from-top-4">
-                      <input required value={nomeCartao} onChange={e => setNomeCartao(e.target.value.toUpperCase())} className="w-full p-4 rounded-xl font-bold border-2 outline-none focus:border-[#00577C]" placeholder="NOME NO CARTÃO" />
-                      <input required value={numeroCartao} onChange={e => setNumeroCartao(mascaraCartao(e.target.value))} maxLength={19} className="w-full p-4 rounded-xl font-bold border-2 outline-none focus:border-[#00577C]" placeholder="0000 0000 0000 0000" />
-                      <div className="grid grid-cols-3 gap-4">
-                        <input required value={mesCartao} maxLength={2} className="p-4 rounded-xl border-2 text-center font-bold" placeholder="MM" onChange={e => setMesCartao(e.target.value.replace(/\D/g,''))} />
-                        <input required value={anoCartao} maxLength={4} className="p-4 rounded-xl border-2 text-center font-bold" placeholder="AAAA" onChange={e => setAnoCartao(e.target.value.replace(/\D/g,''))} />
-                        <input required type="password" value={cvvCartao} maxLength={4} className="p-4 rounded-xl border-2 text-center font-bold" placeholder="CVV" onChange={e => setCvvCartao(e.target.value.replace(/\D/g,''))} />
+                    <div className="space-y-4 bg-slate-50 p-6 rounded-2xl border border-slate-200 mb-6 animate-in slide-in-from-top-4">
+                      <input required value={nomeCartao} onChange={e => setNomeCartao(e.target.value.toUpperCase())} className="w-full p-4 rounded-xl font-bold border border-slate-200 outline-none focus:border-[#00577C]" placeholder="NOME IMPRESSO NO CARTÃO" />
+                      <input required value={numeroCartao} onChange={e => setNumeroCartao(mascaraCartao(e.target.value))} maxLength={19} className="w-full p-4 rounded-xl font-bold border border-slate-200 outline-none focus:border-[#00577C]" placeholder="0000 0000 0000 0000" />
+                      <div className="grid grid-cols-3 gap-3">
+                        <input required value={mesCartao} maxLength={2} className="p-4 rounded-xl border border-slate-200 text-center font-bold" placeholder="MM" onChange={e => setMesCartao(e.target.value.replace(/\D/g,''))} />
+                        <input required value={anoCartao} maxLength={4} className="p-4 rounded-xl border border-slate-200 text-center font-bold" placeholder="AAAA" onChange={e => setAnoCartao(e.target.value.replace(/\D/g,''))} />
+                        <input required type="password" value={cvvCartao} maxLength={4} className="p-4 rounded-xl border border-slate-200 text-center font-bold" placeholder="CVV" onChange={e => setCvvCartao(e.target.value.replace(/\D/g,''))} />
                       </div>
-                      <select value={parcelas} onChange={e => setParcelas(Number(e.target.value))} className="w-full p-5 rounded-xl border-2 font-bold bg-white">
+                      <select value={parcelas} onChange={e => setParcelas(Number(e.target.value))} className="w-full p-4 rounded-xl border border-slate-200 font-bold bg-white">
                         {[...Array(12)].map((_, i) => <option key={i+1} value={i+1}>{i+1}x de {formatarMoeda(totalPagamento/(i+1))}</option>)}
                       </select>
                     </div>
                   )}
 
-                  {erroApi && <div className="p-6 bg-red-50 text-red-600 rounded-3xl mb-8 font-bold flex gap-3 border border-red-100 animate-pulse"><AlertCircle/> {erroApi}</div>}
-                  <button type="submit" disabled={isSubmitting} className="w-full py-8 rounded-[2rem] font-black text-2xl text-white shadow-xl bg-slate-900 hover:bg-black transition-all active:scale-95 flex items-center justify-center gap-4">
-                    {isSubmitting ? <Loader2 className="animate-spin" size={32}/> : `Pagar ${formatarMoeda(totalPagamento)}`}
+                  {erroApi && <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-xl font-bold text-sm flex gap-2 border border-red-100 animate-pulse"><AlertCircle size={18}/> {erroApi}</div>}
+                  
+                  <button type="submit" disabled={isSubmitting} className="w-full py-6 rounded-2xl font-black text-xl text-white shadow-xl bg-slate-900 hover:bg-black transition-all active:scale-[0.98] flex items-center justify-center gap-3">
+                    {isSubmitting ? <Loader2 className="animate-spin" size={24}/> : <><Lock size={20}/> Confirmar e Pagar</>}
                   </button>
-                  <p className="mt-8 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] flex items-center justify-center gap-3"><ShieldCheck size={16} className="text-[#009640]"/> Transação Governamental Segura</p>
-                </section>
+                  <p className="mt-6 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center justify-center gap-2">
+                     <ShieldCheck size={14} className="text-[#009640]"/> Pagamento 100% encriptado e oficial
+                  </p>
+                </SectionCard>
               </form>
             ) : (
-              /* TELA PIX */
-              <div className="space-y-6 animate-in zoom-in-95 duration-700">
-                <div className="bg-white p-16 rounded-[4rem] shadow-2xl border text-center relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-full h-3 bg-[#009640]" />
-                  <CheckCircle2 size={64} className="text-[#009640] mx-auto mb-10"/>
-                  <h2 className={`${jakarta.className} text-4xl font-black mb-10 text-slate-900`}>Aguardando Pagamento</h2>
-                  {!pixExpirado ? (
-                    <>
-                      <CronometroPix onExpirado={() => setPixExpirado(true)} />
-                      <div className="w-72 h-72 bg-slate-50 mx-auto rounded-[3.5rem] p-8 my-10 border-4 border-dashed relative group">
-                         <img src={qrCodeData.link} alt="QR" className="w-full h-full mix-blend-multiply group-hover:scale-105 transition-transform" />
-                      </div>
-                      <button onClick={() => { navigator.clipboard.writeText(qrCodeData.texto); setCopiado(true); setTimeout(()=>setCopiado(false), 2000); }} className="p-6 rounded-2xl bg-[#009640] text-white font-black w-full uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95">
-                        {copiado ? <><CheckCircle2/> Copiado!</> : <><Copy/> Copiar Código PIX</>}
-                      </button>
-                    </>
-                  ) : (
-                    <div className="p-10 bg-red-50 rounded-3xl border border-red-100 text-center">
-                       <ShieldAlert className="text-red-500 mx-auto mb-4" size={48}/><p className="font-black text-red-700 text-xl mb-4">Código Expirado</p>
-                       <button onClick={() => window.location.reload()} className="bg-slate-900 text-white px-10 py-4 rounded-xl font-bold uppercase">Gerar Novo Código</button>
-                    </div>
-                  )}
-                </div>
-              </div>
+              /* TELA PIX AGUARDANDO */
+              <SectionCard className="p-12 text-center">
+                 <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6"><CheckCircle2 size={40} className="text-[#009640]"/></div>
+                 <h2 className={`${jakarta.className} text-3xl font-black text-slate-900 mb-4`}>Aguardando Pagamento</h2>
+                 <p className="text-slate-500 mb-10">Conclua o pagamento via PIX para emitir o seu voucher oficial imediatamente.</p>
+                 <div className="w-64 h-64 bg-slate-50 mx-auto rounded-[3rem] p-6 border-4 border-dashed border-slate-200 mb-8 flex items-center justify-center">
+                    <img src={qrCodeData.link} alt="QR Code" className="w-full h-full mix-blend-multiply" />
+                 </div>
+                 <button onClick={() => {navigator.clipboard.writeText(qrCodeData.texto); alert('Código PIX Copiado!')}} className="w-full py-5 rounded-2xl bg-[#009640] text-white font-black flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all"><Copy size={18}/> Copiar Código PIX</button>
+                 <p className="mt-8 text-xs text-slate-400 font-bold flex items-center justify-center gap-2"><Loader2 className="animate-spin" size={14}/> Sincronizando com o banco...</p>
+              </SectionCard>
             )}
           </div>
 
-          {/* COLUNA DIREITA: RESUMO */}
-          <aside className="lg:sticky lg:top-32">
-            <div className="bg-white rounded-[3.5rem] border border-slate-100 shadow-2xl overflow-hidden relative">
-              <div className="absolute top-0 left-0 w-full h-3 bg-gradient-to-r from-[#00577C] via-[#F9C400] to-[#009640]" />
-              <div className="p-10 border-b-2 border-slate-50">
-                <p className="text-[11px] font-black uppercase text-slate-400 tracking-[0.4em] mb-6">Seu Pacote Oficial</p>
-                <div className="flex gap-5 items-center">
-                  <div className="relative w-24 h-24 rounded-3xl overflow-hidden shrink-0 border-4 border-white shadow-xl bg-slate-100">
-                    <img src={pacote?.imagem_principal} alt="Pacote" className="w-full h-full object-cover" />
-                  </div>
-                  <div><h3 className={`${jakarta.className} text-2xl font-black text-slate-900 leading-tight mb-2`}>{pacote?.titulo}</h3><span className="text-[10px] font-black uppercase px-3 py-1 bg-green-50 text-[#009640] rounded-lg border border-green-100">SagaTurismo Oficial</span></div>
-                </div>
+          {/* COLUNA DIREITA: RESUMO PROFISSIONAL */}
+          <aside className="lg:sticky lg:top-28">
+            <SectionCard>
+              <div className="h-1.5 w-full bg-gradient-to-r from-[#00577C] to-[#009640]" />
+              <div className="p-6 border-b border-slate-50 text-left">
+                <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Resumo do Pacote</p>
+                <h3 className={`${jakarta.className} text-lg font-black text-slate-800`}>{pacote?.titulo}</h3>
               </div>
 
-              <div className="p-10 space-y-6 text-left font-bold text-slate-600 text-sm">
-                {hotelSel && (
-                  <div className="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                    <div className="flex items-center gap-3"><Bed size={18} className="text-[#00577C]"/> <span>Alojamento: {hotelSel.nome}</span></div>
-                    <span className="text-slate-900">{formatarMoeda(precoHotel)}</span>
-                  </div>
-                )}
-                {guiaSel && (
-                  <div className="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                    <div className="flex items-center gap-3"><Compass size={18} className="text-[#009640]"/> <span>Guia: {guiaSel.nome}</span></div>
-                    <span className="text-slate-900">{formatarMoeda(precoGuia)}</span>
-                  </div>
-                )}
-                {atracoes.length > 0 && (
-                  <div className="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                    <div className="flex items-center gap-3"><Ticket size={18} className="text-[#F9C400]"/> <span>Taxas & Ingressos ({atracoes.length})</span></div>
-                    <span className="text-slate-900">{formatarMoeda(precoAtracoes)}</span>
-                  </div>
-                )}
+              <div className="p-6 space-y-4 text-left">
+                 {/* Itens do Pacote */}
+                 {hotelSel && (
+                    <div className="flex items-start gap-3">
+                       <Bed size={16} className="text-[#00577C] shrink-0 mt-0.5"/>
+                       <div className="flex-1">
+                          <p className="text-xs font-black text-slate-800">{hotelSel.nome}</p>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">{quartoTipo === 'luxo' ? hotelSel.quarto_luxo_nome : hotelSel.quarto_standard_nome}</p>
+                       </div>
+                    </div>
+                 )}
+                 {guiaSel && (
+                    <div className="flex items-start gap-3 pt-3 border-t border-slate-50">
+                       <Compass size={16} className="text-[#009640] shrink-0 mt-0.5"/>
+                       <p className="text-xs font-black text-slate-800">Guia: {guiaSel.nome}</p>
+                    </div>
+                 )}
+                 {atracoes.length > 0 && (
+                    <div className="flex items-start gap-3 pt-3 border-t border-slate-50">
+                       <Ticket size={16} className="text-[#F9C400] shrink-0 mt-0.5"/>
+                       <p className="text-xs font-black text-slate-800">{atracoes.length} Atrações Inclusas</p>
+                    </div>
+                 )}
+                 
+                 {/* Divisor Preço */}
+                 <div className="pt-6 border-t-2 border-slate-100 flex items-center justify-between">
+                    <div className="text-left">
+                       <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest leading-none mb-1">Total a Pagar</p>
+                       <p className={`${jakarta.className} text-3xl font-black text-[#00577C] tabular-nums`}>{formatarMoeda(totalPagamento)}</p>
+                    </div>
+                    <div className="bg-green-50 px-3 py-1 rounded-full flex items-center gap-1.5 text-[#009640] text-[10px] font-black uppercase">
+                       <Check size={12} strokeWidth={3}/> Sem Juros
+                    </div>
+                 </div>
               </div>
 
-              <div className="p-12 bg-slate-900 text-white text-center relative overflow-hidden">
-                 <div className="absolute top-0 left-0 w-full h-full bg-[#009640] opacity-20 pointer-events-none" />
-                 <p className="text-[11px] font-black uppercase tracking-[0.5em] text-white/50 mb-4">Investimento Total</p>
-                 <p className={`${jakarta.className} text-6xl font-black tabular-nums`}>{formatarMoeda(totalPagamento)}</p>
+              <div className="p-6 bg-slate-50 flex items-center gap-3">
+                 <ShieldAlert size={20} className="text-[#009640] shrink-0" />
+                 <p className="text-[10px] font-bold text-slate-500 uppercase leading-relaxed text-left">Este é um pacote de turismo oficial gerido pela Secretaria Municipal.</p>
               </div>
+            </SectionCard>
+
+            <div className="mt-6 flex flex-col items-center gap-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+               <div className="flex items-center gap-2"><Lock size={14}/> Ambiente Seguro e Criptografado</div>
+               <div className="flex items-center gap-4">
+                  <img src="/logop.png" alt="SGA" className="h-6 opacity-30" />
+                  <span className="text-slate-200">|</span>
+                  <span className="opacity-30">PagBank</span>
+               </div>
             </div>
           </aside>
+
         </div>
       </div>
-
-      <footer className="py-20 px-8 border-t border-slate-200 bg-white mt-20 text-center">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
-          <Image src="/logop.png" alt="Prefeitura" width={160} height={50} className="opacity-60" />
-          <p className={`${jakarta.className} text-[10px] font-black text-slate-400 uppercase tracking-widest`}>© {new Date().getFullYear()} · Município de São Geraldo do Araguaia</p>
-        </div>
-      </footer>
-    </div>
+    </main>
   );
 }
 
-export default function CheckoutPage() {
+export default function CheckoutPacotePage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-[#00577C] w-16 h-16" /></div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-white"><Loader2 className="animate-spin text-[#00577C] w-16 h-16" /></div>}>
       <CheckoutPacoteContent />
     </Suspense>
   );

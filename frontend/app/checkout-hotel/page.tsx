@@ -244,14 +244,6 @@ function CheckoutHotelContent() {
         </div>
       </header>
 
-      {/* PROGRESS BAR */}
-      <div className="bg-white border-b border-slate-100 mt-[80px] sm:mt-[90px]">
-        <div className="mx-auto max-w-7xl px-4 md:px-8 py-3">
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest font-black text-slate-400">
-            <span>Hotel</span> <ChevronRight size={12}/> <span>Escolha</span> <ChevronRight size={12}/> <span className="text-[#00577C]">Pagamento Seguro</span> <ChevronRight size={12}/> <span>Sucesso</span>
-          </div>
-        </div>
-      </div>
 
       <div className="mx-auto max-w-7xl px-4 md:px-8 py-8 md:py-12">
         <BarraTempoReserva />
@@ -269,7 +261,7 @@ function CheckoutHotelContent() {
                   </div>
                   <div className="p-6 flex flex-col justify-center text-left">
                      <div className="flex items-center gap-2 text-[10px] font-black uppercase text-[#009640] mb-2 bg-green-50 w-fit px-2 py-1 rounded">
-                        <ShieldCheck size={12}/> Alojamento Oficial SGA
+                        <ShieldCheck size={12}/> Alojamento Oficial Saga Turismo
                      </div>
                      <h2 className={`${jakarta.className} text-2xl font-black text-slate-900 mb-2`}>{hotel?.nome}</h2>
                      <p className="text-slate-500 flex items-center gap-2 text-sm font-bold"><MapPin size={16} className="text-red-400"/> São Geraldo do Araguaia - PA</p>
@@ -305,7 +297,7 @@ function CheckoutHotelContent() {
 
                 {/* 2. ENDEREÇO */}
                 <SectionCard className="p-8 text-left">
-                  <SectionHeader step={2} title="Endereço de Registo" icon={<Home size={18} />} />
+                  <SectionHeader step={2} title="Endereço de Faturação" icon={<Home size={18} />} />
                   <div className="grid gap-6 sm:grid-cols-2">
                     <div className="sm:col-span-2 grid grid-cols-[1fr_100px] gap-4">
                       <input required value={rua} onChange={e => setRua(e.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-bold" placeholder="Rua / Avenida" />
