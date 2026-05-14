@@ -64,10 +64,9 @@ type HotelData = {
 type PacoteData = {
   id: string;
   titulo: string;
-  descricao: string;
+  descricao_curta: string; // Nome exato do seu CSV
   imagem_principal: string;
-  duracao_dias: number;
-  preco_base: number;
+  preco?: number; // Opcional, caso adicione depois
 };
 
 type EventoDestaque = {
@@ -546,10 +545,10 @@ function SeccaoPacotes() {
 
   useEffect(() => {
     async function fetchPacotes() {
-      // Nota: Verifique se no seu banco a coluna é 'preco_base' ou 'preco'
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('pacotes')
         .select('*')
+        .eq('ativo', true) // Filtra apenas os ativos conforme seu CSV
         .limit(3);
 
       if (data) setPacotes(data);
@@ -580,12 +579,11 @@ function SeccaoPacotes() {
             {pacotes.map((pacote) => (
               <article
                 key={pacote.id}
-                className="group overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl flex flex-col"
+                className="group overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl flex flex-col h-full"
               >
-                {/* Imagem com altura h-48 igual aos hotéis */}
                 <div className="relative h-48 w-full bg-slate-50 flex items-center justify-center overflow-hidden shrink-0">
                   <Image 
-                    src={pacote.imagem_principal} 
+                    src={pacote.imagem_principal || 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09'} 
                     alt={pacote.titulo} 
                     fill 
                     className="object-cover transition-transform duration-500 group-hover:scale-110" 
@@ -595,8 +593,7 @@ function SeccaoPacotes() {
                   </div>
                 </div>
 
-                {/* Padding p-7 igual aos hotéis */}
-                <div className="p-7 flex flex-col flex-1">
+                <div className="p-7 flex flex-col flex-1 text-left">
                   <div className="mb-4 flex items-center gap-2">
                     <CheckCircle2 size={14} className="text-[#009640]"/>
                     <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Reserva Imediata</span>
@@ -606,16 +603,17 @@ function SeccaoPacotes() {
                     {pacote.titulo}
                   </h3>
 
-                  <p className="leading-relaxed text-slate-600 flex-1 line-clamp-3 text-sm">
-                    {pacote.descricao}
+                  {/* CORREÇÃO: Usando descricao_curta conforme seu CSV */}
+                  <p className="leading-relaxed text-slate-600 flex-1 line-clamp-3 text-sm mb-6">
+                    {pacote.descricao_curta || 'Conheça os encantos naturais e culturais deste roteiro exclusivo em São Geraldo do Araguaia.'}
                   </p>
 
-                  <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
-                    <div>
+                  <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between">
+                    <div className="text-left">
                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">A partir de</p>
                       <p className={`${jakarta.className} text-xl font-black text-[#00577C]`}>
-                        {/* Correção do NaN: Adicionado fallback Number() e valor 0 */}
-                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(pacote.preco_base || 0))}
+                        {/* Como não há coluna de preço no seu CSV, usei um valor exemplo ou 150.00 se existir futuramente */}
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(pacote.preco || 150))}
                       </p>
                     </div>
                     <Link
