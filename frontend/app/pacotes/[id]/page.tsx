@@ -28,12 +28,20 @@ const parseValor = (valor: any): number => {
 const formatarMoeda = (valor: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor || 0);
 
-// ── BLINDAGEM DE ARRAYS (Evita o erro de string spread no Next.js) ──
-const getArraySeguro = (item: any) => {
+// ── BLINDAGEM DE ARRAYS (CORRIGIDO PARA SUPORTAR O FORMATO DO POSTGRES) ──
+const getArraySeguro = (item: any): string[] => {
   if (!item) return [];
   if (Array.isArray(item)) return item;
   if (typeof item === 'string') {
-    try { return JSON.parse(item); } catch (e) { return []; }
+    try { 
+      const parsed = JSON.parse(item);
+      if (Array.isArray(parsed)) return parsed;
+    } catch (e) {
+      // Resolve o erro de array do Postgres {item1, item2}
+      if (item.startsWith('{') && item.endsWith('}')) {
+        return item.slice(1, -1).split(',').map(s => s.trim().replace(/^"/, '').replace(/"$/, ''));
+      }
+    }
   }
   return [];
 };
@@ -77,15 +85,18 @@ export default function PacoteDetalhePage() {
   const [checkin, setCheckin] = useState<Date | null>(null);
   const [checkout, setCheckout] = useState<Date | null>(null);
   const [hoverDate, setHoverDate] = useState<Date | null>(null);
-  const [mesAtualCalendario, setMesAtualCalendario] = useState<Date>(new Date());
+  const [mesAtualCalendario, setMesAtualCalendario] = useState<Date | null>(null);
   
   // Galeria e UI
   const [fotoExpandidaIndex, setFotoExpandidaIndex] = useState<number | null>(null);
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
-  const [mounted, setMounted] = useState(false); // Resolve erros de hidratação do React no calendário
+  
+  // Resolve o Client-side exception protegendo a renderização prematura
+  const [mounted, setMounted] = useState(false); 
 
   useEffect(() => {
+    setMesAtualCalendario(new Date());
     setMounted(true);
   }, []);
 
@@ -102,21 +113,35 @@ export default function PacoteDetalhePage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
-  // 2. Carregar Pacote
+  // 2. Carregar Pacote Seguro (Com proteção contra nullish mapping)
   useEffect(() => {
     async function fetchData() {
-      const { data, error } = await supabase.from('pacotes').select(`*, pacote_itens ( hoteis (*), guias (*), atracoes (*) )`).eq('id', id).single();
-      if (error) { router.push('/pacotes'); return; }
-      
-      const pct = data as Pacote;
-      setPacote(pct);
-      const hoteis = pct.pacote_itens.map(i => i.hoteis).filter(Boolean) as Hotel[];
-      const guias = pct.pacote_itens.map(i => i.guias).filter(Boolean) as Guia[];
-      setAtracoesInclusas(pct.pacote_itens.map(i => i.atracoes).filter(Boolean) as Atracao[]);
+      try {
+        const { data, error } = await supabase
+          .from('pacotes')
+          .select(`*, pacote_itens ( hoteis (*), guias (*), atracoes (*) )`)
+          .eq('id', id)
+          .single();
+          
+        if (error || !data) throw new Error("Pacote não encontrado");
+        
+        const pct = data as Pacote;
+        setPacote(pct);
 
-      if (hoteis.length > 0) setHotelSelecionado(hoteis[0]);
-      if (guias.length > 0) setGuiaSelecionado(guias[0]);
-      setLoading(false);
+        // Prevenção do erro de "map of undefined"
+        const itens = pct.pacote_itens || [];
+        const hoteis = itens.map((i: any) => i.hoteis).filter(Boolean) as Hotel[];
+        const guias = itens.map((i: any) => i.guias).filter(Boolean) as Guia[];
+        setAtracoesInclusas(itens.map((i: any) => i.atracoes).filter(Boolean) as Atracao[]);
+
+        if (hoteis.length > 0) setHotelSelecionado(hoteis[0]);
+        if (guias.length > 0) setGuiaSelecionado(guias[0]);
+      } catch (err) {
+        console.error(err);
+        router.push('/pacotes');
+      } finally {
+        setLoading(false);
+      }
     }
     if (id) fetchData();
   }, [id, router]);
@@ -221,7 +246,9 @@ export default function PacoteDetalhePage() {
     router.push(`/checkout?pacote=${pacote?.id}&hotel=${hotelSelecionado?.id}&quarto=${tipoQuarto}&guia=${guiaSelecionado?.id}&checkin=${formatarDataIso(checkin)}&checkout=${formatarDataIso(checkout)}`);
   };
 
-  if (loading || !pacote) return (
+  // PROTEÇÃO CRÍTICA PARA IMPEDIR O CRASH DO NEXT.JS
+  // Só renderizamos a interface se estiver montado e tiver o pacote.
+  if (!mounted || loading || !pacote || !mesAtualCalendario) return (
     <div className="min-h-screen flex items-center justify-center bg-[#F8F9FA]">
       <div className="text-center">
         <Loader2 className="animate-spin text-[#00577C] w-14 h-14 mx-auto mb-4" />
@@ -415,7 +442,7 @@ export default function PacoteDetalhePage() {
                <div className="flex justify-between items-center mb-6 px-2">
                  <button onClick={() => setMesAtualCalendario(new Date(anoCorrente, mesCorrente - 1))} className="p-2 hover:bg-slate-200 rounded-full transition-colors"><ChevronLeft size={24} className="text-slate-600"/></button>
                  <span className="font-black text-slate-800 text-lg capitalize">
-                   {mounted ? mesAtualCalendario.toLocaleString('pt-BR', { month: 'long', year: 'numeric' }) : 'Carregando...'}
+                   {mesAtualCalendario.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}
                  </span>
                  <button onClick={() => setMesAtualCalendario(new Date(anoCorrente, mesCorrente + 1))} className="p-2 hover:bg-slate-200 rounded-full transition-colors"><ChevronRight size={24} className="text-slate-600"/></button>
                </div>
