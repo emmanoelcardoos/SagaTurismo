@@ -45,7 +45,7 @@ export default function CarteiraDigitalPage({ params }: { params: { token: strin
         <p className="text-sm opacity-80 mb-6">{data?.mensagem || "Não encontramos uma carteira ativa para este link."}</p>
         
         {/* LIGAÇÃO ATUALIZADA PARA O CHECKOUT */}
-        <Link href="/checkout?tipo=carteira" className="inline-block bg-red-600 text-white px-8 py-3.5 rounded-xl font-bold shadow-md hover:bg-red-700 transition-colors">
+        <Link href="/checkout-carteira" className="inline-block bg-red-600 text-white px-8 py-3.5 rounded-xl font-bold shadow-md hover:bg-red-700 transition-colors">
           Finalizar Solicitação
         </Link>
       </div>
