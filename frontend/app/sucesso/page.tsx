@@ -7,7 +7,8 @@ import Link from 'next/link';
 import { 
   Loader2, CheckCircle2, Mail, FileText, Calendar, 
   MapPin, Bed, Compass, User, Clock, ShieldCheck, 
-  ArrowRight, Download, Info, ChevronRight, Printer
+  ArrowRight, Download, Info, ChevronRight, Printer,
+  Check
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -28,7 +29,7 @@ const formatarData = (dataStr: string) => {
 // ── TIPAGEM ──
 type Pedido = {
   id: string;
-  codigo_pedido: string;
+  codigo_pedido: string; 
   tipo_item: 'hotel' | 'pacote';
   nome_cliente: string;
   email_cliente: string;
@@ -36,13 +37,14 @@ type Pedido = {
   data_checkout?: string;
   valor_total: number;
   status_pagamento: string;
+  item_id?: string;
   hoteis?: { nome: string; imagem_url: string };
   pacotes?: { titulo: string; imagem_principal: string };
 };
 
 function SucessoContent() {
   const searchParams = useSearchParams();
-  const pedidoId = searchParams.get('pedido');
+  const pedidoId = searchParams.get('pedido'); 
 
   const [isMounted, setIsMounted] = useState(false);
   const [pedido, setPedido] = useState<Pedido | null>(null);
@@ -51,12 +53,11 @@ function SucessoContent() {
 
   useEffect(() => { setIsMounted(true); }, []);
 
-  // ── LÓGICA DE PERSISTÊNCIA COM TENTATIVAS ──
   useEffect(() => {
     let tentativas = 0;
-    const MAX_TENTATIVAS = 5; // Tenta 5 vezes (total de 10 segundos)
+    const MAX_TENTATIVAS = 5; 
 
-    async function fetchPedido() {
+    async function fetchPedidoData() {
       if (!pedidoId) {
         setErro('O número do protocolo não foi identificado na URL.');
         setLoading(false);
@@ -64,33 +65,39 @@ function SucessoContent() {
       }
 
       try {
-        // Tentativa de busca
-        const { data, error } = await supabase
+        // ── PASSO 1: Buscar apenas o Pedido (sem tentar juntar tabelas) ──
+        const { data: pData, error: pError } = await supabase
           .from('pedidos') 
-          .select(`
-            *,
-            hoteis:item_id (nome, imagem_url),
-            pacotes:item_id (titulo, imagem_principal)
-          `)
+          .select('*') 
           .ilike('codigo_pedido', pedidoId) 
           .maybeSingle();
 
-        if (error) {
-          // Isso vai mostrar no console do F12 o erro real (provavelmente 402 ou 401)
-          console.error("ERRO DE PERMISSÃO/ESTRUTURA:", error);
-          throw error;
-        }
+        if (pError) throw pError;
 
-        if (!data && tentativas < MAX_TENTATIVAS) {
+        // Aguardar o backend processar se o pedido não aparecer logo
+        if (!pData && tentativas < MAX_TENTATIVAS) {
           tentativas++;
-          console.log(`Tentativa ${tentativas}: Aguardando banco de dados...`);
-          setTimeout(fetchPedido, 2000); 
+          setTimeout(fetchPedidoData, 2000); 
           return;
         }
 
-        if (!data) throw new Error('A reserva existe no banco, mas o seu navegador não tem permissão para lê-la (RLS).');
+        if (!pData) throw new Error('A reserva ainda não foi processada ou o código é inválido.');
         
-        setPedido(data as Pedido);
+        // ── PASSO 2: Buscar o Hotel ou Pacote manualmente ──
+        let dadosCompletos = { ...pData };
+        
+        if (pData.item_id) {
+          if (pData.tipo_item === 'hotel') {
+            const { data: hData } = await supabase.from('hoteis').select('nome, imagem_url').eq('id', pData.item_id).maybeSingle();
+            if (hData) dadosCompletos.hoteis = hData;
+          } else if (pData.tipo_item === 'pacote') {
+            const { data: pacData } = await supabase.from('pacotes').select('titulo, imagem_principal').eq('id', pData.item_id).maybeSingle();
+            if (pacData) dadosCompletos.pacotes = pacData;
+          }
+        }
+
+        setPedido(dadosCompletos as Pedido);
+        setErro('');
         setLoading(false);
       } catch (err: any) {
         console.error("Erro Supabase:", err);
@@ -99,7 +106,7 @@ function SucessoContent() {
       }
     }
     
-    if (pedidoId) fetchPedido();
+    if (pedidoId) fetchPedidoData();
   }, [pedidoId]);
 
   if (!isMounted) return null;
@@ -108,7 +115,7 @@ function SucessoContent() {
     <div className="min-h-screen bg-white flex flex-col items-center justify-center">
       <div className="relative flex flex-col items-center">
         <Loader2 className="animate-spin text-[#009640] w-16 h-16 mb-4" strokeWidth={1.5} />
-        <p className={`${jakarta.className} text-xs font-black text-slate-400 uppercase tracking-[0.3em]`}>Confirmando com a Base de Dados...</p>
+        <p className={`${jakarta.className} text-xs font-black text-slate-400 uppercase tracking-[0.3em]`}>Validando Protocolo...</p>
       </div>
     </div>
   );
@@ -185,7 +192,7 @@ function SucessoContent() {
                    O seu voucher oficial foi gerado. Ele contém os dados de check-in e o roteiro completo.
                  </p>
                  <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[#F9C400]">
-                    <CheckIcon size={14}/> Anexado no seu e-mail
+                    <Check size={14}/> Anexado no seu e-mail
                  </div>
               </div>
            </div>
