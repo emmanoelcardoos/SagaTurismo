@@ -9,7 +9,7 @@ import {
   Loader2, ArrowLeft, ShieldCheck, MapPin, 
   Bed, QrCode, CheckCircle2, User, Mail, FileText, 
   Smartphone, Copy, AlertCircle, CreditCard, 
-  Calendar, Map, Home
+  Calendar, Map, Home, Users, Baby, DoorOpen, ShieldAlert, Lock
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -46,11 +46,15 @@ const parseValor = (valor: any): number => {
 const formatarMoeda = (valor: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
 
 const mascaraCPF = (value: string) => {
-  return value.replace(/\D/g, '').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})/, '$1-$2').replace(/(-\d{2})\d+?$/, '$1');
+  return value.replace(/\D/g, '').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})/, '$1-$2').slice(0, 14);
 };
 
 const mascaraCartao = (value: string) => {
-  return value.replace(/\D/g, '').replace(/(\d{4})(?=\d)/g, '$1 ');
+  return value.replace(/\D/g, '').replace(/(\d{4})(?=\d)/g, '$1 ').slice(0, 19);
+};
+
+const mascaraTelefone = (value: string) => {
+  return value.replace(/\D/g, '').replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d{4})/, '$1-$2').slice(0, 15);
 };
 
 const formatarData = (dataStr: string) => {
@@ -65,18 +69,21 @@ const calcularNoites = (checkin: string | null, checkout: string | null) => {
   const end = new Date(checkout);
   const diff = end.getTime() - start.getTime();
   const noites = Math.ceil(diff / (1000 * 3600 * 24));
-  return noites > 0 ? noites : 1; // Pelo menos 1 noite
+  return noites > 0 ? noites : 1;
 };
 
 function CheckoutHotelContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  // 1. Parâmetros da URL
+  // 1. Parâmetros da URL (Incluindo os novos parâmetros de lotação)
   const hotelId = searchParams.get('hotel');
   const quartoTipo = searchParams.get('quarto') as 'standard' | 'luxo' | null;
   const checkinData = searchParams.get('checkin');
   const checkoutData = searchParams.get('checkout');
+  const adultosParam = Number(searchParams.get('adultos')) || 2;
+  const criancasParam = Number(searchParams.get('criancas')) || 0;
+  const quartosParam = Number(searchParams.get('quartos')) || 1;
 
   // Estados de Dados
   const [hotel, setHotel] = useState<Hotel | null>(null);
@@ -136,11 +143,11 @@ function CheckoutHotelContent() {
     carregarHotel();
   }, [hotelId, checkinData, checkoutData, router]);
 
-  // 3. MATEMÁTICA DE RESERVA
+  // 3. MATEMÁTICA DA RESERVA (Diária x Noites x Quartos)
   const numNoites = calcularNoites(checkinData, checkoutData);
   const precoDiaria = hotel ? (quartoTipo === 'luxo' ? parseValor(hotel.quarto_luxo_preco) : parseValor(hotel.quarto_standard_preco)) : 0;
   const nomeQuarto = hotel ? (quartoTipo === 'luxo' ? hotel.quarto_luxo_nome : hotel.quarto_standard_nome) : '';
-  const valorTotalReserva = precoDiaria * numNoites;
+  const valorTotalReserva = precoDiaria * numNoites * quartosParam;
 
   // 4. SUBMISSÃO PARA A API
   const handlePagamento = async (e: React.FormEvent) => {
@@ -148,7 +155,7 @@ function CheckoutHotelContent() {
     setErroApi('');
 
     if (cpf.length < 14) {
-      setErroApi('Por favor, introduza um CPF válido.');
+      setErroApi('O CPF introduzido não é válido. Verifique os dados.');
       return;
     }
 
@@ -162,20 +169,22 @@ function CheckoutHotelContent() {
       tipo_quarto: quartoTipo,
       data_checkin: checkinData,
       data_checkout: checkoutData,
+      adultos: adultosParam,
+      criancas: criancasParam,
+      quartos: quartosParam,
       nome_cliente: nome,
       cpf_cliente: cpf.replace(/\D/g, ''),
       email_cliente: email,
       telefone_cliente: telefone,
-      endereco_completo: enderecoCompleto
+      endereco_completo: enderecoCompleto,
+      valor_total: valorTotalReserva
     };
 
     try {
       // 4.1 PROCESSAMENTO CARTÃO DE CRÉDITO COM SDK PAGBANK
       if (metodoPagamento === 'cartao') {
         if (!window.PagSeguro) {
-          setErroApi('O sistema de pagamento seguro ainda está sendo carregado. Aguarde uns segundos.');
-          setIsSubmitting(false);
-          return;
+          throw new Error('Módulo de pagamento seguro offline. Recarregue a página.');
         }
 
         const cardData = {
@@ -190,9 +199,7 @@ function CheckoutHotelContent() {
         const result = window.PagSeguro.encryptCard(cardData);
 
         if (result.hasErrors) {
-          setErroApi('Os dados do cartão são inválidos. Verifique o número, validade e CVV.');
-          setIsSubmitting(false);
-          return;
+          throw new Error('Dados do cartão de crédito inválidos.');
         }
 
         payload = {
@@ -204,10 +211,7 @@ function CheckoutHotelContent() {
       } 
       // 4.2 PROCESSAMENTO PIX
       else {
-        payload = {
-          ...payload,
-          metodo_pagamento: 'pix'
-        };
+        payload = { ...payload, metodo_pagamento: 'pix' };
       }
 
       // ENVIO PARA O BACKEND
@@ -227,11 +231,11 @@ function CheckoutHotelContent() {
           router.push('/sucesso');
         }
       } else {
-        setErroApi('A transação foi recusada pela operadora ou ocorreu uma falha no sistema.');
+        setErroApi('Transação recusada pela operadora de pagamento.');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      setErroApi('Erro de comunicação com os servidores do PagBank.');
+      setErroApi(err.message || 'Erro de comunicação com o sistema bancário.');
     } finally {
       setIsSubmitting(false);
     }
@@ -247,8 +251,8 @@ function CheckoutHotelContent() {
 
   if (loadingInitial) return (
     <div className="min-h-screen bg-[#F8F9FA] flex flex-col items-center justify-center">
-      <Loader2 className="animate-spin text-[#00577C] w-12 h-12 mb-4" />
-      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">A Preparar a sua Reserva...</p>
+      <Loader2 className="animate-spin text-[#00577C] w-16 h-16 mb-4" />
+      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Processando Motor de Reserva...</p>
     </div>
   );
 
@@ -256,152 +260,176 @@ function CheckoutHotelContent() {
     <>
       <Script src="https://assets.pagseguro.com.br/checkout-sdk-js/rc/dist/browser/pagseguro.min.js" strategy="afterInteractive" />
 
-      <div className="max-w-7xl mx-auto px-6 py-12">
+      <div className="max-w-7xl mx-auto px-6 py-12 lg:py-20">
         
-        {/* HEADER */}
-        <div className="flex items-center justify-between mb-12 border-b border-slate-200 pb-6">
-          <Link href={`/hoteis/${hotelId}`} className="flex items-center gap-2 text-slate-500 hover:text-[#00577C] font-bold transition-colors">
-            <ArrowLeft size={20} /> Alterar Reserva
+        {/* HEADER DE CHECKOUT */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-16 border-b-2 border-slate-100 pb-8 gap-6">
+          <Link href={`/hoteis/${hotelId}`} className="flex items-center gap-2 text-slate-500 hover:text-[#00577C] font-bold transition-colors w-fit">
+            <ArrowLeft size={20} /> <span className="underline-offset-4 hover:underline">Alterar Reserva</span>
           </Link>
-          <div className="flex items-center gap-3 text-[#009640]">
-             <ShieldCheck size={24} />
-             <span className={`${jakarta.className} text-xl font-black tracking-tight`}>Checkout Oficial</span>
+          <div className="flex items-center gap-4 bg-green-50 px-6 py-3 rounded-full border border-green-100 shadow-sm">
+             <ShieldCheck className="text-[#009640]" size={24} />
+             <span className={`${jakarta.className} text-xl font-black tracking-tight text-[#009640]`}>Checkout Oficial</span>
           </div>
         </div>
 
         <div className="grid lg:grid-cols-[1.5fr_1fr] gap-16 items-start">
           
           {/* ── COLUNA ESQUERDA: FORMULÁRIO COMPLETO ── */}
-          <div>
+          <div className="space-y-12">
             {!qrCodeData ? (
               <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
-                <h1 className={`${jakarta.className} text-4xl font-black text-slate-900 mb-4`}>Finalize sua Hospedagem</h1>
-                <p className="text-slate-500 mb-10 text-lg">Preencha os dados abaixo para emissão da fatura e envio do voucher de confirmação.</p>
+                <h1 className={`${jakarta.className} text-4xl md:text-5xl font-black text-slate-900 mb-6`}>Finalize sua Hospedagem</h1>
+                <p className="text-slate-500 mb-12 text-xl font-medium">Preencha os dados abaixo para emissão da Fatura Oficial e envio do voucher de confirmação.</p>
 
                 <form onSubmit={handlePagamento} className="space-y-12">
                   
                   {/* BLOCO 1: DADOS DO HÓSPEDE */}
-                  <div className="bg-white p-10 rounded-[3rem] shadow-sm border border-slate-100">
-                    <h2 className="text-2xl font-bold text-slate-900 mb-8 flex items-center gap-3">
-                      <span className="bg-[#00577C] text-white w-8 h-8 rounded-full flex items-center justify-center text-sm">1</span> 
-                      Dados do Hóspede
+                  <div className="bg-white p-10 md:p-12 rounded-[3.5rem] shadow-sm border border-slate-100 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none"><User size={120}/></div>
+                    <h2 className={`${jakarta.className} text-2xl font-bold text-slate-900 mb-10 flex items-center gap-4`}>
+                      <span className="bg-[#00577C] text-white w-10 h-10 rounded-2xl flex items-center justify-center text-sm shadow-md">1</span> 
+                      Dados do Hóspede Principal
                     </h2>
-                    <div className="space-y-6">
+                    
+                    <div className="space-y-8">
                       <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2"><User size={16} className="text-slate-400"/> Nome Completo</label>
-                        <input required type="text" value={nome} onChange={e => setNome(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 focus:ring-4 focus:ring-blue-50 focus:border-[#00577C] outline-none transition-all font-medium text-slate-900" placeholder="Ex: João da Silva" />
-                      </div>
-                      <div className="grid sm:grid-cols-2 gap-6">
-                        <div>
-                          <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2"><FileText size={16} className="text-slate-400"/> CPF</label>
-                          <input required type="text" value={cpf} onChange={e => setCpf(mascaraCPF(e.target.value))} maxLength={14} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 focus:ring-4 focus:ring-blue-50 focus:border-[#00577C] outline-none transition-all font-medium text-slate-900" placeholder="000.000.000-00" />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2"><Smartphone size={16} className="text-slate-400"/> Telefone / WhatsApp</label>
-                          <input required type="text" value={telefone} onChange={e => setTelefone(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 focus:ring-4 focus:ring-blue-50 focus:border-[#00577C] outline-none transition-all font-medium text-slate-900" placeholder="(11) 99999-9999" />
+                        <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Nome Completo</label>
+                        <div className="relative">
+                           <input required type="text" value={nome} onChange={e => setNome(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 focus:ring-4 focus:ring-blue-50 focus:border-[#00577C] focus:bg-white outline-none transition-all font-bold text-slate-800 text-lg" placeholder="Ex: João da Silva" />
+                           <User className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300" size={20}/>
                         </div>
                       </div>
+                      
+                      <div className="grid sm:grid-cols-2 gap-8">
+                        <div>
+                          <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3">CPF (Para a Fatura)</label>
+                          <div className="relative">
+                             <input required type="text" value={cpf} onChange={e => setCpf(mascaraCPF(e.target.value))} maxLength={14} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 focus:ring-4 focus:ring-blue-50 focus:border-[#00577C] focus:bg-white outline-none transition-all font-bold text-slate-800 text-lg" placeholder="000.000.000-00" />
+                             <FileText className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300" size={20}/>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3">WhatsApp</label>
+                          <div className="relative">
+                             <input required type="text" value={telefone} onChange={e => setTelefone(mascaraTelefone(e.target.value))} maxLength={15} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 focus:ring-4 focus:ring-blue-50 focus:border-[#00577C] focus:bg-white outline-none transition-all font-bold text-slate-800 text-lg" placeholder="(99) 99999-9999" />
+                             <Smartphone className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300" size={20}/>
+                          </div>
+                        </div>
+                      </div>
+                      
                       <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2"><Mail size={16} className="text-slate-400"/> E-mail (Para envio do Voucher)</label>
-                        <input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 focus:ring-4 focus:ring-blue-50 focus:border-[#00577C] outline-none transition-all font-medium text-slate-900" placeholder="seu@email.com" />
+                        <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3">E-mail de Confirmação</label>
+                        <div className="relative">
+                           <input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 focus:ring-4 focus:ring-blue-50 focus:border-[#00577C] focus:bg-white outline-none transition-all font-bold text-slate-800 text-lg" placeholder="seu.email@exemplo.com" />
+                           <Mail className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300" size={20}/>
+                        </div>
                       </div>
                     </div>
                   </div>
 
                   {/* BLOCO 2: ENDEREÇO DE FATURAMENTO */}
-                  <div className="bg-white p-10 rounded-[3rem] shadow-sm border border-slate-100">
-                    <h2 className="text-2xl font-bold text-slate-900 mb-8 flex items-center gap-3">
-                      <span className="bg-[#00577C] text-white w-8 h-8 rounded-full flex items-center justify-center text-sm">2</span> 
-                      Endereço de Faturamento
+                  <div className="bg-white p-10 md:p-12 rounded-[3.5rem] shadow-sm border border-slate-100 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none"><Home size={120}/></div>
+                    <h2 className={`${jakarta.className} text-2xl font-bold text-slate-900 mb-10 flex items-center gap-4`}>
+                      <span className="bg-[#00577C] text-white w-10 h-10 rounded-2xl flex items-center justify-center text-sm shadow-md">2</span> 
+                      Endereço de Registo
                     </h2>
-                    <div className="space-y-6">
-                      <div className="grid sm:grid-cols-[1fr_120px] gap-6">
+                    
+                    <div className="space-y-8">
+                      <div className="grid sm:grid-cols-[1fr_120px] gap-8">
                         <div>
-                          <label className="block text-sm font-bold text-slate-700 mb-2">Rua / Avenida</label>
-                          <input required type="text" value={rua} onChange={e => setRua(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 focus:ring-4 focus:ring-blue-50 focus:border-[#00577C] outline-none transition-all font-medium text-slate-900" placeholder="Rua das Flores" />
+                          <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Rua / Avenida</label>
+                          <input required type="text" value={rua} onChange={e => setRua(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 focus:ring-4 focus:ring-blue-50 focus:border-[#00577C] focus:bg-white outline-none transition-all font-bold text-slate-800" placeholder="Ex: Rua das Palmeiras" />
                         </div>
                         <div>
-                          <label className="block text-sm font-bold text-slate-700 mb-2">Número</label>
-                          <input required type="text" value={numero} onChange={e => setNumero(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 focus:ring-4 focus:ring-blue-50 focus:border-[#00577C] outline-none transition-all font-medium text-slate-900" placeholder="123" />
-                        </div>
-                      </div>
-                      <div className="grid sm:grid-cols-2 gap-6">
-                        <div>
-                          <label className="block text-sm font-bold text-slate-700 mb-2">Bairro</label>
-                          <input required type="text" value={bairro} onChange={e => setBairro(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 focus:ring-4 focus:ring-blue-50 focus:border-[#00577C] outline-none transition-all font-medium text-slate-900" placeholder="Centro" />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-bold text-slate-700 mb-2">CEP</label>
-                          <input required type="text" value={cep} onChange={e => setCep(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 focus:ring-4 focus:ring-blue-50 focus:border-[#00577C] outline-none transition-all font-medium text-slate-900" placeholder="00000-000" />
+                          <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Número</label>
+                          <input required type="text" value={numero} onChange={e => setNumero(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 focus:ring-4 focus:ring-blue-50 focus:border-[#00577C] focus:bg-white outline-none transition-all font-bold text-slate-800 text-center" placeholder="123" />
                         </div>
                       </div>
-                      <div className="grid sm:grid-cols-[1fr_100px] gap-6">
+                      
+                      <div className="grid sm:grid-cols-2 gap-8">
                         <div>
-                          <label className="block text-sm font-bold text-slate-700 mb-2">Cidade</label>
-                          <input required type="text" value={cidade} onChange={e => setCidade(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 focus:ring-4 focus:ring-blue-50 focus:border-[#00577C] outline-none transition-all font-medium text-slate-900" placeholder="São Paulo" />
+                          <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Bairro</label>
+                          <input required type="text" value={bairro} onChange={e => setBairro(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 focus:ring-4 focus:ring-blue-50 focus:border-[#00577C] focus:bg-white outline-none transition-all font-bold text-slate-800" placeholder="Centro" />
                         </div>
                         <div>
-                          <label className="block text-sm font-bold text-slate-700 mb-2">UF</label>
-                          <input required type="text" value={estado} onChange={e => setEstado(e.target.value)} maxLength={2} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 focus:ring-4 focus:ring-blue-50 focus:border-[#00577C] outline-none transition-all font-medium text-slate-900 uppercase text-center" placeholder="SP" />
+                          <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3">CEP</label>
+                          <input required type="text" value={cep} onChange={e => setCep(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 focus:ring-4 focus:ring-blue-50 focus:border-[#00577C] focus:bg-white outline-none transition-all font-bold text-slate-800" placeholder="00000-000" />
+                        </div>
+                      </div>
+                      
+                      <div className="grid sm:grid-cols-[1fr_120px] gap-8">
+                        <div>
+                          <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Cidade</label>
+                          <input required type="text" value={cidade} onChange={e => setCidade(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 focus:ring-4 focus:ring-blue-50 focus:border-[#00577C] focus:bg-white outline-none transition-all font-bold text-slate-800" placeholder="Ex: Marabá" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Estado</label>
+                          <input required type="text" value={estado} onChange={e => setEstado(e.target.value.toUpperCase())} maxLength={2} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 focus:ring-4 focus:ring-blue-50 focus:border-[#00577C] focus:bg-white outline-none transition-all font-bold text-slate-800 text-center" placeholder="PA" />
                         </div>
                       </div>
                     </div>
                   </div>
 
                   {/* BLOCO 3: PAGAMENTO */}
-                  <div className="bg-white p-10 rounded-[3rem] shadow-sm border border-slate-100">
-                    <h2 className="text-2xl font-bold text-slate-900 mb-8 flex items-center gap-3">
-                      <span className="bg-[#009640] text-white w-8 h-8 rounded-full flex items-center justify-center text-sm">3</span> 
+                  <div className="bg-white p-10 md:p-12 rounded-[3.5rem] shadow-sm border border-slate-100">
+                    <h2 className={`${jakarta.className} text-2xl font-bold text-slate-900 mb-10 flex items-center gap-4`}>
+                      <span className="bg-[#009640] text-white w-10 h-10 rounded-2xl flex items-center justify-center text-sm shadow-md">3</span> 
                       Pagamento Oficial
                     </h2>
 
-                    <div className="grid grid-cols-2 gap-4 mb-10">
-                      <button type="button" onClick={() => setMetodoPagamento('pix')} className={`p-6 rounded-[2rem] border-2 flex flex-col items-center justify-center gap-3 transition-all ${metodoPagamento === 'pix' ? 'border-[#009640] bg-green-50/50 shadow-inner' : 'border-slate-100 bg-white hover:border-slate-200'}`}>
-                        <QrCode size={32} className={metodoPagamento === 'pix' ? 'text-[#009640]' : 'text-slate-400'} />
-                        <span className={`font-bold ${metodoPagamento === 'pix' ? 'text-[#009640]' : 'text-slate-500'}`}>PIX Instantâneo</span>
+                    <div className="grid grid-cols-2 gap-6 mb-12">
+                      <button type="button" onClick={() => setMetodoPagamento('pix')} className={`p-8 rounded-[2.5rem] border-4 flex flex-col items-center justify-center gap-4 transition-all duration-500 ${metodoPagamento === 'pix' ? 'border-[#009640] bg-green-50/50 shadow-inner' : 'border-slate-50 bg-slate-50 opacity-60 hover:opacity-100'}`}>
+                        <div className={`w-16 h-16 rounded-3xl flex items-center justify-center shadow-md ${metodoPagamento === 'pix' ? 'bg-[#009640] text-white' : 'bg-white text-slate-400'}`}><QrCode size={32} /></div>
+                        <span className={`font-black uppercase tracking-widest text-xs ${metodoPagamento === 'pix' ? 'text-[#009640]' : 'text-slate-500'}`}>PIX Instantâneo</span>
                       </button>
-                      <button type="button" onClick={() => setMetodoPagamento('cartao')} className={`p-6 rounded-[2rem] border-2 flex flex-col items-center justify-center gap-3 transition-all ${metodoPagamento === 'cartao' ? 'border-[#00577C] bg-blue-50/50 shadow-inner' : 'border-slate-100 bg-white hover:border-slate-200'}`}>
-                        <CreditCard size={32} className={metodoPagamento === 'cartao' ? 'text-[#00577C]' : 'text-slate-400'} />
-                        <span className={`font-bold ${metodoPagamento === 'cartao' ? 'text-[#00577C]' : 'text-slate-500'}`}>Cartão de Crédito</span>
+                      <button type="button" onClick={() => setMetodoPagamento('cartao')} className={`p-8 rounded-[2.5rem] border-4 flex flex-col items-center justify-center gap-4 transition-all duration-500 ${metodoPagamento === 'cartao' ? 'border-[#00577C] bg-blue-50/50 shadow-inner' : 'border-slate-50 bg-slate-50 opacity-60 hover:opacity-100'}`}>
+                        <div className={`w-16 h-16 rounded-3xl flex items-center justify-center shadow-md ${metodoPagamento === 'cartao' ? 'bg-[#00577C] text-white' : 'bg-white text-slate-400'}`}><CreditCard size={32} /></div>
+                        <span className={`font-black uppercase tracking-widest text-xs ${metodoPagamento === 'cartao' ? 'text-[#00577C]' : 'text-slate-500'}`}>Cartão de Crédito</span>
                       </button>
                     </div>
 
                     {metodoPagamento === 'cartao' && (
-                      <div className="space-y-6 animate-in fade-in slide-in-from-top-4 mb-10 bg-slate-50 p-8 rounded-3xl border border-slate-100">
+                      <div className="space-y-8 animate-in fade-in slide-in-from-top-4 mb-12 bg-slate-50 p-10 rounded-[2.5rem] border-2 border-slate-100">
+                        <div className="flex items-center gap-3 mb-4 text-slate-400">
+                           <Lock size={16}/> <span className="text-[10px] font-black uppercase tracking-widest">Dados Criptografados - PCI DSS</span>
+                        </div>
+                        
                         <div>
-                          <label className="block text-sm font-bold text-slate-700 mb-2">Nome Impresso no Cartão</label>
-                          <input required type="text" value={nomeCartao} onChange={e => setNomeCartao(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl px-5 py-3 focus:ring-4 focus:ring-blue-50 focus:border-[#00577C] outline-none uppercase font-medium text-slate-900" placeholder="JOAO M SILVA" />
+                          <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Nome Impresso no Cartão</label>
+                          <input required type="text" value={nomeCartao} onChange={e => setNomeCartao(e.target.value.toUpperCase())} className="w-full bg-white border-2 border-slate-100 rounded-2xl px-6 py-4 focus:ring-4 focus:ring-blue-50 focus:border-[#00577C] outline-none font-bold text-slate-800" placeholder="JOAO M SILVA" />
                         </div>
                         <div>
-                          <label className="block text-sm font-bold text-slate-700 mb-2">Número do Cartão</label>
+                          <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Número do Cartão</label>
                           <div className="relative">
-                            <input required type="text" value={numeroCartao} onChange={e => setNumeroCartao(mascaraCartao(e.target.value))} maxLength={19} className="w-full bg-white border border-slate-200 rounded-xl pl-12 pr-5 py-3 focus:ring-4 focus:ring-blue-50 focus:border-[#00577C] outline-none font-medium text-slate-900 tracking-wider" placeholder="0000 0000 0000 0000" />
-                            <CreditCard size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                            <input required type="text" value={numeroCartao} onChange={e => setNumeroCartao(mascaraCartao(e.target.value))} maxLength={19} className="w-full bg-white border-2 border-slate-100 rounded-2xl px-6 py-4 focus:ring-4 focus:ring-blue-50 focus:border-[#00577C] outline-none font-bold text-slate-800 tracking-[0.2em]" placeholder="0000 0000 0000 0000" />
+                            <CreditCard size={24} className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300" />
                           </div>
                         </div>
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-3 gap-6">
                           <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-2">Mês (MM)</label>
-                            <input required type="text" value={mesCartao} onChange={e => setMesCartao(e.target.value.replace(/\D/g, ''))} maxLength={2} className="w-full bg-white border border-slate-200 rounded-xl px-5 py-3 focus:ring-4 focus:ring-blue-50 focus:border-[#00577C] outline-none font-medium text-slate-900 text-center" placeholder="12" />
+                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 text-center">Mês (MM)</label>
+                            <input required type="text" value={mesCartao} onChange={e => setMesCartao(e.target.value.replace(/\D/g, ''))} maxLength={2} className="w-full bg-white border-2 border-slate-100 rounded-2xl py-4 focus:ring-4 focus:ring-blue-50 focus:border-[#00577C] outline-none font-bold text-slate-800 text-center" placeholder="12" />
                           </div>
                           <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-2">Ano (AAAA)</label>
-                            <input required type="text" value={anoCartao} onChange={e => setAnoCartao(e.target.value.replace(/\D/g, ''))} maxLength={4} className="w-full bg-white border border-slate-200 rounded-xl px-5 py-3 focus:ring-4 focus:ring-blue-50 focus:border-[#00577C] outline-none font-medium text-slate-900 text-center" placeholder="2028" />
+                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 text-center">Ano (AAAA)</label>
+                            <input required type="text" value={anoCartao} onChange={e => setAnoCartao(e.target.value.replace(/\D/g, ''))} maxLength={4} className="w-full bg-white border-2 border-slate-100 rounded-2xl py-4 focus:ring-4 focus:ring-blue-50 focus:border-[#00577C] outline-none font-bold text-slate-800 text-center" placeholder="2028" />
                           </div>
                           <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-2">CVV</label>
-                            <input required type="password" value={cvvCartao} onChange={e => setCvvCartao(e.target.value.replace(/\D/g, ''))} maxLength={4} className="w-full bg-white border border-slate-200 rounded-xl px-5 py-3 focus:ring-4 focus:ring-blue-50 focus:border-[#00577C] outline-none font-medium text-slate-900 text-center" placeholder="123" />
+                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 text-center">CVV</label>
+                            <input required type="password" value={cvvCartao} onChange={e => setCvvCartao(e.target.value.replace(/\D/g, ''))} maxLength={4} className="w-full bg-white border-2 border-slate-100 rounded-2xl py-4 focus:ring-4 focus:ring-blue-50 focus:border-[#00577C] outline-none font-bold text-slate-800 text-center" placeholder="***" />
                           </div>
                         </div>
                         <div>
-                          <label className="block text-sm font-bold text-slate-700 mb-2">Parcelamento</label>
-                          <select value={parcelas} onChange={e => setParcelas(Number(e.target.value))} className="w-full bg-white border border-slate-200 rounded-xl px-5 py-4 focus:ring-4 focus:ring-blue-50 focus:border-[#00577C] outline-none font-medium text-slate-900 cursor-pointer">
+                          <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Opções de Parcelamento</label>
+                          <select value={parcelas} onChange={e => setParcelas(Number(e.target.value))} className="w-full bg-white border-2 border-slate-100 rounded-2xl px-6 py-5 focus:ring-4 focus:ring-blue-50 focus:border-[#00577C] outline-none font-bold text-slate-800 cursor-pointer appearance-none">
                             {[...Array(12)].map((_, i) => {
                                const numParcelas = i + 1;
                                const valorParcela = valorTotalReserva / numParcelas;
                                return (
                                  <option key={numParcelas} value={numParcelas}>
-                                   {numParcelas}x de {formatarMoeda(valorParcela)} {numParcelas === 1 ? '(Sem Juros)' : ''}
+                                   {numParcelas}x de {formatarMoeda(valorParcela)} {numParcelas === 1 ? '(À vista)' : ''}
                                  </option>
                                );
                             })}
@@ -411,113 +439,147 @@ function CheckoutHotelContent() {
                     )}
 
                     {erroApi && (
-                      <div className="mb-8 p-5 bg-red-50 border border-red-200 rounded-2xl text-red-600 text-sm font-bold flex items-center gap-3">
-                        <AlertCircle size={24}/> {erroApi}
+                      <div className="mb-10 p-6 bg-red-50 border-2 border-red-100 rounded-[2rem] text-red-600 flex items-start gap-4">
+                        <AlertCircle className="shrink-0 mt-1" size={24}/>
+                        <div>
+                           <p className="font-black uppercase text-xs tracking-widest mb-1">Aviso de Processamento</p>
+                           <p className="font-medium text-sm">{erroApi}</p>
+                        </div>
                       </div>
                     )}
 
                     <button 
                       type="submit" disabled={isSubmitting}
-                      className={`w-full py-6 rounded-3xl font-black text-2xl shadow-xl transition-all flex items-center justify-center gap-4 active:scale-[0.98] ${
+                      className={`w-full py-8 rounded-[2rem] font-black text-2xl shadow-2xl transition-all flex items-center justify-center gap-6 active:scale-[0.98] ${
                         metodoPagamento === 'pix' ? 'bg-[#009640] hover:bg-[#007a33] text-white shadow-green-200' : 'bg-[#00577C] hover:bg-[#004a6b] text-white shadow-blue-200'
                       }`}
                     >
                       {isSubmitting ? (
-                        <><Loader2 className="animate-spin" size={28}/> Confirmando Pagamento...</>
+                        <><Loader2 className="animate-spin" size={32} /> Processando de forma segura...</>
                       ) : (
-                        metodoPagamento === 'pix' ? 'Gerar PIX Oficial' : `Pagar ${formatarMoeda(valorTotalReserva)}`
+                        metodoPagamento === 'pix' ? 'Gerar PIX e Concluir' : `Pagar ${formatarMoeda(valorTotalReserva)}`
                       )}
                     </button>
-                    <p className="mt-6 flex items-center justify-center gap-2 text-[10px] uppercase tracking-widest font-bold text-slate-400">
-                       <ShieldCheck size={14} className="text-[#009640]"/> Transação Segura via PagBank
+                    
+                    <p className="mt-8 flex items-center justify-center gap-3 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">
+                       <ShieldCheck size={16} className="text-[#009640]" /> Pagamento Processado via PagBank S.A.
                     </p>
                   </div>
 
                 </form>
               </div>
             ) : (
-              /* TELA DE SUCESSO PIX */
-              <div className="bg-white p-12 rounded-[3.5rem] shadow-2xl border border-slate-100 text-center animate-in zoom-in-95 duration-700">
-                 <div className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner border-4 border-white">
-                    <CheckCircle2 size={56} className="text-[#009640]"/>
+              /* ── TELA DE SUCESSO PIX ── */
+              <div className="bg-white p-16 rounded-[4rem] shadow-2xl border border-slate-100 text-center animate-in zoom-in-95 duration-700 relative overflow-hidden">
+                 <div className="absolute top-0 left-0 w-full h-3 bg-[#009640]"></div>
+                 <div className="w-28 h-28 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-10 shadow-inner border-4 border-white">
+                    <CheckCircle2 size={64} className="text-[#009640]"/>
                  </div>
-                 <h2 className={`${jakarta.className} text-4xl font-black text-slate-900 mb-4`}>Reserva Solicitada!</h2>
-                 <p className="text-slate-500 text-lg mb-10 px-8">Escaneie o código abaixo no aplicativo do seu banco para concluir o pagamento da sua hospedagem.</p>
+                 <h2 className={`${jakarta.className} text-4xl font-black text-slate-900 mb-4`}>Falta Apenas um Passo!</h2>
+                 <p className="text-slate-500 text-xl mb-12 px-8 leading-relaxed">Escaneie o código abaixo no aplicativo do seu banco para garantir sua estadia no valor de <b>{formatarMoeda(valorTotalReserva)}</b>.</p>
                  
-                 <div className="w-80 h-80 bg-slate-50 mx-auto rounded-[3rem] p-8 mb-10 border-4 border-dashed border-slate-200 relative group">
-                    <img src={qrCodeData.link} alt="QR Code PIX" className="w-full h-full object-contain mix-blend-multiply" />
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/90 opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm rounded-[2.5rem]">
-                       <Smartphone className="text-[#009640] animate-bounce mb-3" size={56}/>
-                       <span className="text-sm font-black text-[#009640] uppercase tracking-widest">Pague via App</span>
+                 <div className="w-80 h-80 bg-slate-50 mx-auto rounded-[3.5rem] p-10 mb-12 border-4 border-dashed border-slate-200 relative group shadow-inner">
+                    <img src={qrCodeData.link} alt="QR Code PIX" className="w-full h-full object-contain mix-blend-multiply transition-transform duration-700 group-hover:scale-110" />
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/90 opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm rounded-[3.5rem]">
+                       <Smartphone className="text-[#009640] animate-pulse mb-3" size={60}/>
+                       <span className="text-xs font-black text-[#009640] uppercase tracking-[0.3em]">Pague via App</span>
                     </div>
                  </div>
 
-                 <div className="bg-slate-50 p-6 rounded-3xl border border-slate-200 flex items-center justify-between gap-4 mb-6 text-left">
+                 <div className="bg-slate-50 p-8 rounded-[2.5rem] border-2 border-slate-100 flex items-center justify-between gap-6 mb-8 text-left">
                    <div className="min-w-0 flex-1">
-                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Pix Copia e Cola</p>
-                     <p className="text-sm font-medium text-slate-800 truncate">{qrCodeData.texto}</p>
+                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Código PIX Copia e Cola</p>
+                     <p className="text-sm font-bold text-slate-800 truncate tracking-tight">{qrCodeData.texto}</p>
                    </div>
-                   <button onClick={copiarCodigo} className={`p-4 rounded-2xl flex items-center gap-2 font-bold text-sm transition-all shrink-0 ${copiado ? 'bg-[#009640] text-white' : 'bg-white border border-slate-300 hover:bg-slate-100 text-slate-700'}`}>
-                     {copiado ? <><CheckCircle2 size={18}/> Copiado</> : <><Copy size={18}/> Copiar Chave</>}
+                   <button onClick={copiarCodigo} className={`p-5 rounded-2xl flex items-center gap-3 font-black text-sm transition-all shrink-0 shadow-lg ${copiado ? 'bg-[#009640] text-white' : 'bg-white border-2 border-slate-200 hover:bg-slate-50 text-slate-700'}`}>
+                     {copiado ? <><CheckCircle2 size={20}/> Sucesso</> : <><Copy size={20}/> Copiar</>}
                    </button>
                  </div>
-                 <p className="text-xs text-slate-400 font-bold flex items-center justify-center gap-2 mt-8"><Loader2 className="animate-spin" size={14}/> A aguardar confirmação do banco...</p>
+                 
+                 <div className="flex items-center justify-center gap-4 py-8 border-t border-slate-50 mt-10">
+                    <Loader2 className="animate-spin text-slate-300" size={20}/>
+                    <p className="text-sm text-slate-400 font-bold uppercase tracking-widest">Aguardando confirmação automática do banco...</p>
+                 </div>
               </div>
             )}
           </div>
 
           {/* ── COLUNA DIREITA: RESUMO DA RESERVA FIXO ── */}
           <aside className="lg:sticky lg:top-12">
-            <div className="bg-white rounded-[3rem] border border-slate-100 shadow-xl overflow-hidden relative">
-              <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#00577C] via-[#F9C400] to-[#009640]" />
+            <div className="bg-white rounded-[3.5rem] border border-slate-100 shadow-2xl overflow-hidden relative">
+              <div className="absolute top-0 left-0 w-full h-3 bg-gradient-to-r from-[#00577C] via-[#F9C400] to-[#009640]" />
               
-              <div className="p-8 border-b border-slate-50">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Sua Hospedagem</p>
-                <div className="flex gap-4 items-center">
+              <div className="p-12 border-b-2 border-slate-50">
+                <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.4em] mb-4">A sua Hospedagem</p>
+                <div className="flex gap-5 items-center">
                   {hotel?.imagem_url && (
-                    <div className="relative w-20 h-20 rounded-2xl overflow-hidden shrink-0 border border-slate-100">
+                    <div className="relative w-24 h-24 rounded-2xl overflow-hidden shrink-0 border-4 border-white shadow-md">
                       <Image src={hotel.imagem_url} alt={hotel?.nome || 'Hotel'} fill className="object-cover" />
                     </div>
                   )}
-                  <h3 className={`${jakarta.className} text-2xl font-bold text-slate-900 leading-tight`}>{hotel?.nome}</h3>
+                  <div>
+                     <h3 className={`${jakarta.className} text-2xl font-black text-slate-900 leading-tight mb-2`}>{hotel?.nome}</h3>
+                     <p className="text-xs font-bold text-slate-500">{nomeQuarto}</p>
+                  </div>
                 </div>
               </div>
 
-              <div className="p-8 space-y-6">
-                <div className="flex items-center gap-4">
-                   <Bed className="text-[#00577C] shrink-0" size={20}/>
+              <div className="p-12 space-y-10">
+                
+                {/* Check-in e Check-out */}
+                <div className="grid grid-cols-2 gap-6 p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
                    <div>
-                     <p className="font-bold text-slate-800 text-sm">Acomodação Selecionada</p>
-                     <p className="text-xs font-bold text-slate-400">{nomeQuarto}</p>
+                     <p className="text-[9px] font-black uppercase text-slate-400 mb-2 flex items-center gap-2"><Calendar size={14}/> Check-in</p>
+                     <p className="font-black text-slate-800 text-lg">{formatarData(checkinData || '')}</p>
+                     <p className="text-xs text-slate-500 font-medium mt-1">A partir das 14:00</p>
+                   </div>
+                   <div className="border-l-2 border-slate-200 pl-6">
+                     <p className="text-[9px] font-black uppercase text-slate-400 mb-2 flex items-center gap-2"><Calendar size={14}/> Check-out</p>
+                     <p className="font-black text-slate-800 text-lg">{formatarData(checkoutData || '')}</p>
+                     <p className="text-xs text-slate-500 font-medium mt-1">Até às 12:00</p>
                    </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 pt-6 border-t border-slate-50">
-                   <div>
-                     <p className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1"><Calendar size={12}/> Check-in</p>
-                     <p className="font-bold text-slate-800">{formatarData(checkinData || '')}</p>
-                   </div>
-                   <div>
-                     <p className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1"><Calendar size={12}/> Check-out</p>
-                     <p className="font-bold text-slate-800">{formatarData(checkoutData || '')}</p>
-                   </div>
+                {/* Resumo de Lotação */}
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center text-sm">
+                    <div className="flex items-center gap-3 text-slate-500 font-bold"><Users size={18} className="text-[#00577C]"/> Adultos</div>
+                    <span className="font-black text-slate-800">{adultosParam}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <div className="flex items-center gap-3 text-slate-500 font-bold"><Baby size={18} className="text-[#009640]"/> Crianças</div>
+                    <span className="font-black text-slate-800">{criancasParam}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm pt-4 border-t-2 border-slate-50">
+                    <div className="flex items-center gap-3 text-slate-500 font-bold"><DoorOpen size={18} className="text-[#F9C400]"/> Quartos Solicitados</div>
+                    <span className="font-black text-slate-800">{quartosParam}</span>
+                  </div>
                 </div>
 
-                <div className="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-100 mt-2">
-                   <span className="text-xs font-bold text-slate-500">Duração da Estadia</span>
-                   <span className="font-black text-[#00577C]">{numNoites} {numNoites === 1 ? 'noite' : 'noites'}</span>
+                <div className="flex justify-between items-center bg-blue-50/50 p-6 rounded-[1.5rem] border border-blue-100">
+                   <span className="text-xs font-black text-[#00577C] uppercase tracking-widest">Duração da Estadia</span>
+                   <span className="font-black text-xl text-[#00577C]">{numNoites} {numNoites === 1 ? 'noite' : 'noites'}</span>
                 </div>
               </div>
 
-              <div className="p-10 bg-[#009640]/5 border-t border-[#009640]/10 text-center">
-                 <p className="text-xs font-black text-[#009640] uppercase tracking-widest mb-2">Total da Reserva</p>
-                 <p className={`${jakarta.className} text-6xl font-black text-[#009640] tabular-nums`}>{formatarMoeda(valorTotalReserva)}</p>
+              {/* Rodapé com Valor Final */}
+              <div className="p-12 bg-slate-900 text-white text-center relative overflow-hidden">
+                 <div className="absolute top-0 left-0 w-full h-full bg-[#009640] opacity-10 pointer-events-none"></div>
+                 <p className="text-[11px] font-black uppercase tracking-[0.5em] text-white/50 mb-4">Total a Pagar Hoje</p>
+                 <p className={`${jakarta.className} text-6xl font-black tabular-nums`}>{formatarMoeda(valorTotalReserva)}</p>
               </div>
             </div>
 
-            <div className="mt-8 text-center text-[10px] font-bold text-slate-400 flex flex-col items-center justify-center gap-2 uppercase tracking-widest">
-               <div className="flex items-center gap-2"><Map size={16} className="text-[#00577C]"/> Confirmação Imediata</div>
-               <p className="opacity-70 mt-2">Ao finalizar, o seu voucher será enviado diretamente para o seu e-mail.</p>
+            {/* Selos de Confiança */}
+            <div className="mt-10 grid grid-cols-2 gap-4">
+               <div className="bg-white p-5 rounded-2xl border border-slate-100 flex flex-col items-center text-center gap-3 shadow-sm">
+                  <Map className="text-[#00577C]" size={20}/>
+                  <span className="text-[9px] font-black text-slate-400 uppercase leading-tight tracking-widest">Confirmação<br/>Imediata</span>
+               </div>
+               <div className="bg-white p-5 rounded-2xl border border-slate-100 flex flex-col items-center text-center gap-3 shadow-sm">
+                  <ShieldAlert className="text-[#009640]" size={20}/>
+                  <span className="text-[9px] font-black text-slate-400 uppercase leading-tight tracking-widest">Sem Taxas<br/>Ocultas</span>
+               </div>
             </div>
           </aside>
 
@@ -531,8 +593,11 @@ export default function CheckoutHotelPage() {
   return (
     <main className={`${inter.className} bg-[#F8F9FA] min-h-screen`}>
       <Suspense fallback={
-        <div className="min-h-screen flex items-center justify-center">
-          <Loader2 className="animate-spin text-[#00577C] w-12 h-12" />
+        <div className="min-h-screen flex flex-col items-center justify-center bg-white">
+          <Loader2 className="animate-spin text-[#00577C] w-16 h-16 mb-6" />
+          <p className={`${jakarta.className} font-bold text-slate-400 uppercase tracking-[0.4em] text-xs`}>
+            Preparando Ambiente de Pagamento...
+          </p>
         </div>
       }>
         <CheckoutHotelContent />
