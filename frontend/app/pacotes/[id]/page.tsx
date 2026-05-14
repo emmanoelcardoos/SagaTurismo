@@ -12,15 +12,16 @@ import {
   ChevronLeft, ChevronRight as ChevronRightIcon, ZoomIn,
   Landmark
 } from 'lucide-react';
-import { Cormorant_Garamond, DM_Sans } from 'next/font/google';
+import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
 
-const cormorant = Cormorant_Garamond({ subsets: ['latin'], weight: ['300', '400', '500', '600', '700'] });
-const dmSans = DM_Sans({ subsets: ['latin'], weight: ['300', '400', '500', '600', '700'] });
+const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['600', '700', '800'] });
+const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
 
+// ── IMAGEM DE SEGURANÇA ──
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?q=80&w=1740";
 
-// ── UTILITÁRIOS E MATEMÁTICA ── (sem alterações)
+// ── UTILITÁRIOS E MATEMÁTICA (sem alterações) ──
 const parseValor = (valor: any): number => {
   if (valor === null || valor === undefined || valor === '') return 0;
   const num = typeof valor === 'string' ? parseFloat(valor.replace(',', '.')) : valor;
@@ -30,6 +31,7 @@ const parseValor = (valor: any): number => {
 const formatarMoeda = (valor: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor || 0);
 
+// ── BLINDAGEM DE ARRAYS (sem alterações) ──
 const getArraySeguro = (item: any): string[] => {
   if (!item) return [];
   if (Array.isArray(item)) return item;
@@ -46,7 +48,7 @@ const getArraySeguro = (item: any): string[] => {
   return [];
 };
 
-// ── TIPAGENS (sem alterações) ──
+// ── TIPAGENS RÍGIDAS (sem alterações) ──
 type Hotel = {
   id: string; nome: string; tipo: string; imagem_url: string; descricao: string;
   quarto_standard_nome: string; quarto_standard_preco: any; quarto_standard_comodidades: string[];
@@ -70,7 +72,7 @@ export default function PacoteDetalhePage() {
   const { id } = useParams();
   const router = useRouter();
 
-  // ── ESTADOS (sem alterações) ──
+  // Estados de Dados
   const [pacote, setPacote] = useState<Pacote | null>(null);
   const [loading, setLoading] = useState(true);
   const [disponibilidadeDb, setDisponibilidadeDb] = useState<Record<string, Disponibilidade>>({});
@@ -79,15 +81,18 @@ export default function PacoteDetalhePage() {
   const [guiasDisponiveis, setGuiasDisponiveis] = useState<Guia[]>([]);
   const [atracoesInclusas, setAtracoesInclusas] = useState<Atracao[]>([]);
 
+  // Seleções do Usuário
   const [hotelSelecionado, setHotelSelecionado] = useState<Hotel | null>(null);
   const [tipoQuarto, setTipoQuarto] = useState<'standard' | 'luxo'>('standard');
   const [guiaSelecionado, setGuiaSelecionado] = useState<Guia | null>(null);
 
+  // Calendário Inteligente
   const [checkin, setCheckin] = useState<Date | null>(null);
   const [checkout, setCheckout] = useState<Date | null>(null);
   const [hoverDate, setHoverDate] = useState<Date | null>(null);
   const [mesAtualCalendario, setMesAtualCalendario] = useState<Date | null>(null);
 
+  // Galeria e UI
   const [fotoExpandidaIndex, setFotoExpandidaIndex] = useState<number | null>(null);
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
@@ -98,6 +103,7 @@ export default function PacoteDetalhePage() {
     setMounted(true);
   }, []);
 
+  // 1. Efeito de Scroll
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
@@ -110,6 +116,7 @@ export default function PacoteDetalhePage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
+  // 2. Carregar Pacote
   useEffect(() => {
     async function fetchData() {
       try {
@@ -118,16 +125,24 @@ export default function PacoteDetalhePage() {
           .select(`*, pacote_itens ( hoteis (*), guias (*), atracoes (*) )`)
           .eq('id', id)
           .single();
-        if (error || !data) { router.push('/pacotes'); return; }
+
+        if (error || !data) {
+          router.push('/pacotes');
+          return;
+        }
+
         const pct = data as Pacote;
         setPacote(pct);
+
         const itens = pct.pacote_itens || [];
         const hoteis = itens.map((i: any) => i?.hoteis).filter(Boolean) as Hotel[];
         const guias = itens.map((i: any) => i?.guias).filter(Boolean) as Guia[];
         const atracoes = itens.map((i: any) => i?.atracoes).filter(Boolean) as Atracao[];
+
         setHoteisDisponiveis(hoteis);
         setGuiasDisponiveis(guias);
         setAtracoesInclusas(atracoes);
+
         if (hoteis.length > 0) setHotelSelecionado(hoteis[0]);
         if (guias.length > 0) setGuiaSelecionado(guias[0]);
       } catch (err) {
@@ -140,6 +155,7 @@ export default function PacoteDetalhePage() {
     if (id) fetchData();
   }, [id, router]);
 
+  // 3. Carregar Disponibilidade
   useEffect(() => {
     async function fetchDisp() {
       if (!hotelSelecionado) return;
@@ -156,7 +172,8 @@ export default function PacoteDetalhePage() {
   // ── LÓGICA DO CALENDÁRIO (sem alterações) ──
   const diasDoMes = (ano: number, mes: number) => new Date(ano, mes + 1, 0).getDate();
   const primeiroDiaDoMes = (ano: number, mes: number) => new Date(ano, mes, 1).getDay();
-  const formatarDataIso = (data: Date) => `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`;
+  const formatarDataIso = (data: Date) =>
+    `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`;
 
   const getPrecoDiariaHotel = (dataStr: string) => {
     const disp = disponibilidadeDb[dataStr];
@@ -172,16 +189,24 @@ export default function PacoteDetalhePage() {
 
   const handleDateClick = (data: Date) => {
     if (!checkin || (checkin && checkout)) {
-      setCheckin(data); setCheckout(null);
+      setCheckin(data);
+      setCheckout(null);
     } else if (data > checkin) {
       let diaAtual = new Date(checkin);
       let reservaValida = true;
       while (diaAtual < data) {
-        if (!isDisponivel(formatarDataIso(diaAtual))) { reservaValida = false; break; }
+        if (!isDisponivel(formatarDataIso(diaAtual))) {
+          reservaValida = false;
+          break;
+        }
         diaAtual.setDate(diaAtual.getDate() + 1);
       }
       if (reservaValida) setCheckout(data);
-      else { alert("A sua seleção inclui dias esgotados. Selecione outro período."); setCheckin(data); setCheckout(null); }
+      else {
+        alert("A sua seleção inclui dias esgotados. Selecione outro período.");
+        setCheckin(data);
+        setCheckout(null);
+      }
     } else {
       setCheckin(data);
     }
@@ -220,11 +245,9 @@ export default function PacoteDetalhePage() {
   };
 
   if (!mounted || loading || !pacote || !mesAtualCalendario) return (
-    <div className={`${dmSans.className} min-h-screen flex items-center justify-center bg-[#F4F1EC]`}>
-      <div className="text-center space-y-4">
-        <div className="w-16 h-16 border-2 border-[#00577C]/20 border-t-[#00577C] rounded-full animate-spin mx-auto" />
-        <p className="text-[#00577C]/60 text-xs tracking-[0.3em] uppercase font-medium">A preparar experiência</p>
-      </div>
+    <div className={`${inter.className} min-h-screen flex flex-col items-center justify-center bg-white text-[#00577C]`}>
+      <Loader2 className="w-12 h-12 animate-spin mb-4" />
+      <p className="font-bold uppercase tracking-widest text-xs">A preparar portal de reservas...</p>
     </div>
   );
 
@@ -236,248 +259,157 @@ export default function PacoteDetalhePage() {
   hoje.setHours(0, 0, 0, 0);
 
   return (
-    <div className={`${dmSans.className} min-h-screen bg-[#F4F1EC]`}>
-
-      {/* ── ESTILOS GLOBAIS ── */}
-      <style jsx global>{`
-        :root {
-          --azul: #00577C;
-          --verde: #2D7D46;
-          --amarelo: #C9A84C;
-          --fundo: #F4F1EC;
-          --texto: #1A1F1C;
-          --branco: #FDFCFA;
-        }
-        ::selection { background: var(--azul); color: white; }
-        * { -webkit-font-smoothing: antialiased; }
-        .tag-pill {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 10px;
-          font-weight: 600;
-          letter-spacing: 0.12em;
-          text-transform: uppercase;
-          padding: 6px 14px;
-          border-radius: 100px;
-        }
-      `}</style>
+    <div className={`${inter.className} min-h-screen bg-[#F8F9FA] text-slate-900 flex flex-col`}>
 
       {/* ── HEADER ── */}
-      <header className={`fixed left-0 top-0 z-50 w-full transition-transform duration-500 ${showHeader ? 'translate-y-0' : '-translate-y-full'}`}>
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-          {/* Fundo glassmorphism limitado ao conteúdo */}
-          <div className="absolute inset-0 bg-[#F4F1EC]/90 backdrop-blur-2xl border-b border-[#1A1F1C]/8" style={{ zIndex: -1 }} />
-
-          <Link href="/" className="flex items-center gap-4">
-            <div className="relative h-10 w-36">
-              <Image src="/logop.png" alt="Logo" fill className="object-contain object-left" />
+      <header className={`fixed left-0 top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl transition-transform duration-300 ${showHeader ? 'translate-y-0' : '-translate-y-full'}`}>
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-5">
+          <Link href="/" className="flex min-w-0 items-center gap-3 sm:gap-4">
+            <div className="relative h-12 w-36 shrink-0 sm:h-16 sm:w-56">
+              <Image src="/logop.png" alt="Prefeitura" fill priority className="object-contain object-left" />
             </div>
-            <div className="hidden md:flex flex-col border-l border-[#1A1F1C]/15 pl-4">
-              <span className={`${cormorant.className} text-xl font-semibold tracking-wide text-[#00577C] leading-none`}>SagaTurismo</span>
-              <span className="text-[9px] uppercase tracking-[0.25em] text-[#1A1F1C]/40 font-medium mt-0.5">Secretaria de Turismo</span>
+            <div className="hidden border-l border-slate-200 pl-4 lg:block">
+              <p className={`${jakarta.className} text-2xl font-bold leading-none text-[#00577C]`}>SagaTurismo</p>
+              <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Secretaria de Turismo</p>
             </div>
           </Link>
-
-          <nav className="hidden md:flex items-center gap-6">
-            <Link href="/pacotes" className="text-sm font-medium text-[#1A1F1C]/70 hover:text-[#00577C] transition-colors tracking-wide">Pacotes</Link>
-            <Link href="/roteiro" className="text-sm font-medium text-[#1A1F1C]/70 hover:text-[#00577C] transition-colors tracking-wide">Rota Turística</Link>
-            <Link href="/cadastro" className="text-sm font-semibold bg-[#00577C] text-white px-6 py-2.5 rounded-full hover:bg-[#004568] transition-colors tracking-wide shadow-sm">
-              Cartão Residente
-            </Link>
+          <nav className="hidden items-center gap-7 md:flex">
+            <Link href="/pacotes" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Pacotes</Link>
+            <Link href="/roteiro" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Rota Turística</Link>
+            <Link href="/cadastro" className="rounded-full bg-[#F9C400] px-5 py-3 text-sm font-bold text-[#00577C] shadow-lg transition hover:bg-[#ffd633]">Cartão Residente</Link>
           </nav>
         </div>
       </header>
 
       {/* ── HERO ── */}
-      <section className="relative h-screen min-h-[700px] w-full">
+      <div className="w-full h-[40vh] md:h-[60vh] relative bg-slate-200 mt-[70px] md:mt-[90px]">
+        <Link href="/pacotes" className="absolute top-6 left-6 z-20 flex items-center gap-2 text-sm font-bold text-slate-800 bg-white hover:bg-slate-50 px-4 py-2 rounded-full shadow-lg transition-colors">
+          <ArrowLeft size={16} /> Voltar
+        </Link>
         <Image src={pacote.imagem_principal || FALLBACK_IMAGE} alt={pacote.titulo || 'Pacote'} fill className="object-cover" priority />
-
-        {/* Gradientes sofisticados */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0A1A10]/90 via-[#0A1A10]/30 to-[#0A1A10]/10" />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#0A1A10]/50 to-transparent" />
-
-        {/* Linha decorativa lateral */}
-        <div className="absolute left-8 top-1/2 -translate-y-1/2 flex flex-col items-center gap-3 hidden lg:flex">
-          <div className="w-px h-24 bg-white/20" />
-          <span className="text-white/40 text-[9px] tracking-[0.4em] uppercase font-medium -rotate-90 whitespace-nowrap">São Geraldo do Araguaia</span>
-          <div className="w-px h-24 bg-white/20" />
-        </div>
-
-        <div className="absolute bottom-0 left-0 w-full px-8 md:px-16 pb-16 text-white max-w-7xl mx-auto">
-          <button
-            onClick={() => router.back()}
-            className="flex items-center gap-2 text-xs font-medium mb-10 text-white/60 hover:text-white transition-colors tracking-widest uppercase"
-          >
-            <ArrowLeft size={14} /> Voltar
-          </button>
-
-          <div className="flex items-center gap-3 mb-6">
-            <span className="tag-pill bg-[#C9A84C]/20 text-[#C9A84C] border border-[#C9A84C]/30 backdrop-blur-sm">
-              Expedição Oficial
-            </span>
-            <span className="tag-pill bg-white/10 text-white/70 border border-white/20 backdrop-blur-sm">
-              <MapPin size={10} /> Pará, Brasil
-            </span>
-          </div>
-
-          <h1 className={`${cormorant.className} text-6xl md:text-8xl lg:text-9xl font-light leading-[0.95] tracking-tight text-white mb-6`}>
-            {pacote.titulo}
-          </h1>
-
-          <p className="text-white/60 text-base max-w-xl font-light leading-relaxed mt-4">
-            {pacote.descricao_curta}
-          </p>
-        </div>
-      </section>
-
-      {/* ── INFO BAR FLUTUANTE ── */}
-      <div className="relative z-30 max-w-5xl mx-auto px-6 -mt-1">
-        <div className="bg-[#FDFCFA] border border-[#1A1F1C]/8 rounded-2xl shadow-xl overflow-hidden grid grid-cols-3 divide-x divide-[#1A1F1C]/8">
-          <div className="px-10 py-7 flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-[#C9A84C]/10 flex items-center justify-center">
-              <CalendarIcon size={18} className="text-[#C9A84C]" />
-            </div>
-            <div>
-              <p className="text-[9px] font-semibold text-[#1A1F1C]/40 uppercase tracking-[0.2em] mb-0.5">Duração</p>
-              <p className="font-semibold text-[#1A1F1C] text-lg leading-none">{pacote.dias} Dias</p>
-            </div>
-          </div>
-          <div className="px-10 py-7 flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-[#00577C]/10 flex items-center justify-center">
-              <MapPin size={18} className="text-[#00577C]" />
-            </div>
-            <div>
-              <p className="text-[9px] font-semibold text-[#1A1F1C]/40 uppercase tracking-[0.2em] mb-0.5">Destino</p>
-              <p className="font-semibold text-[#1A1F1C] text-lg leading-none">SGA, Pará</p>
-            </div>
-          </div>
-          <div className="px-10 py-7 flex items-center gap-4 bg-[#2D7D46]/5">
-            <div className="w-10 h-10 rounded-xl bg-[#2D7D46]/15 flex items-center justify-center">
-              <Wallet size={18} className="text-[#2D7D46]" />
-            </div>
-            <div>
-              <p className="text-[9px] font-semibold text-[#2D7D46]/60 uppercase tracking-[0.2em] mb-0.5">Valor Estimado</p>
-              <p className={`${cormorant.className} font-semibold text-[#2D7D46] text-2xl leading-none`}>{formatarMoeda(valorTotalFinal)}</p>
-            </div>
-          </div>
-        </div>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
       </div>
 
       {/* ── GRID PRINCIPAL ── */}
-      <div className="max-w-7xl mx-auto px-6 py-24 grid lg:grid-cols-[1fr_420px] gap-14 items-start">
+      <div className="mx-auto w-full max-w-7xl px-5 py-12 flex flex-col lg:flex-row items-start gap-12 relative z-10 -mt-20">
 
         {/* ── COLUNA ESQUERDA ── */}
-        <div className="space-y-12">
+        <div className="flex-1 w-full min-w-0 flex flex-col gap-10">
 
-          {/* SOBRE O ROTEIRO */}
-          <section className="bg-[#FDFCFA] rounded-2xl p-10 border border-[#1A1F1C]/8 shadow-sm">
-            <div className="flex items-center gap-3 mb-8">
-              <span className="w-7 h-px bg-[#C9A84C]" />
-              <span className="text-[10px] font-semibold tracking-[0.25em] uppercase text-[#C9A84C]">Roteiro</span>
+          {/* Info Principal */}
+          <section className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-2xl border border-slate-100">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="bg-[#F9C400] text-[#00577C] px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest shadow-sm">
+                Expedição Oficial
+              </span>
+              <span className="flex items-center gap-1.5 text-sm font-semibold text-slate-500">
+                <MapPin size={15} className="text-[#009640]" /> São Geraldo do Araguaia, Pará
+              </span>
             </div>
-            <h2 className={`${cormorant.className} text-4xl font-medium text-[#1A1F1C] mb-6 leading-tight`}>Sobre a Experiência</h2>
-            <p className="text-[#1A1F1C]/60 text-lg leading-relaxed mb-8 italic font-light border-l-2 border-[#C9A84C] pl-6">
-              {pacote.descricao_curta}
-            </p>
-            <div className="text-[#1A1F1C]/70 leading-relaxed whitespace-pre-line text-base font-light">
-              {pacote.roteiro_detalhado}
+
+            <h1 className={`${jakarta.className} text-4xl sm:text-5xl font-black text-slate-900 tracking-tight mb-4`}>
+              {pacote.titulo}
+            </h1>
+
+            <div className="flex items-center gap-6 text-sm font-semibold text-slate-500 mb-10 border-b border-slate-100 pb-8">
+              <span className="flex items-center gap-2">
+                <CalendarIcon size={16} className="text-[#00577C]" /> {pacote.dias} dias
+              </span>
+            </div>
+
+            <div className="mb-12">
+              <h3 className={`${jakarta.className} text-2xl font-black text-[#00577C] mb-6`}>Sobre o Roteiro</h3>
+              <p className="text-lg text-slate-500 italic font-medium border-l-4 border-[#F9C400] pl-5 mb-8">{pacote.descricao_curta}</p>
+              <div className="text-slate-600 font-medium leading-relaxed whitespace-pre-line">{pacote.roteiro_detalhado}</div>
             </div>
           </section>
 
           {/* ── ACOMODAÇÃO ── */}
-          <section>
-            <div className="flex items-center gap-4 mb-8">
-              <div className="w-10 h-10 rounded-xl bg-[#00577C] flex items-center justify-center shadow-sm">
-                <Bed size={18} className="text-white" />
+          <section className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-2xl border border-slate-100">
+            <h3 className={`${jakarta.className} text-3xl font-black text-slate-900 mb-10 flex items-center gap-4`}>
+              <div className="w-12 h-12 bg-[#00577C] text-white rounded-2xl flex items-center justify-center shadow-lg">
+                <Bed size={24} />
               </div>
-              <div>
-                <p className="text-[9px] font-semibold tracking-[0.25em] uppercase text-[#1A1F1C]/40 mb-0.5">Passo 1</p>
-                <h2 className={`${cormorant.className} text-2xl font-medium text-[#1A1F1C]`}>Escolha a Acomodação</h2>
-              </div>
-            </div>
+              1. Escolha a Acomodação
+            </h3>
 
-            <div className="space-y-4">
+            <div className="flex flex-col gap-6">
               {hoteisDisponiveis.map((hotel: any) => {
                 const selected = hotelSelecionado?.id === hotel.id;
                 return (
                   <div
                     key={hotel.id}
-                    className={`bg-[#FDFCFA] rounded-2xl border transition-all duration-300 overflow-hidden ${selected ? 'border-[#00577C]/40 shadow-lg ring-1 ring-[#00577C]/10' : 'border-[#1A1F1C]/8 hover:border-[#1A1F1C]/20'}`}
+                    className={`rounded-[2rem] border-2 transition-all duration-300 overflow-hidden ${selected ? 'border-[#00577C] shadow-xl' : 'border-slate-100 hover:border-slate-200'}`}
                   >
                     <button
-                      className="w-full flex items-center justify-between p-8 text-left gap-6"
+                      className="w-full flex items-center justify-between p-6 text-left gap-6 bg-white"
                       onClick={() => setHotelSelecionado(hotel)}
                     >
-                      <div className="flex items-center gap-6">
-                        <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-[#1A1F1C]/8 flex-shrink-0">
+                      <div className="flex items-center gap-5">
+                        <div className="relative w-20 h-20 rounded-2xl overflow-hidden shadow-sm border border-slate-100 shrink-0">
                           <Image src={hotel.imagem_url || FALLBACK_IMAGE} alt={hotel.nome} fill className="object-cover" />
                         </div>
                         <div className="text-left">
-                          <h4 className={`${cormorant.className} text-2xl font-medium text-[#1A1F1C] mb-2`}>{hotel.nome}</h4>
+                          <h4 className={`${jakarta.className} text-xl font-black text-slate-800 mb-2`}>{hotel.nome}</h4>
                           <div className="flex items-center gap-3">
-                            <span className="tag-pill bg-[#2D7D46]/8 text-[#2D7D46] border border-[#2D7D46]/20">{hotel.tipo}</span>
-                            <div className="flex text-[#C9A84C] gap-0.5">
-                              {[...Array(4)].map((_, i) => <Star key={i} size={12} fill="currentColor" />)}
+                            <span className="bg-[#F9C400] text-[#00577C] px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest">{hotel.tipo}</span>
+                            <div className="flex text-[#F9C400] gap-0.5">
+                              {[...Array(4)].map((_, i) => <Star key={i} size={13} fill="currentColor" />)}
                             </div>
                           </div>
                         </div>
                       </div>
-                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${selected ? 'border-[#00577C] bg-[#00577C]' : 'border-[#1A1F1C]/20'}`}>
-                        {selected && <div className="w-2 h-2 rounded-full bg-white" />}
+                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${selected ? 'border-[#00577C] bg-[#00577C]' : 'border-slate-300'}`}>
+                        {selected && <CheckCircle2 size={14} className="text-white" />}
                       </div>
                     </button>
 
                     {selected && (
-                      <div className="px-8 pb-8 border-t border-[#1A1F1C]/6 pt-6 animate-in fade-in slide-in-from-top-2 duration-300">
-                        <p className="text-[9px] font-semibold tracking-[0.25em] uppercase text-[#1A1F1C]/40 mb-4">Tipo de Quarto</p>
+                      <div className="border-t border-slate-100 bg-slate-50/50 px-6 pb-6 pt-5 animate-in fade-in slide-in-from-top-2 duration-300">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-[#00577C] mb-4">Tipo de Quarto</p>
                         <div className="grid md:grid-cols-2 gap-4">
 
                           {/* Standard */}
                           <div
                             onClick={() => setTipoQuarto('standard')}
-                            className={`cursor-pointer p-6 rounded-xl border-2 transition-all ${tipoQuarto === 'standard' ? 'border-[#C9A84C] bg-[#C9A84C]/5' : 'border-[#1A1F1C]/8 hover:border-[#1A1F1C]/20'}`}
+                            className={`cursor-pointer p-6 rounded-[1.5rem] border-2 transition-all flex flex-col justify-between ${tipoQuarto === 'standard' ? 'border-[#00577C] bg-blue-50/50' : 'border-slate-100 bg-white hover:border-slate-200'}`}
                           >
                             <div className="flex justify-between items-start mb-4">
-                              <p className="font-semibold text-[#1A1F1C]">{hotel.quarto_standard_nome || 'Standard'}</p>
-                              {tipoQuarto === 'standard' && (
-                                <div className="w-5 h-5 rounded-full bg-[#C9A84C] flex items-center justify-center">
-                                  <div className="w-2 h-2 rounded-full bg-white" />
-                                </div>
-                              )}
+                              <div>
+                                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Opção Económica</p>
+                                <p className="font-bold text-slate-800">{hotel.quarto_standard_nome || 'Standard'}</p>
+                              </div>
+                              <input type="radio" checked={tipoQuarto === 'standard'} readOnly className="w-5 h-5 accent-[#00577C] mt-0.5 shrink-0" />
                             </div>
                             <div className="flex flex-wrap gap-1.5 mb-4">
                               {getArraySeguro(hotel.quarto_standard_comodidades).map((c: string, i: number) => (
-                                <span key={i} className="text-[9px] font-medium bg-[#1A1F1C]/5 text-[#1A1F1C]/50 px-2 py-1 rounded-md uppercase tracking-wide">{c}</span>
+                                <span key={i} className="text-[9px] font-bold bg-white border border-slate-200 text-slate-500 px-2 py-1 rounded-lg uppercase">{c}</span>
                               ))}
                             </div>
-                            <p className={`${cormorant.className} text-2xl font-semibold text-[#2D7D46]`}>{formatarMoeda(parseValor(hotel.quarto_standard_preco))}</p>
+                            <p className={`${jakarta.className} text-2xl font-black text-[#009640]`}>{formatarMoeda(parseValor(hotel.quarto_standard_preco))}</p>
                           </div>
 
                           {/* Luxo */}
                           <div
                             onClick={() => setTipoQuarto('luxo')}
-                            className={`cursor-pointer p-6 rounded-xl border-2 transition-all relative ${tipoQuarto === 'luxo' ? 'border-[#00577C] bg-[#00577C]/5' : 'border-[#1A1F1C]/8 hover:border-[#1A1F1C]/20'}`}
+                            className={`cursor-pointer p-6 rounded-[1.5rem] border-2 transition-all flex flex-col justify-between relative ${tipoQuarto === 'luxo' ? 'border-[#F9C400] bg-yellow-50/50' : 'border-slate-100 bg-white hover:border-slate-200'}`}
                           >
-                            <div className="absolute -top-3 left-5">
-                              <span className="tag-pill bg-[#00577C] text-white text-[8px]">
-                                <Award size={8} /> Recomendado
-                              </span>
+                            <div className="absolute -top-3.5 right-5 bg-[#00577C] text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg flex items-center gap-1">
+                              <Award size={12} /> RECOMENDADO
                             </div>
-                            <div className="flex justify-between items-start mb-4 mt-2">
-                              <p className="font-semibold text-[#1A1F1C]">{hotel.quarto_luxo_nome || 'Suíte Luxo'}</p>
-                              {tipoQuarto === 'luxo' && (
-                                <div className="w-5 h-5 rounded-full bg-[#00577C] flex items-center justify-center">
-                                  <div className="w-2 h-2 rounded-full bg-white" />
-                                </div>
-                              )}
+                            <div className="flex justify-between items-start mb-4 mt-1">
+                              <div>
+                                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Experiência Premium</p>
+                                <p className="font-bold text-slate-800">{hotel.quarto_luxo_nome || 'Suíte Luxo'}</p>
+                              </div>
+                              <input type="radio" checked={tipoQuarto === 'luxo'} readOnly className="w-5 h-5 accent-[#F9C400] mt-0.5 shrink-0" />
                             </div>
                             <div className="flex flex-wrap gap-1.5 mb-4">
                               {getArraySeguro(hotel.quarto_luxo_comodidades).map((c: string, i: number) => (
-                                <span key={i} className="text-[9px] font-medium bg-[#00577C]/10 text-[#00577C] px-2 py-1 rounded-md uppercase tracking-wide">{c}</span>
+                                <span key={i} className="text-[9px] font-bold bg-[#00577C] text-white px-2 py-1 rounded-lg uppercase shadow-sm">{c}</span>
                               ))}
                             </div>
-                            <p className={`${cormorant.className} text-2xl font-semibold text-[#2D7D46]`}>{formatarMoeda(parseValor(hotel.quarto_luxo_preco))}</p>
+                            <p className={`${jakarta.className} text-2xl font-black text-[#009640]`}>{formatarMoeda(parseValor(hotel.quarto_luxo_preco))}</p>
                           </div>
 
                         </div>
@@ -489,47 +421,45 @@ export default function PacoteDetalhePage() {
             </div>
           </section>
 
-          {/* ── GUIA ── */}
-          <section>
-            <div className="flex items-center gap-4 mb-8">
-              <div className="w-10 h-10 rounded-xl bg-[#2D7D46] flex items-center justify-center shadow-sm">
-                <UserCheck size={18} className="text-white" />
+          {/* ── GUIA OFICIAL ── */}
+          <section className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-2xl border border-slate-100">
+            <h3 className={`${jakarta.className} text-3xl font-black text-slate-900 mb-10 flex items-center gap-4`}>
+              <div className="w-12 h-12 bg-[#009640] text-white rounded-2xl flex items-center justify-center shadow-lg">
+                <UserCheck size={24} />
               </div>
-              <div>
-                <p className="text-[9px] font-semibold tracking-[0.25em] uppercase text-[#1A1F1C]/40 mb-0.5">Passo 2</p>
-                <h2 className={`${cormorant.className} text-2xl font-medium text-[#1A1F1C]`}>Guia Oficial Credenciado</h2>
-              </div>
-            </div>
+              2. Guia Oficial Credenciado
+            </h3>
 
-            <div className="space-y-3">
+            <div className="flex flex-col gap-4">
               {guiasDisponiveis.map((guia: any) => {
                 const selected = guiaSelecionado?.id === guia.id;
                 return (
                   <label
                     key={guia.id}
-                    className={`flex items-center justify-between p-6 bg-[#FDFCFA] rounded-2xl border-2 transition-all cursor-pointer ${selected ? 'border-[#2D7D46]/40 ring-1 ring-[#2D7D46]/10 shadow-md' : 'border-[#1A1F1C]/8 hover:border-[#1A1F1C]/20'}`}
+                    className={`flex items-center justify-between p-6 bg-white rounded-[2rem] border-2 transition-all cursor-pointer ${selected ? 'border-[#009640] shadow-lg' : 'border-slate-100 hover:border-slate-200'}`}
                   >
                     <div className="flex items-center gap-5">
-                      <div className="relative w-16 h-16 rounded-xl overflow-hidden border border-[#1A1F1C]/8 flex-shrink-0">
+                      <div className="relative w-16 h-16 rounded-2xl overflow-hidden shadow-sm border border-slate-100 shrink-0">
                         <Image src={guia.imagem_url || FALLBACK_IMAGE} alt={guia.nome} fill className="object-cover" />
                       </div>
                       <div>
-                        <p className="font-semibold text-[#1A1F1C] text-lg">{guia.nome}</p>
-                        <p className="text-xs text-[#1A1F1C]/50 font-medium mt-0.5 flex items-center gap-1.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#2D7D46]" />
-                          {guia.especialidade}
+                        <p className={`${jakarta.className} font-black text-lg text-slate-800 mb-1`}>{guia.nome}</p>
+                        <p className="text-xs font-bold text-slate-500 flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-[#009640]" />{guia.especialidade}
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-5">
                       <div className="text-right hidden sm:block">
-                        <p className="text-[9px] text-[#1A1F1C]/40 uppercase tracking-[0.2em] font-medium mb-0.5">Diária</p>
-                        <p className={`${cormorant.className} text-xl font-semibold text-[#1A1F1C]`}>{formatarMoeda(parseValor(guia.preco_diaria))}</p>
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Diária</p>
+                        <p className={`${jakarta.className} text-xl font-black text-slate-900`}>{formatarMoeda(parseValor(guia.preco_diaria))}</p>
                       </div>
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${selected ? 'border-[#2D7D46] bg-[#2D7D46]' : 'border-[#1A1F1C]/20'}`}>
-                        {selected && <div className="w-2 h-2 rounded-full bg-white" />}
-                      </div>
-                      <input type="radio" checked={selected} onChange={() => setGuiaSelecionado(guia)} className="sr-only" />
+                      <input
+                        type="radio"
+                        checked={selected}
+                        onChange={() => setGuiaSelecionado(guia)}
+                        className="w-5 h-5 accent-[#009640]"
+                      />
                     </div>
                   </label>
                 );
@@ -540,262 +470,231 @@ export default function PacoteDetalhePage() {
         </div>
 
         {/* ── COLUNA DIREITA — MOTOR DE RESERVAS ── */}
-        <aside className="lg:sticky lg:top-28 h-fit">
-          <div className="bg-[#FDFCFA] rounded-2xl border border-[#1A1F1C]/8 shadow-xl overflow-hidden">
+        <div className="w-full lg:w-[420px] shrink-0 lg:self-start">
+          <aside className="lg:sticky lg:top-32 space-y-6">
 
-            {/* Topo colorido */}
-            <div className="h-1 w-full bg-gradient-to-r from-[#00577C] via-[#2D7D46] to-[#C9A84C]" />
+            <div className="bg-white p-8 rounded-[3rem] shadow-2xl border border-slate-200 overflow-hidden">
 
-            <div className="p-8">
-              <h3 className={`${cormorant.className} text-2xl font-medium text-[#1A1F1C] mb-6 pb-5 border-b border-[#1A1F1C]/6`}>
-                Detalhes da Reserva
-              </h3>
-
-              {/* ── CALENDÁRIO ── */}
-              <div className="bg-[#F4F1EC] rounded-xl p-5 mb-7 border border-[#1A1F1C]/6">
-                {/* Navegação do mês */}
-                <div className="flex justify-between items-center mb-5">
-                  <button
-                    onClick={() => setMesAtualCalendario(new Date(anoCorrente, mesCorrente - 1))}
-                    className="w-8 h-8 rounded-lg hover:bg-[#1A1F1C]/8 flex items-center justify-center transition-colors"
-                  >
-                    <ChevronLeft size={18} className="text-[#1A1F1C]/50" />
-                  </button>
-                  <span className="font-semibold text-[#1A1F1C] text-sm capitalize tracking-wide">
-                    {mesAtualCalendario.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}
-                  </span>
-                  <button
-                    onClick={() => setMesAtualCalendario(new Date(anoCorrente, mesCorrente + 1))}
-                    className="w-8 h-8 rounded-lg hover:bg-[#1A1F1C]/8 flex items-center justify-center transition-colors"
-                  >
-                    <ChevronRight size={18} className="text-[#1A1F1C]/50" />
-                  </button>
+              {/* Preço estimado */}
+              <div className="border-b border-slate-100 pb-6 mb-6">
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#00577C] mb-1">Valor Estimado</p>
+                <div className="flex items-end gap-2">
+                  <p className={`${jakarta.className} text-4xl font-black text-[#009640]`}>{formatarMoeda(valorTotalFinal)}</p>
+                  <p className="text-sm font-bold text-slate-400 mb-1.5">total</p>
                 </div>
-
-                {/* Dias da semana */}
-                <div className="grid grid-cols-7 gap-0.5 text-center mb-2">
-                  {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((d, i) => (
-                    <div key={i} className="text-[9px] font-semibold text-[#1A1F1C]/30 tracking-wider py-1">{d}</div>
-                  ))}
-                </div>
-
-                {/* Dias */}
-                <div className="grid grid-cols-7 gap-0.5">
-                  {Array.from({ length: primeiroDia }).map((_, i) => <div key={`e-${i}`} />)}
-
-                  {Array.from({ length: diasMes }).map((_, i) => {
-                    const dia = i + 1;
-                    const dataAtual = new Date(anoCorrente, mesCorrente, dia);
-                    const dataStr = formatarDataIso(dataAtual);
-                    const isPassado = dataAtual < hoje;
-                    const disponivel = !isPassado && isDisponivel(dataStr);
-                    const isCheckin = checkin && dataAtual.getTime() === checkin.getTime();
-                    const isCheckout = checkout && dataAtual.getTime() === checkout.getTime();
-                    const isInBetween = checkin && checkout && dataAtual > checkin && dataAtual < checkout;
-                    const isHovered = hoverDate && checkin && !checkout && dataAtual > checkin && dataAtual <= hoverDate;
-
-                    let cls = "";
-                    if (isPassado || !disponivel) {
-                      cls = "text-[#1A1F1C]/20 cursor-not-allowed line-through";
-                    } else if (isCheckin || isCheckout) {
-                      cls = "bg-[#00577C] text-white font-semibold rounded-lg shadow-md scale-105 z-10";
-                    } else if (isInBetween || isHovered) {
-                      cls = "bg-[#00577C]/12 text-[#00577C] rounded-sm";
-                    } else {
-                      cls = "hover:bg-[#1A1F1C]/6 text-[#1A1F1C] rounded-lg cursor-pointer";
-                    }
-
-                    return (
-                      <button
-                        key={dia}
-                        disabled={isPassado || !disponivel}
-                        onClick={() => handleDateClick(dataAtual)}
-                        onMouseEnter={() => disponivel && setHoverDate(dataAtual)}
-                        onMouseLeave={() => setHoverDate(null)}
-                        className={`w-full aspect-square flex flex-col items-center justify-center text-xs transition-all ${cls}`}
-                      >
-                        <span className="leading-none">{dia}</span>
-                        {disponivel && !isCheckin && !isCheckout && !isInBetween && (
-                          <span className="text-[7px] text-[#2D7D46] font-medium leading-none mt-0.5 tabular-nums">
-                            {Math.round(getPrecoDiariaHotel(dataStr))}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Indicador de datas selecionadas */}
-                {(checkin || checkout) && (
-                  <div className="mt-4 pt-4 border-t border-[#1A1F1C]/8 flex items-center justify-between text-xs">
-                    <div className="text-center">
-                      <p className="text-[#1A1F1C]/40 uppercase tracking-wider text-[9px] mb-0.5 font-medium">Check-in</p>
-                      <p className="font-semibold text-[#00577C]">{checkin ? checkin.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) : '—'}</p>
-                    </div>
-                    <div className="flex-1 flex items-center gap-1 mx-3">
-                      <div className="flex-1 h-px bg-[#1A1F1C]/12" />
-                      <span className="text-[#1A1F1C]/30 text-[9px]">{totalNoites > 0 ? `${totalNoites}n` : ''}</span>
-                      <div className="flex-1 h-px bg-[#1A1F1C]/12" />
-                    </div>
-                    <div className="text-center">
-                      <p className="text-[#1A1F1C]/40 uppercase tracking-wider text-[9px] mb-0.5 font-medium">Check-out</p>
-                      <p className="font-semibold text-[#00577C]">{checkout ? checkout.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) : '—'}</p>
-                    </div>
-                  </div>
-                )}
               </div>
 
-              {/* ── RESUMO FINANCEIRO ── */}
-              <div className="space-y-3 mb-6">
-                <div className="flex justify-between items-center text-sm">
-                  <span className="flex items-center gap-2 text-[#1A1F1C]/60 font-medium">
-                    <Bed size={14} className="text-[#00577C]" /> Hospedagem {totalNoites > 0 && `(${totalNoites}n)`}
-                  </span>
-                  <span className="font-semibold text-[#1A1F1C]">{formatarMoeda(totalHospedagem)}</span>
+              {/* 1. Escolha da Acomodação */}
+              <div className="space-y-3 mb-8">
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#00577C]">1. Acomodação</p>
+                {hoteisDisponiveis.map((hotel: any) => (
+                  <label
+                    key={hotel.id}
+                    className={`flex items-center gap-3 p-4 rounded-2xl border-2 cursor-pointer transition-all ${hotelSelecionado?.id === hotel.id ? 'border-[#00577C] bg-blue-50/50' : 'border-slate-100 hover:border-slate-200'}`}
+                  >
+                    <input
+                      type="radio"
+                      name="hotel-aside"
+                      className="w-5 h-5 accent-[#00577C]"
+                      checked={hotelSelecionado?.id === hotel.id}
+                      onChange={() => setHotelSelecionado(hotel)}
+                    />
+                    <p className="font-bold text-sm text-slate-800">{hotel.nome}</p>
+                  </label>
+                ))}
+              </div>
+
+              {/* 2. Tipo de Quarto */}
+              <div className="space-y-3 mb-8">
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#00577C]">2. Tipo de Quarto</p>
+                <label className={`flex items-center gap-3 p-4 rounded-2xl border-2 cursor-pointer transition-all ${tipoQuarto === 'standard' ? 'border-[#00577C] bg-blue-50/50' : 'border-slate-100 hover:border-slate-200'}`}>
+                  <input type="radio" name="quarto-aside" className="w-5 h-5 accent-[#00577C]" checked={tipoQuarto === 'standard'} onChange={() => { setTipoQuarto('standard'); setCheckin(null); setCheckout(null); }} />
+                  <p className="font-bold text-sm text-slate-800">{hotelSelecionado?.quarto_standard_nome || 'Standard'}</p>
+                </label>
+                <label className={`flex items-center gap-3 p-4 rounded-2xl border-2 cursor-pointer transition-all ${tipoQuarto === 'luxo' ? 'border-[#F9C400] bg-yellow-50/50' : 'border-slate-100 hover:border-slate-200'}`}>
+                  <input type="radio" name="quarto-aside" className="w-5 h-5 accent-[#F9C400]" checked={tipoQuarto === 'luxo'} onChange={() => { setTipoQuarto('luxo'); setCheckin(null); setCheckout(null); }} />
+                  <p className="font-bold text-sm text-slate-800">{hotelSelecionado?.quarto_luxo_nome || 'Suíte Luxo'}</p>
+                </label>
+              </div>
+
+              {/* 3. Calendário */}
+              <div className="mb-8">
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#00577C] mb-4">3. Selecione as Datas</p>
+                <div className="bg-slate-50 border border-slate-200 rounded-[2rem] p-5 shadow-inner">
+
+                  <div className="flex items-center justify-between mb-4">
+                    <button onClick={() => setMesAtualCalendario(new Date(anoCorrente, mesCorrente - 1))} className="p-2 hover:bg-slate-200 rounded-full transition-colors">
+                      <ChevronLeft size={20} />
+                    </button>
+                    <p className="font-bold text-slate-800 capitalize text-sm">
+                      {mesAtualCalendario.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}
+                    </p>
+                    <button onClick={() => setMesAtualCalendario(new Date(anoCorrente, mesCorrente + 1))} className="p-2 hover:bg-slate-200 rounded-full transition-colors">
+                      <ChevronRight size={20} />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-7 gap-1 text-center mb-2">
+                    {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((d, i) => (
+                      <span key={i} className="text-[10px] font-black text-slate-400">{d}</span>
+                    ))}
+                  </div>
+
+                  <div className="grid grid-cols-7 gap-y-1 gap-x-0">
+                    {Array.from({ length: primeiroDia }).map((_, i) => <div key={`empty-${i}`} />)}
+
+                    {Array.from({ length: diasMes }).map((_, i) => {
+                      const dia = i + 1;
+                      const dataAtual = new Date(anoCorrente, mesCorrente, dia);
+                      const dataStr = formatarDataIso(dataAtual);
+                      const isPassado = dataAtual < hoje;
+                      const disponivel = !isPassado && isDisponivel(dataStr);
+                      const isCheckin = checkin && dataAtual.getTime() === checkin.getTime();
+                      const isCheckout = checkout && dataAtual.getTime() === checkout.getTime();
+                      const isInBetween = checkin && checkout && dataAtual > checkin && dataAtual < checkout;
+                      const isHovered = hoverDate && checkin && !checkout && dataAtual > checkin && dataAtual <= hoverDate;
+
+                      let bgClass = "bg-transparent hover:bg-slate-200 text-slate-800";
+                      if (isPassado || !disponivel) {
+                        bgClass = "bg-transparent text-slate-300 cursor-not-allowed line-through";
+                      } else if (isCheckin || isCheckout) {
+                        bgClass = "bg-[#00577C] text-white shadow-md rounded-lg scale-105 z-10";
+                      } else if (isInBetween || isHovered) {
+                        bgClass = "bg-[#00577C]/10 text-[#00577C] rounded-none";
+                      }
+
+                      return (
+                        <button
+                          key={dia}
+                          disabled={isPassado || !disponivel}
+                          onClick={() => handleDateClick(dataAtual)}
+                          onMouseEnter={() => disponivel && setHoverDate(dataAtual)}
+                          onMouseLeave={() => setHoverDate(null)}
+                          className={`w-full aspect-square flex flex-col items-center justify-center transition-all ${bgClass}`}
+                        >
+                          <span className={`text-sm ${isCheckin || isCheckout ? 'font-black' : 'font-semibold'}`}>{dia}</span>
+                          {disponivel && !isCheckin && !isCheckout && !isInBetween && (
+                            <span className="text-[7px] font-black text-slate-400 -mt-1 tabular-nums">R${Math.round(getPrecoDiariaHotel(dataStr))}</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-                <div className="flex justify-between items-center text-sm">
-                  <span className="flex items-center gap-2 text-[#1A1F1C]/60 font-medium">
-                    <Compass size={14} className="text-[#2D7D46]" /> Guia de Turismo
-                  </span>
-                  <span className="font-semibold text-[#1A1F1C]">{formatarMoeda(valorGuia)}</span>
+              </div>
+
+              {/* Resumo Financeiro */}
+              <div className="space-y-3 mb-6 text-sm font-semibold">
+                <div className="flex justify-between items-center text-slate-600">
+                  <span className="flex items-center gap-2"><Bed size={14} className="text-[#00577C]" /> Hospedagem ({totalNoites} nts)</span>
+                  <span className="text-slate-800">{formatarMoeda(totalHospedagem)}</span>
                 </div>
-                <div className="flex justify-between items-center text-sm">
-                  <span className="flex items-center gap-2 text-[#1A1F1C]/60 font-medium">
-                    <Ticket size={14} className="text-[#C9A84C]" /> Entradas e Taxas
-                  </span>
-                  <span className="font-semibold text-[#1A1F1C]">{formatarMoeda(valorAtracoes)}</span>
+                <div className="flex justify-between items-center text-slate-600">
+                  <span className="flex items-center gap-2"><Compass size={14} className="text-[#009640]" /> Guia de Turismo</span>
+                  <span className="text-slate-800">{formatarMoeda(valorGuia)}</span>
+                </div>
+                <div className="flex justify-between items-center text-slate-600">
+                  <span className="flex items-center gap-2"><Ticket size={14} className="text-[#F9C400]" /> Entradas e Taxas</span>
+                  <span className="text-slate-800">{formatarMoeda(valorAtracoes)}</span>
                 </div>
               </div>
 
               {/* Total */}
-              <div className="bg-[#F4F1EC] rounded-xl p-5 mb-6 border border-[#1A1F1C]/6">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="text-[9px] uppercase tracking-[0.25em] font-semibold text-[#2D7D46]/60 mb-1">Total da Experiência</p>
-                    <p className={`${cormorant.className} text-4xl font-semibold text-[#2D7D46]`}>{formatarMoeda(valorTotalFinal)}</p>
-                  </div>
-                  <div className="w-12 h-12 rounded-xl bg-[#2D7D46]/10 flex items-center justify-center">
-                    <Wallet size={20} className="text-[#2D7D46]" />
+              {checkin && checkout && (
+                <div className="flex flex-col gap-2 bg-[#009640]/10 p-6 rounded-2xl mb-6 border border-[#009640]/20 animate-in zoom-in-95 duration-300">
+                  <div className="flex justify-between items-end">
+                    <div>
+                      <span className="text-[10px] font-black text-[#009640] uppercase block mb-1">Total Estimado</span>
+                      <span className="text-xs font-bold text-slate-600">{totalNoites} {totalNoites === 1 ? 'noite' : 'noites'}</span>
+                    </div>
+                    <span className={`${jakarta.className} text-3xl font-black text-[#009640]`}>{formatarMoeda(valorTotalFinal)}</span>
                   </div>
                 </div>
-              </div>
+              )}
 
               <button
                 onClick={handleReserva}
-                className="w-full bg-[#00577C] hover:bg-[#004568] text-white py-4 rounded-xl font-semibold text-base shadow-lg hover:-translate-y-0.5 active:scale-[0.98] transition-all flex items-center justify-center gap-3 tracking-wide"
+                className={`${jakarta.className} flex items-center justify-center gap-3 w-full bg-[#00577C] hover:bg-[#004a6b] text-white py-5 rounded-2xl font-black text-lg transition-transform hover:-translate-y-1 shadow-xl`}
               >
-                Prosseguir para Checkout
-                <ChevronRightIcon size={18} />
+                Prosseguir para Checkout <ChevronRightIcon size={20} />
               </button>
 
-              <p className="mt-4 text-center text-[9px] font-medium text-[#1A1F1C]/30 uppercase tracking-[0.25em] flex items-center justify-center gap-1.5">
-                <ShieldCheck size={12} className="text-[#00577C]/40" /> Plataforma Segura · SGA
+              <p className="mt-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center justify-center gap-1.5">
+                <ShieldCheck size={13} className="text-[#00577C]" /> Plataforma Segura SGA
               </p>
             </div>
-          </div>
-        </aside>
 
+          </aside>
+        </div>
       </div>
 
       {/* ── GALERIA ── */}
-      <section className="max-w-7xl mx-auto px-6 pb-32">
-        <div className="flex items-end justify-between mb-10">
-          <div>
-            <div className="flex items-center gap-3 mb-3">
-              <span className="w-6 h-px bg-[#C9A84C]" />
-              <span className="text-[9px] font-semibold tracking-[0.25em] uppercase text-[#C9A84C]">Visão Geral</span>
-            </div>
-            <h2 className={`${cormorant.className} text-4xl font-medium text-[#1A1F1C]`}>Galeria de Imagens</h2>
-          </div>
-          <p className="text-[#1A1F1C]/25 text-sm hidden md:block">{galeriaCombinada.length} fotografias</p>
-        </div>
-
-        {galeriaCombinada.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-            {galeriaCombinada.map((url, idx) => (
-              <div
-                key={idx}
-                onClick={() => setFotoExpandidaIndex(idx)}
-                className="relative aspect-square rounded-xl overflow-hidden cursor-pointer group bg-[#1A1F1C]/5"
-              >
-                <Image src={url} alt={`Galeria ${idx + 1}`} fill className="object-cover group-hover:scale-105 transition-transform duration-700" />
-                <div className="absolute inset-0 bg-[#1A1F1C]/0 group-hover:bg-[#1A1F1C]/30 transition-colors duration-300 flex items-center justify-center">
-                  <ZoomIn className="text-white w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+      {galeriaCombinada.length > 0 && (
+        <div className="mx-auto w-full max-w-7xl px-5 pb-20 relative z-10">
+          <section className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-xl border border-slate-100">
+            <h3 className={`${jakarta.className} text-3xl font-black text-slate-900 mb-8`}>Galeria de Imagens</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+              {galeriaCombinada.map((url, idx) => (
+                <div
+                  key={idx}
+                  onClick={() => setFotoExpandidaIndex(idx)}
+                  className="relative aspect-square rounded-2xl overflow-hidden shadow-md group bg-slate-200 cursor-pointer"
+                >
+                  <Image src={url} alt={`Foto Galeria ${idx + 1}`} fill className="object-cover group-hover:scale-110 transition-transform duration-700" />
+                  <div className="absolute inset-0 bg-[#00577C]/0 group-hover:bg-[#00577C]/40 transition-colors duration-300 flex items-center justify-center">
+                    <ZoomIn className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-10 h-10 scale-50 group-hover:scale-100" />
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="bg-[#FDFCFA] p-20 rounded-2xl border border-dashed border-[#1A1F1C]/15 text-center">
-            <Camera size={36} className="text-[#1A1F1C]/20 mb-4 mx-auto" />
-            <p className="text-[#1A1F1C]/30 text-sm tracking-widest uppercase font-medium">Sem imagens disponíveis</p>
-          </div>
-        )}
-      </section>
+              ))}
+            </div>
+          </section>
+        </div>
+      )}
 
       {/* ── LIGHTBOX ── */}
       {fotoExpandidaIndex !== null && galeriaCombinada.length > 0 && (
         <div
-          className="fixed inset-0 z-[100] bg-[#0A1A10]/97 backdrop-blur-xl flex items-center justify-center p-8"
+          className="fixed inset-0 z-[100] bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-5 animate-in fade-in duration-200"
           onClick={fecharGaleria}
         >
-          <button
-            onClick={fecharGaleria}
-            className="absolute top-8 right-8 w-10 h-10 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center transition-colors z-[110]"
-          >
-            <X size={18} />
+          <button onClick={fecharGaleria} className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors z-[110]">
+            <X size={24} />
           </button>
-
-          <button
-            onClick={fotoAnterior}
-            className="absolute left-8 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center transition-colors z-[110] hidden md:flex"
-          >
-            <ChevronLeft size={22} />
+          <button onClick={fotoAnterior} className="absolute left-6 top-1/2 -translate-y-1/2 p-4 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors z-[110]">
+            <ChevronLeft size={32} />
           </button>
-
           <div
-            className="relative w-full max-w-5xl aspect-video rounded-2xl overflow-hidden"
+            className="relative w-full max-w-6xl aspect-video rounded-xl overflow-hidden shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <Image
-              src={galeriaCombinada[fotoExpandidaIndex]}
-              alt={`Detalhe ${fotoExpandidaIndex + 1}`}
-              fill
-              className="object-contain"
-            />
+            <Image src={galeriaCombinada[fotoExpandidaIndex]} alt={`Visualização ${fotoExpandidaIndex + 1}`} fill className="object-contain" />
           </div>
-
-          <button
-            onClick={proximaFoto}
-            className="absolute right-8 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center transition-colors z-[110] hidden md:flex"
-          >
-            <ChevronRightIcon size={22} />
+          <button onClick={proximaFoto} className="absolute right-6 top-1/2 -translate-y-1/2 p-4 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors z-[110]">
+            <ChevronRight size={32} />
           </button>
-
-          <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
-            <span className="text-white/50 text-[10px] tracking-[0.3em] uppercase font-medium">
-              {fotoExpandidaIndex + 1} / {galeriaCombinada.length}
-            </span>
+          <div className="absolute bottom-10 left-0 right-0 text-center pointer-events-none">
+            <p className="text-white font-bold tracking-widest text-sm bg-black/60 inline-block px-5 py-2 rounded-full backdrop-blur-sm">
+              {fotoExpandidaIndex + 1} de {galeriaCombinada.length}
+            </p>
           </div>
         </div>
       )}
 
       {/* ── FOOTER ── */}
-      <footer className="border-t border-[#1A1F1C]/8 bg-[#FDFCFA] py-12 px-6">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
-          <div className="flex items-center gap-5">
-            <Image src="/logop.png" alt="Logo SGA" width={140} height={50} className="object-contain opacity-50 hover:opacity-80 transition-opacity" />
-            <div className="border-l border-[#1A1F1C]/10 pl-5 hidden md:block">
-              <p className={`${cormorant.className} text-lg font-medium text-[#00577C]`}>SagaTurismo</p>
-              <p className="text-[9px] uppercase tracking-[0.3em] text-[#1A1F1C]/30 font-medium">Portal Oficial</p>
+      <footer className="border-t border-slate-200 bg-white mt-auto">
+        <div className="mx-auto flex max-w-7xl flex-col gap-8 px-5 py-12 md:flex-row md:items-center md:justify-between text-center md:text-left">
+          <div className="flex flex-col md:flex-row items-center gap-4">
+            <div className="relative h-14 w-40">
+              <Image src="/logop.png" alt="Prefeitura" fill className="object-contain object-left" />
+            </div>
+            <div className="border-l border-slate-200 pl-4 hidden md:block">
+              <p className={`${jakarta.className} text-xl font-bold text-[#00577C]`}>SagaTurismo</p>
+              <p className="text-sm text-slate-500 uppercase font-bold tracking-widest text-[10px]">Portal Oficial de Turismo</p>
             </div>
           </div>
-          <p className="text-[10px] font-medium text-[#1A1F1C]/30 uppercase tracking-widest text-center">
-            © {new Date().getFullYear()} · Prefeitura Municipal de São Geraldo do Araguaia
-          </p>
+          <p className="text-xs text-slate-400 font-medium">© {new Date().getFullYear()} · Prefeitura Municipal de São Geraldo do Araguaia</p>
         </div>
       </footer>
-
     </div>
   );
 }

@@ -9,7 +9,7 @@ import {
   Loader2, ArrowLeft, ShieldCheck, MapPin, 
   Bed, QrCode, CheckCircle2, User, Mail, FileText, 
   Smartphone, Copy, AlertCircle, CreditCard, 
-  Calendar, Map, Home, Users, Baby, DoorOpen, ShieldAlert, Lock
+  Calendar, Map, Home, Users, Baby, DoorOpen, ShieldAlert, Lock, Menu
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -75,6 +75,11 @@ const calcularNoites = (checkin: string | null, checkout: string | null) => {
 function CheckoutHotelContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Estados de Scroll para o Header Dinâmico
+  const [showHeader, setShowHeader] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
 
   // 1. Parâmetros da URL (Incluindo os novos parâmetros de lotação)
   const hotelId = searchParams.get('hotel');
@@ -118,6 +123,24 @@ function CheckoutHotelContent() {
   const [qrCodeData, setQrCodeData] = useState<{ link: string; texto: string } | null>(null);
   const [copiado, setCopiado] = useState(false);
 
+  // Efeito de Hidratação
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Efeito de Scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      if (currentScrollY < 80) setShowHeader(true);
+      else if (currentScrollY > lastScrollY) setShowHeader(false);
+      else setShowHeader(true);
+      setLastScrollY(currentScrollY);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [lastScrollY]);
+
   // 2. CARREGAMENTO DOS DADOS DO HOTEL
   useEffect(() => {
     async function carregarHotel() {
@@ -143,7 +166,7 @@ function CheckoutHotelContent() {
     carregarHotel();
   }, [hotelId, checkinData, checkoutData, router]);
 
-  // 3. MATEMÁTICA DA RESERVA (Diária x Noites x Quartos)
+  // 3. MATEMÁTICA DA RESERVA
   const numNoites = calcularNoites(checkinData, checkoutData);
   const precoDiaria = hotel ? (quartoTipo === 'luxo' ? parseValor(hotel.quarto_luxo_preco) : parseValor(hotel.quarto_standard_preco)) : 0;
   const nomeQuarto = hotel ? (quartoTipo === 'luxo' ? hotel.quarto_luxo_nome : hotel.quarto_standard_nome) : '';
@@ -181,7 +204,6 @@ function CheckoutHotelContent() {
     };
 
     try {
-      // 4.1 PROCESSAMENTO CARTÃO DE CRÉDITO COM SDK PAGBANK
       if (metodoPagamento === 'cartao') {
         if (!window.PagSeguro) {
           throw new Error('Módulo de pagamento seguro offline. Recarregue a página.');
@@ -208,13 +230,10 @@ function CheckoutHotelContent() {
           encrypted_card: result.encryptedCard,
           parcelas: Number(parcelas)
         };
-      } 
-      // 4.2 PROCESSAMENTO PIX
-      else {
+      } else {
         payload = { ...payload, metodo_pagamento: 'pix' };
       }
 
-      // ENVIO PARA O BACKEND
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
       const response = await fetch(`${apiUrl}/api/v1/pagamentos/processar`, {
         method: 'POST',
@@ -249,10 +268,12 @@ function CheckoutHotelContent() {
     }
   };
 
+  if (!isMounted) return null;
+
   if (loadingInitial) return (
     <div className="min-h-screen bg-[#F8F9FA] flex flex-col items-center justify-center">
       <Loader2 className="animate-spin text-[#00577C] w-16 h-16 mb-4" />
-      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Processando Motor de Reserva...</p>
+      <p className={`${jakarta.className} text-xs font-bold text-slate-400 uppercase tracking-widest`}>A Preparar a sua Reserva Oficial...</p>
     </div>
   );
 
@@ -260,16 +281,34 @@ function CheckoutHotelContent() {
     <>
       <Script src="https://assets.pagseguro.com.br/checkout-sdk-js/rc/dist/browser/pagseguro.min.js" strategy="afterInteractive" />
 
-      <div className="max-w-7xl mx-auto px-6 py-12 lg:py-20">
+      {/* ── HEADER GOVERNAMENTAL ── */}
+      <header className={`fixed left-0 top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl transition-transform duration-300 ${showHeader ? 'translate-y-0' : '-translate-y-full'}`}>
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-5">
+          <Link href="/" className="flex min-w-0 items-center gap-3 sm:gap-4">
+            <div className="relative h-12 w-36 shrink-0 sm:h-16 sm:w-56"><Image src="/logop.png" alt="Prefeitura" fill priority className="object-contain object-left" /></div>
+            <div className="hidden border-l border-slate-200 pl-4 lg:block">
+              <p className={`${jakarta.className} text-2xl font-bold leading-none text-[#00577C]`}>SagaTurismo</p>
+              <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Secretaria de Turismo</p>
+            </div>
+          </Link>
+          <nav className="hidden items-center gap-7 md:flex">
+            <Link href="/roteiro" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Rota Turística</Link>
+            <Link href="/#eventos" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Eventos</Link>
+            <Link href="/cadastro" className="rounded-full bg-[#F9C400] px-5 py-3 text-sm font-bold text-[#00577C] shadow-lg transition hover:bg-[#ffd633]">Cartão Residente</Link>
+          </nav>
+        </div>
+      </header>
+
+      <div className="max-w-7xl mx-auto px-6 py-12 lg:py-20 mt-[80px]">
         
-        {/* HEADER DE CHECKOUT */}
+        {/* HEADER DE CHECKOUT INTERNO */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-16 border-b-2 border-slate-100 pb-8 gap-6">
           <Link href={`/hoteis/${hotelId}`} className="flex items-center gap-2 text-slate-500 hover:text-[#00577C] font-bold transition-colors w-fit">
-            <ArrowLeft size={20} /> <span className="underline-offset-4 hover:underline">Alterar Reserva</span>
+            <ArrowLeft size={20} /> <span className="underline-offset-4 hover:underline">Voltar e Alterar Reserva</span>
           </Link>
           <div className="flex items-center gap-4 bg-green-50 px-6 py-3 rounded-full border border-green-100 shadow-sm">
              <ShieldCheck className="text-[#009640]" size={24} />
-             <span className={`${jakarta.className} text-xl font-black tracking-tight text-[#009640]`}>Checkout Oficial</span>
+             <span className={`${jakarta.className} text-xl font-black tracking-tight text-[#009640]`}>Ambiente Seguro PagBank</span>
           </div>
         </div>
 
@@ -280,7 +319,7 @@ function CheckoutHotelContent() {
             {!qrCodeData ? (
               <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
                 <h1 className={`${jakarta.className} text-4xl md:text-5xl font-black text-slate-900 mb-6`}>Finalize sua Hospedagem</h1>
-                <p className="text-slate-500 mb-12 text-xl font-medium">Preencha os dados abaixo para emissão da Fatura Oficial e envio do voucher de confirmação.</p>
+                <p className="text-slate-500 mb-12 text-xl font-medium">Preencha os dados abaixo para a emissão da Fatura Oficial e envio do voucher de confirmação.</p>
 
                 <form onSubmit={handlePagamento} className="space-y-12">
                   
@@ -429,7 +468,7 @@ function CheckoutHotelContent() {
                                const valorParcela = valorTotalReserva / numParcelas;
                                return (
                                  <option key={numParcelas} value={numParcelas}>
-                                   {numParcelas}x de {formatarMoeda(valorParcela)} {numParcelas === 1 ? '(À vista)' : ''}
+                                   {numParcelas}x de {formatarMoeda(valorParcela)} {numParcelas === 1 ? '(Sem Juros)' : ''}
                                  </option>
                                );
                             })}
@@ -469,48 +508,43 @@ function CheckoutHotelContent() {
                 </form>
               </div>
             ) : (
-              /* ── TELA DE SUCESSO PIX ── */
-              <div className="bg-white p-16 rounded-[4rem] shadow-2xl border border-slate-100 text-center animate-in zoom-in-95 duration-700 relative overflow-hidden">
-                 <div className="absolute top-0 left-0 w-full h-3 bg-[#009640]"></div>
-                 <div className="w-28 h-28 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-10 shadow-inner border-4 border-white">
-                    <CheckCircle2 size={64} className="text-[#009640]"/>
+              /* TELA DE SUCESSO PIX */
+              <div className="bg-white p-12 rounded-[3.5rem] shadow-2xl border border-slate-100 text-center animate-in zoom-in-95 duration-700">
+                 <div className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner border-4 border-white">
+                    <CheckCircle2 size={56} className="text-[#009640]"/>
                  </div>
                  <h2 className={`${jakarta.className} text-4xl font-black text-slate-900 mb-4`}>Falta Apenas um Passo!</h2>
-                 <p className="text-slate-500 text-xl mb-12 px-8 leading-relaxed">Escaneie o código abaixo no aplicativo do seu banco para garantir sua estadia no valor de <b>{formatarMoeda(valorTotalReserva)}</b>.</p>
+                 <p className="text-slate-500 text-lg mb-10 px-8">Escaneie o código abaixo no aplicativo do seu banco para garantir sua estadia no valor de <b>{formatarMoeda(valorTotalReserva)}</b>.</p>
                  
-                 <div className="w-80 h-80 bg-slate-50 mx-auto rounded-[3.5rem] p-10 mb-12 border-4 border-dashed border-slate-200 relative group shadow-inner">
+                 <div className="w-80 h-80 bg-slate-50 mx-auto rounded-[3rem] p-8 mb-10 border-4 border-dashed border-slate-200 relative group">
                     <img src={qrCodeData.link} alt="QR Code PIX" className="w-full h-full object-contain mix-blend-multiply transition-transform duration-700 group-hover:scale-110" />
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/90 opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm rounded-[3.5rem]">
-                       <Smartphone className="text-[#009640] animate-pulse mb-3" size={60}/>
-                       <span className="text-xs font-black text-[#009640] uppercase tracking-[0.3em]">Pague via App</span>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/90 opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm rounded-[2.5rem]">
+                       <Smartphone className="text-[#009640] animate-pulse mb-3" size={56}/>
+                       <span className="text-sm font-black text-[#009640] uppercase tracking-widest">Pague via App</span>
                     </div>
                  </div>
 
-                 <div className="bg-slate-50 p-8 rounded-[2.5rem] border-2 border-slate-100 flex items-center justify-between gap-6 mb-8 text-left">
+                 <div className="bg-slate-50 p-6 rounded-3xl border border-slate-200 flex items-center justify-between gap-4 mb-6 text-left">
                    <div className="min-w-0 flex-1">
-                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Código PIX Copia e Cola</p>
-                     <p className="text-sm font-bold text-slate-800 truncate tracking-tight">{qrCodeData.texto}</p>
+                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Pix Copia e Cola</p>
+                     <p className="text-sm font-medium text-slate-800 truncate tracking-tight">{qrCodeData.texto}</p>
                    </div>
-                   <button onClick={copiarCodigo} className={`p-5 rounded-2xl flex items-center gap-3 font-black text-sm transition-all shrink-0 shadow-lg ${copiado ? 'bg-[#009640] text-white' : 'bg-white border-2 border-slate-200 hover:bg-slate-50 text-slate-700'}`}>
-                     {copiado ? <><CheckCircle2 size={20}/> Sucesso</> : <><Copy size={20}/> Copiar</>}
+                   <button onClick={copiarCodigo} className={`p-4 rounded-2xl flex items-center gap-2 font-bold text-sm transition-all shrink-0 shadow-lg ${copiado ? 'bg-[#009640] text-white' : 'bg-white border border-slate-300 hover:bg-slate-100 text-slate-700'}`}>
+                     {copiado ? <><CheckCircle2 size={18}/> Sucesso</> : <><Copy size={18}/> Copiar</>}
                    </button>
                  </div>
-                 
-                 <div className="flex items-center justify-center gap-4 py-8 border-t border-slate-50 mt-10">
-                    <Loader2 className="animate-spin text-slate-300" size={20}/>
-                    <p className="text-sm text-slate-400 font-bold uppercase tracking-widest">Aguardando confirmação automática do banco...</p>
-                 </div>
+                 <p className="text-xs text-slate-400 font-bold flex items-center justify-center gap-2 mt-8"><Loader2 className="animate-spin" size={14}/> A aguardar confirmação do banco...</p>
               </div>
             )}
           </div>
 
           {/* ── COLUNA DIREITA: RESUMO DA RESERVA FIXO ── */}
-          <aside className="lg:sticky lg:top-12">
+          <aside className="lg:sticky lg:top-32">
             <div className="bg-white rounded-[3.5rem] border border-slate-100 shadow-2xl overflow-hidden relative">
               <div className="absolute top-0 left-0 w-full h-3 bg-gradient-to-r from-[#00577C] via-[#F9C400] to-[#009640]" />
               
-              <div className="p-12 border-b-2 border-slate-50">
-                <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.4em] mb-4">A sua Hospedagem</p>
+              <div className="p-10 border-b-2 border-slate-50">
+                <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.4em] mb-4">Sua Hospedagem</p>
                 <div className="flex gap-5 items-center">
                   {hotel?.imagem_url && (
                     <div className="relative w-24 h-24 rounded-2xl overflow-hidden shrink-0 border-4 border-white shadow-md">
@@ -524,9 +558,15 @@ function CheckoutHotelContent() {
                 </div>
               </div>
 
-              <div className="p-12 space-y-10">
-                
-                {/* Check-in e Check-out */}
+              <div className="p-10 space-y-8">
+                <div className="flex items-center gap-4">
+                   <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-[#00577C] shrink-0 shadow-sm"><Bed size={24}/></div>
+                   <div>
+                     <p className="font-black text-slate-800 text-lg leading-none mb-2">Acomodação</p>
+                     <p className="text-xs font-bold text-slate-400 uppercase tracking-tighter">{nomeQuarto}</p>
+                   </div>
+                </div>
+
                 <div className="grid grid-cols-2 gap-6 p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
                    <div>
                      <p className="text-[9px] font-black uppercase text-slate-400 mb-2 flex items-center gap-2"><Calendar size={14}/> Check-in</p>
@@ -541,7 +581,7 @@ function CheckoutHotelContent() {
                 </div>
 
                 {/* Resumo de Lotação */}
-                <div className="space-y-4">
+                <div className="space-y-4 pt-4">
                   <div className="flex justify-between items-center text-sm">
                     <div className="flex items-center gap-3 text-slate-500 font-bold"><Users size={18} className="text-[#00577C]"/> Adultos</div>
                     <span className="font-black text-slate-800">{adultosParam}</span>
@@ -562,10 +602,9 @@ function CheckoutHotelContent() {
                 </div>
               </div>
 
-              {/* Rodapé com Valor Final */}
               <div className="p-12 bg-slate-900 text-white text-center relative overflow-hidden">
                  <div className="absolute top-0 left-0 w-full h-full bg-[#009640] opacity-10 pointer-events-none"></div>
-                 <p className="text-[11px] font-black uppercase tracking-[0.5em] text-white/50 mb-4">Total a Pagar Hoje</p>
+                 <p className="text-[11px] font-black uppercase tracking-[0.5em] text-white/50 mb-4">Total da Reserva</p>
                  <p className={`${jakarta.className} text-6xl font-black tabular-nums`}>{formatarMoeda(valorTotalReserva)}</p>
               </div>
             </div>
@@ -585,6 +624,22 @@ function CheckoutHotelContent() {
 
         </div>
       </div>
+      
+      {/* ── FOOTER INSTITUCIONAL ── */}
+      <footer className="py-20 px-8 border-t border-slate-200 bg-white mt-20">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
+          <div className="flex items-center gap-6">
+            <Image src="/logop.png" alt="Prefeitura SGA" width={160} height={50} className="object-contain opacity-60" />
+            <div className="border-l-2 border-slate-100 pl-6 hidden md:block">
+              <p className={`${jakarta.className} text-xl font-bold text-[#00577C]`}>SagaTurismo</p>
+              <p className="text-[10px] uppercase font-bold text-slate-400 tracking-[0.3em]">Secretaria de Turismo</p>
+            </div>
+          </div>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center md:text-right">
+             © {new Date().getFullYear()} · Município de São Geraldo do Araguaia
+          </p>
+        </div>
+      </footer>
     </>
   );
 }
