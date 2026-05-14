@@ -426,7 +426,7 @@ export default function PacotesPage() {
                     {/* Price block */}
                     <div className="flex flex-col justify-center bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3.5 flex-1">
                       <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                        Valor Total
+                        Valor desde
                       </p>
                       <p className={`${jakarta.className} text-[1.55rem] font-black text-[#009640] leading-none tabular-nums`}>
                         {formatarMoeda(pacote.valor_total || 0)}

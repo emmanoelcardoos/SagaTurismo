@@ -18,6 +18,9 @@ import { supabase } from '@/lib/supabase';
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '700', '800'] });
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
 
+// ── IMAGEM DE SEGURANÇA PARA EVITAR CRASHES DO NEXT.JS ──
+const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?q=80&w=1740";
+
 // ── UTILITÁRIOS E MATEMÁTICA ──
 const parseValor = (valor: any): number => {
   if (valor === null || valor === undefined || valor === '') return 0;
@@ -28,22 +31,23 @@ const parseValor = (valor: any): number => {
 const formatarMoeda = (valor: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor || 0);
 
-// ── BLINDAGEM DE ARRAYS (CORRIGIDO PARA SUPORTAR O FORMATO DO POSTGRES) ──
+// ── BLINDAGEM DE ARRAYS (Filtra links quebrados que causam erro na galeria) ──
 const getArraySeguro = (item: any): string[] => {
+  let arr: string[] = [];
   if (!item) return [];
-  if (Array.isArray(item)) return item;
-  if (typeof item === 'string') {
+  if (Array.isArray(item)) {
+    arr = item;
+  } else if (typeof item === 'string') {
     try { 
-      const parsed = JSON.parse(item);
-      if (Array.isArray(parsed)) return parsed;
-    } catch (e) {
-      // Resolve o erro de array do Postgres {item1, item2}
+      const parsed = JSON.parse(item); 
+      if (Array.isArray(parsed)) arr = parsed;
+    } catch (e) { 
       if (item.startsWith('{') && item.endsWith('}')) {
-        return item.slice(1, -1).split(',').map(s => s.trim().replace(/^"/, '').replace(/"$/, ''));
+        arr = item.slice(1, -1).split(',').map(s => s.trim().replace(/^"/, '').replace(/"$/, ''));
       }
     }
   }
-  return [];
+  return arr.filter(url => typeof url === 'string' && url.length > 5);
 };
 
 // ── TIPAGENS RÍGIDAS ──
@@ -85,18 +89,17 @@ export default function PacoteDetalhePage() {
   const [checkin, setCheckin] = useState<Date | null>(null);
   const [checkout, setCheckout] = useState<Date | null>(null);
   const [hoverDate, setHoverDate] = useState<Date | null>(null);
-  const [mesAtualCalendario, setMesAtualCalendario] = useState<Date | null>(null);
+  const [mesAtualCalendario, setMesAtualCalendario] = useState<Date>(new Date());
   
   // Galeria e UI
   const [fotoExpandidaIndex, setFotoExpandidaIndex] = useState<number | null>(null);
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   
-  // Resolve o Client-side exception protegendo a renderização prematura
-  const [mounted, setMounted] = useState(false); 
+  // PROTEÇÃO VITAL: Resolve o erro "Client-side exception" da Vercel
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMesAtualCalendario(new Date());
     setMounted(true);
   }, []);
 
@@ -113,7 +116,7 @@ export default function PacoteDetalhePage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
-  // 2. Carregar Pacote Seguro (Com proteção contra nullish mapping)
+  // 2. Carregar Pacote Blindado
   useEffect(() => {
     async function fetchData() {
       try {
@@ -123,21 +126,24 @@ export default function PacoteDetalhePage() {
           .eq('id', id)
           .single();
           
-        if (error || !data) throw new Error("Pacote não encontrado");
+        if (error || !data) {
+          router.push('/pacotes');
+          return;
+        }
         
         const pct = data as Pacote;
         setPacote(pct);
-
-        // Prevenção do erro de "map of undefined"
+        
+        // Proteção contra undefined no banco de dados
         const itens = pct.pacote_itens || [];
-        const hoteis = itens.map((i: any) => i.hoteis).filter(Boolean) as Hotel[];
-        const guias = itens.map((i: any) => i.guias).filter(Boolean) as Guia[];
-        setAtracoesInclusas(itens.map((i: any) => i.atracoes).filter(Boolean) as Atracao[]);
+        const hoteis = itens.map((i: any) => i?.hoteis).filter(Boolean) as Hotel[];
+        const guias = itens.map((i: any) => i?.guias).filter(Boolean) as Guia[];
+        setAtracoesInclusas(itens.map((i: any) => i?.atracoes).filter(Boolean) as Atracao[]);
 
         if (hoteis.length > 0) setHotelSelecionado(hoteis[0]);
         if (guias.length > 0) setGuiaSelecionado(guias[0]);
       } catch (err) {
-        console.error(err);
+        console.error("Falha ao carregar pacote:", err);
         router.push('/pacotes');
       } finally {
         setLoading(false);
@@ -154,7 +160,6 @@ export default function PacoteDetalhePage() {
       const dispMap: Record<string, Disponibilidade> = {};
       data?.forEach((d: any) => { dispMap[d.data] = d; });
       setDisponibilidadeDb(dispMap);
-      // Limpar datas ao trocar de hotel para evitar reservas em dias bloqueados no novo hotel
       setCheckin(null);
       setCheckout(null);
     }
@@ -169,14 +174,13 @@ export default function PacoteDetalhePage() {
   const getPrecoDiariaHotel = (dataStr: string) => {
     const disp = disponibilidadeDb[dataStr];
     if (disp) return tipoQuarto === 'luxo' ? parseValor(disp.quarto_luxo_preco) : parseValor(disp.quarto_standard_preco);
-    // Fallback: se o dono não cadastrou preço no calendário, usa o preço padrão do quarto
     return hotelSelecionado ? (tipoQuarto === 'luxo' ? parseValor(hotelSelecionado.quarto_luxo_preco) : parseValor(hotelSelecionado.quarto_standard_preco)) : 0;
   };
 
   const isDisponivel = (dataStr: string) => {
     const disp = disponibilidadeDb[dataStr];
     if (disp) return tipoQuarto === 'luxo' ? disp.quarto_luxo_disponivel : disp.quarto_standard_disponivel;
-    return true; // Se não houver registo, assume disponível
+    return true; 
   };
 
   const handleDateClick = (data: Date) => {
@@ -184,7 +188,6 @@ export default function PacoteDetalhePage() {
       setCheckin(data);
       setCheckout(null);
     } else if (data > checkin) {
-      // Validação: Verificar se há algum dia bloqueado no meio da reserva
       let diaAtual = new Date(checkin);
       let reservaValida = true;
       while (diaAtual < data) {
@@ -211,7 +214,7 @@ export default function PacoteDetalhePage() {
   let totalHospedagem = 0;
   let totalNoites = 0;
   
-  if (checkin && checkout) {
+  if (checkin && checkout && checkin < checkout) {
     let dia = new Date(checkin);
     while (dia < checkout) {
       totalHospedagem += getPrecoDiariaHotel(formatarDataIso(dia));
@@ -224,7 +227,7 @@ export default function PacoteDetalhePage() {
   const valorAtracoes = atracoesInclusas.reduce((acc, curr) => acc + parseValor(curr.preco_entrada), 0);
   const valorTotalFinal = totalHospedagem + valorGuia + valorAtracoes;
 
-  // ── LÓGICA DA GALERIA (LIGHTBOX BLINDADO) ──
+  // ── LÓGICA DA GALERIA ──
   const galeriaCombinada = [
     ...(pacote?.imagem_principal ? [pacote.imagem_principal] : []),
     ...getArraySeguro(pacote?.imagens_galeria), 
@@ -246,9 +249,8 @@ export default function PacoteDetalhePage() {
     router.push(`/checkout?pacote=${pacote?.id}&hotel=${hotelSelecionado?.id}&quarto=${tipoQuarto}&guia=${guiaSelecionado?.id}&checkin=${formatarDataIso(checkin)}&checkout=${formatarDataIso(checkout)}`);
   };
 
-  // PROTEÇÃO CRÍTICA PARA IMPEDIR O CRASH DO NEXT.JS
-  // Só renderizamos a interface se estiver montado e tiver o pacote.
-  if (!mounted || loading || !pacote || !mesAtualCalendario) return (
+  // RETORNO DE SEGURANÇA (Impede o erro fatal da Vercel)
+  if (!mounted || loading || !pacote) return (
     <div className="min-h-screen flex items-center justify-center bg-[#F8F9FA]">
       <div className="text-center">
         <Loader2 className="animate-spin text-[#00577C] w-14 h-14 mx-auto mb-4" />
@@ -287,7 +289,8 @@ export default function PacoteDetalhePage() {
 
       {/* ── HERO IMPONENTE ── */}
       <section className="relative h-[75vh] min-h-[600px] w-full mt-[70px]">
-        <Image src={pacote.imagem_principal} alt={pacote.titulo} fill className="object-cover" priority />
+        {/* IMAGEM PROTEGIDA */}
+        <Image src={pacote.imagem_principal || FALLBACK_IMAGE} alt={pacote.titulo || 'Pacote'} fill className="object-cover" priority />
         <div className="absolute inset-0 bg-gradient-to-t from-[#001E2B] via-[#001E2B]/40 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-r from-black/50 to-transparent" />
         
@@ -349,7 +352,8 @@ export default function PacoteDetalhePage() {
                   
                   <button className="w-full flex items-center justify-between mb-8 pb-8 border-b-2 border-slate-50 text-left" onClick={() => setHotelSelecionado(hotel)}>
                     <div className="flex items-center gap-8">
-                      <div className="relative w-32 h-32 rounded-[2rem] overflow-hidden shadow-md border-4 border-white"><Image src={hotel.imagem_url} alt={hotel.nome} fill className="object-cover" /></div>
+                      {/* IMAGEM PROTEGIDA */}
+                      <div className="relative w-32 h-32 rounded-[2rem] overflow-hidden shadow-md border-4 border-white"><Image src={hotel.imagem_url || FALLBACK_IMAGE} alt={hotel.nome} fill className="object-cover" /></div>
                       <div>
                         <h4 className="text-3xl font-bold text-slate-800 mb-3">{hotel.nome}</h4>
                         <div className="flex items-center gap-4">
@@ -410,7 +414,8 @@ export default function PacoteDetalhePage() {
                 return (
                   <label key={guia.id} className={`flex items-center justify-between p-8 bg-white rounded-[3rem] border-2 transition-all cursor-pointer ${selected ? 'border-[#009640] ring-8 ring-green-50 shadow-xl' : 'border-slate-100 hover:border-slate-300'}`}>
                     <div className="flex items-center gap-8">
-                      <div className="relative w-24 h-24 rounded-2xl overflow-hidden shadow-sm border border-slate-100"><Image src={guia.imagem_url} alt={guia.nome} fill className="object-cover" /></div>
+                      {/* IMAGEM PROTEGIDA */}
+                      <div className="relative w-24 h-24 rounded-2xl overflow-hidden shadow-sm border border-slate-100"><Image src={guia.imagem_url || FALLBACK_IMAGE} alt={guia.nome} fill className="object-cover" /></div>
                       <div>
                          <p className="font-bold text-2xl text-slate-800 mb-2">{guia.nome}</p>
                          <div className="text-sm font-bold text-slate-500 flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-[#009640]"></div>{guia.especialidade}</div>
