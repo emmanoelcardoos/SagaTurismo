@@ -22,7 +22,9 @@ import {
   Ticket,
   Loader2,
   Sparkles,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Compass,      
+  CheckCircle2
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
