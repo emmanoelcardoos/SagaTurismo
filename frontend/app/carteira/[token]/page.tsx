@@ -25,19 +25,19 @@ export default function CarteiraDigitalPage({ params }: { params: { token: strin
     fetch(`/api/validar?token=${params.token}`)
       .then(res => res.json())
       .then(json => {
-        setData(json);
-        
-        // ── 1. REDIRECIONAMENTO AUTOMÁTICO SE A IA APROVAR, MAS NÃO ESTIVER PAGO ──
-        if (json.sucesso && (json.status === 'aguardando_pagamento' || json.status === 'pendente' || json.status === 'aprovada')) {
+        // ── 1. REDIRECIONAMENTO IMEDIATO SE A IA APROVOU MAS FALTA PAGAR ──
+        if (json.sucesso && (json.status === 'aprovada' || json.status === 'aguardando_pagamento' || json.status === 'pendente')) {
           router.push(`/checkout-carteira?token=${params.token}`);
-          return; // Interrompe a execução para não tirar o loader enquanto redireciona
+          return; // Para a execução do componente aqui mesmo!
         }
         
+        setData(json);
         setLoading(false);
       })
       .catch(() => setLoading(false));
   }, [params.token, router]);
 
+  // Enquanto valida ou enquanto redireciona, mostra o loader
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-stone-100">
       <div className="text-center space-y-4">
@@ -62,7 +62,7 @@ export default function CarteiraDigitalPage({ params }: { params: { token: strin
     </div>
   );
 
-  // ── 3. ESTADO FINAL: CARTEIRA ATIVA (APROVADO E PAGO) ──
+  // ── 3. ESTADO FINAL: CARTEIRA ATIVA E PAGA ──
   const expira = "29/04/2027";
 
   return (
