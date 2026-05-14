@@ -27,33 +27,10 @@ declare global {
   }
 }
 
-type Hotel = { 
-  id: string; 
-  nome: string; 
-  quarto_standard_nome: string; 
-  quarto_standard_preco: any; 
-  quarto_luxo_nome: string; 
-  quarto_luxo_preco: any; 
-};
-
-type Guia = { 
-  id: string; 
-  nome: string; 
-  preco_diaria: any; 
-};
-
-type Atracao = { 
-  id: string; 
-  nome: string; 
-  preco_entrada: any; 
-};
-
-type Pacote = { 
-  id: string; 
-  titulo: string; 
-  imagem_principal: string; 
-  pacote_itens: { hoteis: Hotel | null; guias: Guia | null; atracoes: Atracao | null; }[]; 
-};
+type Hotel = { id: string; nome: string; quarto_standard_nome: string; quarto_standard_preco: any; quarto_luxo_nome: string; quarto_luxo_preco: any; };
+type Guia = { id: string; nome: string; preco_diaria: any; };
+type Atracao = { id: string; nome: string; preco_entrada: any; };
+type Pacote = { id: string; titulo: string; imagem_principal: string; pacote_itens: { hoteis: Hotel | null; guias: Guia | null; atracoes: Atracao | null; }[]; };
 
 // ── UTILITÁRIOS DE FORMATAÇÃO E SEGURANÇA ──
 const parseValor = (valor: any): number => {
@@ -66,12 +43,7 @@ const formatarMoeda = (valor: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor || 0);
 
 const mascaraCPF = (value: string) => {
-  return value
-    .replace(/\D/g, '')
-    .replace(/(\d{3})(\d)/, '$1.$2')
-    .replace(/(\d{3})(\d)/, '$1.$2')
-    .replace(/(\d{3})(\d{1,2})/, '$1-$2')
-    .slice(0, 14);
+  return value.replace(/\D/g, '').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})/, '$1-$2').slice(0, 14);
 };
 
 const mascaraCartao = (value: string) => {
@@ -84,6 +56,7 @@ function CheckoutContent() {
   const router = useRouter();
 
   // Captura de Parâmetros da URL
+  const tipoItem = searchParams.get('tipo') || 'pacote'; // 'carteira' ou 'pacote'
   const pacoteId = searchParams.get('pacote');
   const hotelId = searchParams.get('hotel');
   const quartoTipo = searchParams.get('quarto') as 'standard' | 'luxo' | null;
@@ -119,6 +92,12 @@ function CheckoutContent() {
   // 1. CARREGAMENTO DOS DADOS (SUPABASE)
   useEffect(() => {
     async function carregarResumo() {
+      // Se for carteira, não precisamos ir ao Supabase!
+      if (tipoItem === 'carteira') {
+        setLoadingInitial(false);
+        return;
+      }
+
       if (!pacoteId) {
         router.push('/pacotes');
         return;
@@ -127,14 +106,7 @@ function CheckoutContent() {
       try {
         const { data, error } = await supabase
           .from('pacotes')
-          .select(`
-            id, titulo, imagem_principal,
-            pacote_itens (
-              hoteis (*),
-              guias (*),
-              atracoes (*)
-            )
-          `)
+          .select(`id, titulo, imagem_principal, pacote_itens ( hoteis (*), guias (*), atracoes (*) )`)
           .eq('id', pacoteId)
           .single();
 
@@ -143,17 +115,20 @@ function CheckoutContent() {
         const pct = data as Pacote;
         setPacote(pct);
 
-        if (hotelId) {
+        // Uso do operador seguro '?.' para evitar crashes se não houver itens
+        if (hotelId && pct.pacote_itens) {
           const h = pct.pacote_itens.map(i => i.hoteis).find(h => h?.id === hotelId);
           if (h) setHotelSel(h);
         }
-        if (guiaId) {
+        if (guiaId && pct.pacote_itens) {
           const g = pct.pacote_itens.map(i => i.guias).find(g => g?.id === guiaId);
           if (g) setGuiaSel(g);
         }
         
-        const atts = pct.pacote_itens.map(i => i.atracoes).filter(Boolean) as Atracao[];
-        setAtracoes(atts);
+        if (pct.pacote_itens) {
+          const atts = pct.pacote_itens.map(i => i.atracoes).filter(Boolean) as Atracao[];
+          setAtracoes(atts);
+        }
         
       } catch (err) {
         console.error("Erro no carregamento:", err);
@@ -163,13 +138,15 @@ function CheckoutContent() {
       }
     }
     carregarResumo();
-  }, [pacoteId, hotelId, guiaId, router]);
+  }, [tipoItem, pacoteId, hotelId, guiaId, router]);
 
-  // 2. LÓGICA DE PREÇOS
+  // 2. LÓGICA DE PREÇOS UNIFICADA
   const precoHotel = hotelSel ? (quartoTipo === 'luxo' ? parseValor(hotelSel.quarto_luxo_preco) : parseValor(hotelSel.quarto_standard_preco)) : 0;
   const precoGuia = guiaSel ? parseValor(guiaSel.preco_diaria) : 0;
   const precoAtracoes = atracoes.reduce((acc, curr) => acc + parseValor(curr.preco_entrada), 0);
-  const totalPagamento = precoHotel + precoGuia + precoAtracoes;
+  
+  // Se for carteira fixa em 10, senão soma o pacote
+  const totalPagamento = tipoItem === 'carteira' ? 10.00 : (precoHotel + precoGuia + precoAtracoes);
 
   // 3. SUBMISSÃO DE PAGAMENTO (PIX OU CARTÃO)
   const handleFinalizarCompra = async (e: React.FormEvent) => {
@@ -183,8 +160,10 @@ function CheckoutContent() {
 
     setIsSubmitting(true);
 
+    // PAYLOAD CORRIGIDO PARA O PYTHON (Com tipo_item)
     let payload: any = {
-      pacote_id: pacoteId,
+      tipo_item: tipoItem,
+      pacote_id: pacoteId || null,
       hotel_id: hotelId || null,
       tipo_quarto: quartoTipo || null,
       guia_id: guiaId || null,
@@ -195,7 +174,6 @@ function CheckoutContent() {
     };
 
     try {
-      // 3.1 Tratamento específico para Cartão de Crédito
       if (metodoPagamento === 'cartao') {
         if (!window.PagSeguro) {
           throw new Error("Módulo de segurança do PagBank não carregado. Recarregue a página.");
@@ -218,8 +196,9 @@ function CheckoutContent() {
         payload.parcelas = parcelas;
       }
 
-      // 3.2 Chamada à API de Processamento
-      const response = await fetch('/api/v1/pagamentos/processar', {
+      // CHAMADA SEGURA COM A VARIÁVEL DE AMBIENTE
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+      const response = await fetch(`${apiUrl}/api/v1/pagamentos/processar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -229,12 +208,12 @@ function CheckoutContent() {
 
       if (result.sucesso) {
         if (metodoPagamento === 'pix') {
-          setQrCodeData({ link: result.qr_code_link, texto: result.qr_code_text });
+          setQrCodeData({ link: result.pix_qrcode_img, texto: result.pix_copia_cola });
         } else {
           router.push('/sucesso');
         }
       } else {
-        setErroApi(result.mensagem || 'A transação foi recusada pela operadora.');
+        setErroApi(result.detail || 'A transação foi recusada pela operadora.');
       }
     } catch (err: any) {
       console.error(err);
@@ -263,7 +242,6 @@ function CheckoutContent() {
 
   return (
     <>
-      {/* SDK OFICIAL PAGBANK */}
       <Script src="https://assets.pagseguro.com.br/checkout-sdk-js/rc/dist/browser/pagseguro.min.js" strategy="afterInteractive" />
 
       <div className="max-w-7xl mx-auto px-6 py-16 lg:py-24">
@@ -272,9 +250,9 @@ function CheckoutContent() {
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-16 gap-6 border-b-2 border-slate-100 pb-10">
           <div>
             <button onClick={() => router.back()} className="flex items-center gap-2 text-slate-500 hover:text-[#00577C] font-bold mb-4 transition-colors">
-              <ArrowLeft size={18} /> Alterar escolhas da viagem
+              <ArrowLeft size={18} /> Voltar
             </button>
-            <h1 className={`${jakarta.className} text-4xl md:text-5xl font-black text-slate-900`}>Finalizar Reserva</h1>
+            <h1 className={`${jakarta.className} text-4xl md:text-5xl font-black text-slate-900`}>Finalizar Pagamento</h1>
           </div>
           <div className="flex items-center gap-4 bg-white px-6 py-4 rounded-[1.5rem] shadow-sm border border-slate-200">
              <div className="w-12 h-12 bg-green-50 rounded-full flex items-center justify-center text-[#009640]"><ShieldCheck size={28} /></div>
@@ -298,7 +276,7 @@ function CheckoutContent() {
                    <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none"><User size={120}/></div>
                    <h2 className={`${jakarta.className} text-2xl font-bold text-slate-900 mb-10 flex items-center gap-4`}>
                       <span className="w-10 h-10 bg-[#00577C] text-white rounded-2xl flex items-center justify-center text-sm shadow-lg">1</span>
-                      Dados do Titular da Reserva
+                      Dados do Titular
                    </h2>
                    
                    <div className="space-y-8">
@@ -319,7 +297,7 @@ function CheckoutContent() {
                           </div>
                         </div>
                         <div>
-                          <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3">CPF (Para o Seguro)</label>
+                          <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3">CPF</label>
                           <div className="relative">
                             <input required type="text" value={cpf} onChange={e => setCpf(mascaraCPF(e.target.value))} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 focus:bg-white focus:border-[#00577C] outline-none transition-all font-bold text-slate-800 text-lg" placeholder="000.000.000-00" />
                             <FileText className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300" size={20}/>
@@ -442,8 +420,8 @@ function CheckoutContent() {
                  <div className="w-28 h-28 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-10 shadow-inner border-4 border-white">
                     <CheckCircle2 size={64} className="text-[#009640]"/>
                  </div>
-                 <h2 className={`${jakarta.className} text-4xl font-black text-slate-900 mb-4`}>Vaga Pré-Reservada!</h2>
-                 <p className="text-slate-500 text-xl mb-12 px-12 leading-relaxed">Conclua o pagamento de <b>{formatarMoeda(totalPagamento)}</b> para receber o voucher oficial no seu e-mail.</p>
+                 <h2 className={`${jakarta.className} text-4xl font-black text-slate-900 mb-4`}>Pedido Criado!</h2>
+                 <p className="text-slate-500 text-xl mb-12 px-12 leading-relaxed">Conclua o pagamento de <b>{formatarMoeda(totalPagamento)}</b> para finalizar.</p>
                  
                  <div className="w-80 h-80 bg-slate-50 mx-auto rounded-[3.5rem] p-10 mb-12 border-4 border-dashed border-slate-200 relative group shadow-inner">
                     <img src={qrCodeData.link} alt="QR Code Oficial" className="w-full h-full object-contain mix-blend-multiply transition-transform duration-700 group-hover:scale-110" />
@@ -468,7 +446,7 @@ function CheckoutContent() {
                  
                  <div className="flex items-center justify-center gap-4 py-8 border-t border-slate-50 mt-10">
                     <Loader2 className="animate-spin text-slate-300" size={20}/>
-                    <p className="text-sm text-slate-400 font-bold uppercase tracking-widest">Sincronizando com o Banco Central...</p>
+                    <p className="text-sm text-slate-400 font-bold uppercase tracking-widest">A aguardar confirmação do banco...</p>
                  </div>
               </div>
             )}
@@ -482,48 +460,65 @@ function CheckoutContent() {
               {/* Header */}
               <div className="p-12 border-b-2 border-slate-50">
                 <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.4em] mb-4">Investimento</p>
-                <h3 className={`${jakarta.className} text-3xl font-black text-slate-900 leading-tight`}>{pacote?.titulo || 'Aguardando...'}</h3>
+                <h3 className={`${jakarta.className} text-3xl font-black text-slate-900 leading-tight`}>
+                  {tipoItem === 'carteira' ? 'Carteira Digital de Residente' : (pacote?.titulo || 'Aguardando...')}
+                </h3>
               </div>
 
               {/* Corpo Detalhado */}
               <div className="p-12 space-y-10">
-                {hotelSel && (
+                {tipoItem === 'carteira' ? (
                   <div className="flex justify-between items-start">
                     <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-[#00577C] shrink-0 shadow-sm"><Bed size={24}/></div>
+                      <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-[#00577C] shrink-0 shadow-sm"><User size={24}/></div>
                       <div>
-                        <p className="font-black text-slate-800 text-lg leading-none mb-2">{hotelSel.nome}</p>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-tighter">{quartoTipo === 'luxo' ? hotelSel.quarto_luxo_nome : hotelSel.quarto_standard_nome}</p>
+                        <p className="font-black text-slate-800 text-lg leading-none mb-2">Taxa de Emissão</p>
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-tighter">Documento Oficial</p>
                       </div>
                     </div>
-                    <span className="font-black text-slate-900 text-lg">{formatarMoeda(precoHotel)}</span>
+                    <span className="font-black text-slate-900 text-lg">R$ 10,00</span>
                   </div>
-                )}
+                ) : (
+                  <>
+                    {hotelSel && (
+                      <div className="flex justify-between items-start">
+                        <div className="flex items-start gap-4">
+                          <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-[#00577C] shrink-0 shadow-sm"><Bed size={24}/></div>
+                          <div>
+                            <p className="font-black text-slate-800 text-lg leading-none mb-2">{hotelSel.nome}</p>
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-tighter">{quartoTipo === 'luxo' ? hotelSel.quarto_luxo_nome : hotelSel.quarto_standard_nome}</p>
+                          </div>
+                        </div>
+                        <span className="font-black text-slate-900 text-lg">{formatarMoeda(precoHotel)}</span>
+                      </div>
+                    )}
 
-                {guiaSel && (
-                  <div className="flex justify-between items-start">
-                    <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center text-[#009640] shrink-0 shadow-sm"><Compass size={24}/></div>
-                      <div>
-                        <p className="font-black text-slate-800 text-lg leading-none mb-2">Guia Profissional</p>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-tighter">{guiaSel.nome}</p>
+                    {guiaSel && (
+                      <div className="flex justify-between items-start">
+                        <div className="flex items-start gap-4">
+                          <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center text-[#009640] shrink-0 shadow-sm"><Compass size={24}/></div>
+                          <div>
+                            <p className="font-black text-slate-800 text-lg leading-none mb-2">Guia Profissional</p>
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-tighter">{guiaSel.nome}</p>
+                          </div>
+                        </div>
+                        <span className="font-black text-slate-900 text-lg">{formatarMoeda(precoGuia)}</span>
                       </div>
-                    </div>
-                    <span className="font-black text-slate-900 text-lg">{formatarMoeda(precoGuia)}</span>
-                  </div>
-                )}
+                    )}
 
-                {atracoes.length > 0 && (
-                  <div className="flex justify-between items-start pt-10 border-t-2 border-slate-50">
-                    <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 bg-yellow-50 rounded-2xl flex items-center justify-center text-[#F9C400] shrink-0 shadow-sm"><Ticket size={24}/></div>
-                      <div>
-                        <p className="font-black text-slate-800 text-lg leading-none mb-2">Taxas e Ingressos</p>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-tighter">{atracoes.length} itens no roteiro</p>
+                    {atracoes.length > 0 && (
+                      <div className="flex justify-between items-start pt-10 border-t-2 border-slate-50">
+                        <div className="flex items-start gap-4">
+                          <div className="w-12 h-12 bg-yellow-50 rounded-2xl flex items-center justify-center text-[#F9C400] shrink-0 shadow-sm"><Ticket size={24}/></div>
+                          <div>
+                            <p className="font-black text-slate-800 text-lg leading-none mb-2">Taxas e Ingressos</p>
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-tighter">{atracoes.length} itens no roteiro</p>
+                          </div>
+                        </div>
+                        <span className="font-black text-slate-900 text-lg">{formatarMoeda(precoAtracoes)}</span>
                       </div>
-                    </div>
-                    <span className="font-black text-slate-900 text-lg">{formatarMoeda(precoAtracoes)}</span>
-                  </div>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -543,7 +538,7 @@ function CheckoutContent() {
                </div>
                <div className="bg-white p-5 rounded-2xl border border-slate-100 flex flex-col items-center text-center gap-3 shadow-sm">
                   <ShieldAlert className="text-[#009640]" size={20}/>
-                  <span className="text-[9px] font-black text-slate-400 uppercase leading-tight tracking-widest">Seguro Viagem<br/>Incluído</span>
+                  <span className="text-[9px] font-black text-slate-400 uppercase leading-tight tracking-widest">Segurança<br/>Garantida</span>
                </div>
             </div>
           </aside>
