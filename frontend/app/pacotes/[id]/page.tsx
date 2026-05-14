@@ -31,23 +31,21 @@ const parseValor = (valor: any): number => {
 const formatarMoeda = (valor: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor || 0);
 
-// ── BLINDAGEM DE ARRAYS ──
+// ── BLINDAGEM DE ARRAYS (CORRIGIDO PARA SUPORTAR O FORMATO DO POSTGRES) ──
 const getArraySeguro = (item: any): string[] => {
-  let arr: string[] = [];
   if (!item) return [];
-  if (Array.isArray(item)) {
-    arr = item;
-  } else if (typeof item === 'string') {
+  if (Array.isArray(item)) return item;
+  if (typeof item === 'string') {
     try { 
       const parsed = JSON.parse(item); 
-      if (Array.isArray(parsed)) arr = parsed;
+      if (Array.isArray(parsed)) return parsed;
     } catch (e) { 
       if (item.startsWith('{') && item.endsWith('}')) {
-        arr = item.slice(1, -1).split(',').map(s => s.trim().replace(/^"/, '').replace(/"$/, ''));
+        return item.slice(1, -1).split(',').map((s: string) => s.trim().replace(/^"/, '').replace(/"$/, ''));
       }
     }
   }
-  return arr.filter(url => typeof url === 'string' && url.length > 5);
+  return [];
 };
 
 // ── TIPAGENS RÍGIDAS ──
@@ -79,7 +77,6 @@ export default function PacoteDetalhePage() {
   const [loading, setLoading] = useState(true);
   const [disponibilidadeDb, setDisponibilidadeDb] = useState<Record<string, Disponibilidade>>({});
 
-  // 🔴 AQUI ESTAVA O ERRO! As variáveis estavam em falta.
   const [hoteisDisponiveis, setHoteisDisponiveis] = useState<Hotel[]>([]);
   const [guiasDisponiveis, setGuiasDisponiveis] = useState<Guia[]>([]);
   const [atracoesInclusas, setAtracoesInclusas] = useState<Atracao[]>([]);
@@ -93,7 +90,7 @@ export default function PacoteDetalhePage() {
   const [checkin, setCheckin] = useState<Date | null>(null);
   const [checkout, setCheckout] = useState<Date | null>(null);
   const [hoverDate, setHoverDate] = useState<Date | null>(null);
-  const [mesAtualCalendario, setMesAtualCalendario] = useState<Date>(new Date());
+  const [mesAtualCalendario, setMesAtualCalendario] = useState<Date | null>(null);
   
   // Galeria e UI
   const [fotoExpandidaIndex, setFotoExpandidaIndex] = useState<number | null>(null);
@@ -102,6 +99,7 @@ export default function PacoteDetalhePage() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMesAtualCalendario(new Date());
     setMounted(true);
   }, []);
 
@@ -141,7 +139,6 @@ export default function PacoteDetalhePage() {
         const guias = itens.map((i: any) => i?.guias).filter(Boolean) as Guia[];
         const atracoes = itens.map((i: any) => i?.atracoes).filter(Boolean) as Atracao[];
         
-        // 🔴 E FALTAVA PREENCHÊ-LAS AQUI!
         setHoteisDisponiveis(hoteis);
         setGuiasDisponiveis(guias);
         setAtracoesInclusas(atracoes);
@@ -247,7 +244,7 @@ export default function PacoteDetalhePage() {
     router.push(`/checkout?pacote=${pacote?.id}&hotel=${hotelSelecionado?.id}&quarto=${tipoQuarto}&guia=${guiaSelecionado?.id}&checkin=${formatarDataIso(checkin)}&checkout=${formatarDataIso(checkout)}`);
   };
 
-  if (!mounted || loading || !pacote) return (
+  if (!mounted || loading || !pacote || !mesAtualCalendario) return (
     <div className="min-h-screen flex items-center justify-center bg-[#F8F9FA]">
       <div className="text-center">
         <Loader2 className="animate-spin text-[#00577C] w-14 h-14 mx-auto mb-4" />

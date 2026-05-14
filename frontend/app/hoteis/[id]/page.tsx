@@ -24,6 +24,22 @@ const parseValor = (valor: any): number => {
 
 const formatarMoeda = (valor: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
 
+const getArraySeguro = (item: any): string[] => {
+  if (!item) return [];
+  if (Array.isArray(item)) return item;
+  if (typeof item === 'string') {
+    try {
+      const parsed = JSON.parse(item);
+      if (Array.isArray(parsed)) return parsed;
+    } catch (e) {
+      if (item.startsWith('{') && item.endsWith('}')) {
+        return item.slice(1, -1).split(',').map((s: string) => s.trim().replace(/^"/, '').replace(/"$/, ''));
+      }
+    }
+  }
+  return [];
+};
+
 type Hotel = {
   id: string; nome: string; tipo: string; descricao: string; estrelas: number; imagem_url: string;
   endereco?: string; preco_medio?: string;
@@ -54,9 +70,15 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
   const [checkin, setCheckin] = useState<Date | null>(null);
   const [checkout, setCheckout] = useState<Date | null>(null);
   const [hoverDate, setHoverDate] = useState<Date | null>(null);
-  const [mesAtualCalendario, setMesAtualCalendario] = useState<Date>(new Date());
+  const [mesAtualCalendario, setMesAtualCalendario] = useState<Date | null>(null);
   const [tipoQuarto, setTipoQuarto] = useState<'standard' | 'luxo'>('standard');
   const [fotoExpandidaIndex, setFotoExpandidaIndex] = useState<number | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMesAtualCalendario(new Date());
+    setMounted(true);
+  }, []);
 
   // Carregamento de Dados
   useEffect(() => {
@@ -162,7 +184,7 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
       return;
     }
     // LIGAÇÃO ATUALIZADA PARA O NOVO CHECKOUT UNIFICADO
-    router.push(`/checkout?tipo=hotel&hotel=${hotel?.id}&quarto=${tipoQuarto}&checkin=${formatarDataIso(checkin)}&checkout=${formatarDataIso(checkout)}`);
+    router.push(`/checkout-hotel?hotel=${hotel?.id}&quarto=${tipoQuarto}&checkin=${formatarDataIso(checkin)}&checkout=${formatarDataIso(checkout)}`);
   };
 
   // ── FUNÇÕES DA GALERIA DE FOTOS ──
@@ -176,7 +198,7 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
     if (hotel?.galeria) setFotoExpandidaIndex((prev) => (prev! - 1 + hotel.galeria!.length) % hotel.galeria!.length);
   };
 
-  if (loading) return (
+  if (!mounted || loading || !mesAtualCalendario) return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-white text-[#00577C]">
       <Loader2 className="w-12 h-12 animate-spin mb-4" />
       <p className="font-bold uppercase tracking-widest text-xs">Carregando detalhes do hotel...</p>
@@ -262,7 +284,7 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
               <div>
                 <h3 className={`${jakarta.className} text-2xl font-black text-[#00577C] mb-6`}>Comodidades</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {hotel.comodidades.map((item, idx) => (
+                  {getArraySeguro(hotel.comodidades).map((item, idx) => (
                     <div key={idx} className="flex items-center gap-3 text-slate-700 font-medium bg-slate-50 px-4 py-3 rounded-xl border border-slate-100">
                       <CheckCircle2 size={20} className="text-[#009640] shrink-0" /> {item}
                     </div>
@@ -342,7 +364,6 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
 
                           // Lógica visual da célula
                           let bgClass = "bg-transparent hover:bg-slate-200 text-slate-800";
-                          let textClass = "";
                           
                           if (isPassado || !disponivel) {
                              bgClass = "bg-transparent text-slate-300 cursor-not-allowed line-through";
@@ -373,7 +394,7 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
               </div>
 
               {/* Total e Botão */}
-              {checkin && (
+              {checkin && checkout && (
                  <div className="flex justify-between items-center bg-[#009640]/10 p-5 rounded-2xl mb-6 border border-[#009640]/20 animate-in zoom-in-95 duration-300">
                     <div>
                       <span className="text-[10px] font-black text-[#009640] uppercase block">Total Estimado</span>
@@ -410,7 +431,7 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
           <section className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-xl border border-slate-100">
             <h3 className={`${jakarta.className} text-3xl font-black text-slate-900 mb-8`}>Galeria de Fotos</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-                {hotel.galeria.map((foto, idx) => (
+                {getArraySeguro(hotel.galeria).map((foto, idx) => (
                   <div key={idx} onClick={() => setFotoExpandidaIndex(idx)} className="relative aspect-square rounded-2xl overflow-hidden shadow-md group bg-slate-200 cursor-pointer">
                     <Image src={foto} alt={`Foto ${idx + 1}`} fill className="object-cover group-hover:scale-110 transition-transform duration-700" />
                     <div className="absolute inset-0 bg-[#00577C]/0 group-hover:bg-[#00577C]/40 transition-colors duration-300 flex items-center justify-center">
@@ -429,11 +450,11 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
           <button onClick={fecharGaleria} className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors z-[110]"><X size={24} /></button>
           <button onClick={fotoAnterior} className="absolute left-6 top-1/2 -translate-y-1/2 p-4 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors z-[110]"><ChevronLeft size={32} /></button>
           <div className="relative w-full max-w-6xl aspect-video rounded-xl overflow-hidden shadow-2xl">
-            <Image src={hotel.galeria[fotoExpandidaIndex]} alt={`Foto ${fotoExpandidaIndex + 1}`} fill className="object-contain" />
+            <Image src={getArraySeguro(hotel.galeria)[fotoExpandidaIndex]} alt={`Foto ${fotoExpandidaIndex + 1}`} fill className="object-contain" />
           </div>
           <button onClick={proximaFoto} className="absolute right-6 top-1/2 -translate-y-1/2 p-4 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors z-[110]"><ChevronRight size={32} /></button>
           <div className="absolute bottom-10 left-0 right-0 text-center pointer-events-none">
-            <p className="text-white font-bold tracking-widest text-sm bg-black/60 inline-block px-5 py-2 rounded-full backdrop-blur-sm">{fotoExpandidaIndex + 1} de {hotel.galeria.length}</p>
+            <p className="text-white font-bold tracking-widest text-sm bg-black/60 inline-block px-5 py-2 rounded-full backdrop-blur-sm">{fotoExpandidaIndex + 1} de {getArraySeguro(hotel.galeria).length}</p>
           </div>
         </div>
       )}
