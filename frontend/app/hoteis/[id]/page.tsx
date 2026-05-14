@@ -7,7 +7,8 @@ import { useEffect, useState } from 'react';
 import { 
   ArrowLeft, MapPin, Star, CheckCircle2, Info, 
   Loader2, Menu, X, ChevronLeft, ChevronRight, ZoomIn, 
-  Calendar as CalendarIcon, Bed, ChevronRight as ChevronRightIcon
+  Calendar as CalendarIcon, Bed, ChevronRight as ChevronRightIcon,
+  Users, Baby, DoorOpen
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -66,7 +67,7 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
 
-  // ── ESTADOS DO MOTOR DE RESERVAS (CALENDÁRIO) ──
+  // ── ESTADOS DO MOTOR DE RESERVAS (CALENDÁRIO E LOTAÇÃO) ──
   const [checkin, setCheckin] = useState<Date | null>(null);
   const [checkout, setCheckout] = useState<Date | null>(null);
   const [hoverDate, setHoverDate] = useState<Date | null>(null);
@@ -74,6 +75,11 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
   const [tipoQuarto, setTipoQuarto] = useState<'standard' | 'luxo'>('standard');
   const [fotoExpandidaIndex, setFotoExpandidaIndex] = useState<number | null>(null);
   const [mounted, setMounted] = useState(false);
+
+  // Estados de Lotação
+  const [adultos, setAdultos] = useState(2);
+  const [criancas, setCriancas] = useState(0);
+  const [quartos, setQuartos] = useState(1);
 
   useEffect(() => {
     setMesAtualCalendario(new Date());
@@ -162,7 +168,7 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
     return `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`;
   };
 
-  // Cálculo de Preço Total percorrendo os dias selecionados
+  // Cálculo de Preço Total multiplicando pelos quartos selecionados
   let valorTotalReserva = 0;
   let totalNoites = 0;
   
@@ -170,12 +176,13 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
     let diaAtual = new Date(checkin);
     while (diaAtual < checkout) {
       const dataStr = formatarDataIso(diaAtual);
-      valorTotalReserva += getPrecoDiaria(dataStr);
+      // Preço do dia vezes o número de quartos
+      valorTotalReserva += getPrecoDiaria(dataStr) * quartos;
       totalNoites++;
       diaAtual.setDate(diaAtual.getDate() + 1);
     }
   } else if (checkin) {
-    valorTotalReserva = getPrecoDiaria(formatarDataIso(checkin));
+    valorTotalReserva = getPrecoDiaria(formatarDataIso(checkin)) * quartos;
   }
 
   const handleReserva = () => {
@@ -183,8 +190,8 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
       alert("Por favor, selecione as datas de Check-in e Check-out no calendário.");
       return;
     }
-    // LIGAÇÃO ATUALIZADA PARA O NOVO CHECKOUT UNIFICADO
-    router.push(`/checkout-hotel?hotel=${hotel?.id}&quarto=${tipoQuarto}&checkin=${formatarDataIso(checkin)}&checkout=${formatarDataIso(checkout)}`);
+    // LIGAÇÃO ATUALIZADA ENVIANDO TODOS OS PARÂMETROS PARA O CHECKOUT
+    router.push(`/checkout-hotel?hotel=${hotel?.id}&quarto=${tipoQuarto}&checkin=${formatarDataIso(checkin)}&checkout=${formatarDataIso(checkout)}&adultos=${adultos}&criancas=${criancas}&quartos=${quartos}`);
   };
 
   // ── FUNÇÕES DA GALERIA DE FOTOS ──
@@ -299,7 +306,7 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
         <div className="w-full lg:w-[420px] shrink-0 lg:self-start">
           <aside className="lg:sticky lg:top-32 space-y-6">
             
-            <div className="bg-white p-8 rounded-[2.5rem] shadow-2xl border border-slate-200 overflow-hidden">
+            <div className="bg-white p-8 rounded-[3rem] shadow-2xl border border-slate-200 overflow-hidden">
               <div className="border-b border-slate-100 pb-6 mb-6">
                  <p className="text-[10px] font-black uppercase tracking-widest text-[#00577C] mb-1">A partir de</p>
                  <div className="flex items-end gap-2">
@@ -308,7 +315,7 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
                  </div>
               </div>
 
-              {/* 1. SELEÇÃO DO TIPO DE QUARTO (Muda o preço do calendário) */}
+              {/* 1. SELEÇÃO DO TIPO DE QUARTO */}
               <div className="space-y-3 mb-8">
                 <p className="text-[10px] font-black uppercase tracking-widest text-[#00577C]">1. Escolha sua Acomodação</p>
                 <label className={`flex items-center justify-between p-4 rounded-2xl border-2 cursor-pointer transition-all ${tipoQuarto === 'standard' ? 'border-[#00577C] bg-blue-50/50' : 'border-slate-100 hover:border-slate-200'}`}>
@@ -325,9 +332,58 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
                 </label>
               </div>
 
-              {/* 2. CALENDÁRIO INTERATIVO (AIRBNB STYLE) */}
+              {/* 2. SELEÇÃO DE HÓSPEDES E QUARTOS (NOVIDADE) */}
+              <div className="mb-8 space-y-4">
+                 <p className="text-[10px] font-black uppercase tracking-widest text-[#00577C]">2. Hóspedes e Quartos</p>
+                 <div className="bg-slate-50 border border-slate-200 rounded-[1.5rem] p-5 space-y-5 shadow-inner">
+                   
+                   {/* Adultos */}
+                   <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                         <Users size={20} className="text-slate-500"/>
+                         <span className="font-bold text-sm text-slate-800">Adultos</span>
+                      </div>
+                      <div className="flex items-center gap-3 bg-white border border-slate-200 rounded-xl p-1 shadow-sm">
+                         <button onClick={() => setAdultos(Math.max(1, adultos - 1))} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 font-black text-lg transition-colors">-</button>
+                         <span className="font-bold text-sm w-4 text-center">{adultos}</span>
+                         <button onClick={() => setAdultos(adultos + 1)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 font-black text-lg transition-colors">+</button>
+                      </div>
+                   </div>
+
+                   {/* Crianças */}
+                   <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                         <Baby size={20} className="text-slate-500"/>
+                         <div>
+                           <span className="font-bold text-sm text-slate-800 block leading-tight">Crianças</span>
+                           <span className="text-[10px] font-bold text-slate-400">Até 12 anos</span>
+                         </div>
+                      </div>
+                      <div className="flex items-center gap-3 bg-white border border-slate-200 rounded-xl p-1 shadow-sm">
+                         <button onClick={() => setCriancas(Math.max(0, criancas - 1))} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 font-black text-lg transition-colors">-</button>
+                         <span className="font-bold text-sm w-4 text-center">{criancas}</span>
+                         <button onClick={() => setCriancas(criancas + 1)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 font-black text-lg transition-colors">+</button>
+                      </div>
+                   </div>
+
+                   {/* Quartos */}
+                   <div className="flex items-center justify-between border-t border-slate-200 pt-5 mt-2">
+                      <div className="flex items-center gap-3">
+                         <DoorOpen size={20} className="text-[#00577C]"/>
+                         <span className="font-bold text-sm text-slate-800">Quartos</span>
+                      </div>
+                      <div className="flex items-center gap-3 bg-blue-50 border border-[#00577C]/20 rounded-xl p-1 shadow-sm">
+                         <button onClick={() => setQuartos(Math.max(1, quartos - 1))} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white text-[#00577C] font-black text-lg transition-colors">-</button>
+                         <span className="font-black text-sm w-4 text-center text-[#00577C]">{quartos}</span>
+                         <button onClick={() => setQuartos(quartos + 1)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white text-[#00577C] font-black text-lg transition-colors">+</button>
+                      </div>
+                   </div>
+                 </div>
+              </div>
+
+              {/* 3. CALENDÁRIO INTERATIVO */}
               <div className="mb-8">
-                 <p className="text-[10px] font-black uppercase tracking-widest text-[#00577C] mb-4">2. Selecione as Datas</p>
+                 <p className="text-[10px] font-black uppercase tracking-widest text-[#00577C] mb-4">3. Selecione as Datas</p>
                  <div className="bg-slate-50 border border-slate-200 rounded-[2rem] p-5 shadow-inner">
                     
                     {/* Controles do Mês */}
@@ -395,12 +451,14 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
 
               {/* Total e Botão */}
               {checkin && checkout && (
-                 <div className="flex justify-between items-center bg-[#009640]/10 p-5 rounded-2xl mb-6 border border-[#009640]/20 animate-in zoom-in-95 duration-300">
-                    <div>
-                      <span className="text-[10px] font-black text-[#009640] uppercase block">Total Estimado</span>
-                      <span className="text-xs font-bold text-slate-600">{totalNoites} {totalNoites === 1 ? 'noite' : 'noites'} selecionadas</span>
+                 <div className="flex flex-col gap-2 bg-[#009640]/10 p-6 rounded-2xl mb-6 border border-[#009640]/20 animate-in zoom-in-95 duration-300">
+                    <div className="flex justify-between items-end">
+                      <div>
+                        <span className="text-[10px] font-black text-[#009640] uppercase block mb-1">Total Estimado</span>
+                        <span className="text-xs font-bold text-slate-600">{totalNoites} {totalNoites === 1 ? 'noite' : 'noites'} em {quartos} {quartos === 1 ? 'quarto' : 'quartos'}</span>
+                      </div>
+                      <span className={`${jakarta.className} text-3xl font-black text-[#009640]`}>{formatarMoeda(valorTotalReserva)}</span>
                     </div>
-                    <span className={`${jakarta.className} text-3xl font-black text-[#009640]`}>{formatarMoeda(valorTotalReserva)}</span>
                  </div>
               )}
 
