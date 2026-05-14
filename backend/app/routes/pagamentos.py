@@ -46,8 +46,8 @@ class PedidoPagamento(BaseModel):
     nome_cliente: str
     cpf_cliente: str
     email_cliente: str
-    telefone_cliente: str # Obrigatório para Antifraude
-    endereco_faturacao: EnderecoFaturacao # Obrigatório para Cartão
+    telefone_cliente: str 
+    endereco_faturacao: EnderecoFaturacao 
     
     # Dados Específicos Adicionais
     foto_url: Optional[str] = None
@@ -66,7 +66,6 @@ async def processar_pagamento(pedido: PedidoPagamento):
         nome_item_checkout = ""
         item_id_db = None
         
-        # O Coração da Integração: Código Único para a URL de Sucesso
         codigo_pedido = f"SAGA-{uuid.uuid4().hex[:8].upper()}"
 
         # Limpeza de dados para o PagBank
@@ -75,10 +74,7 @@ async def processar_pagamento(pedido: PedidoPagamento):
         ddd = telefone_limpo[:2]
         numero_tel = telefone_limpo[2:]
 
-        # ==========================================
-        # FASE 1: LÓGICA DE PRECIFICAÇÃO E SPLITS
-        # ==========================================
-        
+        # --- FASE 1: LÓGICA DE PRECIFICAÇÃO ---
         if pedido.tipo_item == "carteira":
             valor_total = 10.00 * pedido.quantidade
             nome_item_checkout = f"Taxa de Emissão - Carteira Digital ({pedido.quantidade}x)"
@@ -101,18 +97,13 @@ async def processar_pagamento(pedido: PedidoPagamento):
                 })
 
         elif pedido.tipo_item == "pacote":
-            # Busca preço base do pacote ou soma os componentes
             res_pacote = supabase.table("pacotes").select("*").eq("id", pedido.pacote_id).single().execute()
             if not res_pacote.data: raise HTTPException(status_code=404, detail="Pacote não encontrado")
-            
             valor_total = float(res_pacote.data.get("preco_base", 0))
             nome_item_checkout = f"Pacote: {res_pacote.data['titulo']}"
             item_id_db = pedido.pacote_id
-            # Logica de splits de pacote pode ser expandida aqui conforme necessário
 
-        # ==========================================
-        # FASE 2: PERSISTÊNCIA NO SUPABASE
-        # ==========================================
+        # --- FASE 2: PERSISTÊNCIA NO SUPABASE (CORRIGIDA) ---
         pedido_db = {
             "codigo_pedido": codigo_pedido,
             "tipo_item": pedido.tipo_item,
@@ -122,15 +113,21 @@ async def processar_pagamento(pedido: PedidoPagamento):
             "telefone_cliente": pedido.telefone_cliente,
             "valor_total": valor_total,
             "status_pagamento": "aguardando",
-            "item_id": item_id_db,
+            "metodo_pagamento": pedido.metodo_pagamento, # CORREÇÃO: Campo obrigatório
             "data_checkin": pedido.data_checkin,
-            "data_checkout": pedido.data_checkout
+            "data_checkout": pedido.data_checkout,
+            "data_nascimento": pedido.data_nascimento,
+            "foto_url": pedido.foto_url,
+            "quantidade": pedido.quantidade
         }
+        
+        # CORREÇÃO UUID: Só adiciona se existir, para evitar erro de sintaxe "None"
+        if item_id_db:
+            pedido_db["item_id"] = item_id_db
+
         supabase.table("pedidos").insert(pedido_db).execute()
 
-        # ==========================================
-        # FASE 3: PAYLOAD PAGBANK (COMPLIANCE)
-        # ==========================================
+        # --- FASE 3: PAYLOAD PAGBANK ---
         payload_pagbank = {
             "reference_id": codigo_pedido,
             "customer": {
@@ -146,8 +143,7 @@ async def processar_pagamento(pedido: PedidoPagamento):
         if pedido.metodo_pagamento == "pix":
             payload_pagbank["qr_codes"] = [{"amount": {"value": int(valor_total * 100)}}]
             if splits_array: payload_pagbank["qr_codes"][0]["splits"] = splits_array
-
-        else: # CARTÃO DE CRÉDITO
+        else:
             charge = {
                 "reference_id": codigo_pedido,
                 "description": nome_item_checkout,
@@ -160,14 +156,13 @@ async def processar_pagamento(pedido: PedidoPagamento):
                     "holder": {
                         "name": pedido.nome_cliente,
                         "tax_id": tax_id_limpo,
-                        "address": pedido.endereco_faturacao.dict() # Dados estruturados para o PagBank
+                        "address": pedido.endereco_faturacao.dict()
                     }
                 }
             }
             if splits_array: charge["splits"] = splits_array
             payload_pagbank["charges"] = [charge]
 
-        # Envio para API
         async with httpx.AsyncClient() as client:
             headers = {"Authorization": f"Bearer {PAGBANK_TOKEN}", "Content-Type": "application/json"}
             resp = await client.post(f"{PAGBANK_API_URL}/orders", json=payload_pagbank, headers=headers, timeout=30.0)
@@ -177,8 +172,6 @@ async def processar_pagamento(pedido: PedidoPagamento):
                 raise HTTPException(status_code=400, detail="Erro no processamento financeiro.")
 
             dados_pb = resp.json()
-            
-            # Resposta Padrão para o Frontend
             base_retorno = {"sucesso": True, "codigo_pedido": codigo_pedido}
             
             if pedido.metodo_pagamento == "pix":
@@ -198,4 +191,4 @@ async def processar_pagamento(pedido: PedidoPagamento):
 
     except Exception as e:
         print(f"Erro: {e}")
-        raise HTTPException(status_code=500, detail="Erro interno no servidor")
+        raise HTTPException(status_code=500, detail=str(e))
