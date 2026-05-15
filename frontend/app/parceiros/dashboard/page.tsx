@@ -55,7 +55,7 @@ export default function DashboardParceiroPage() {
     }
   }, [router]);
 
-  // ── 2. CONSUMO DAS ROTAS DA RAILWAY ──
+  // ── 2. CONSUMO DAS ROTAS DA RAILWAY COM VALIDAÇÃO RESILIENTE ──
   useEffect(() => {
     if (!parceiroId) return;
 
@@ -71,10 +71,27 @@ export default function DashboardParceiroPage() {
         const dataReservas = await resReservas.json();
 
         setMetricas(dataMetricas);
-        setReservas(dataReservas || []);
+
+        // ── TRATAMENTO DO FORMATO DE DADOS DAS RESERVAS ──
+        if (Array.isArray(dataReservas)) {
+          // Cenário A: API retorna diretamente a lista pura []
+          setReservas(dataReservas);
+        } else if (dataReservas && typeof dataReservas === 'object' && Array.isArray(dataReservas.reservas)) {
+          // Cenário B: API retorna envelopado em { reservas: [] }
+          setReservas(dataReservas.reservas);
+        } else if (dataReservas && typeof dataReservas === 'object' && Array.isArray(dataReservas.dados)) {
+          // Cenário C: API retorna envelopado em { dados: [] }
+          setReservas(dataReservas.dados);
+        } else {
+          // Cenário D: API retorna um erro ou formato inesperado (evita crash do ecrã)
+          console.warn("Formato de reservas não reconhecido ou lista vazia:", dataReservas);
+          setReservas([]);
+        }
+
       } catch (error) {
         console.error("Erro ao carregar dados da API:", error);
-      } finally {
+        setReservas([]);
+      } finaly {
         setLoading(false);
       }
     }
@@ -92,7 +109,9 @@ export default function DashboardParceiroPage() {
 
   const formatarData = (dataStr: string) => {
     if (!dataStr) return '-';
-    const [ano, mes, dia] = dataStr.split('-');
+    const parts = dataStr.split('-');
+    if (parts.length !== 3) return dataStr;
+    const [ano, mes, dia] = parts;
     return `${dia}/${mes}/${ano}`;
   };
 
@@ -179,7 +198,7 @@ export default function DashboardParceiroPage() {
                     <th className="py-4 px-6">Cliente</th>
                     <th className="py-4 px-6">Tipo</th>
                     
-                    {/* ── COLUNAS CUSTOMIZADAS POR TIPO (UX REGRA 3) ── */}
+                    {/* COLUNAS CUSTOMIZADAS */}
                     <th className="py-4 px-6">Check-in / Data Passeio</th>
                     <th className="py-4 px-6">Check-out</th>
                     <th className="py-4 px-6">Acomodação / Acessos</th>
@@ -201,7 +220,6 @@ export default function DashboardParceiroPage() {
                         </span>
                       </td>
 
-                      {/* Renderização condicional inteligente das colunas */}
                       <td className="py-4 px-6 tabular-nums">{formatarData(reserva.data_checkin)}</td>
                       <td className="py-4 px-6 tabular-nums">
                         {reserva.tipo_item === 'hotel' ? formatarData(reserva.data_checkout || '') : <span className="text-slate-300 font-normal">—</span>}
