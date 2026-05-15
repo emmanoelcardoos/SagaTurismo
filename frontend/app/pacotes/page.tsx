@@ -7,7 +7,7 @@ import {
   Loader2, Menu, MapPin, ArrowRight,
   CalendarClock, Search, Calendar, Star, 
   CheckCircle2, ChevronRight, Sparkles, X, 
-  ShieldCheck, Filter, Compass, Ticket, Sun
+  ShieldCheck, Filter, Compass, Ticket, Sun, Bed, Users, Baby, DoorOpen, Award, Phone, Mail, Globe,
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
