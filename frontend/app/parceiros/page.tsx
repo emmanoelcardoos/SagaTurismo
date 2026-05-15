@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { 
@@ -12,6 +12,34 @@ import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['600', '700', '800'] });
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
+
+// ── COMPONENTE MÁGICO DE ANIMAÇÃO (Estilo Apple) ──
+function ScrollReveal({ children, className = "", delay = 0 }: { children: React.ReactNode, className?: string, delay?: number }) {
+  const [isVisible, setIsVisible] = useState(false);
+  const domRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) {
+        setTimeout(() => setIsVisible(true), delay);
+        // Para a animação acontecer apenas uma vez e não pesar o site
+        if (domRef.current) observer.unobserve(domRef.current);
+      }
+    }, { threshold: 0.15 }); // Dispara quando 15% do elemento estiver visível
+
+    if (domRef.current) observer.observe(domRef.current);
+    return () => observer.disconnect();
+  }, [delay]);
+
+  return (
+    <div
+      ref={domRef}
+      className={`transition-all duration-1000 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'} ${className}`}
+    >
+      {children}
+    </div>
+  );
+}
 
 export default function ParceirosPage() {
   const [showHeader, setShowHeader] = useState(true);
@@ -42,7 +70,7 @@ export default function ParceirosPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
-  // Função fictícia de Login (Backend será integrado depois)
+  // Função fictícia de Login
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoggingIn(true);
@@ -63,20 +91,20 @@ export default function ParceirosPage() {
   };
 
   return (
-    <main className={`${inter.className} min-h-screen bg-[#F5F7FA] text-slate-900 flex flex-col`}>
+    <main className={`${inter.className} min-h-screen bg-[#F5F7FA] text-slate-900 flex flex-col overflow-x-hidden`}>
       
       {/* ── HEADER ── */}
       <header className={`fixed left-0 top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl transition-transform duration-300 ${showHeader ? 'translate-y-0' : '-translate-y-full'}`}>
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-5">
           <Link href="/" className="flex items-center gap-3">
              <div className="relative h-10 w-28 md:h-16 md:w-56 shrink-0"><Image src="/logop.png" alt="SGA" fill priority className="object-contain object-left" /></div>
-             <div className="hidden border-l border-slate-200 pl-4 md:block">
+             <div className="hidden border-l border-slate-200 pl-4 md:block text-left">
                <p className={`${jakarta.className} text-xl font-bold text-[#00577C] leading-none`}>SagaTurismo</p>
                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mt-1">Portal do Parceiro</p>
              </div>
           </Link>
           <div className="flex items-center gap-2">
-            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="rounded-xl border border-slate-200 p-2 lg:hidden text-[#00577C]">
+            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="rounded-xl border border-slate-200 p-2 lg:hidden text-[#00577C] bg-slate-50">
               {isMobileMenuOpen ? <X size={20}/> : <Menu size={20}/>}
             </button>
           </div>
@@ -95,7 +123,6 @@ export default function ParceirosPage() {
 
       {/* ── HERO & LOGIN SECTION ── */}
       <section className="relative w-full min-h-[100vh] lg:min-h-[85vh] bg-[#002f40] pt-[100px] md:pt-[120px] pb-12 md:pb-20 flex items-center overflow-hidden">
-        {/* Background Image & Overlay */}
         <div className="absolute inset-0 z-0">
            <Image src="https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?q=80&w=2000" alt="Turismo" fill className="object-cover opacity-30 mix-blend-overlay" priority />
            <div className="absolute inset-0 bg-gradient-to-r from-[#002f40] via-[#002f40]/90 to-transparent" />
@@ -104,8 +131,8 @@ export default function ParceirosPage() {
         <div className="mx-auto w-full max-w-7xl px-5 relative z-10">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
             
-            {/* TEXTO HERO (Esquerda) */}
-            <div className="text-left order-2 lg:order-1 mt-10 lg:mt-0">
+            {/* TEXTO HERO (Esquerda) com Reveal */}
+            <ScrollReveal delay={100} className="text-left order-2 lg:order-1 mt-10 lg:mt-0">
                <div className="inline-flex items-center gap-2 bg-[#F9C400] text-[#00577C] px-3 md:px-4 py-1.5 md:py-2 rounded-lg text-[10px] md:text-xs font-black uppercase tracking-widest shadow-md mb-6">
                  <ShieldCheck size={16} /> Sistema Oficial
                </div>
@@ -119,10 +146,10 @@ export default function ParceirosPage() {
                   <span className="flex items-center gap-2"><CheckCircle2 size={18} className="text-[#009640]"/> Zero comissões abusivas</span>
                   <span className="flex items-center gap-2"><CheckCircle2 size={18} className="text-[#009640]"/> Suporte direto</span>
                </div>
-            </div>
+            </ScrollReveal>
 
-            {/* CARD DE LOGIN (Direita) */}
-            <div className="order-1 lg:order-2 w-full max-w-md mx-auto lg:ml-auto">
+            {/* CARD DE LOGIN (Direita) com Reveal ligeiramente atrasado */}
+            <ScrollReveal delay={300} className="order-1 lg:order-2 w-full max-w-md mx-auto lg:ml-auto">
                <div className="bg-white rounded-[2rem] md:rounded-[2.5rem] shadow-2xl p-8 md:p-10 border border-slate-100 relative overflow-hidden text-left">
                   <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-[#00577C] to-[#F9C400]" />
                   
@@ -155,34 +182,45 @@ export default function ParceirosPage() {
                      </button>
                   </form>
                </div>
-            </div>
+            </ScrollReveal>
 
           </div>
         </div>
       </section>
 
       {/* ── PORQUE SER PARCEIRO (BENEFÍCIOS) ── */}
-      <section className="py-20 md:py-32 px-5 bg-white text-center">
+      <section className="py-20 md:py-32 px-5 bg-white text-center overflow-hidden">
          <div className="max-w-7xl mx-auto">
-            <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.3em] text-[#009640] mb-3">Vantagens Exclusivas</p>
-            <h2 className={`${jakarta.className} text-3xl md:text-4xl font-black text-slate-900 mb-16`}>Porquê juntar-se ao portal oficial?</h2>
+            <ScrollReveal>
+               <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.3em] text-[#009640] mb-3">Vantagens Exclusivas</p>
+               <h2 className={`${jakarta.className} text-3xl md:text-4xl font-black text-slate-900 mb-16`}>Porquê juntar-se ao portal oficial?</h2>
+            </ScrollReveal>
 
             <div className="grid md:grid-cols-3 gap-8 md:gap-12">
-               <div className="bg-slate-50 rounded-[2rem] p-8 md:p-10 border border-slate-100 text-left hover:-translate-y-2 transition-transform duration-300">
-                  <div className="w-14 h-14 rounded-2xl bg-blue-100 text-[#00577C] flex items-center justify-center mb-6 shadow-sm"><Globe size={28}/></div>
-                  <h3 className={`${jakarta.className} text-xl font-bold text-slate-800 mb-4`}>Visibilidade Global</h3>
-                  <p className="text-slate-600 font-medium leading-relaxed text-sm">O seu negócio é exibido diretamente a turistas que procuram São Geraldo do Araguaia através dos canais oficiais da Prefeitura.</p>
-               </div>
-               <div className="bg-slate-50 rounded-[2rem] p-8 md:p-10 border border-slate-100 text-left hover:-translate-y-2 transition-transform duration-300">
-                  <div className="w-14 h-14 rounded-2xl bg-green-100 text-[#009640] flex items-center justify-center mb-6 shadow-sm"><TrendingUp size={28}/></div>
-                  <h3 className={`${jakarta.className} text-xl font-bold text-slate-800 mb-4`}>Mais Lucro, Sem Taxas</h3>
-                  <p className="text-slate-600 font-medium leading-relaxed text-sm">Esqueça as comissões de 20% das OTAs tradicionais. O sistema oficial visa promover a economia local de forma justa e transparente.</p>
-               </div>
-               <div className="bg-slate-50 rounded-[2rem] p-8 md:p-10 border border-slate-100 text-left hover:-translate-y-2 transition-transform duration-300">
-                  <div className="w-14 h-14 rounded-2xl bg-yellow-100 text-[#d9a000] flex items-center justify-center mb-6 shadow-sm"><ShieldCheck size={28}/></div>
-                  <h3 className={`${jakarta.className} text-xl font-bold text-slate-800 mb-4`}>Gestão Simplificada</h3>
-                  <p className="text-slate-600 font-medium leading-relaxed text-sm">Receba um painel de controlo moderno para gerir reservas, pagamentos (PIX e Cartão) e fechar o seu calendário com um clique.</p>
-               </div>
+               {/* Usar "delay" progressivo cria aquele efeito em escada tão popular */}
+               <ScrollReveal delay={0}>
+                 <div className="bg-slate-50 rounded-[2rem] p-8 md:p-10 border border-slate-100 text-left hover:-translate-y-2 transition-transform duration-300 h-full">
+                    <div className="w-14 h-14 rounded-2xl bg-blue-100 text-[#00577C] flex items-center justify-center mb-6 shadow-sm"><Globe size={28}/></div>
+                    <h3 className={`${jakarta.className} text-xl font-bold text-slate-800 mb-4`}>Visibilidade Global</h3>
+                    <p className="text-slate-600 font-medium leading-relaxed text-sm">O seu negócio é exibido diretamente a turistas que procuram São Geraldo do Araguaia através dos canais oficiais da Prefeitura.</p>
+                 </div>
+               </ScrollReveal>
+
+               <ScrollReveal delay={200}>
+                 <div className="bg-slate-50 rounded-[2rem] p-8 md:p-10 border border-slate-100 text-left hover:-translate-y-2 transition-transform duration-300 h-full">
+                    <div className="w-14 h-14 rounded-2xl bg-green-100 text-[#009640] flex items-center justify-center mb-6 shadow-sm"><TrendingUp size={28}/></div>
+                    <h3 className={`${jakarta.className} text-xl font-bold text-slate-800 mb-4`}>Mais Lucro, Sem Taxas</h3>
+                    <p className="text-slate-600 font-medium leading-relaxed text-sm">Esqueça as comissões de 20% das OTAs tradicionais. O sistema oficial visa promover a economia local de forma justa e transparente.</p>
+                 </div>
+               </ScrollReveal>
+
+               <ScrollReveal delay={400}>
+                 <div className="bg-slate-50 rounded-[2rem] p-8 md:p-10 border border-slate-100 text-left hover:-translate-y-2 transition-transform duration-300 h-full">
+                    <div className="w-14 h-14 rounded-2xl bg-yellow-100 text-[#d9a000] flex items-center justify-center mb-6 shadow-sm"><ShieldCheck size={28}/></div>
+                    <h3 className={`${jakarta.className} text-xl font-bold text-slate-800 mb-4`}>Gestão Simplificada</h3>
+                    <p className="text-slate-600 font-medium leading-relaxed text-sm">Receba um painel de controlo moderno para gerir reservas, pagamentos (PIX e Cartão) e fechar o seu calendário com um clique.</p>
+                 </div>
+               </ScrollReveal>
             </div>
          </div>
       </section>
@@ -194,9 +232,9 @@ export default function ParceirosPage() {
          <div className="max-w-6xl mx-auto flex flex-col lg:flex-row gap-16 items-center relative z-10">
             
             {/* Lado Esquerdo - Info */}
-            <div className="flex-1 text-left">
-               <h2 className={`${jakarta.className} text-3xl md:text-5xl font-black text-white leading-tight mb-6`}>Dê o próximo passo. <br/><span className="text-[#F9C400]">Seja um Parceiro.</span></h2>
-               <p className="text-slate-300 text-base md:text-lg leading-relaxed mb-8">Preencha o formulário ao lado com os dados da sua empresa ou serviço. A nossa equipa da Secretaria de Turismo entrará em contacto para validar o seu credenciamento e criar o seu acesso.</p>
+            <ScrollReveal delay={100} className="flex-1 text-left">
+               <h2 className={`${jakarta.className} text-3xl md:text-5xl font-black text-white leading-tight mb-6`}>Dê o próximo passo. <br className="hidden md:block"/><span className="text-[#F9C400]">Seja um Parceiro.</span></h2>
+               <p className="text-slate-300 text-base md:text-lg leading-relaxed mb-8">Preencha o formulário com os dados da sua empresa ou serviço. A nossa equipa da Secretaria de Turismo entrará em contacto para validar o seu credenciamento e criar o seu acesso.</p>
                
                <div className="space-y-6">
                   <div className="flex items-center gap-4 text-white">
@@ -212,10 +250,10 @@ export default function ParceirosPage() {
                      <div><p className="font-bold">Atrações & Passeios</p><p className="text-xs text-slate-400">Parques, Barcos, Experiências</p></div>
                   </div>
                </div>
-            </div>
+            </ScrollReveal>
 
             {/* Lado Direito - Formulário */}
-            <div className="w-full lg:w-[480px] bg-white rounded-[2.5rem] p-8 md:p-10 shadow-2xl text-left">
+            <ScrollReveal delay={300} className="w-full lg:w-[480px] bg-white rounded-[2rem] md:rounded-[2.5rem] p-8 md:p-10 shadow-2xl text-left">
                {formSucesso ? (
                   <div className="text-center py-10 animate-in zoom-in-95 duration-500">
                      <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6"><CheckCircle2 size={40} className="text-[#009640]"/></div>
