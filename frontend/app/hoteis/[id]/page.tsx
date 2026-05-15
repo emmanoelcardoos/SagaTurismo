@@ -9,7 +9,7 @@ import {
   Loader2, Menu, X, ChevronLeft, ChevronRight, ZoomIn, 
   Calendar as CalendarIcon, Bed, ChevronRight as ChevronRightIcon,
   Users, Baby, DoorOpen, Award, Phone, Mail, Globe,
-  Wind, Wifi, Bath, Maximize, Zap, CreditCard, Image as ImageIcon
+  Wind, Wifi, Bath, Maximize, Zap, CreditCard, Image as ImageIcon, Coffee
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
