@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -85,6 +85,9 @@ export default function HoteisPage() {
   const [estrelasSelecionadas, setEstrelasSelecionadas] = useState<number[]>([]);
   const [comodidadesSelecionadas, setComodidadesSelecionadas] = useState<string[]>([]);
 
+  // Referência para detetar cliques fora da barra de pesquisa
+  const searchBarRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     async function fetchHoteis() {
       const { data } = await supabase.from('hoteis').select('*').order('nome');
@@ -103,6 +106,21 @@ export default function HoteisPage() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
+
+  // Efeito para detetar cliques fora dos pop-ups
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchBarRef.current && !searchBarRef.current.contains(event.target as Node)) {
+        setShowCalendarPopup(false);
+        setShowHospedesPopup(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   // ── LÓGICA DO CALENDÁRIO ──
   const diasDoMes = (ano: number, mes: number) => new Date(ano, mes + 1, 0).getDate();
@@ -237,7 +255,7 @@ export default function HoteisPage() {
           </h1>
 
           {/* BARRA DE PESQUISA ESTILO BOOKING */}
-          <div className="bg-[#F9C400] p-1.5 md:p-2 rounded-[2rem] shadow-xl max-w-5xl flex flex-col md:flex-row gap-1.5 md:gap-2 relative z-50">
+          <div ref={searchBarRef} className="bg-[#F9C400] p-1.5 md:p-2 rounded-[2rem] shadow-xl max-w-5xl flex flex-col md:flex-row gap-1.5 md:gap-2 relative z-50">
             
             {/* 1. Destino Fixo */}
             <div className="bg-white flex-1 rounded-[1.5rem] px-5 py-3 flex items-center gap-3">
