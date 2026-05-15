@@ -17,11 +17,9 @@ import {
   Menu,
   ExternalLink,
   FileCheck2,
-  Sparkles,
   CalendarDays,
   Users,
-  Wallet,
-  CreditCard
+  Wallet
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 
@@ -58,9 +56,6 @@ type FieldErrors = {
   foto?: string;
   dependentes?: { [key: number]: { nome?: string; cpf?: string; data_nascimento?: string; foto?: string } };
 };
-
-const formatarMoeda = (valor: number) =>
-  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor || 0);
 
 function validate(
   nome: string,
@@ -191,10 +186,6 @@ export default function CadastroPage() {
     ['09', 'Setembro'], ['10', 'Outubro'], ['11', 'Novembro'], ['12', 'Dezembro'],
   ];
 
-  // ── MATEMÁTICA DE CUSTOS ──
-  const totalPessoas = 1 + (hasDependentes ? numDependentes : 0);
-  const valorTotal = totalPessoas * 20;
-
   useEffect(() => {
     if (dia && mes && ano) {
       setDataNascimento(`${ano}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}`);
@@ -230,7 +221,6 @@ export default function CadastroPage() {
     const errs = validate(nome, cpf, email, dataNascimento, arquivo, foto, dependentes, hasDependentes);
     if (Object.keys(errs).length) {
       setErrors(errs);
-      // Fazer scroll suave para o topo do form para ver os erros
       window.scrollTo({ top: 400, behavior: 'smooth' });
       return;
     }
@@ -261,7 +251,6 @@ export default function CadastroPage() {
       const res = await cadastrarResidente(formData as any); 
       
       if (res.status === 'sucesso' && res.token) {
-        // Redireciona diretamente
         router.push(`/carteira/${res.token}`);
       } else {
         setResult(res);
@@ -278,7 +267,6 @@ export default function CadastroPage() {
     }
   };
 
-  // ── ESTADO DE REPROVADO OU ERRO DA IA ──
   if (result && result.status !== 'sucesso') {
     return (
       <main className={`${inter.className} min-h-screen bg-slate-50 text-slate-900`}>
@@ -314,61 +302,32 @@ export default function CadastroPage() {
       <Header />
 
       {/* HERO SECTION CLEAN & SÓBRIA */}
-      <section className="relative overflow-hidden pt-32 pb-24 bg-[#002f40] text-left">
+      <section className="relative overflow-hidden pt-[140px] pb-32 text-left bg-slate-900">
         <div className="absolute inset-0 z-0 pointer-events-none">
           <Image 
             src="https://images.pexels.com/photos/17835411/pexels-photo-17835411.jpeg?_gl=1*i2axa5*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzc0ODA1MTIkbzI3JGcxJHQxNzc3NDg0NTE1JGo0OCRsMCRoMA.." 
             alt="SGA" 
             fill 
-            className="object-cover opacity-20 mix-blend-luminosity" 
+            className="object-cover"
+            priority 
           />
-          <div className="absolute inset-0 bg-[#002f40]/70" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#002f40]/95 via-[#002f40]/60 to-transparent" />
         </div>
 
         <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-5 lg:px-6">
-          <div className="max-w-3xl">
+          <div className="max-w-2xl">
             <div className="inline-flex items-center gap-2 bg-[#F9C400] text-[#00577C] px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 shadow-sm">
-              <Wallet size={14}/> Taxa Única de Emissão: R$ 20,00 por pessoa
+              <Wallet size={14}/> Taxa de Emissão: R$ 20,00 / pessoa
             </div>
             
-            <h1 className={`${jakarta.className} text-4xl sm:text-5xl md:text-7xl font-black text-white leading-tight mb-6`}>
+            <h1 className={`${jakarta.className} text-4xl sm:text-5xl md:text-6xl font-black text-white leading-tight mb-6`}>
               Cartão Digital de <span className="text-[#F9C400]">Residente.</span>
             </h1>
             
-            <p className="max-w-2xl text-lg text-white/80 font-medium mb-10 leading-relaxed">
-              Envie os seus dados, comprovativo de morada e uma selfie para emitir a sua carteirinha oficial e garantir 50% de desconto no turismo local.
+            <p className="max-w-xl text-lg text-white/90 font-medium leading-relaxed">
+              Garanta seu benefício exclusivo de 50% de desconto no turismo local. Preencha seus dados e envie sua documentação para análise.
             </p>
-
-            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-[2rem] p-6 max-w-xl">
-              <div className="flex items-center gap-4 mb-4">
-                <ShieldCheck className="h-8 w-8 text-[#F9C400]" />
-                <div>
-                  <p className="text-white font-bold">Processo Seguro</p>
-                  <p className="text-sm text-white/70">Análise oficial da Prefeitura</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3 border-t border-white/10 pt-4">
-                <div className="flex items-center gap-2 text-white/90 text-sm font-medium">
-                  <CheckCircle2 className="h-4 w-4 text-[#009640]" /> Emissão Rápida
-                </div>
-                <div className="flex items-center gap-2 text-white/90 text-sm font-medium">
-                  <CheckCircle2 className="h-4 w-4 text-[#009640]" /> Pacote Família
-                </div>
-              </div>
-            </div>
           </div>
-        </div>
-      </section>
-
-      {/* BARRA DE PROGRESSO */}
-      <section className="border-b border-slate-200 bg-white py-5 sticky top-[70px] md:top-[88px] z-40 shadow-sm">
-        <div className="mx-auto grid max-w-5xl gap-3 px-4 sm:px-5 md:grid-cols-3">
-          {[['01', 'Dados pessoais'], ['02', 'Verificação'], ['03', 'Pagamento']].map(([step, label]) => (
-            <div key={step} className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#00577C] text-sm font-black text-white shrink-0">{step}</span>
-              <span className="text-sm font-bold text-slate-700">{label}</span>
-            </div>
-          ))}
         </div>
       </section>
 
@@ -500,117 +459,104 @@ export default function CadastroPage() {
               </section>
 
               {/* COLUNA DIREITA: VERIFICAÇÃO */}
-              <section className="p-6 sm:p-10 bg-white text-left">
-                <div className="mb-10 flex items-center gap-4">
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#009640] text-white"><FileCheck2 size={28} /></div>
-                  <div>
-                    <h2 className={`${jakarta.className} text-3xl font-black text-slate-900`}>Verificação</h2>
-                    <p className="text-sm font-medium text-slate-500 mt-1">Envio de documentação oficial</p>
-                  </div>
-                </div>
-
-                {/* CAIXA DE REGRAS EXPLICADAS */}
-                <div className="mb-10 space-y-4 text-left">
-                  <div className="rounded-2xl border-2 border-blue-50 bg-blue-50/50 p-6">
-                    <div className="mb-4 flex items-center gap-3"><Info className="h-6 w-6 shrink-0 text-[#00577C]" /><p className="font-black text-[#00577C]">Regras de Verificação</p></div>
-                    <ul className="ml-9 list-disc space-y-2 text-sm text-slate-600 font-medium">
-                      <li>O documento deve provar vínculo com <strong className="text-[#00577C]">São Geraldo do Araguaia - PA</strong>.</li>
-                      <li>Deve ser recente (máximo 90 dias) e estar legível.</li>
-                      <li>Deve estar no <strong className="text-[#00577C]">seu nome</strong> ou familiar direto.</li>
-                    </ul>
-                  </div>
-
-                  <div className="rounded-2xl border-2 border-green-50 bg-green-50/50 p-6">
-                    <div className="mb-4 flex items-center gap-3"><CheckCircle2 className="h-6 w-6 shrink-0 text-[#009640]" /><p className="font-black text-[#009640]">Aceitamos</p></div>
-                    <ul className="ml-9 list-disc space-y-2 text-sm text-slate-600 font-medium">
-                      <li>Contas (Energia, Água, Internet fixa).</li>
-                      <li>Matrícula escolar ou contrato com empresa local.</li>
-                      <li>Cartão SUS ou declaração de UBS local.</li>
-                    </ul>
-                  </div>
-
-                  <div className="rounded-2xl border-2 border-red-50 bg-red-50 p-6">
-                    <div className="mb-4 flex items-center gap-3"><XCircle className="h-6 w-6 shrink-0 text-red-500" /><p className="font-black text-red-600">Não Aceitamos</p></div>
-                    <ul className="ml-9 list-disc space-y-2 text-sm text-slate-600 font-medium">
-                      <li>Boletos genéricos ou compras online.</li>
-                      <li>Contratos sem firma reconhecida.</li>
-                      <li>Apenas foto de RG/CPF (pois não comprova a morada).</li>
-                    </ul>
-                  </div>
-                </div>
-
-                {/* UPLOADS */}
-                <div className="grid gap-6 text-left">
-                  <div className={`rounded-3xl border-2 bg-slate-50 p-6 transition-colors ${errors.arquivo ? 'border-red-300' : 'border-slate-100 hover:border-slate-200'}`}>
-                    <div className="mb-5 flex items-center gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F9C400] text-[#00577C]"><ShieldCheck size={20} /></div>
-                      <div><p className="text-[10px] font-black uppercase text-slate-600 tracking-widest">Comprovante de residência *</p></div>
-                    </div>
-                    <FileUploader onFileSelect={setArquivo} error={errors.arquivo} />
-                  </div>
-
-                  <div className="space-y-6">
-                    <div className={`rounded-3xl border-2 bg-slate-50 p-6 transition-colors ${errors.foto ? 'border-red-300' : 'border-slate-100 hover:border-slate-200'}`}>
-                      <p className="text-xs font-black uppercase tracking-widest text-[#00577C] mb-5 flex items-center gap-2"><Camera size={18}/> Selfie do Titular *</p>
-                      <FileUploader onFileSelect={setFoto} error={errors.foto} />
-                    </div>
-
-                    {hasDependentes && dependentes.map((dep, index) => (
-                      <div key={dep.id} className={`rounded-3xl border-2 bg-slate-50 p-6 transition-colors ${errors.dependentes?.[index]?.foto ? 'border-red-300' : 'border-slate-100 hover:border-slate-200'}`}>
-                        <p className="text-xs font-black uppercase tracking-widest text-slate-600 mb-5 flex items-center gap-2">
-                           <Camera size={18} className="text-[#00577C]"/> 
-                           Selfie: {dep.nome ? dep.nome.split(' ')[0] : `Familiar ${index+1}`} *
-                        </p>
-                        <FileUploader onFileSelect={(f) => updateDependente(index, 'foto', f)} error={errors.dependentes?.[index]?.foto} />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </section>
-            </div>
-
-            {/* BARRA INFERIOR COM CÁLCULO E BOTÃO DE PAGAMENTO */}
-            <div className="border-t border-slate-200 bg-slate-50 p-6 sm:p-10 text-left">
-              {apiError && (
-                <div className="mb-6 flex items-center gap-3 rounded-2xl bg-red-50 p-5 text-sm font-bold text-red-700 border border-red-100 animate-in shake duration-500 shadow-sm">
-                  <XCircle className="h-6 w-6 shrink-0" /> {apiError}
-                </div>
-              )}
-
-              {/* Bloco de Resumo Financeiro */}
-              <div className="bg-white border border-slate-200 rounded-[2rem] p-6 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-sm">
+              <section className="p-6 sm:p-10 bg-white text-left flex flex-col justify-between">
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-[#00577C] mb-2 flex items-center gap-2">
-                    <CreditCard size={14}/> Resumo da Emissão
-                  </p>
-                  <p className="text-sm font-bold text-slate-600 flex items-center gap-2">
-                    1 Titular {hasDependentes && `+ ${numDependentes} Familiar(es)`}
-                  </p>
-                </div>
-                <div className="md:text-right border-t md:border-t-0 border-slate-100 pt-4 md:pt-0">
-                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Taxa Total a Pagar</p>
-                   <p className={`${jakarta.className} text-4xl font-black text-[#009640]`}>{formatarMoeda(valorTotal)}</p>
-                </div>
-              </div>
+                  <div className="mb-10 flex items-center gap-4">
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#00577C] text-white"><FileCheck2 size={28} /></div>
+                    <div>
+                      <h2 className={`${jakarta.className} text-3xl font-black text-slate-900`}>Verificação</h2>
+                      <p className="text-sm font-medium text-slate-500 mt-1">Envio de documentação oficial</p>
+                    </div>
+                  </div>
 
-              <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-                <div className="flex flex-wrap items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                  <span className="flex items-center gap-1.5"><ShieldCheck className="h-4 w-4 text-[#009640]" /> Dados Protegidos</span>
-                  <span className="hidden sm:block">·</span><span>Análise por IA</span><span className="hidden sm:block">·</span><span>Conexão Encriptada</span>
+                  {/* CAIXA DE REGRAS EXPLICADAS */}
+                  <div className="mb-10 space-y-4 text-left">
+                    <div className="rounded-2xl border-2 border-blue-50 bg-blue-50/50 p-6">
+                      <div className="mb-4 flex items-center gap-3"><Info className="h-6 w-6 shrink-0 text-[#00577C]" /><p className="font-black text-[#00577C]">Regras de Verificação</p></div>
+                      <ul className="ml-9 list-disc space-y-2 text-sm text-slate-600 font-medium">
+                        <li>O documento deve provar vínculo com <strong className="text-[#00577C]">São Geraldo do Araguaia - PA</strong>.</li>
+                        <li>Deve ser recente (máximo 90 dias) e estar legível.</li>
+                        <li>Deve estar no <strong className="text-[#00577C]">seu nome</strong> ou familiar direto.</li>
+                      </ul>
+                    </div>
+
+                    <div className="rounded-2xl border-2 border-green-50 bg-green-50/50 p-6">
+                      <div className="mb-4 flex items-center gap-3"><CheckCircle2 className="h-6 w-6 shrink-0 text-[#009640]" /><p className="font-black text-[#009640]">Aceitamos</p></div>
+                      <ul className="ml-9 list-disc space-y-2 text-sm text-slate-600 font-medium">
+                        <li>Contas (Energia, Água, Internet fixa).</li>
+                        <li>Matrícula escolar ou contrato com empresa local.</li>
+                        <li>Cartão SUS ou declaração de UBS local.</li>
+                      </ul>
+                    </div>
+
+                    <div className="rounded-2xl border-2 border-red-50 bg-red-50 p-6">
+                      <div className="mb-4 flex items-center gap-3"><XCircle className="h-6 w-6 shrink-0 text-red-500" /><p className="font-black text-red-600">Não Aceitamos</p></div>
+                      <ul className="ml-9 list-disc space-y-2 text-sm text-slate-600 font-medium">
+                        <li>Boletos genéricos ou compras online.</li>
+                        <li>Contratos sem firma reconhecida.</li>
+                        <li>Apenas foto de RG/CPF (pois não comprova a morada).</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  {/* UPLOADS */}
+                  <div className="grid gap-6 text-left mb-10">
+                    <div className={`rounded-3xl border-2 bg-slate-50 p-6 transition-colors ${errors.arquivo ? 'border-red-300' : 'border-slate-100 hover:border-slate-200'}`}>
+                      <div className="mb-5 flex items-center gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F9C400] text-[#00577C]"><ShieldCheck size={20} /></div>
+                        <div><p className="text-[10px] font-black uppercase text-slate-600 tracking-widest">Comprovante de residência *</p></div>
+                      </div>
+                      <FileUploader onFileSelect={setArquivo} error={errors.arquivo} />
+                    </div>
+
+                    <div className="space-y-6">
+                      <div className={`rounded-3xl border-2 bg-slate-50 p-6 transition-colors ${errors.foto ? 'border-red-300' : 'border-slate-100 hover:border-slate-200'}`}>
+                        <p className="text-xs font-black uppercase tracking-widest text-[#00577C] mb-5 flex items-center gap-2"><Camera size={18}/> Selfie do Titular *</p>
+                        <FileUploader onFileSelect={setFoto} error={errors.foto} />
+                      </div>
+
+                      {hasDependentes && dependentes.map((dep, index) => (
+                        <div key={dep.id} className={`rounded-3xl border-2 bg-slate-50 p-6 transition-colors ${errors.dependentes?.[index]?.foto ? 'border-red-300' : 'border-slate-100 hover:border-slate-200'}`}>
+                          <p className="text-xs font-black uppercase tracking-widest text-slate-600 mb-5 flex items-center gap-2">
+                             <Camera size={18} className="text-[#00577C]"/> 
+                             Selfie: {dep.nome ? dep.nome.split(' ')[0] : `Familiar ${index+1}`} *
+                          </p>
+                          <FileUploader onFileSelect={(f) => updateDependente(index, 'foto', f)} error={errors.dependentes?.[index]?.foto} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="inline-flex w-full items-center justify-center gap-3 rounded-full bg-[#009640] px-10 py-5 text-lg font-black text-white shadow-xl shadow-green-900/20 transition hover:-translate-y-1 hover:bg-[#007a33] disabled:opacity-60 sm:w-auto"
-                >
-                  {loading ? (
-                    <><Loader2 className="h-6 w-6 animate-spin" /> Verificando Dados...</>
-                  ) : (
-                    <><Wallet className="h-6 w-6" /> Ir para Pagamento <ArrowRight className="h-6 w-6" /></>
+                {/* BARRA INFERIOR DE SUBMISSÃO (SEM RESUMO FINANCEIRO) */}
+                <div className="border-t border-slate-100 pt-8 mt-auto text-left">
+                  {apiError && (
+                    <div className="mb-6 flex items-center gap-3 rounded-2xl bg-red-50 p-5 text-sm font-bold text-red-700 border border-red-100 animate-in shake duration-500 shadow-sm">
+                      <XCircle className="h-6 w-6 shrink-0" /> {apiError}
+                    </div>
                   )}
-                </button>
-              </div>
+
+                  <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex flex-wrap items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      <span className="flex items-center gap-1.5"><ShieldCheck className="h-4 w-4 text-[#00577C]" /> Dados Protegidos</span>
+                      <span className="hidden sm:block">·</span><span>Análise por IA</span><span className="hidden sm:block">·</span><span>Conexão Encriptada</span>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="inline-flex w-full items-center justify-center gap-3 rounded-full bg-[#00577C] px-10 py-5 text-lg font-black text-white shadow-xl shadow-blue-900/10 transition hover:-translate-y-1 hover:bg-[#004a6b] disabled:opacity-60 sm:w-auto"
+                    >
+                      {loading ? (
+                        <><Loader2 className="h-6 w-6 animate-spin" /> Verificando Dados...</>
+                      ) : (
+                        <><FileCheck2 className="h-6 w-6" /> Avançar para Verificação <ArrowRight className="h-6 w-6" /></>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+              </section>
             </div>
           </form>
 
