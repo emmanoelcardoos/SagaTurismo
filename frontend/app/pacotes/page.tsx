@@ -208,7 +208,7 @@ export default function PacotesPage() {
 
         <div className="flex flex-col lg:flex-row gap-8 items-start">
           {/* SIDEBAR DESKTOP - AGORA COM h-fit e self-start para não "fugir" */}
-          <aside className="hidden lg:block w-72 shrink-0 space-y-6 lg:sticky lg:top-32 h-fit lg:self-start">
+          <aside className="hidden lg:block w-72 shrink-0 space-y-6 lg:sticky lg:top-32 h-fit lg:self-start"
             <div className="bg-white rounded-[2.5rem] border border-slate-200 p-8 shadow-sm">
               <div className="flex items-center justify-between mb-8">
                 <h3 className={`${jakarta.className} text-xl font-black text-slate-900 flex items-center gap-3`}><Filter size={20} className="text-[#00577C]"/> Filtros</h3>
