@@ -847,7 +847,7 @@ export default function HomePage() {
             priority
             className="object-cover opacity-30" 
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#002f40]/80 via-transparent to-white" />
+          <div className="absolute inset-0 bg-[#002f40]/70" />
         </div>
 
         <div className="relative z-10 mx-auto max-w-7xl px-6 text-center flex flex-col items-center">
