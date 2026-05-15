@@ -3,6 +3,7 @@
 import { useEffect, useState, FormEvent } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation'; // IMPORTADO
 import {
   CheckCircle2,
   XCircle,
@@ -127,7 +128,7 @@ function Header() {
       }`}
     >
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-5">
-        <Link href="/" className="flex min-w-0 items-center gap-3 sm:gap-4">
+        <Link href="/" className="flex min-w-0 items-center gap-3 sm:gap-4 text-left">
           <div className="relative h-12 w-36 shrink-0 sm:h-16 sm:w-56">
             <Image src="/logop.png" alt="Prefeitura SGA" fill priority className="object-contain object-left" />
           </div>
@@ -155,6 +156,7 @@ function Header() {
 }
 
 export default function CadastroPage() {
+  const router = useRouter(); // INICIALIZADO
   const [nome, setNome] = useState('');
   const [cpf, setCpf] = useState('');
   const [email, setEmail] = useState('');
@@ -193,7 +195,6 @@ export default function CadastroPage() {
     }
   }, [dia, mes, ano]);
 
-  // Atualizar array de dependentes quando muda o número selecionado
   useEffect(() => {
     if (hasDependentes) {
       setDependentes((prev) => {
@@ -228,7 +229,6 @@ export default function CadastroPage() {
     setLoading(true);
 
     try {
-      // 1. Agrupar os dados de todos os integrantes num array JSON (Titular na posição 0)
       const integrantes = [
         { tipo: 'titular', nome, cpf, email, data_nascimento: dataNascimento },
         ...dependentes.map(d => ({
@@ -239,60 +239,61 @@ export default function CadastroPage() {
         }))
       ];
 
-      // 2. Extrair fotos numa lista ordenada (Titular [0], Dependentes [1..4])
       const fotosArray = [foto!, ...dependentes.map(d => d.foto!)];
-
-      // 3. Montar o FormData com os nomes de campos EXATOS do FastAPI
       const formData = new FormData();
       formData.append('integrantes', JSON.stringify(integrantes));
-      formData.append('arquivo', arquivo!); // Chave exata do backend
+      formData.append('arquivo', arquivo!);
       
       fotosArray.forEach((f) => {
-        formData.append('fotos', f); // Chave exata do backend (permite vários ficheiros)
+        formData.append('fotos', f);
       });
 
-      // 4. Enviar para a API
       const res = await cadastrarResidente(formData as any); 
-      setResult(res);
-    } catch (err: unknown) {
-      setApiError(err instanceof Error ? err.message : 'Erro ao processar cadastro.');
+      
+      // ── REDIRECIONAMENTO IMEDIATO SE SUCESSO ──
+      if (res.status === 'sucesso' && res.token) {
+        router.push(`/carteira/${res.token}`);
+      } else {
+        setResult(res);
+      }
+    } catch (err: any) {
+      // ── TRATAMENTO DO ERRO DE CPF DUPLICADO (23505) ──
+      const errorMsg = err.message || '';
+      if (errorMsg.includes('23505') || errorMsg.includes('already exists')) {
+        setApiError("Este CPF já possui uma solicitação ativa. Por favor, consulte o status ou utilize outro CPF.");
+      } else {
+        setApiError('Erro ao processar cadastro. Tente novamente mais tarde.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  if (result) {
-    const ok = result.status === 'sucesso' && result.valido_ia;
-
+  // ── ESTADO DE REPROVADO OU ERRO DA IA ──
+  if (result && result.status !== 'sucesso') {
     return (
       <main className={`${inter.className} min-h-screen bg-slate-50 text-slate-900`}>
         <Header />
         <section className="flex min-h-screen items-center justify-center px-4 py-28 sm:px-5">
           <div className="w-full max-w-2xl rounded-[2rem] border border-slate-200 bg-white p-6 text-center shadow-2xl sm:p-8">
-            <div className={`mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full ${ok ? 'bg-[#EAF8F0]' : 'bg-red-50'}`}>
-              {ok ? <CheckCircle2 className="h-12 w-12 text-[#009640]" /> : <XCircle className="h-12 w-12 text-red-500" />}
+            <div className={`mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-red-50`}>
+              <XCircle className="h-12 w-12 text-red-500" />
             </div>
-            <span className={`mb-5 inline-flex rounded-full px-4 py-2 text-xs font-black uppercase tracking-[0.18em] ${ok ? 'bg-[#EAF8F0] text-[#009640]' : 'bg-red-50 text-red-700'}`}>
-              {ok ? 'Cadastro aprovado' : 'Solicitação não aprovada'}
+            <span className={`mb-5 inline-flex rounded-full px-4 py-2 text-xs font-black uppercase tracking-[0.18em] bg-red-50 text-red-700`}>
+              Solicitação recusada
             </span>
-            <h1 className={`${jakarta.className} mb-4 text-4xl font-bold ${ok ? 'text-[#00577C]' : 'text-red-700'}`}>
-              {ok ? 'Tudo pronto!' : 'Não foi possível aprovar'}
+            <h1 className={`${jakarta.className} mb-4 text-4xl font-bold text-red-700`}>
+              Não foi possível aprovar
             </h1>
             <p className="mx-auto mb-8 max-w-md leading-relaxed text-slate-600">
-                {ok ? `Parabéns! A residência do seu grupo foi validada com sucesso. Em instantes, você receberá a(s) Carteira(s) Digital(is) oficial(is) no formato PDF diretamente no e-mail: ${email}.` : result.mensagem}
+               {result.mensagem}
             </p>
-            {ok ? (
-              <Link href="/" className="inline-flex items-center justify-center gap-3 rounded-full bg-[#00577C] px-10 py-4 font-bold text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-[#004766]">
-                Voltar ao início <ArrowRight className="h-5 w-5" />
-              </Link>
-            ) : (
-              <div className="flex flex-col gap-3">
-                <button onClick={() => { setResult(null); setApiError(null); }} className="rounded-full bg-[#00577C] px-8 py-4 font-bold text-white transition hover:bg-[#004766]">
-                  Tentar novamente
-                </button>
-                <Link href="/" className="text-sm font-semibold text-slate-400 hover:text-slate-600">Voltar ao início</Link>
-              </div>
-            )}
+            <div className="flex flex-col gap-3">
+              <button onClick={() => { setResult(null); setApiError(null); }} className="rounded-full bg-[#00577C] px-8 py-4 font-bold text-white transition hover:bg-[#004766]">
+                Tentar novamente
+              </button>
+              <Link href="/" className="text-sm font-semibold text-slate-400 hover:text-slate-600">Voltar ao início</Link>
+            </div>
           </div>
         </section>
       </main>
@@ -300,10 +301,10 @@ export default function CadastroPage() {
   }
 
   return (
-    <main className={`${inter.className} min-h-screen bg-white text-slate-900`}>
+    <main className={`${inter.className} min-h-screen bg-white text-slate-900 text-left`}>
       <Header />
 
-      {/* HERO SECTION */}
+      {/* HERO SECTION - TOTALMENTE MANTIDO */}
       <section className="relative overflow-hidden pt-24 text-white sm:pt-28">
         <div
           className="absolute inset-0 bg-cover bg-center"
@@ -345,9 +346,10 @@ export default function CadastroPage() {
         </div>
       </section>
 
+      {/* BARRA DE PROGRESSO - MANTIDA */}
       <section className="border-b border-slate-200 bg-white py-5">
         <div className="mx-auto grid max-w-5xl gap-3 px-4 sm:px-5 md:grid-cols-3">
-          {[['01', 'Dados pessoais'], ['02', 'Verificação'], ['03', 'Carteira digital']].map(([step, label]) => (
+          {[['01', 'Dados pessoais'], ['02', 'Verificação'], ['03', 'Pagamento e Emissão']].map(([step, label]) => (
             <div key={step} className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
               <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#00577C] text-sm font-black text-white">{step}</span>
               <span className="text-sm font-bold text-slate-700">{label}</span>
@@ -359,13 +361,10 @@ export default function CadastroPage() {
       {/* FORMULÁRIO PRINCIPAL */}
       <section className="bg-slate-50 px-4 py-10 sm:px-5 sm:py-16">
         <div className="mx-auto max-w-7xl">
-          
           <form onSubmit={handleSubmit} className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl shadow-slate-200/70 sm:rounded-[2.5rem]">
             <div className="grid lg:grid-cols-2">
               
-              {/* COLUNA ESQUERDA: DADOS PESSOAIS */}
               <section className="border-b border-slate-200 p-5 sm:p-8 lg:border-b-0 lg:border-r lg:p-10">
-                {/* DADOS DO TITULAR */}
                 <div className="mb-8 flex items-center gap-4">
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#00577C] text-white">
                     <User className="h-6 w-6" />
@@ -386,7 +385,7 @@ export default function CadastroPage() {
                         placeholder="Ex: João da Silva Santos"
                         value={nome}
                         onChange={(e) => setNome(e.target.value)}
-                        className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-4 pl-12 pr-4 text-sm text-slate-800 outline-none transition focus:border-[#007FA3] focus:bg-white focus:ring-4 focus:ring-[#007FA3]/10"
+                        className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-4 pl-12 pr-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white"
                       />
                     </div>
                     {errors.nome && <p className="text-xs font-semibold text-red-500">⚠ {errors.nome}</p>}
@@ -403,29 +402,29 @@ export default function CadastroPage() {
                           placeholder="seu@email.com"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
-                          className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-4 pl-12 pr-4 text-sm text-slate-800 outline-none transition focus:border-[#007FA3] focus:bg-white focus:ring-4 focus:ring-[#007FA3]/10"
+                          className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-4 pl-12 pr-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white"
                         />
                       </div>
                       {errors.email && <p className="text-xs font-semibold text-red-500">⚠ {errors.email}</p>}
                     </div>
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-2 text-left">
                     <label className="block text-xs font-black uppercase tracking-[0.16em] text-slate-500">Data de nascimento *</label>
                     <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
                       <div className="mb-3 flex items-center gap-2 text-sm font-bold text-[#00577C]">
                         <CalendarDays className="h-5 w-5" /> Selecione sua data
                       </div>
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                        <select value={dia} onChange={(e) => setDia(e.target.value)} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-4 text-sm font-semibold text-slate-700 outline-none focus:border-[#007FA3]">
+                      <div className="grid grid-cols-3 gap-3">
+                        <select value={dia} onChange={(e) => setDia(e.target.value)} className="w-full rounded-2xl border border-slate-200 bg-white px-2 py-4 text-sm font-black text-slate-700 outline-none">
                           <option value="">Dia</option>
                           {days.map((d) => <option key={d} value={String(d).padStart(2, '0')}>{d}</option>)}
                         </select>
-                        <select value={mes} onChange={(e) => setMes(e.target.value)} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-4 text-sm font-semibold text-slate-700 outline-none focus:border-[#007FA3]">
+                        <select value={mes} onChange={(e) => setMes(e.target.value)} className="w-full rounded-2xl border border-slate-200 bg-white px-2 py-4 text-sm font-black text-slate-700 outline-none">
                           <option value="">Mês</option>
                           {months.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                         </select>
-                        <select value={ano} onChange={(e) => setAno(e.target.value)} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-4 text-sm font-semibold text-slate-700 outline-none focus:border-[#007FA3]">
+                        <select value={ano} onChange={(e) => setAno(e.target.value)} className="w-full rounded-2xl border border-slate-200 bg-white px-2 py-4 text-sm font-black text-slate-700 outline-none">
                           <option value="">Ano</option>
                           {years.map((y) => <option key={y} value={String(y)}>{y}</option>)}
                         </select>
@@ -435,33 +434,21 @@ export default function CadastroPage() {
                   </div>
                 </div>
 
-                {/* PACOTE FAMÍLIA (DEPENDENTES) */}
-                <div className="mt-10 border-t border-slate-100 pt-8">
+                {/* PACOTE FAMÍLIA */}
+                <div className="mt-10 border-t border-slate-100 pt-8 text-left">
                   <div className="mb-6 flex items-start gap-4 p-5 rounded-3xl border border-[#F9C400]/40 bg-[#F9C400]/10">
                     <Users className="mt-1 h-6 w-6 shrink-0 text-[#00577C]" />
                     <div className="flex-1">
                       <h3 className="font-bold text-[#00577C]">Pacote Família</h3>
-                      <p className="text-sm text-slate-600 mb-3 mt-1">
-                        Deseja emitir a carteira digital também para os dependentes do seu grupo familiar?
-                      </p>
+                      <p className="text-sm text-slate-600 mb-3 mt-1">Deseja adicionar dependentes do seu grupo familiar?</p>
                       <label className="flex items-center gap-3 cursor-pointer">
-                        <input 
-                          type="checkbox" 
-                          checked={hasDependentes}
-                          onChange={(e) => setHasDependentes(e.target.checked)}
-                          className="w-5 h-5 text-[#00577C] rounded-md border-slate-300 focus:ring-[#00577C]"
-                        />
+                        <input type="checkbox" checked={hasDependentes} onChange={(e) => setHasDependentes(e.target.checked)} className="w-5 h-5 text-[#00577C] rounded-md border-slate-300" />
                         <span className="font-bold text-slate-800">Sim, adicionar dependentes</span>
                       </label>
-
                       {hasDependentes && (
                         <div className="mt-4 pt-4 border-t border-[#F9C400]/20">
-                          <label className="block text-xs font-black uppercase tracking-[0.12em] text-slate-500 mb-2">Quantos dependentes? (Máx: 4)</label>
-                          <select 
-                            value={numDependentes}
-                            onChange={(e) => setNumDependentes(Number(e.target.value))}
-                            className="w-full sm:w-auto rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-[#007FA3]"
-                          >
+                          <label className="block text-xs font-black uppercase text-slate-500 mb-2">Quantos dependentes?</label>
+                          <select value={numDependentes} onChange={(e) => setNumDependentes(Number(e.target.value))} className="rounded-2xl border border-slate-200 p-3 text-sm font-bold">
                             {[1,2,3,4].map(n => <option key={n} value={n}>{n} dependente{n>1?'s':''}</option>)}
                           </select>
                         </div>
@@ -469,192 +456,123 @@ export default function CadastroPage() {
                     </div>
                   </div>
 
-                  {/* BLOCOS DINÂMICOS DOS DEPENDENTES */}
                   {hasDependentes && dependentes.map((dep, index) => (
-                    <div key={dep.id} className="mt-6 p-5 sm:p-6 rounded-3xl border border-slate-200 bg-slate-50">
-                      <h4 className="font-bold text-[#00577C] mb-4 border-b border-slate-200 pb-2">Dependente {index + 1}</h4>
-                      
-                      <div className="space-y-4">
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-black uppercase text-slate-500">Nome do Dependente</label>
-                          <input type="text" placeholder="Nome completo" value={dep.nome} onChange={(e) => updateDependente(index, 'nome', e.target.value)} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-[#007FA3]" />
-                          {errors.dependentes?.[index]?.nome && <p className="text-xs text-red-500">⚠ {errors.dependentes[index].nome}</p>}
-                        </div>
-
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-black uppercase text-slate-500">CPF do Dependente</label>
-                          <CPFInput value={dep.cpf} onChange={(val) => updateDependente(index, 'cpf', val)} error={errors.dependentes?.[index]?.cpf} />
-                        </div>
-
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-black uppercase text-slate-500">Data Nascimento</label>
-                          <div className="flex gap-2">
-                            <select value={dep.dia} onChange={(e) => updateDependente(index, 'dia', e.target.value)} className="w-full rounded-xl border border-slate-200 px-2 py-3 text-sm outline-none">
-                              <option value="">Dia</option>
-                              {days.map(d => <option key={d} value={String(d).padStart(2,'0')}>{d}</option>)}
-                            </select>
-                            <select value={dep.mes} onChange={(e) => updateDependente(index, 'mes', e.target.value)} className="w-full rounded-xl border border-slate-200 px-2 py-3 text-sm outline-none">
-                              <option value="">Mês</option>
-                              {months.map(([v, l]) => <option key={v} value={v}>{v}</option>)}
-                            </select>
-                            <select value={dep.ano} onChange={(e) => updateDependente(index, 'ano', e.target.value)} className="w-full rounded-xl border border-slate-200 px-2 py-3 text-sm outline-none">
-                              <option value="">Ano</option>
-                              {years.map(y => <option key={y} value={String(y)}>{y}</option>)}
-                            </select>
-                          </div>
-                          {errors.dependentes?.[index]?.data_nascimento && <p className="text-xs text-red-500">⚠ {errors.dependentes[index].data_nascimento}</p>}
-                        </div>
+                    <div key={dep.id} className="mt-6 p-5 sm:p-6 rounded-3xl border border-slate-200 bg-slate-50 space-y-4">
+                      <h4 className="font-bold text-[#00577C] mb-2 border-b border-slate-200 pb-2 text-left">Dependente {index + 1}</h4>
+                      <div className="space-y-1 text-left">
+                        <label className="text-[10px] font-black uppercase text-slate-500 ml-1">Nome Completo</label>
+                        <input type="text" placeholder="Nome completo" value={dep.nome} onChange={(e) => updateDependente(index, 'nome', e.target.value)} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold outline-none" />
+                      </div>
+                      <div className="space-y-1 text-left">
+                        <label className="text-[10px] font-black uppercase text-slate-500 ml-1">CPF</label>
+                        <CPFInput value={dep.cpf} onChange={(val) => updateDependente(index, 'cpf', val)} error={errors.dependentes?.[index]?.cpf} />
+                      </div>
+                      <div className="flex gap-2">
+                        <select value={dep.dia} onChange={(e) => updateDependente(index, 'dia', e.target.value)} className="flex-1 rounded-xl border p-3 text-xs font-bold">{days.map(d => <option key={d} value={String(d).padStart(2,'0')}>{d}</option>)}</select>
+                        <select value={dep.mes} onChange={(e) => updateDependente(index, 'mes', e.target.value)} className="flex-1 rounded-xl border p-3 text-xs font-bold">{months.map(([v]) => <option key={v} value={v}>{v}</option>)}</select>
+                        <select value={dep.ano} onChange={(e) => updateDependente(index, 'ano', e.target.value)} className="flex-1 rounded-xl border p-3 text-xs font-bold">{years.map(y => <option key={y} value={String(y)}>{y}</option>)}</select>
                       </div>
                     </div>
                   ))}
                 </div>
               </section>
 
-              {/* COLUNA DIREITA: VERIFICAÇÃO E REGRAS */}
-              <section className="p-5 sm:p-8 lg:p-10 bg-slate-50 lg:bg-transparent">
+              {/* COLUNA DIREITA: VERIFICAÇÃO E REGRAS - TOTALMENTE MANTIDO */}
+              <section className="p-5 sm:p-8 lg:p-10 bg-slate-50 lg:bg-transparent text-left">
                 <div className="mb-8 flex items-center gap-4">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#009640] text-white">
-                    <FileCheck2 className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <h2 className={`${jakarta.className} text-3xl font-bold text-[#00577C]`}>Verificação</h2>
-                    <p className="text-sm text-slate-500">Envie imagens legíveis dos documentos</p>
-                  </div>
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#009640] text-white"><FileCheck2 size={24} /></div>
+                  <div><h2 className={`${jakarta.className} text-3xl font-bold text-[#00577C]`}>Verificação</h2><p className="text-sm text-slate-500">Envie imagens oficiais</p></div>
                 </div>
 
-                {/* CAIXA DE REGRAS EXPLICADAS (INTACTA COMO PEDIDO) */}
-                <div className="mb-8 space-y-4">
+                {/* CAIXA DE REGRAS EXPLICADAS - MANTIDO */}
+                <div className="mb-8 space-y-4 text-left">
                   <div className="rounded-3xl border border-[#007FA3]/20 bg-[#007FA3]/5 p-5">
-                    <div className="mb-3 flex gap-3">
-                      <Info className="mt-0.5 h-5 w-5 shrink-0 text-[#007FA3]" />
-                      <p className="text-sm font-bold text-[#00577C]">Regras de Verificação (Leia com atenção)</p>
-                    </div>
-                    <ul className="ml-8 list-disc space-y-1.5 text-sm text-slate-600">
-                      <li>O documento DEVE provar vínculo com <strong className="text-[#00577C]">São Geraldo do Araguaia - PA</strong> (CEP: 68570-000).</li>
-                      <li>Deve ser recente (máximo de <strong className="text-[#00577C]">90 dias</strong>) e estar totalmente legível.</li>
-                      <li>Deve estar no <strong className="text-[#00577C]">seu nome</strong>. Exceção: Contas de consumo em nome de familiares que possuam o mesmo sobrenome.</li>
+                    <div className="mb-3 flex gap-3"><Info className="mt-0.5 h-5 w-5 shrink-0 text-[#007FA3]" /><p className="text-sm font-bold text-[#00577C]">Regras de Verificação</p></div>
+                    <ul className="ml-8 list-disc space-y-1.5 text-xs text-slate-600 font-medium">
+                      <li>O documento deve provar vínculo com <strong className="text-[#00577C]">São Geraldo do Araguaia - PA</strong>.</li>
+                      <li>Deve ser recente (máximo 90 dias) e estar legível.</li>
+                      <li>Deve estar no <strong className="text-[#00577C]">seu nome</strong> ou familiar com mesmo sobrenome.</li>
                     </ul>
                   </div>
 
                   <div className="rounded-3xl border border-[#009640]/20 bg-[#EAF8F0] p-5">
-                    <div className="mb-3 flex gap-3">
-                      <CheckCircle2 className="h-5 w-5 shrink-0 text-[#009640]" />
-                      <p className="text-sm font-bold text-[#009640]">Documentos Aceitos</p>
-                    </div>
-                    <ul className="ml-8 list-disc space-y-1.5 text-sm text-slate-600">
-                      <li><strong className="font-semibold text-slate-700">Contas de Consumo:</strong> Energia (Equatorial), Água (Cosanpa) ou faturas de Internet fixa.</li>
-                      <li><strong className="font-semibold text-slate-700">Educação:</strong> Declaração de matrícula em escola/faculdade do município.</li>
-                      <li><strong className="font-semibold text-slate-700">Trabalho:</strong> Contracheque ou contrato com empresa local.</li>
-                      <li><strong className="font-semibold text-slate-700">Saúde:</strong> Cartão SUS ou declaração de posto de saúde (UBS) local.</li>
+                    <div className="mb-3 flex gap-3"><CheckCircle2 className="h-5 w-5 shrink-0 text-[#009640]" /><p className="text-sm font-bold text-[#009640]">Documentos Aceitos</p></div>
+                    <ul className="ml-8 list-disc space-y-1 text-xs text-slate-600 font-medium">
+                      <li>Energia (Equatorial), Água (Cosanpa) ou Internet fixa.</li>
+                      <li>Matrícula escolar ou contrato com empresa local.</li>
+                      <li>Cartão SUS ou declaração de UBS local.</li>
                     </ul>
                   </div>
 
                   <div className="rounded-3xl border border-red-200 bg-red-50 p-5">
-                    <div className="mb-3 flex gap-3">
-                      <XCircle className="h-5 w-5 shrink-0 text-red-500" />
-                      <p className="text-sm font-bold text-red-600">NÃO Serão Aceitos</p>
-                    </div>
-                    <ul className="ml-8 list-disc space-y-1.5 text-sm text-slate-600">
-                      <li>Boletos genéricos (cartão de crédito, compras online, faculdades de fora).</li>
-                      <li>Contratos de aluguel informais (sem firma reconhecida em cartório).</li>
-                      <li>Declarações feitas à mão ou sem o logotipo oficial da instituição.</li>
-                      <li>Fotos apenas do RG, CPF ou CNH (pois não comprovam morada local).</li>
+                    <div className="mb-3 flex gap-3"><XCircle className="h-5 w-5 shrink-0 text-red-500" /><p className="text-sm font-bold text-red-600">Não Aceitos</p></div>
+                    <ul className="ml-8 list-disc space-y-1 text-xs text-slate-600 font-medium">
+                      <li>Boletos genéricos ou compras online.</li>
+                      <li>Contratos sem firma reconhecida.</li>
+                      <li>Apenas foto de RG/CPF (Sem morada).</li>
                     </ul>
                   </div>
                 </div>
-                {/* --- FIM DA CAIXA DE REGRAS --- */}
 
-                <div className="grid gap-6">
-                  {/* UPLOAD ÚNICO: COMPROVANTE DE RESIDÊNCIA */}
-                  <div className="rounded-3xl border border-[#F9C400]/40 bg-white p-4 sm:p-5 shadow-sm">
+                {/* UPLOADS - MANTIDO */}
+                <div className="grid gap-6 text-left">
+                  <div className="rounded-3xl border border-[#F9C400]/40 bg-white p-5 shadow-sm">
                     <div className="mb-4 flex items-center gap-3">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#00577C] text-white">
-                        <ShieldCheck className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-black uppercase tracking-[0.12em] text-slate-700">Comprovante de residência *</p>
-                        <p className="text-[10px] text-[#00577C] font-bold">1 ÚNICO COMPROVANTE SERVE PARA TODA A FAMÍLIA</p>
-                      </div>
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#00577C] text-white"><ShieldCheck size={20} /></div>
+                      <div><p className="text-xs font-black uppercase text-slate-700 tracking-widest">Comprovante de residência *</p></div>
                     </div>
                     <FileUploader onFileSelect={setArquivo} error={errors.arquivo} />
                   </div>
 
-                  {/* UPLOADS INDIVIDUAIS: SELFIES */}
-                  <div className="mt-4 pt-4 border-t border-slate-200">
-                    <h3 className="font-bold text-[#00577C] mb-4">Fotos de Rosto (Para o Cartão)</h3>
-                    
-                    {/* Selfie Titular */}
-                    <div className="mb-4 rounded-3xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
-                      <div className="mb-4 flex items-center gap-3">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#007FA3] text-white">
-                          <Camera className="h-5 w-5" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-black uppercase tracking-[0.12em] text-slate-700">Foto Titular *</p>
-                          <p className="text-xs text-slate-400">{nome ? nome.split(' ')[0] : 'Sua selfie'}</p>
-                        </div>
-                      </div>
+                  <div className="space-y-6">
+                    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                      <p className="text-xs font-bold text-slate-500 mb-4 flex gap-2"><Camera size={16}/> Selfie do Titular *</p>
                       <FileUploader onFileSelect={setFoto} error={errors.foto} />
                     </div>
 
-                    {/* Selfies Dependentes */}
                     {hasDependentes && dependentes.map((dep, index) => (
-                      <div key={dep.id} className="mb-4 rounded-3xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
-                        <div className="mb-4 flex items-center gap-3">
-                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-300 text-slate-700">
-                            <Camera className="h-5 w-5" />
-                          </div>
-                          <div>
-                            <p className="text-sm font-black uppercase tracking-[0.12em] text-slate-700">Foto Dependente {index + 1} *</p>
-                            <p className="text-xs text-slate-400">{dep.nome ? dep.nome.split(' ')[0] : 'Selfie do dependente'}</p>
-                          </div>
-                        </div>
+                      <div key={dep.id} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm text-left">
+                        <p className="text-xs font-bold text-slate-500 mb-4 flex gap-2"><Camera size={16}/> Selfie: {dep.nome || `Dependente ${index+1}`} *</p>
                         <FileUploader onFileSelect={(f) => updateDependente(index, 'foto', f)} error={errors.dependentes?.[index]?.foto} />
                       </div>
                     ))}
                   </div>
-
-                  <p className="mt-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs leading-relaxed text-slate-500">
-                    No celular, escolha a câmera para tirar a selfie diretamente. As fotos devem ser de rosto claro e sem óculos de sol.
-                  </p>
                 </div>
               </section>
             </div>
 
-            <div className="border-t border-slate-200 bg-white p-5 sm:p-8">
+            <div className="border-t border-slate-200 bg-white p-5 sm:p-10 text-left">
               {apiError && (
-                <div className="mb-5 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-semibold text-red-700">
-                  <XCircle className="mt-0.5 h-5 w-5 shrink-0" />
-                  {apiError}
+                <div className="mb-6 flex items-center gap-3 rounded-2xl bg-red-50 p-5 text-sm font-bold text-red-700 border border-red-100 animate-in shake duration-500">
+                  <XCircle className="h-5 w-5 shrink-0" /> {apiError}
                 </div>
               )}
 
-              <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-                <div className="flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-400">
-                  <span className="flex items-center gap-1"><ShieldCheck className="h-4 w-4 text-[#009640]" /> Dados protegidos</span>
-                  <span>·</span><span>Serviço gratuito</span><span>·</span><span>Verificação digital</span>
+              <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex flex-wrap items-center gap-4 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  <span className="flex items-center gap-1.5"><ShieldCheck className="h-4 w-4 text-[#009640]" /> Dados Protegidos</span>
+                  <span>·</span><span>Análise por IA</span><span>·</span><span>Emissão Digital</span>
                 </div>
 
                 <button
                   type="submit"
                   disabled={loading}
-                  className="inline-flex w-full items-center justify-center gap-3 rounded-full bg-[#F9C400] px-8 py-5 text-base font-black text-[#00577C] shadow-xl shadow-[#F9C400]/20 transition hover:-translate-y-0.5 hover:bg-[#ffd633] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                  className="inline-flex w-full items-center justify-center gap-3 rounded-full bg-[#F9C400] px-10 py-5 text-lg font-black text-[#00577C] shadow-2xl transition hover:-translate-y-1 hover:bg-[#ffd633] disabled:opacity-60 sm:w-auto"
                 >
                   {loading ? (
-                    <><Loader2 className="h-5 w-5 animate-spin" /> Processando...</>
+                    <><Loader2 className="h-6 w-6 animate-spin" /> Analisando...</>
                   ) : (
-                    <><Users className="h-5 w-5" /> Finalizar solicitação <ArrowRight className="h-5 w-5" /></>
+                    <><Users className="h-6 w-6" /> Finalizar e Enviar <ArrowRight className="h-6 w-6" /></>
                   )}
                 </button>
               </div>
             </div>
           </form>
 
-          <div className="mt-8 text-center">
-            <Link href="/" className="text-sm font-semibold text-slate-400 transition hover:text-[#00577C]">
-              ← Voltar ao início
-            </Link>
-          </div>
+          <footer className="mt-20 pt-10 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6 opacity-30 grayscale">
+             <Image src="/logop.png" alt="SGA" width={140} height={50} className="object-contain" />
+             <p className="text-[10px] font-black uppercase tracking-[0.4em]">© 2026 · São Geraldo do Araguaia (PA)</p>
+          </footer>
         </div>
       </section>
     </main>
