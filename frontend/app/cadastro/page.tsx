@@ -3,7 +3,7 @@
 import { useEffect, useState, FormEvent } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation'; // IMPORTADO
+import { useRouter } from 'next/navigation';
 import {
   CheckCircle2,
   XCircle,
@@ -20,13 +20,14 @@ import {
   Sparkles,
   CalendarDays,
   Users,
+  Wallet,
+  CreditCard
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 
 import CPFInput from '@/components/ui/CPFInput';
 import FileUploader from '@/components/ui/FileUploader';
 import { cadastrarResidente, type CadastroResponse } from '@/lib/api';
-import imageCompression from 'browser-image-compression';
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -57,6 +58,9 @@ type FieldErrors = {
   foto?: string;
   dependentes?: { [key: number]: { nome?: string; cpf?: string; data_nascimento?: string; foto?: string } };
 };
+
+const formatarMoeda = (valor: number) =>
+  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor || 0);
 
 function validate(
   nome: string,
@@ -140,10 +144,10 @@ function Header() {
 
         <nav className="hidden items-center gap-7 md:flex">
           <Link href="/roteiro" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Rota Turística</Link>
-          <a href="/#hoteis" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Hotéis</a>
-          <a href="/#historia" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">História</a>
+          <Link href="/hoteis" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Alojamentos</Link>
+          <Link href="/pacotes" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Pacotes</Link>
           <a href="https://saogeraldodoaraguaia.pa.gov.br" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-full border border-[#00577C]/20 px-5 py-3 text-sm font-bold text-[#00577C] transition hover:bg-[#00577C] hover:text-white">
-            Governo <ExternalLink className="h-4 w-4" />
+            Portal do Governo <ExternalLink className="h-4 w-4" />
           </a>
         </nav>
 
@@ -156,7 +160,7 @@ function Header() {
 }
 
 export default function CadastroPage() {
-  const router = useRouter(); // INICIALIZADO
+  const router = useRouter(); 
   const [nome, setNome] = useState('');
   const [cpf, setCpf] = useState('');
   const [email, setEmail] = useState('');
@@ -186,6 +190,10 @@ export default function CadastroPage() {
     ['05', 'Maio'], ['06', 'Junho'], ['07', 'Julho'], ['08', 'Agosto'],
     ['09', 'Setembro'], ['10', 'Outubro'], ['11', 'Novembro'], ['12', 'Dezembro'],
   ];
+
+  // ── MATEMÁTICA DE CUSTOS ──
+  const totalPessoas = 1 + (hasDependentes ? numDependentes : 0);
+  const valorTotal = totalPessoas * 20;
 
   useEffect(() => {
     if (dia && mes && ano) {
@@ -222,6 +230,8 @@ export default function CadastroPage() {
     const errs = validate(nome, cpf, email, dataNascimento, arquivo, foto, dependentes, hasDependentes);
     if (Object.keys(errs).length) {
       setErrors(errs);
+      // Fazer scroll suave para o topo do form para ver os erros
+      window.scrollTo({ top: 400, behavior: 'smooth' });
       return;
     }
 
@@ -250,14 +260,13 @@ export default function CadastroPage() {
 
       const res = await cadastrarResidente(formData as any); 
       
-      // ── REDIRECIONAMENTO IMEDIATO SE SUCESSO ──
       if (res.status === 'sucesso' && res.token) {
+        // Redireciona diretamente
         router.push(`/carteira/${res.token}`);
       } else {
         setResult(res);
       }
     } catch (err: any) {
-      // ── TRATAMENTO DO ERRO DE CPF DUPLICADO (23505) ──
       const errorMsg = err.message || '';
       if (errorMsg.includes('23505') || errorMsg.includes('already exists')) {
         setApiError("Este CPF já possui uma solicitação ativa. Por favor, consulte o status ou utilize outro CPF.");
@@ -304,54 +313,59 @@ export default function CadastroPage() {
     <main className={`${inter.className} min-h-screen bg-white text-slate-900 text-left`}>
       <Header />
 
-      {/* HERO SECTION - TOTALMENTE MANTIDO */}
-      <section className="relative overflow-hidden pt-24 text-white sm:pt-28">
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: "url('https://images.pexels.com/photos/17835411/pexels-photo-17835411.jpeg?_gl=1*i2axa5*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzc0ODA1MTIkbzI3JGcxJHQxNzc3NDg0NTE1JGo0OCRsMCRoMA..')" }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#00577C]/95 via-[#00577C]/75 to-[#009640]/45" />
-        <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-white to-transparent" />
+      {/* HERO SECTION CLEAN & SÓBRIA */}
+      <section className="relative overflow-hidden pt-32 pb-24 bg-[#002f40] text-left">
+        <div className="absolute inset-0 z-0 pointer-events-none">
+          <Image 
+            src="https://images.pexels.com/photos/17835411/pexels-photo-17835411.jpeg?_gl=1*i2axa5*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzc0ODA1MTIkbzI3JGcxJHQxNzc3NDg0NTE1JGo0OCRsMCRoMA.." 
+            alt="SGA" 
+            fill 
+            className="object-cover opacity-20 mix-blend-luminosity" 
+          />
+          <div className="absolute inset-0 bg-[#002f40]/70" />
+        </div>
 
-        <div className="relative z-10 mx-auto grid max-w-7xl gap-8 px-4 py-16 sm:px-5 sm:py-20 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
-          <div>
-            <h1 className={`${jakarta.className} text-4xl font-extrabold leading-[0.98] sm:text-5xl md:text-7xl`}>
-              Solicite seu Cartão Digital de Residente.
-            </h1>
-            <p className="mt-5 max-w-2xl text-base leading-relaxed text-white/85 sm:text-lg">
-              Envie seus dados, comprovante em imagem e selfie para validar o benefício de{' '}
-              <strong className="text-[#F9C400]">50% de desconto</strong> para si e para a sua família.
-            </p>
-          </div>
-
-          <div className="rounded-[2rem] border border-white/20 bg-white/15 p-5 backdrop-blur-xl sm:p-7">
-            <div className="mb-6 flex items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F9C400] text-[#00577C]">
-                <ShieldCheck className="h-8 w-8" />
-              </div>
-              <div>
-                <p className="text-lg font-extrabold sm:text-xl">Processo simples e seguro</p>
-                <p className="text-sm text-white/70">Verificação digital para moradores</p>
-              </div>
+        <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-5 lg:px-6">
+          <div className="max-w-3xl">
+            <div className="inline-flex items-center gap-2 bg-[#F9C400] text-[#00577C] px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 shadow-sm">
+              <Wallet size={14}/> Taxa Única de Emissão: R$ 20,00 por pessoa
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {['Aprovação rápida', 'Verificação por IA', 'Pacote Família'].map((item) => (
-                <div key={item} className="flex items-center gap-2 rounded-2xl bg-white/10 px-4 py-3">
-                  <CheckCircle2 className="h-5 w-5 shrink-0 text-[#F9C400]" />
-                  <span className="text-sm font-bold">{item}</span>
+            
+            <h1 className={`${jakarta.className} text-4xl sm:text-5xl md:text-7xl font-black text-white leading-tight mb-6`}>
+              Cartão Digital de <span className="text-[#F9C400]">Residente.</span>
+            </h1>
+            
+            <p className="max-w-2xl text-lg text-white/80 font-medium mb-10 leading-relaxed">
+              Envie os seus dados, comprovativo de morada e uma selfie para emitir a sua carteirinha oficial e garantir 50% de desconto no turismo local.
+            </p>
+
+            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-[2rem] p-6 max-w-xl">
+              <div className="flex items-center gap-4 mb-4">
+                <ShieldCheck className="h-8 w-8 text-[#F9C400]" />
+                <div>
+                  <p className="text-white font-bold">Processo Seguro</p>
+                  <p className="text-sm text-white/70">Análise oficial da Prefeitura</p>
                 </div>
-              ))}
+              </div>
+              <div className="grid grid-cols-2 gap-3 border-t border-white/10 pt-4">
+                <div className="flex items-center gap-2 text-white/90 text-sm font-medium">
+                  <CheckCircle2 className="h-4 w-4 text-[#009640]" /> Emissão Rápida
+                </div>
+                <div className="flex items-center gap-2 text-white/90 text-sm font-medium">
+                  <CheckCircle2 className="h-4 w-4 text-[#009640]" /> Pacote Família
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* BARRA DE PROGRESSO - MANTIDA */}
-      <section className="border-b border-slate-200 bg-white py-5">
+      {/* BARRA DE PROGRESSO */}
+      <section className="border-b border-slate-200 bg-white py-5 sticky top-[70px] md:top-[88px] z-40 shadow-sm">
         <div className="mx-auto grid max-w-5xl gap-3 px-4 sm:px-5 md:grid-cols-3">
-          {[['01', 'Dados pessoais'], ['02', 'Verificação'], ['03', 'Pagamento e Emissão']].map(([step, label]) => (
+          {[['01', 'Dados pessoais'], ['02', 'Verificação'], ['03', 'Pagamento']].map(([step, label]) => (
             <div key={step} className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#00577C] text-sm font-black text-white">{step}</span>
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#00577C] text-sm font-black text-white shrink-0">{step}</span>
               <span className="text-sm font-bold text-slate-700">{label}</span>
             </div>
           ))}
@@ -359,25 +373,25 @@ export default function CadastroPage() {
       </section>
 
       {/* FORMULÁRIO PRINCIPAL */}
-      <section className="bg-slate-50 px-4 py-10 sm:px-5 sm:py-16">
+      <section className="bg-slate-50 px-4 py-16 sm:px-5">
         <div className="mx-auto max-w-7xl">
-          <form onSubmit={handleSubmit} className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl shadow-slate-200/70 sm:rounded-[2.5rem]">
+          <form onSubmit={handleSubmit} className="overflow-hidden rounded-[2.5rem] border border-slate-200 bg-white shadow-2xl">
             <div className="grid lg:grid-cols-2">
               
-              <section className="border-b border-slate-200 p-5 sm:p-8 lg:border-b-0 lg:border-r lg:p-10">
-                <div className="mb-8 flex items-center gap-4">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#00577C] text-white">
-                    <User className="h-6 w-6" />
+              <section className="border-b border-slate-200 p-6 sm:p-10 lg:border-b-0 lg:border-r">
+                <div className="mb-10 flex items-center gap-4">
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#00577C] text-white">
+                    <User className="h-7 w-7" />
                   </div>
                   <div>
-                    <h2 className={`${jakarta.className} text-3xl font-bold text-[#00577C]`}>Dados do Titular</h2>
-                    <p className="text-sm text-slate-500">Informações principais do residente</p>
+                    <h2 className={`${jakarta.className} text-3xl font-black text-slate-900`}>Dados do Titular</h2>
+                    <p className="text-sm font-medium text-slate-500 mt-1">Informações principais do residente</p>
                   </div>
                 </div>
 
                 <div className="grid gap-6">
                   <div className="space-y-2">
-                    <label className="block text-xs font-black uppercase tracking-[0.16em] text-slate-500">Nome completo *</label>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-[#00577C]">Nome completo *</label>
                     <div className="relative">
                       <User className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
                       <input
@@ -385,16 +399,16 @@ export default function CadastroPage() {
                         placeholder="Ex: João da Silva Santos"
                         value={nome}
                         onChange={(e) => setNome(e.target.value)}
-                        className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-4 pl-12 pr-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white"
+                        className={`w-full rounded-2xl border-2 bg-slate-50 py-4 pl-12 pr-4 text-sm font-bold text-slate-800 outline-none transition-colors focus:bg-white ${errors.nome ? 'border-red-300 focus:border-red-500' : 'border-slate-100 hover:border-slate-200 focus:border-[#00577C]'}`}
                       />
                     </div>
-                    {errors.nome && <p className="text-xs font-semibold text-red-500">⚠ {errors.nome}</p>}
+                    {errors.nome && <p className="text-xs font-bold text-red-500 mt-1">⚠ {errors.nome}</p>}
                   </div>
 
                   <div className="grid gap-6 sm:grid-cols-2">
                     <CPFInput value={cpf} onChange={setCpf} error={errors.cpf} />
                     <div className="space-y-2">
-                      <label className="block text-xs font-black uppercase tracking-[0.16em] text-slate-500">E-mail *</label>
+                      <label className="block text-[10px] font-black uppercase tracking-widest text-[#00577C]">E-mail *</label>
                       <div className="relative">
                         <Mail className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
                         <input
@@ -402,54 +416,54 @@ export default function CadastroPage() {
                           placeholder="seu@email.com"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
-                          className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-4 pl-12 pr-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white"
+                          className={`w-full rounded-2xl border-2 bg-slate-50 py-4 pl-12 pr-4 text-sm font-bold text-slate-800 outline-none transition-colors focus:bg-white ${errors.email ? 'border-red-300 focus:border-red-500' : 'border-slate-100 hover:border-slate-200 focus:border-[#00577C]'}`}
                         />
                       </div>
-                      {errors.email && <p className="text-xs font-semibold text-red-500">⚠ {errors.email}</p>}
+                      {errors.email && <p className="text-xs font-bold text-red-500 mt-1">⚠ {errors.email}</p>}
                     </div>
                   </div>
 
                   <div className="space-y-2 text-left">
-                    <label className="block text-xs font-black uppercase tracking-[0.16em] text-slate-500">Data de nascimento *</label>
-                    <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-                      <div className="mb-3 flex items-center gap-2 text-sm font-bold text-[#00577C]">
-                        <CalendarDays className="h-5 w-5" /> Selecione sua data
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-[#00577C]">Data de nascimento *</label>
+                    <div className={`rounded-3xl border-2 bg-slate-50 p-5 transition-colors ${errors.data_nascimento ? 'border-red-300' : 'border-slate-100'}`}>
+                      <div className="mb-4 flex items-center gap-2 text-sm font-black text-slate-700">
+                        <CalendarDays className="h-5 w-5 text-[#00577C]" /> Selecione sua data
                       </div>
                       <div className="grid grid-cols-3 gap-3">
-                        <select value={dia} onChange={(e) => setDia(e.target.value)} className="w-full rounded-2xl border border-slate-200 bg-white px-2 py-4 text-sm font-black text-slate-700 outline-none">
+                        <select value={dia} onChange={(e) => setDia(e.target.value)} className="w-full rounded-xl border border-slate-200 bg-white px-2 py-4 text-sm font-bold text-slate-700 outline-none cursor-pointer">
                           <option value="">Dia</option>
                           {days.map((d) => <option key={d} value={String(d).padStart(2, '0')}>{d}</option>)}
                         </select>
-                        <select value={mes} onChange={(e) => setMes(e.target.value)} className="w-full rounded-2xl border border-slate-200 bg-white px-2 py-4 text-sm font-black text-slate-700 outline-none">
+                        <select value={mes} onChange={(e) => setMes(e.target.value)} className="w-full rounded-xl border border-slate-200 bg-white px-2 py-4 text-sm font-bold text-slate-700 outline-none cursor-pointer">
                           <option value="">Mês</option>
                           {months.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                         </select>
-                        <select value={ano} onChange={(e) => setAno(e.target.value)} className="w-full rounded-2xl border border-slate-200 bg-white px-2 py-4 text-sm font-black text-slate-700 outline-none">
+                        <select value={ano} onChange={(e) => setAno(e.target.value)} className="w-full rounded-xl border border-slate-200 bg-white px-2 py-4 text-sm font-bold text-slate-700 outline-none cursor-pointer">
                           <option value="">Ano</option>
                           {years.map((y) => <option key={y} value={String(y)}>{y}</option>)}
                         </select>
                       </div>
                     </div>
-                    {errors.data_nascimento && <p className="text-xs font-semibold text-red-500">⚠ {errors.data_nascimento}</p>}
+                    {errors.data_nascimento && <p className="text-xs font-bold text-red-500 mt-1">⚠ {errors.data_nascimento}</p>}
                   </div>
                 </div>
 
                 {/* PACOTE FAMÍLIA */}
-                <div className="mt-10 border-t border-slate-100 pt-8 text-left">
-                  <div className="mb-6 flex items-start gap-4 p-5 rounded-3xl border border-[#F9C400]/40 bg-[#F9C400]/10">
-                    <Users className="mt-1 h-6 w-6 shrink-0 text-[#00577C]" />
+                <div className="mt-12 border-t border-slate-100 pt-10 text-left">
+                  <div className="mb-6 flex items-start gap-4 p-6 rounded-3xl border-2 border-slate-100 bg-slate-50 transition-colors focus-within:border-[#F9C400]">
+                    <Users className="mt-1 h-8 w-8 shrink-0 text-[#00577C]" />
                     <div className="flex-1">
-                      <h3 className="font-bold text-[#00577C]">Pacote Família</h3>
-                      <p className="text-sm text-slate-600 mb-3 mt-1">Deseja adicionar dependentes do seu grupo familiar?</p>
-                      <label className="flex items-center gap-3 cursor-pointer">
-                        <input type="checkbox" checked={hasDependentes} onChange={(e) => setHasDependentes(e.target.checked)} className="w-5 h-5 text-[#00577C] rounded-md border-slate-300" />
-                        <span className="font-bold text-slate-800">Sim, adicionar dependentes</span>
+                      <h3 className={`${jakarta.className} text-xl font-black text-[#00577C]`}>Dependentes</h3>
+                      <p className="text-sm font-medium text-slate-500 mb-5 mt-1">Deseja emitir também o cartão para os seus familiares?</p>
+                      <label className="flex items-center gap-3 cursor-pointer group">
+                        <input type="checkbox" checked={hasDependentes} onChange={(e) => setHasDependentes(e.target.checked)} className="w-6 h-6 text-[#00577C] rounded-md border-slate-300 accent-[#00577C]" />
+                        <span className="font-bold text-slate-800 group-hover:text-[#00577C] transition-colors">Sim, adicionar dependentes</span>
                       </label>
                       {hasDependentes && (
-                        <div className="mt-4 pt-4 border-t border-[#F9C400]/20">
-                          <label className="block text-xs font-black uppercase text-slate-500 mb-2">Quantos dependentes?</label>
-                          <select value={numDependentes} onChange={(e) => setNumDependentes(Number(e.target.value))} className="rounded-2xl border border-slate-200 p-3 text-sm font-bold">
-                            {[1,2,3,4].map(n => <option key={n} value={n}>{n} dependente{n>1?'s':''}</option>)}
+                        <div className="mt-6 pt-6 border-t border-slate-200 animate-in fade-in slide-in-from-top-4">
+                          <label className="block text-[10px] font-black uppercase tracking-widest text-[#00577C] mb-3">Quantos dependentes?</label>
+                          <select value={numDependentes} onChange={(e) => setNumDependentes(Number(e.target.value))} className="w-full rounded-xl border border-slate-200 bg-white p-4 text-sm font-bold outline-none cursor-pointer">
+                            {[1,2,3,4].map(n => <option key={n} value={n}>{n} familiar{n>1?'es':''}</option>)}
                           </select>
                         </div>
                       )}
@@ -457,82 +471,96 @@ export default function CadastroPage() {
                   </div>
 
                   {hasDependentes && dependentes.map((dep, index) => (
-                    <div key={dep.id} className="mt-6 p-5 sm:p-6 rounded-3xl border border-slate-200 bg-slate-50 space-y-4">
-                      <h4 className="font-bold text-[#00577C] mb-2 border-b border-slate-200 pb-2 text-left">Dependente {index + 1}</h4>
-                      <div className="space-y-1 text-left">
-                        <label className="text-[10px] font-black uppercase text-slate-500 ml-1">Nome Completo</label>
-                        <input type="text" placeholder="Nome completo" value={dep.nome} onChange={(e) => updateDependente(index, 'nome', e.target.value)} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold outline-none" />
+                    <div key={dep.id} className="mt-6 p-6 rounded-3xl border-2 border-slate-100 bg-white space-y-5 animate-in fade-in zoom-in-95">
+                      <h4 className="font-black text-slate-800 mb-2 flex items-center gap-2">
+                         <span className="w-6 h-6 rounded-full bg-blue-50 text-[#00577C] flex items-center justify-center text-xs">{index + 1}</span> 
+                         Familiar
+                      </h4>
+                      <div className="space-y-2 text-left">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Nome Completo</label>
+                        <input type="text" placeholder="Nome completo" value={dep.nome} onChange={(e) => updateDependente(index, 'nome', e.target.value)} className={`w-full rounded-xl border-2 bg-slate-50 px-4 py-3 text-sm font-bold outline-none transition-colors focus:bg-white ${errors.dependentes?.[index]?.nome ? 'border-red-300 focus:border-red-500' : 'border-slate-100 hover:border-slate-200 focus:border-[#00577C]'}`} />
+                        {errors.dependentes?.[index]?.nome && <p className="text-[10px] font-bold text-red-500">⚠ {errors.dependentes[index].nome}</p>}
                       </div>
-                      <div className="space-y-1 text-left">
-                        <label className="text-[10px] font-black uppercase text-slate-500 ml-1">CPF</label>
+                      <div className="space-y-2 text-left">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">CPF</label>
                         <CPFInput value={dep.cpf} onChange={(val) => updateDependente(index, 'cpf', val)} error={errors.dependentes?.[index]?.cpf} />
                       </div>
-                      <div className="flex gap-2">
-                        <select value={dep.dia} onChange={(e) => updateDependente(index, 'dia', e.target.value)} className="flex-1 rounded-xl border p-3 text-xs font-bold">{days.map(d => <option key={d} value={String(d).padStart(2,'0')}>{d}</option>)}</select>
-                        <select value={dep.mes} onChange={(e) => updateDependente(index, 'mes', e.target.value)} className="flex-1 rounded-xl border p-3 text-xs font-bold">{months.map(([v]) => <option key={v} value={v}>{v}</option>)}</select>
-                        <select value={dep.ano} onChange={(e) => updateDependente(index, 'ano', e.target.value)} className="flex-1 rounded-xl border p-3 text-xs font-bold">{years.map(y => <option key={y} value={String(y)}>{y}</option>)}</select>
+                      <div className="space-y-2 text-left">
+                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Nascimento</label>
+                         <div className="flex gap-2">
+                           <select value={dep.dia} onChange={(e) => updateDependente(index, 'dia', e.target.value)} className="flex-1 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs font-bold outline-none cursor-pointer">{days.map(d => <option key={d} value={String(d).padStart(2,'0')}>{d}</option>)}</select>
+                           <select value={dep.mes} onChange={(e) => updateDependente(index, 'mes', e.target.value)} className="flex-1 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs font-bold outline-none cursor-pointer">{months.map(([v]) => <option key={v} value={v}>{v}</option>)}</select>
+                           <select value={dep.ano} onChange={(e) => updateDependente(index, 'ano', e.target.value)} className="flex-1 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs font-bold outline-none cursor-pointer">{years.map(y => <option key={y} value={String(y)}>{y}</option>)}</select>
+                         </div>
+                         {errors.dependentes?.[index]?.data_nascimento && <p className="text-[10px] font-bold text-red-500">⚠ {errors.dependentes[index].data_nascimento}</p>}
                       </div>
                     </div>
                   ))}
                 </div>
               </section>
 
-              {/* COLUNA DIREITA: VERIFICAÇÃO E REGRAS - TOTALMENTE MANTIDO */}
-              <section className="p-5 sm:p-8 lg:p-10 bg-slate-50 lg:bg-transparent text-left">
-                <div className="mb-8 flex items-center gap-4">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#009640] text-white"><FileCheck2 size={24} /></div>
-                  <div><h2 className={`${jakarta.className} text-3xl font-bold text-[#00577C]`}>Verificação</h2><p className="text-sm text-slate-500">Envie imagens oficiais</p></div>
+              {/* COLUNA DIREITA: VERIFICAÇÃO */}
+              <section className="p-6 sm:p-10 bg-white text-left">
+                <div className="mb-10 flex items-center gap-4">
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#009640] text-white"><FileCheck2 size={28} /></div>
+                  <div>
+                    <h2 className={`${jakarta.className} text-3xl font-black text-slate-900`}>Verificação</h2>
+                    <p className="text-sm font-medium text-slate-500 mt-1">Envio de documentação oficial</p>
+                  </div>
                 </div>
 
-                {/* CAIXA DE REGRAS EXPLICADAS - MANTIDO */}
-                <div className="mb-8 space-y-4 text-left">
-                  <div className="rounded-3xl border border-[#007FA3]/20 bg-[#007FA3]/5 p-5">
-                    <div className="mb-3 flex gap-3"><Info className="mt-0.5 h-5 w-5 shrink-0 text-[#007FA3]" /><p className="text-sm font-bold text-[#00577C]">Regras de Verificação</p></div>
-                    <ul className="ml-8 list-disc space-y-1.5 text-xs text-slate-600 font-medium">
+                {/* CAIXA DE REGRAS EXPLICADAS */}
+                <div className="mb-10 space-y-4 text-left">
+                  <div className="rounded-2xl border-2 border-blue-50 bg-blue-50/50 p-6">
+                    <div className="mb-4 flex items-center gap-3"><Info className="h-6 w-6 shrink-0 text-[#00577C]" /><p className="font-black text-[#00577C]">Regras de Verificação</p></div>
+                    <ul className="ml-9 list-disc space-y-2 text-sm text-slate-600 font-medium">
                       <li>O documento deve provar vínculo com <strong className="text-[#00577C]">São Geraldo do Araguaia - PA</strong>.</li>
                       <li>Deve ser recente (máximo 90 dias) e estar legível.</li>
-                      <li>Deve estar no <strong className="text-[#00577C]">seu nome</strong> ou familiar com mesmo sobrenome.</li>
+                      <li>Deve estar no <strong className="text-[#00577C]">seu nome</strong> ou familiar direto.</li>
                     </ul>
                   </div>
 
-                  <div className="rounded-3xl border border-[#009640]/20 bg-[#EAF8F0] p-5">
-                    <div className="mb-3 flex gap-3"><CheckCircle2 className="h-5 w-5 shrink-0 text-[#009640]" /><p className="text-sm font-bold text-[#009640]">Documentos Aceitos</p></div>
-                    <ul className="ml-8 list-disc space-y-1 text-xs text-slate-600 font-medium">
-                      <li>Energia (Equatorial), Água (Cosanpa) ou Internet fixa.</li>
+                  <div className="rounded-2xl border-2 border-green-50 bg-green-50/50 p-6">
+                    <div className="mb-4 flex items-center gap-3"><CheckCircle2 className="h-6 w-6 shrink-0 text-[#009640]" /><p className="font-black text-[#009640]">Aceitamos</p></div>
+                    <ul className="ml-9 list-disc space-y-2 text-sm text-slate-600 font-medium">
+                      <li>Contas (Energia, Água, Internet fixa).</li>
                       <li>Matrícula escolar ou contrato com empresa local.</li>
                       <li>Cartão SUS ou declaração de UBS local.</li>
                     </ul>
                   </div>
 
-                  <div className="rounded-3xl border border-red-200 bg-red-50 p-5">
-                    <div className="mb-3 flex gap-3"><XCircle className="h-5 w-5 shrink-0 text-red-500" /><p className="text-sm font-bold text-red-600">Não Aceitos</p></div>
-                    <ul className="ml-8 list-disc space-y-1 text-xs text-slate-600 font-medium">
+                  <div className="rounded-2xl border-2 border-red-50 bg-red-50 p-6">
+                    <div className="mb-4 flex items-center gap-3"><XCircle className="h-6 w-6 shrink-0 text-red-500" /><p className="font-black text-red-600">Não Aceitamos</p></div>
+                    <ul className="ml-9 list-disc space-y-2 text-sm text-slate-600 font-medium">
                       <li>Boletos genéricos ou compras online.</li>
                       <li>Contratos sem firma reconhecida.</li>
-                      <li>Apenas foto de RG/CPF (Sem morada).</li>
+                      <li>Apenas foto de RG/CPF (pois não comprova a morada).</li>
                     </ul>
                   </div>
                 </div>
 
-                {/* UPLOADS - MANTIDO */}
+                {/* UPLOADS */}
                 <div className="grid gap-6 text-left">
-                  <div className="rounded-3xl border border-[#F9C400]/40 bg-white p-5 shadow-sm">
-                    <div className="mb-4 flex items-center gap-3">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#00577C] text-white"><ShieldCheck size={20} /></div>
-                      <div><p className="text-xs font-black uppercase text-slate-700 tracking-widest">Comprovante de residência *</p></div>
+                  <div className={`rounded-3xl border-2 bg-slate-50 p-6 transition-colors ${errors.arquivo ? 'border-red-300' : 'border-slate-100 hover:border-slate-200'}`}>
+                    <div className="mb-5 flex items-center gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F9C400] text-[#00577C]"><ShieldCheck size={20} /></div>
+                      <div><p className="text-[10px] font-black uppercase text-slate-600 tracking-widest">Comprovante de residência *</p></div>
                     </div>
                     <FileUploader onFileSelect={setArquivo} error={errors.arquivo} />
                   </div>
 
                   <div className="space-y-6">
-                    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-                      <p className="text-xs font-bold text-slate-500 mb-4 flex gap-2"><Camera size={16}/> Selfie do Titular *</p>
+                    <div className={`rounded-3xl border-2 bg-slate-50 p-6 transition-colors ${errors.foto ? 'border-red-300' : 'border-slate-100 hover:border-slate-200'}`}>
+                      <p className="text-xs font-black uppercase tracking-widest text-[#00577C] mb-5 flex items-center gap-2"><Camera size={18}/> Selfie do Titular *</p>
                       <FileUploader onFileSelect={setFoto} error={errors.foto} />
                     </div>
 
                     {hasDependentes && dependentes.map((dep, index) => (
-                      <div key={dep.id} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm text-left">
-                        <p className="text-xs font-bold text-slate-500 mb-4 flex gap-2"><Camera size={16}/> Selfie: {dep.nome || `Dependente ${index+1}`} *</p>
+                      <div key={dep.id} className={`rounded-3xl border-2 bg-slate-50 p-6 transition-colors ${errors.dependentes?.[index]?.foto ? 'border-red-300' : 'border-slate-100 hover:border-slate-200'}`}>
+                        <p className="text-xs font-black uppercase tracking-widest text-slate-600 mb-5 flex items-center gap-2">
+                           <Camera size={18} className="text-[#00577C]"/> 
+                           Selfie: {dep.nome ? dep.nome.split(' ')[0] : `Familiar ${index+1}`} *
+                        </p>
                         <FileUploader onFileSelect={(f) => updateDependente(index, 'foto', f)} error={errors.dependentes?.[index]?.foto} />
                       </div>
                     ))}
@@ -541,35 +569,52 @@ export default function CadastroPage() {
               </section>
             </div>
 
-            <div className="border-t border-slate-200 bg-white p-5 sm:p-10 text-left">
+            {/* BARRA INFERIOR COM CÁLCULO E BOTÃO DE PAGAMENTO */}
+            <div className="border-t border-slate-200 bg-slate-50 p-6 sm:p-10 text-left">
               {apiError && (
-                <div className="mb-6 flex items-center gap-3 rounded-2xl bg-red-50 p-5 text-sm font-bold text-red-700 border border-red-100 animate-in shake duration-500">
-                  <XCircle className="h-5 w-5 shrink-0" /> {apiError}
+                <div className="mb-6 flex items-center gap-3 rounded-2xl bg-red-50 p-5 text-sm font-bold text-red-700 border border-red-100 animate-in shake duration-500 shadow-sm">
+                  <XCircle className="h-6 w-6 shrink-0" /> {apiError}
                 </div>
               )}
 
+              {/* Bloco de Resumo Financeiro */}
+              <div className="bg-white border border-slate-200 rounded-[2rem] p-6 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-sm">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-[#00577C] mb-2 flex items-center gap-2">
+                    <CreditCard size={14}/> Resumo da Emissão
+                  </p>
+                  <p className="text-sm font-bold text-slate-600 flex items-center gap-2">
+                    1 Titular {hasDependentes && `+ ${numDependentes} Familiar(es)`}
+                  </p>
+                </div>
+                <div className="md:text-right border-t md:border-t-0 border-slate-100 pt-4 md:pt-0">
+                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Taxa Total a Pagar</p>
+                   <p className={`${jakarta.className} text-4xl font-black text-[#009640]`}>{formatarMoeda(valorTotal)}</p>
+                </div>
+              </div>
+
               <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-                <div className="flex flex-wrap items-center gap-4 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                <div className="flex flex-wrap items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-400">
                   <span className="flex items-center gap-1.5"><ShieldCheck className="h-4 w-4 text-[#009640]" /> Dados Protegidos</span>
-                  <span>·</span><span>Análise por IA</span><span>·</span><span>Emissão Digital</span>
+                  <span className="hidden sm:block">·</span><span>Análise por IA</span><span className="hidden sm:block">·</span><span>Conexão Encriptada</span>
                 </div>
 
                 <button
                   type="submit"
                   disabled={loading}
-                  className="inline-flex w-full items-center justify-center gap-3 rounded-full bg-[#F9C400] px-10 py-5 text-lg font-black text-[#00577C] shadow-2xl transition hover:-translate-y-1 hover:bg-[#ffd633] disabled:opacity-60 sm:w-auto"
+                  className="inline-flex w-full items-center justify-center gap-3 rounded-full bg-[#009640] px-10 py-5 text-lg font-black text-white shadow-xl shadow-green-900/20 transition hover:-translate-y-1 hover:bg-[#007a33] disabled:opacity-60 sm:w-auto"
                 >
                   {loading ? (
-                    <><Loader2 className="h-6 w-6 animate-spin" /> Analisando...</>
+                    <><Loader2 className="h-6 w-6 animate-spin" /> Verificando Dados...</>
                   ) : (
-                    <><Users className="h-6 w-6" /> Finalizar e Enviar <ArrowRight className="h-6 w-6" /></>
+                    <><Wallet className="h-6 w-6" /> Ir para Pagamento <ArrowRight className="h-6 w-6" /></>
                   )}
                 </button>
               </div>
             </div>
           </form>
 
-          <footer className="mt-20 pt-10 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6 opacity-30 grayscale">
+          <footer className="mt-20 pt-10 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6 opacity-40 grayscale">
              <Image src="/logop.png" alt="SGA" width={140} height={50} className="object-contain" />
              <p className="text-[10px] font-black uppercase tracking-[0.4em]">© 2026 · São Geraldo do Araguaia (PA)</p>
           </footer>
