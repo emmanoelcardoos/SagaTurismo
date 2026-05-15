@@ -799,15 +799,15 @@ export default function HomePage() {
                 SagaTurismo
               </p>
               <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
-                Secretaria de Turismo de São Geraldo do Araguaia
+                Secretaria de Turismo
               </p>
             </div>
           </Link>
 
           {/* Nav Desktop */}
           <nav className="hidden items-center gap-7 md:flex">
-            <Link href="/roteiro" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
-              Rota Turística
+            <Link href="/hoteis" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
+              Hoteis
             </Link>
 
             <Link href="/pacotes" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
@@ -822,9 +822,12 @@ export default function HomePage() {
               Aldeias
             </Link>
 
-            <a href="#historia" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
-              História
-            </a>
+            <Link
+              href="/parceiros"
+              className="rounded-full bg-[#F9C400] px-5 py-3 text-sm font-bold text-[#00577C] shadow-lg transition hover:bg-[#ffd633]"
+            >
+              Torne-se um parceiro
+            </Link>
 
             <Link
               href="/cadastro"
