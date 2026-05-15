@@ -443,7 +443,8 @@ function SeccaoHoteis() {
       const { data, error } = await supabase
         .from('hoteis')
         .select('*')
-        .order('nome');
+        .order('estrelas', { ascending: false })
+        .limit(3);
 
       if (data) {
         setHoteis(data);
@@ -473,59 +474,67 @@ function SeccaoHoteis() {
             <Loader2 className="w-10 h-10 animate-spin" />
           </div>
         ) : (
-          <div className="grid gap-7 md:grid-cols-3">
-            {hoteis.map((hotel) => (
-              <article
-                key={hotel.id}
-                className="group overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl flex flex-col"
-              >
-                <div className="relative h-48 w-full bg-slate-50 flex items-center justify-center text-slate-400 overflow-hidden shrink-0">
-                  {hotel.imagem_url ? (
-                    <Image
-                      src={hotel.imagem_url}
-                      alt={hotel.nome}
-                      fill
-                      className="object-cover transition-transform duration-500 group-hover:scale-110"
-                    />
-                  ) : (
-                    <Hotel className="h-14 w-14" />
-                  )}
-                </div>
+          <>
+            <div className="grid gap-7 md:grid-cols-3">
+              {hoteis.map((hotel) => (
+                <article
+                  key={hotel.id}
+                  className="group overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl flex flex-col"
+                >
+                  <div className="relative h-48 w-full bg-slate-50 flex items-center justify-center text-slate-400 overflow-hidden shrink-0">
+                    {hotel.imagem_url ? (
+                      <Image
+                        src={hotel.imagem_url}
+                        alt={hotel.nome}
+                        fill
+                        className="object-cover transition-transform duration-500 group-hover:scale-110"
+                      />
+                    ) : (
+                      <Hotel className="h-14 w-14" />
+                    )}
+                  </div>
 
-                <div className="p-7 flex flex-col flex-1">
-                  <div className="mb-4 flex items-center justify-between">
-                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
-                      {hotel.tipo}
-                    </span>
+                  <div className="p-7 flex flex-col flex-1">
+                    <div className="mb-4 flex items-center justify-between">
+                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+                        {hotel.tipo}
+                      </span>
 
-                    <div className="flex gap-1">
-                      {Array.from({ length: hotel.estrelas }).map((_, i) => (
-                        <Star key={i} className="h-4 w-4 fill-[#F9C400] text-[#F9C400]" />
-                      ))}
+                      <div className="flex gap-1">
+                        {Array.from({ length: hotel.estrelas }).map((_, i) => (
+                          <Star key={i} className="h-4 w-4 fill-[#F9C400] text-[#F9C400]" />
+                        ))}
+                      </div>
+                    </div>
+
+                    <h3 className={`${jakarta.className} text-2xl font-bold text-slate-950 mb-3 line-clamp-1`}>
+                      {hotel.nome}
+                    </h3>
+
+                    <p className="leading-relaxed text-slate-600 flex-1 line-clamp-3">
+                      {hotel.descricao}
+                    </p>
+
+                    <div className="mt-6 pt-4 border-t border-slate-100">
+                      <Link
+                        href={`/hoteis/${hotel.id}`}
+                        className="inline-flex items-center gap-2 font-bold text-[#00577C] hover:text-[#004766] transition-colors"
+                      >
+                        Ver detalhes
+                        <ExternalLink className="h-4 w-4" />
+                      </Link>
                     </div>
                   </div>
-
-                  <h3 className={`${jakarta.className} text-2xl font-bold text-slate-950 mb-3 line-clamp-1`}>
-                    {hotel.nome}
-                  </h3>
-
-                  <p className="leading-relaxed text-slate-600 flex-1 line-clamp-3">
-                    {hotel.descricao}
-                  </p>
-
-                  <div className="mt-6 pt-4 border-t border-slate-100">
-                    <Link
-                      href={`/hoteis/${hotel.id}`}
-                      className="inline-flex items-center gap-2 font-bold text-[#00577C] hover:text-[#004766] transition-colors"
-                    >
-                      Ver detalhes
-                      <ExternalLink className="h-4 w-4" />
-                    </Link>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
+                </article>
+              ))}
+            </div>
+            
+            <div className="mt-12 text-center">
+              <Link href="/hoteis" className="inline-flex items-center gap-2 font-bold text-[#00577C] hover:text-[#004766] transition-all">
+                Ver todos os hotéis disponíveis <ArrowRight size={18} />
+              </Link>
+            </div>
+          </>
         )}
       </div>
     </section>
@@ -894,6 +903,40 @@ export default function HomePage() {
                 index === currentImage ? 'w-8 bg-[#F9C400]' : 'w-2.5 bg-white/45'
               }`}
             />
+          ))}
+        </div>
+      </section>
+
+      {/* ATRAÇÕES */}
+      <section id="atracoes" className="mx-auto max-w-7xl px-5 py-24 text-left">
+        <div className="mb-14 max-w-3xl">
+          <p className="mb-3 text-sm font-extrabold uppercase tracking-[0.22em] text-[#009640]">
+            Atrações da cidade
+          </p>
+          <h2 className={`${jakarta.className} text-4xl font-bold text-slate-950 md:text-6xl`}>
+            Natureza, aventura e paisagens que ficam na memória.
+          </h2>
+          <p className="mt-5 max-w-2xl text-slate-600">
+            Conheça alguns dos principais pontos de interesse turístico de São Geraldo do Araguaia.
+          </p>
+        </div>
+
+        <div className="grid gap-7 md:grid-cols-3">
+          {atracoes.map(({ title, desc, icon: Icon }) => (
+            <article
+              key={title}
+              className="rounded-[2rem] border border-slate-200 bg-white p-7 shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
+            >
+              <div className="mb-8 flex h-16 w-16 items-center justify-center rounded-3xl bg-[#EAF8F0] text-[#009640]">
+                <Icon className="h-8 w-8" />
+              </div>
+
+              <h3 className={`${jakarta.className} text-2xl font-bold text-slate-950`}>
+                {title}
+              </h3>
+
+              <p className="mt-4 leading-relaxed text-slate-600">{desc}</p>
+            </article>
           ))}
         </div>
       </section>
