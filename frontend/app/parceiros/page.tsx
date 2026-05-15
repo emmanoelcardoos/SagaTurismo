@@ -70,41 +70,41 @@ export default function ParceirosPage() {
   }, [lastScrollY]);
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoggingIn(true);
+  e.preventDefault();
+  setIsLoggingIn(true);
+  
+  try {
+    const response = await fetch("https://sagaturismo-production.up.railway.app/api/v1/parceiros/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ 
+        email: loginEmail, 
+        senha: loginSenha 
+      })
+    });
     
-    try {
-      const response = await fetch("https://sagaturismo-production.up.railway.app/api/v1/parceiros/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          email: loginEmail, 
-          senha: loginSenha 
-        })
-      });
+    const data = await response.json();
+    
+    if (response.ok && data.sucesso) {
+      // Sucesso! Guarda os dados do parceiro no navegador
+      localStorage.setItem("parceiro_id", data.parceiro_id);
+      localStorage.setItem("nome_negocio", data.nome_negocio);
       
-      const data = await response.json();
+      // ── REDIRECIONAMENTO COM ROUTER DO NEXT.JS ──
+      // Substitui o alert e o window.location por uma navegação fluida de SPA
+      router.push("/parceiros/dashboard");
       
-      if (response.ok && data.sucesso) {
-        // Sucesso! Guarda os dados do parceiro no navegador
-        localStorage.setItem("parceiro_id", data.parceiro_id);
-        localStorage.setItem("nome_negocio", data.nome_negocio);
-        
-        // Redireciona para a página do Dashboard (que vamos criar a seguir)
-        alert(`Bem-vindo, ${data.nome_negocio}! Redirecionando para o painel...`);
-        // window.location.href = "/parceiros/painel"; // Descomenta isto quando a página existir
-        
-      } else {
-        // Mostra o erro exato que vem do backend (ex: "Conta suspensa", "Senha errada")
-        alert(data.detail || "Erro ao fazer login. Verifique os dados.");
-      }
-    } catch (error) {
-      console.error("Erro na comunicação com a API:", error);
-      alert("Falha na conexão com o servidor.");
-    } finally {
-      setIsLoggingIn(false);
+    } else {
+      // Mostra o erro exato que vem do backend ou o fallback se detail não existir
+      alert(data.detail || data.mensagem || "Erro ao fazer login. Verifique os dados.");
     }
-  };
+  } catch (error) {
+    console.error("Erro na comunicação com a API:", error);
+    alert("Falha na conexão com o servidor.");
+  } finally {
+    setIsLoggingIn(false);
+  }
+};
 
   const handleInteresse = (e: React.FormEvent) => {
     e.preventDefault();
