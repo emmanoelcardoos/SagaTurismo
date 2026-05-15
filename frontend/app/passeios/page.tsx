@@ -4,10 +4,10 @@ import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
-  Loader2, Menu, ArrowRight,
-  CalendarClock, Search, Star, 
-  ChevronRight, Sparkles,
-  ShieldCheck, Filter, Compass
+  Loader2, Menu, MapPin, ArrowRight,
+  CalendarClock, Search, CalendarDays, Star, 
+  CheckCircle2, ChevronRight, Sparkles, X, 
+  ShieldCheck, Filter, Compass, Ticket, Sun
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -58,11 +58,11 @@ export default function PasseiosPage() {
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
 
-  // Estados de Filtro (Sem calendário)
-  const [categoriaSel, setCategoriaSel] = useState('Todos');
+  // ── ESTADOS DE FILTRO ──
   const [termoBusca, setTermoBusca] = useState('');
+  const [categoriasSelecionadas, setCategoriasSelecionadas] = useState<string[]>([]);
 
-  const categorias = ['Todos', 'Trilha', 'Balneário', 'Cachoeira', 'Ecoturismo', 'Camping', 'Aventura'];
+  const categorias = ['Trilha', 'Balneário', 'Cachoeira', 'Ecoturismo', 'Camping', 'Aventura'];
 
   useEffect(() => {
     async function fetchPasseios() {
@@ -88,17 +88,24 @@ export default function PasseiosPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
+  // Função para alternar as categorias na barra lateral
+  const toggleCategoria = (cat: string) => {
+    setCategoriasSelecionadas(prev => 
+      prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
+    );
+  };
+
   const passeiosFiltrados = useMemo(() => {
     return passeios.filter(p => {
       const matchesTermo = p.titulo.toLowerCase().includes(termoBusca.toLowerCase()) ||
                            (p.descricao_curta && p.descricao_curta.toLowerCase().includes(termoBusca.toLowerCase()));
-      const matchesCategoria = categoriaSel === 'Todos' || p.categoria === categoriaSel;
+      const matchesCategoria = categoriasSelecionadas.length === 0 || (p.categoria && categoriasSelecionadas.includes(p.categoria));
       return matchesTermo && matchesCategoria;
     });
-  }, [passeios, termoBusca, categoriaSel]);
+  }, [passeios, termoBusca, categoriasSelecionadas]);
 
   return (
-    <main className={`${inter.className} min-h-screen bg-[#F8F9FA] text-slate-900 pb-20`}>
+    <main className={`${inter.className} min-h-screen bg-[#F5F7FA] text-slate-900 pb-20`}>
 
       {/* HEADER */}
       <header className={`fixed left-0 top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl transition-transform duration-300 ${showHeader ? 'translate-y-0' : '-translate-y-full'}`}>
@@ -112,142 +119,172 @@ export default function PasseiosPage() {
           </Link>
           <nav className="hidden items-center gap-7 md:flex text-left font-bold">
             <Link href="/roteiro" className="text-sm text-slate-600 hover:text-[#00577C]">Rota Turística</Link>
-            <Link href="/hoteis" className="text-sm text-slate-600 hover:text-[#00577C]">Hotéis</Link>
+            <Link href="/hoteis" className="text-sm text-slate-600 hover:text-[#00577C]">Alojamentos</Link>
             <Link href="/pacotes" className="text-sm text-slate-600 hover:text-[#00577C]">Pacotes</Link>
             <Link href="/cadastro" className="rounded-full bg-[#F9C400] px-5 py-3 text-sm text-[#00577C] shadow-lg hover:bg-[#ffd633] transition-all">Cartão Residente</Link>
           </nav>
         </div>
       </header>
 
-      {/* HERO SECTION */}
-      <section className="relative pt-[140px] pb-24 overflow-hidden bg-[#00577C]">
-        <div className="absolute inset-0 z-0">
-          <Image src="https://images.unsplash.com/photo-1533587851505-d119e13fa0d7?q=80&w=1740" alt="Background" fill className="object-cover opacity-20" />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#00577C]/80 via-transparent to-[#F8F9FA]" />
-        </div>
-
+      {/* HERO SECTION SÓBRIA & OFICIAL */}
+      <section className="relative pt-[140px] pb-16 bg-[#00577C] z-30">
         <div className="relative z-10 mx-auto max-w-7xl px-6 text-left">
-          <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 bg-[#F9C400] text-[#00577C] px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest mb-6">
-              <Sparkles size={12}/> Bate e Volta
+          <h1 className={`${jakarta.className} text-4xl md:text-5xl font-black text-white leading-tight mb-8`}>
+            Passeios Oficiais. <span className="text-[#F9C400]">Aventuras Seguras.</span>
+          </h1>
+
+          {/* BARRA DE PESQUISA ESTILO BOOKING */}
+          <div className="bg-[#F9C400] p-1.5 md:p-2 rounded-[2rem] shadow-xl max-w-5xl flex flex-col md:flex-row gap-1.5 md:gap-2 relative z-50">
+            
+            {/* 1. Destino Fixo */}
+            <div className="bg-white flex-1 rounded-[1.5rem] px-5 py-3 flex items-center gap-3">
+               <MapPin className="text-[#00577C] shrink-0" size={24} />
+               <div className="text-left overflow-hidden">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 truncate">Destino</p>
+                  <p className="font-bold text-slate-800 text-sm truncate">São Geraldo do Araguaia - PA</p>
+               </div>
             </div>
-            <h1 className={`${jakarta.className} text-4xl md:text-6xl font-black text-white leading-none mb-4`}>
-              Passeios e <span className="text-[#F9C400]">Aventuras</span>
-            </h1>
-            <p className="text-lg text-white/70 font-medium max-w-xl mb-10">
-              Trilhas, cachoeiras e roteiros curtos com a segurança de guias locais credenciados.
-            </p>
-          </div>
 
-          {/* CAIXA DE BUSCA MODERNA (SEM CALENDÁRIO) */}
-          <div className="bg-white/10 backdrop-blur-md p-2 rounded-[2.5rem] border border-white/20 shadow-2xl max-w-4xl">
-            <div className="bg-white rounded-[2.2rem] p-3 flex flex-col lg:flex-row items-center gap-2">
-              
-              {/* Filtro Categorias */}
-              <div className="w-full lg:w-64 relative group">
-                <Filter className="absolute left-5 top-1/2 -translate-y-1/2 text-[#00577C]" size={18} />
-                <select 
-                  value={categoriaSel}
-                  onChange={(e) => setCategoriaSel(e.target.value)}
-                  className="w-full pl-12 pr-6 py-4 rounded-2xl bg-slate-50 border-none font-bold text-slate-700 appearance-none outline-none focus:ring-4 focus:ring-[#00577C]/5 transition-all cursor-pointer"
-                >
-                  {categorias.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                </select>
-              </div>
-
-              <div className="hidden lg:block w-px h-8 bg-slate-200 mx-2" />
-
-              {/* Busca Texto */}
-              <div className="w-full flex-1 relative">
-                <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                <input 
-                  type="text" 
-                  placeholder="Procurar passeio..." 
-                  value={termoBusca}
-                  onChange={(e) => setTermoBusca(e.target.value)}
-                  className="w-full pl-12 pr-6 py-4 rounded-2xl border-none font-bold text-slate-800 outline-none placeholder:text-slate-400"
-                />
-              </div>
-
-              <button className="w-full lg:w-auto bg-[#00577C] text-white px-10 py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-[#004a6b] transition-all flex items-center justify-center gap-2">
-                BUSCAR
-              </button>
+            {/* 2. Busca por Texto */}
+            <div className="bg-white flex-[2] rounded-[1.5rem] px-5 py-3 flex items-center gap-3 relative">
+               <Search className="text-[#00577C] shrink-0" size={24} />
+               <div className="text-left flex-1">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Procurar Passeio</p>
+                  <input 
+                    type="text" 
+                    placeholder="Ex: Trilha, Praia do Pium, Barco..." 
+                    value={termoBusca}
+                    onChange={(e) => setTermoBusca(e.target.value)}
+                    className="w-full border-none font-bold text-slate-800 text-sm outline-none placeholder:text-slate-300 p-0"
+                  />
+               </div>
             </div>
+
+            <button className="bg-slate-900 text-white px-10 py-4 md:py-0 rounded-[1.5rem] font-black text-sm uppercase tracking-widest hover:bg-black transition-all shadow-md shrink-0">
+              Buscar
+            </button>
           </div>
         </div>
       </section>
 
-      {/* GRID DE CARDS CLICÁVEIS */}
-      <section className="mx-auto max-w-7xl px-6 -mt-8 relative z-20">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-24"><Loader2 className="animate-spin text-[#00577C]" size={48}/></div>
-        ) : (
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {passeiosFiltrados.map((passeio) => (
-              <Link key={passeio.id} href={`/passeios/${passeio.id}`} className="group">
-                <article className="h-full bg-white rounded-[2.5rem] overflow-hidden border border-slate-200 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 flex flex-col relative">
+      {/* CONTEÚDO PRINCIPAL: FILTROS + LISTA HORIZONTAL */}
+      <section className="mx-auto max-w-7xl px-6 pt-12 relative z-20">
+        <div className="flex flex-col lg:flex-row gap-8 items-start">
+          
+          {/* BARRA LATERAL DE FILTROS */}
+          <aside className="w-full lg:w-72 shrink-0 space-y-6">
+            <div className="bg-white rounded-[2.5rem] border border-slate-200 p-8 shadow-sm">
+              <h3 className={`${jakarta.className} text-xl font-black text-slate-900 mb-8 flex items-center gap-3`}>
+                <Filter size={20} className="text-[#00577C]"/> Filtros
+              </h3>
+              
+              <div className="mb-8">
+                <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-4">Categorias de Passeio</p>
+                <div className="space-y-4">
+                  {categorias.map(cat => (
+                    <label key={cat} className="flex items-center gap-3 cursor-pointer group">
+                      <input 
+                        type="checkbox" 
+                        checked={categoriasSelecionadas.includes(cat)}
+                        onChange={() => toggleCategoria(cat)}
+                        className="w-5 h-5 rounded-md border-slate-300 text-[#00577C] focus:ring-[#00577C]" 
+                      />
+                      <span className="text-sm font-bold text-slate-600 group-hover:text-[#00577C] transition-colors">{cat}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Banner de Segurança */}
+            <div className="bg-[#e6f4ea] border border-[#009640]/20 rounded-[2.5rem] p-8 text-center shadow-sm">
+               <ShieldCheck className="mx-auto mb-4 text-[#009640]" size={40} />
+               <p className="text-base font-black text-[#009640] mb-2">Passeios Seguros</p>
+               <p className="text-xs text-green-800 font-medium leading-relaxed">Todos os guias listados são credenciados e recomendados pela Secretaria de Turismo.</p>
+            </div>
+          </aside>
+
+          {/* LISTA DE PASSEIOS HORIZONTAL */}
+          <div className="flex-1 w-full space-y-8">
+            <div className="flex items-center justify-between mb-2">
+               <h2 className={`${jakarta.className} text-3xl font-black text-slate-800`}>Aventuras Disponíveis</h2>
+               {!loading && <p className="text-sm font-bold text-slate-400 bg-white px-4 py-2 rounded-full border border-slate-200">{passeiosFiltrados.length} opções</p>}
+            </div>
+
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-32 bg-white rounded-[3rem] border border-slate-200 shadow-sm">
+                <Loader2 className="animate-spin text-[#00577C] mb-4" size={48}/>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Buscando aventuras...</p>
+              </div>
+            ) : passeiosFiltrados.length === 0 ? (
+              <div className="text-center py-20 bg-white rounded-[3rem] border-2 border-dashed border-slate-200">
+                <Search size={40} className="mx-auto text-slate-300 mb-4" />
+                <p className="text-lg font-bold text-slate-500">Nenhuma aventura atende aos filtros selecionados.</p>
+                <button onClick={() => {setTermoBusca(''); setCategoriasSelecionadas([]);}} className="mt-4 text-[#00577C] font-bold underline">Limpar Filtros</button>
+              </div>
+            ) : (
+              passeiosFiltrados.map((passeio) => (
+                <article key={passeio.id} className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col md:flex-row overflow-hidden group">
                   
-                  {/* IMAGEM */}
-                  <div className="relative h-60 overflow-hidden shrink-0">
-                    <Image src={passeio.imagem_principal || FALLBACK_IMAGE} alt={passeio.titulo} fill className="object-cover transition-transform duration-700 group-hover:scale-110" />
-                    <div className="absolute top-4 left-4 bg-white/95 backdrop-blur px-3 py-1.5 rounded-xl flex items-center gap-2 text-[10px] font-black uppercase text-[#009640] shadow-sm">
-                      <CalendarClock size={14}/> {formatarDataLocal(passeio.data_passeio)}
+                  {/* IMAGEM (Lado Esquerdo) */}
+                  <div className="relative w-full md:w-80 h-64 md:h-auto shrink-0 overflow-hidden bg-slate-100">
+                    <Image src={passeio.imagem_principal || FALLBACK_IMAGE} alt={passeio.titulo} fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
+                    <div className="absolute top-5 left-5 bg-[#F9C400] text-[#00577C] px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-lg">
+                      {passeio.categoria || 'Aventura'}
                     </div>
                   </div>
 
-                  {/* CONTEÚDO */}
+                  {/* CONTEÚDO (Lado Direito) */}
                   <div className="p-8 flex flex-col flex-1 text-left">
-                    <div className="flex items-center justify-between mb-4">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-[#00577C] bg-blue-50 px-2 py-1 rounded">
-                        {passeio.categoria || 'Aventura'}
-                      </span>
-                      <div className="flex items-center gap-1 text-[#F9C400]">
-                         <Star size={14} fill="currentColor"/> <span className="text-xs font-black text-slate-400">5.0</span>
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <h3 className={`${jakarta.className} text-3xl font-black text-[#00577C] leading-tight hover:underline cursor-pointer mb-2`}>
+                          <Link href={`/passeios/${passeio.id}`}>{passeio.titulo}</Link>
+                        </h3>
                       </div>
                     </div>
-                    
-                    <h3 className={`${jakarta.className} text-2xl font-black text-slate-900 mb-3 leading-tight group-hover:text-[#00577C] transition-colors`}>
-                      {passeio.titulo}
-                    </h3>
 
-                    <div className="flex items-center gap-2 mb-4">
-                       <Compass size={14} className="text-[#009640]"/>
-                       <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">
-                         Guia: {passeio.nome_guia || 'Local'}
-                       </span>
+                    <div className="flex items-center gap-2 text-xs font-bold text-[#009640] mb-5 bg-green-50 px-3 py-1.5 rounded-lg self-start">
+                      <CalendarDays size={14} /> Agendado para {formatarDataLocal(passeio.data_passeio)}
                     </div>
                     
-                    <p className="text-slate-500 text-sm leading-relaxed line-clamp-3 mb-8 font-medium">
+                    <p className="text-slate-500 text-sm leading-relaxed line-clamp-2 mb-6 font-medium pr-4">
                       {passeio.descricao_curta}
                     </p>
 
-                    {/* RODAPÉ DO CARD (PREÇO VERDE) */}
-                    <div className="mt-auto pt-6 border-t border-slate-100 flex items-center justify-between">
-                      <div className="text-left">
-                         <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest leading-none mb-1">Por pessoa</p>
-                         <p className={`${jakarta.className} text-2xl font-black text-[#009640] tabular-nums`}>
-                           {formatarMoeda(parseValor(passeio.valor_total || 0))}
+                    <div className="flex flex-wrap items-center gap-4 text-slate-500 mb-8">
+                       <span className="flex items-center gap-1.5 text-xs font-bold bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
+                         <Compass size={14} className="text-[#00577C]"/> Guia: {passeio.nome_guia || 'Local'}
+                       </span>
+                       <span className="flex items-center gap-1.5 text-xs font-bold bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
+                         <CheckCircle2 size={14} className="text-[#00577C]"/> Bate e Volta
+                       </span>
+                    </div>
+
+                    {/* PREÇO E BOTÃO DA MATEMÁTICA */}
+                    <div className="mt-auto pt-6 border-t border-slate-100 flex flex-col sm:flex-row sm:items-end justify-between gap-6">
+                      <div>
+                         <p className="text-[10px] font-black uppercase tracking-widest text-[#00577C] mb-1">Valor Justo</p>
+                         <p className="text-xs font-bold text-slate-500">
+                           Apoie o turismo local e os <br/> guias da região.
                          </p>
                       </div>
-                      <div className="w-12 h-12 bg-slate-50 text-[#009640] rounded-2xl flex items-center justify-center group-hover:bg-[#009640] group-hover:text-white transition-colors">
-                         <ChevronRight size={24}/>
+                      <div className="text-right flex flex-col items-end">
+                         <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Por pessoa</p>
+                         <p className={`${jakarta.className} text-4xl font-black text-[#009640] tabular-nums mb-4 leading-none`}>
+                           {formatarMoeda(parseValor(passeio.valor_total || 0))}
+                         </p>
+                         <Link href={`/passeios/${passeio.id}`} className="bg-[#00577C] text-white px-10 py-4 rounded-[1.5rem] font-black text-sm uppercase tracking-widest hover:bg-[#004a6b] transition-all shadow-xl hover:shadow-[#00577C]/20 flex items-center gap-3 hover:translate-x-1">
+                           Ver Detalhes <ChevronRight size={20}/>
+                         </Link>
                       </div>
                     </div>
                   </div>
                 </article>
-              </Link>
-            ))}
+              ))
+            )}
           </div>
-        )}
-
-        {!loading && passeiosFiltrados.length === 0 && (
-          <div className="py-24 text-center bg-white rounded-[3rem] border-2 border-dashed border-slate-200">
-             <Search className="mx-auto mb-4 text-slate-300" size={50}/>
-             <h3 className={`${jakarta.className} text-2xl font-black text-slate-800`}>Nada encontrado</h3>
-             <p className="text-slate-500 font-medium">Não existem passeios com estes critérios no momento.</p>
-             <button onClick={() => {setTermoBusca(''); setCategoriaSel('Todos');}} className="mt-6 text-[#00577C] font-black text-sm uppercase tracking-widest border-b-2 border-[#00577C]">Limpar Filtros</button>
-          </div>
-        )}
+        </div>
       </section>
 
       {/* FOOTER */}
