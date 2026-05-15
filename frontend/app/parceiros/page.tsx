@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { 
-  Menu, X, Lock, Mail, ChevronRight, Building2, 
+  Menu, X, Lock, Mail, Building2, 
   Map as MapIcon, UserCheck, TrendingUp, ShieldCheck, Globe, 
   Phone, ArrowRight, Loader2, CheckCircle2 
 } from 'lucide-react';
@@ -118,17 +118,17 @@ export default function ParceirosPage() {
       </header>
 
       {/* ── HERO & LOGIN SECTION ── */}
-      <section className="relative w-full min-h-[100vh] lg:min-h-[85vh] bg-[#002f40] pt-[100px] md:pt-[120px] pb-12 md:pb-20 flex items-center overflow-hidden">
+      <section className="relative w-full min-h-[100vh] lg:min-h-[85vh] bg-[#002f40] pt-[120px] md:pt-[120px] pb-12 md:pb-20 flex items-center overflow-hidden">
         <div className="absolute inset-0 z-0">
            <Image src="https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?q=80&w=2000" alt="Turismo" fill className="object-cover opacity-30 mix-blend-overlay" priority />
            <div className="absolute inset-0 bg-gradient-to-r from-[#002f40] via-[#002f40]/90 to-transparent" />
         </div>
 
         <div className="mx-auto w-full max-w-7xl px-5 relative z-10">
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+          <div className="grid lg:grid-cols-2 gap-10 lg:gap-20 items-center">
             
-            {/* TEXTO HERO (Esquerda) com Reveal */}
-            <ScrollReveal delay={100} className="text-left order-2 lg:order-1 mt-10 lg:mt-0">
+            {/* TEXTO HERO (Esquerda) - Agora sem order-2 */}
+            <ScrollReveal delay={100} className="text-left mt-6 lg:mt-0">
                <div className="inline-flex items-center gap-2 bg-[#F9C400] text-[#00577C] px-3 md:px-4 py-1.5 md:py-2 rounded-lg text-[10px] md:text-xs font-black uppercase tracking-widest shadow-md mb-6">
                  <ShieldCheck size={16} /> Sistema Oficial
                </div>
@@ -136,16 +136,16 @@ export default function ParceirosPage() {
                  Conecte o seu negócio ao <span className="text-[#F9C400]">mundo.</span>
                </h1>
                <p className="text-white/80 font-medium text-base md:text-lg leading-relaxed max-w-xl mb-8">
-                 O portal SagaTurismo é a montra oficial de São Geraldo do Araguaia. Aumente as suas reservas, gira a sua disponibilidade em tempo real e faça parte do desenvolvimento da nossa região.
+                 O portal SagaTurismo é a vitrine oficial de São Geraldo do Araguaia. Aumente as suas reservas, gira a sua disponibilidade em tempo real e faça parte do desenvolvimento da nossa cidade.
                </p>
-               <div className="flex flex-wrap items-center gap-6 text-sm font-bold text-white/90">
-                  <span className="flex items-center gap-2"><CheckCircle2 size={18} className="text-[#009640]"/> Zero comissões abusivas</span>
-                  <span className="flex items-center gap-2"><CheckCircle2 size={18} className="text-[#009640]"/> Suporte direto</span>
+               <div className="flex flex-wrap items-center gap-4 lg:gap-6 text-xs sm:text-sm font-bold text-white/90">
+                  <span className="flex items-center gap-2"><CheckCircle2 size={16} className="text-[#009640]"/> Zero comissões abusivas</span>
+                  <span className="flex items-center gap-2"><CheckCircle2 size={16} className="text-[#009640]"/> Suporte direto</span>
                </div>
             </ScrollReveal>
 
-            {/* CARD DE LOGIN (Direita) com Reveal ligeiramente atrasado */}
-            <ScrollReveal delay={300} className="order-1 lg:order-2 w-full max-w-md mx-auto lg:ml-auto">
+            {/* CARD DE LOGIN (Direita) - Agora sem order-1 */}
+            <ScrollReveal delay={300} className="w-full max-w-md mx-auto lg:ml-auto">
                <div className="bg-white rounded-[2rem] md:rounded-[2.5rem] shadow-2xl p-8 md:p-10 border border-slate-100 relative overflow-hidden text-left">
                   <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-[#00577C] to-[#F9C400]" />
                   
@@ -156,7 +156,7 @@ export default function ParceirosPage() {
 
                   <form onSubmit={handleLogin} className="space-y-5">
                      <div>
-                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">E-mail ou NIF/CPF</label>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">E-mail ou CPF</label>
                         <div className="relative">
                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20}/>
                            <input type="text" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} required className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="seu@email.com" />
@@ -189,14 +189,14 @@ export default function ParceirosPage() {
       </section>
 
       {/* ── PORQUE SER PARCEIRO (BENEFÍCIOS) ── */}
-      <section className="py-20 md:py-32 px-5 bg-white text-center overflow-hidden">
+      <section className="py-16 md:py-32 px-5 bg-white text-center overflow-hidden">
          <div className="max-w-7xl mx-auto">
             <ScrollReveal>
                <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.3em] text-[#009640] mb-3">Vantagens Exclusivas</p>
-               <h2 className={`${jakarta.className} text-3xl md:text-4xl font-black text-slate-900 mb-16`}>Porquê juntar-se ao portal oficial?</h2>
+               <h2 className={`${jakarta.className} text-3xl md:text-4xl font-black text-slate-900 mb-10 md:mb-16`}>Porquê juntar-se ao portal oficial?</h2>
             </ScrollReveal>
 
-            <div className="grid md:grid-cols-3 gap-8 md:gap-12">
+            <div className="grid md:grid-cols-3 gap-6 md:gap-12">
                <ScrollReveal delay={0}>
                  <div className="bg-slate-50 rounded-[2rem] p-8 md:p-10 border border-slate-100 text-left hover:-translate-y-2 transition-transform duration-300 h-full">
                     <div className="w-14 h-14 rounded-2xl bg-blue-100 text-[#00577C] flex items-center justify-center mb-6 shadow-sm"><Globe size={28}/></div>
@@ -225,16 +225,16 @@ export default function ParceirosPage() {
       </section>
 
       {/* ── FORMULÁRIO DE INTERESSE (CADASTRO) ── */}
-      <section id="cadastro" className="py-20 md:py-32 px-5 bg-slate-900 relative overflow-hidden">
+      <section id="cadastro" className="py-16 md:py-32 px-5 bg-slate-900 relative overflow-hidden">
          <div className="absolute top-0 right-0 w-full h-full opacity-5 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at top right, #F9C400 0%, transparent 40%)' }}></div>
          
-         <div className="max-w-6xl mx-auto flex flex-col lg:flex-row gap-16 items-center relative z-10">
+         <div className="max-w-6xl mx-auto flex flex-col lg:flex-row gap-12 md:gap-16 items-center relative z-10">
             
             <ScrollReveal delay={100} className="flex-1 text-left">
                <h2 className={`${jakarta.className} text-3xl md:text-5xl font-black text-white leading-tight mb-6`}>Dê o próximo passo. <br className="hidden md:block"/><span className="text-[#F9C400]">Seja um Parceiro.</span></h2>
                <p className="text-slate-300 text-base md:text-lg leading-relaxed mb-8">Preencha o formulário com os dados da sua empresa ou serviço. A nossa equipa da Secretaria de Turismo entrará em contacto para validar o seu credenciamento e criar o seu acesso.</p>
                
-               <div className="space-y-6">
+               <div className="space-y-6 hidden sm:block">
                   <div className="flex items-center gap-4 text-white">
                      <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center"><Building2 size={24} className="text-[#F9C400]"/></div>
                      <div><p className="font-bold">Alojamentos</p><p className="text-xs text-slate-400">Hotéis, Pousadas e Hostels</p></div>
@@ -250,8 +250,7 @@ export default function ParceirosPage() {
                </div>
             </ScrollReveal>
 
-            {/* AQUI ESTAVA O ERRO DA TAG DE FECHO - AGORA CORRIGIDO */}
-            <ScrollReveal delay={300} className="w-full lg:w-[480px] bg-white rounded-[2rem] md:rounded-[2.5rem] p-8 md:p-10 shadow-2xl text-left">
+            <ScrollReveal delay={300} className="w-full lg:w-[480px] bg-white rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-10 shadow-2xl text-left">
                {formSucesso ? (
                   <div className="text-center py-10 animate-in zoom-in-95 duration-500">
                      <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6"><CheckCircle2 size={40} className="text-[#009640]"/></div>
@@ -260,8 +259,8 @@ export default function ParceirosPage() {
                      <button onClick={() => setFormSucesso(false)} className="mt-8 text-sm font-bold text-[#00577C] underline">Enviar outro pedido</button>
                   </div>
                ) : (
-                  <form onSubmit={handleInteresse} className="space-y-5">
-                     <h3 className={`${jakarta.className} text-2xl font-black text-slate-900 mb-6 border-b border-slate-100 pb-6`}>Pedido de Registo</h3>
+                  <form onSubmit={handleInteresse} className="space-y-4 md:space-y-5">
+                     <h3 className={`${jakarta.className} text-xl md:text-2xl font-black text-slate-900 mb-4 md:mb-6 border-b border-slate-100 pb-4 md:pb-6`}>Pedido de Registro</h3>
                      
                      <div className="grid grid-cols-2 gap-3 mb-6">
                         <label className={`border-2 rounded-xl p-3 text-center cursor-pointer transition-all ${formTipo === 'hotel' ? 'border-[#00577C] bg-blue-50 text-[#00577C]' : 'border-slate-100 text-slate-500'}`}>
@@ -275,26 +274,26 @@ export default function ParceirosPage() {
                      </div>
 
                      <div>
-                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">O seu Nome</label>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-1.5 md:mb-2">O seu Nome</label>
                         <input type="text" required value={formNome} onChange={(e) => setFormNome(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-3.5 px-4 text-sm font-bold outline-none focus:border-[#00577C]" placeholder="Nome completo" />
                      </div>
                      <div>
-                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Nome do Negócio</label>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-1.5 md:mb-2">Nome do Negócio</label>
                         <input type="text" required value={formEmpresa} onChange={(e) => setFormEmpresa(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-3.5 px-4 text-sm font-bold outline-none focus:border-[#00577C]" placeholder="Ex: Pousada da Serra" />
                      </div>
                      <div>
-                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">WhatsApp de Contacto</label>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-1.5 md:mb-2">WhatsApp para contato</label>
                         <input type="tel" required value={formTelefone} onChange={(e) => setFormTelefone(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-3.5 px-4 text-sm font-bold outline-none focus:border-[#00577C]" placeholder="(94) 90000-0000" />
                      </div>
 
-                     <button type="submit" disabled={isSubmitting} className="w-full bg-[#009640] hover:bg-[#007a33] text-white py-4 rounded-xl font-black uppercase text-xs tracking-widest shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2 mt-4">
+                     <button type="submit" disabled={isSubmitting} className="w-full bg-[#009640] hover:bg-[#007a33] text-white py-4 rounded-xl font-black uppercase text-xs tracking-widest shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2 mt-2 md:mt-4">
                         {isSubmitting ? (
                            <span className="flex items-center gap-2"><Loader2 className="animate-spin" size={16}/> Enviando...</span>
                         ) : (
                            <span className="flex items-center gap-2"><ArrowRight size={16}/> Enviar Pedido</span>
                         )}
                      </button>
-                     <p className="text-[10px] text-center text-slate-400 font-bold mt-4">Os seus dados estão protegidos. Não enviamos spam.</p>
+                     <p className="text-[9px] md:text-[10px] text-center text-slate-400 font-bold mt-4">Os seus dados estão protegidos. Não enviamos spam.</p>
                   </form>
                )}
             </ScrollReveal>
@@ -312,7 +311,7 @@ export default function ParceirosPage() {
               <p className="text-[9px] text-slate-500 uppercase font-bold tracking-widest">Portal do Parceiro</p>
             </div>
           </div>
-          <p className="text-[10px] text-slate-400 font-bold tracking-widest uppercase">© 2026 Secretaria Municipal de Turismo</p>
+          <p className="text-[9px] md:text-[10px] text-slate-400 font-bold tracking-widest uppercase text-center md:text-left">© 2026 Secretaria Municipal de Turismo</p>
         </div>
       </footer>
     </main>
