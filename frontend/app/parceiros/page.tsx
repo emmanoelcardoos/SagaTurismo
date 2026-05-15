@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, FormEvent, ReactNode } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { 
   Menu, X, Lock, Mail, ChevronRight, Building2, 
-  Map, UserCheck, TrendingUp, ShieldCheck, Globe, 
+  Map as MapIcon, UserCheck, TrendingUp, ShieldCheck, Globe, 
   Phone, ArrowRight, Loader2, CheckCircle2 
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
@@ -14,7 +14,7 @@ const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['600', '700', '
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
 
 // ── COMPONENTE MÁGICO DE ANIMAÇÃO (Estilo Apple) ──
-function ScrollReveal({ children, className = "", delay = 0 }: { children: React.ReactNode, className?: string, delay?: number }) {
+function ScrollReveal({ children, className = "", delay = 0 }: { children: ReactNode; className?: string; delay?: number }) {
   const [isVisible, setIsVisible] = useState(false);
   const domRef = useRef<HTMLDivElement>(null);
 
@@ -22,10 +22,9 @@ function ScrollReveal({ children, className = "", delay = 0 }: { children: React
     const observer = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting) {
         setTimeout(() => setIsVisible(true), delay);
-        // Para a animação acontecer apenas uma vez e não pesar o site
         if (domRef.current) observer.unobserve(domRef.current);
       }
-    }, { threshold: 0.15 }); // Dispara quando 15% do elemento estiver visível
+    }, { threshold: 0.15 });
 
     if (domRef.current) observer.observe(domRef.current);
     return () => observer.disconnect();
@@ -70,18 +69,16 @@ export default function ParceirosPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
-  // Função fictícia de Login
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoggingIn(true);
     setTimeout(() => {
       setIsLoggingIn(false);
-      // Aqui entrará a lógica de redirecionamento para o Dashboard
+      // Lógica futura de login
     }, 1500);
   };
 
-  // Função fictícia do Formulário de Interesse
-  const handleInteresse = (e: React.FormEvent) => {
+  const handleInteresse = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
     setTimeout(() => {
@@ -91,7 +88,7 @@ export default function ParceirosPage() {
   };
 
   return (
-    <main className={`${inter.className} min-h-screen bg-[#F5F7FA] text-slate-900 flex flex-col overflow-x-hidden`}>
+    <main className={inter.className + " min-h-screen bg-[#F5F7FA] text-slate-900 flex flex-col overflow-x-hidden"}>
       
       {/* ── HEADER ── */}
       <header className={`fixed left-0 top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl transition-transform duration-300 ${showHeader ? 'translate-y-0' : '-translate-y-full'}`}>
@@ -163,7 +160,7 @@ export default function ParceirosPage() {
                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">E-mail ou NIF/CPF</label>
                         <div className="relative">
                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20}/>
-                           <input type="text" required className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="seu@email.com" />
+                           <input type="text" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} required className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="seu@email.com" />
                         </div>
                      </div>
                      <div>
@@ -173,12 +170,16 @@ export default function ParceirosPage() {
                         </div>
                         <div className="relative">
                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20}/>
-                           <input type="password" required className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="••••••••" />
+                           <input type="password" value={loginSenha} onChange={e => setLoginSenha(e.target.value)} required className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="••••••••" />
                         </div>
                      </div>
                      
                      <button type="submit" disabled={isLoggingIn} className="w-full bg-[#00577C] hover:bg-[#004a6b] text-white py-4 rounded-2xl font-black uppercase text-xs md:text-sm tracking-widest shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2 mt-4">
-                        {isLoggingIn ? <><Loader2 className="animate-spin" size={18}/> Autenticando...</> : 'Entrar no Dashboard'}
+                        {isLoggingIn ? (
+                           <span className="flex items-center gap-2"><Loader2 className="animate-spin" size={18}/> Autenticando...</span>
+                        ) : (
+                           <span>Entrar no Dashboard</span>
+                        )}
                      </button>
                   </form>
                </div>
@@ -197,7 +198,6 @@ export default function ParceirosPage() {
             </ScrollReveal>
 
             <div className="grid md:grid-cols-3 gap-8 md:gap-12">
-               {/* Usar "delay" progressivo cria aquele efeito em escada tão popular */}
                <ScrollReveal delay={0}>
                  <div className="bg-slate-50 rounded-[2rem] p-8 md:p-10 border border-slate-100 text-left hover:-translate-y-2 transition-transform duration-300 h-full">
                     <div className="w-14 h-14 rounded-2xl bg-blue-100 text-[#00577C] flex items-center justify-center mb-6 shadow-sm"><Globe size={28}/></div>
@@ -218,7 +218,7 @@ export default function ParceirosPage() {
                  <div className="bg-slate-50 rounded-[2rem] p-8 md:p-10 border border-slate-100 text-left hover:-translate-y-2 transition-transform duration-300 h-full">
                     <div className="w-14 h-14 rounded-2xl bg-yellow-100 text-[#d9a000] flex items-center justify-center mb-6 shadow-sm"><ShieldCheck size={28}/></div>
                     <h3 className={`${jakarta.className} text-xl font-bold text-slate-800 mb-4`}>Gestão Simplificada</h3>
-                    <p className="text-slate-600 font-medium leading-relaxed text-sm">Receba um painel de controlo moderno para gerir reservas, pagamentos (PIX e Cartão) e fechar o seu calendário com um clique.</p>
+                    <p className="text-slate-600 font-medium leading-relaxed text-sm">Receba um painel de controlo moderno para gerir reservas, pagamentos e fechar o seu calendário com um clique.</p>
                  </div>
                </ScrollReveal>
             </div>
@@ -231,7 +231,6 @@ export default function ParceirosPage() {
          
          <div className="max-w-6xl mx-auto flex flex-col lg:flex-row gap-16 items-center relative z-10">
             
-            {/* Lado Esquerdo - Info */}
             <ScrollReveal delay={100} className="flex-1 text-left">
                <h2 className={`${jakarta.className} text-3xl md:text-5xl font-black text-white leading-tight mb-6`}>Dê o próximo passo. <br className="hidden md:block"/><span className="text-[#F9C400]">Seja um Parceiro.</span></h2>
                <p className="text-slate-300 text-base md:text-lg leading-relaxed mb-8">Preencha o formulário com os dados da sua empresa ou serviço. A nossa equipa da Secretaria de Turismo entrará em contacto para validar o seu credenciamento e criar o seu acesso.</p>
@@ -246,13 +245,12 @@ export default function ParceirosPage() {
                      <div><p className="font-bold">Guias Turísticos</p><p className="text-xs text-slate-400">Profissionais credenciados</p></div>
                   </div>
                   <div className="flex items-center gap-4 text-white">
-                     <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center"><Map size={24} className="text-[#F9C400]"/></div>
+                     <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center"><MapIcon size={24} className="text-[#F9C400]"/></div>
                      <div><p className="font-bold">Atrações & Passeios</p><p className="text-xs text-slate-400">Parques, Barcos, Experiências</p></div>
                   </div>
                </div>
             </ScrollReveal>
 
-            {/* Lado Direito - Formulário */}
             <ScrollReveal delay={300} className="w-full lg:w-[480px] bg-white rounded-[2rem] md:rounded-[2.5rem] p-8 md:p-10 shadow-2xl text-left">
                {formSucesso ? (
                   <div className="text-center py-10 animate-in zoom-in-95 duration-500">
@@ -290,7 +288,11 @@ export default function ParceirosPage() {
                      </div>
 
                      <button type="submit" disabled={isSubmitting} className="w-full bg-[#009640] hover:bg-[#007a33] text-white py-4 rounded-xl font-black uppercase text-xs tracking-widest shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2 mt-4">
-                        {isSubmitting ? <><Loader2 className="animate-spin" size={16}/> Enviando...</> : <><ArrowRight size={16}/> Enviar Pedido</>}
+                        {isSubmitting ? (
+                           <span className="flex items-center gap-2"><Loader2 className="animate-spin" size={16}/> Enviando...</span>
+                        ) : (
+                           <span className="flex items-center gap-2"><ArrowRight size={16}/> Enviar Pedido</span>
+                        )}
                      </button>
                      <p className="text-[10px] text-center text-slate-400 font-bold mt-4">Os seus dados estão protegidos. Não enviamos spam.</p>
                   </form>
