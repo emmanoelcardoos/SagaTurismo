@@ -347,20 +347,6 @@ export default function CadastroPage() {
         </div>
       </section>
 
-      {/* BARRA DE PROGRESSO OTIMIZADA PARA MOBILE (Scroollável Horizontal) */}
-      <section className="border-b border-slate-200 bg-white sticky top-[60px] md:top-[88px] z-40 shadow-sm overflow-hidden">
-        <div className="mx-auto max-w-5xl px-5">
-          <div className="flex items-center gap-3 overflow-x-auto py-4 hide-scrollbar snap-x snap-mandatory">
-            {[['01', 'Dados pessoais'], ['02', 'Verificação'], ['03', 'Pagamento']].map(([step, label]) => (
-              <div key={step} className="flex shrink-0 items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 snap-start">
-                <span className="flex h-7 w-7 md:h-9 md:w-9 items-center justify-center rounded-full bg-[#00577C] text-xs md:text-sm font-black text-white shrink-0">{step}</span>
-                <span className="text-xs md:text-sm font-bold text-slate-700 whitespace-nowrap">{label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* FORMULÁRIO PRINCIPAL */}
       <section className="bg-slate-50 px-4 py-10 md:py-16 sm:px-5">
         <div className="mx-auto max-w-7xl">
