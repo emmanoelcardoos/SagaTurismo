@@ -88,3 +88,15 @@ def montar_html_sucesso(nome_cliente: str, codigo_pedido: str, tipo_item: str, v
     </body>
     </html>
     """
+
+def enviar_carteiras_por_email(email_destino: str, nome: str, pdf_path: str = None):
+    """
+    Função mantida para compatibilidade com o routes/residentes.py
+    """
+    html = f"""
+    <div style="font-family: Arial, sans-serif; text-align: center; padding: 20px;">
+        <h2 style="color: #00577C;">Olá, {nome}!</h2>
+        <p>A sua carteira de residente está em processamento.</p>
+    </div>
+    """
+    return enviar_email(email_destino, "Carteira de Residente - SagaTurismo", html, attachment_path=pdf_path)
