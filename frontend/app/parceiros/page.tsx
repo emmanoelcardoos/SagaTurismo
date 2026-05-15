@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, FormEvent, ReactNode } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { 
@@ -13,8 +13,8 @@ import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['600', '700', '800'] });
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
 
-// ── COMPONENTE MÁGICO DE ANIMAÇÃO (Estilo Apple) ──
-function ScrollReveal({ children, className = "", delay = 0 }: { children: ReactNode; className?: string; delay?: number }) {
+// ── COMPONENTE MÁGICO DE ANIMAÇÃO ──
+function ScrollReveal({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
   const [isVisible, setIsVisible] = useState(false);
   const domRef = useRef<HTMLDivElement>(null);
 
@@ -69,16 +69,15 @@ export default function ParceirosPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
-  const handleLogin = (e: FormEvent<HTMLFormElement>) => {
+  const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoggingIn(true);
     setTimeout(() => {
       setIsLoggingIn(false);
-      // Lógica futura de login
     }, 1500);
   };
 
-  const handleInteresse = (e: FormEvent<HTMLFormElement>) => {
+  const handleInteresse = (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setTimeout(() => {
@@ -88,7 +87,7 @@ export default function ParceirosPage() {
   };
 
   return (
-    <main className={inter.className + " min-h-screen bg-[#F5F7FA] text-slate-900 flex flex-col overflow-x-hidden"}>
+    <main className={`${inter.className} min-h-screen bg-[#F5F7FA] text-slate-900 flex flex-col overflow-x-hidden`}>
       
       {/* ── HEADER ── */}
       <header className={`fixed left-0 top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl transition-transform duration-300 ${showHeader ? 'translate-y-0' : '-translate-y-full'}`}>
@@ -160,7 +159,7 @@ export default function ParceirosPage() {
                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">E-mail ou NIF/CPF</label>
                         <div className="relative">
                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20}/>
-                           <input type="text" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} required className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="seu@email.com" />
+                           <input type="text" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} required className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="seu@email.com" />
                         </div>
                      </div>
                      <div>
@@ -170,7 +169,7 @@ export default function ParceirosPage() {
                         </div>
                         <div className="relative">
                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20}/>
-                           <input type="password" value={loginSenha} onChange={e => setLoginSenha(e.target.value)} required className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="••••••••" />
+                           <input type="password" value={loginSenha} onChange={(e) => setLoginSenha(e.target.value)} required className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="••••••••" />
                         </div>
                      </div>
                      
@@ -251,6 +250,7 @@ export default function ParceirosPage() {
                </div>
             </ScrollReveal>
 
+            {/* AQUI ESTAVA O ERRO DA TAG DE FECHO - AGORA CORRIGIDO */}
             <ScrollReveal delay={300} className="w-full lg:w-[480px] bg-white rounded-[2rem] md:rounded-[2.5rem] p-8 md:p-10 shadow-2xl text-left">
                {formSucesso ? (
                   <div className="text-center py-10 animate-in zoom-in-95 duration-500">
@@ -276,15 +276,15 @@ export default function ParceirosPage() {
 
                      <div>
                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">O seu Nome</label>
-                        <input type="text" required value={formNome} onChange={e=>setFormNome(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-3.5 px-4 text-sm font-bold outline-none focus:border-[#00577C]" placeholder="Nome completo" />
+                        <input type="text" required value={formNome} onChange={(e) => setFormNome(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-3.5 px-4 text-sm font-bold outline-none focus:border-[#00577C]" placeholder="Nome completo" />
                      </div>
                      <div>
                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Nome do Negócio</label>
-                        <input type="text" required value={formEmpresa} onChange={e=>setFormEmpresa(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-3.5 px-4 text-sm font-bold outline-none focus:border-[#00577C]" placeholder="Ex: Pousada da Serra" />
+                        <input type="text" required value={formEmpresa} onChange={(e) => setFormEmpresa(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-3.5 px-4 text-sm font-bold outline-none focus:border-[#00577C]" placeholder="Ex: Pousada da Serra" />
                      </div>
                      <div>
                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">WhatsApp de Contacto</label>
-                        <input type="tel" required value={formTelefone} onChange={e=>setFormTelefone(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-3.5 px-4 text-sm font-bold outline-none focus:border-[#00577C]" placeholder="(94) 90000-0000" />
+                        <input type="tel" required value={formTelefone} onChange={(e) => setFormTelefone(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-3.5 px-4 text-sm font-bold outline-none focus:border-[#00577C]" placeholder="(94) 90000-0000" />
                      </div>
 
                      <button type="submit" disabled={isSubmitting} className="w-full bg-[#009640] hover:bg-[#007a33] text-white py-4 rounded-xl font-black uppercase text-xs tracking-widest shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2 mt-4">
@@ -297,7 +297,7 @@ export default function ParceirosPage() {
                      <p className="text-[10px] text-center text-slate-400 font-bold mt-4">Os seus dados estão protegidos. Não enviamos spam.</p>
                   </form>
                )}
-            </div>
+            </ScrollReveal>
 
          </div>
       </section>
