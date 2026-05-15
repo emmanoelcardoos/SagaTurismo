@@ -800,7 +800,7 @@ export default function HomePage() {
           showHeader ? 'translate-y-0' : '-translate-y-full'
         }`}
       >
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-5">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-5 text-left">
           <Link href="/" className="flex min-w-0 items-center gap-3 sm:gap-4">
             <div className="relative h-12 w-36 shrink-0 sm:h-16 sm:w-56">
               <Image
@@ -825,6 +825,14 @@ export default function HomePage() {
           <nav className="hidden items-center gap-7 md:flex">
             <Link href="/roteiro" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
               Rota Turística
+            </Link>
+
+            <Link href="/pacotes" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
+              Pacotes
+            </Link>
+
+            <Link href="/passeios" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
+              Passeios
             </Link>
 
             <Link href="/aldeias" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
@@ -859,7 +867,7 @@ export default function HomePage() {
       </header>
 
       {/* HERO */}
-      <section className="relative min-h-screen overflow-hidden pt-20">
+      <section className="relative min-h-screen overflow-hidden pt-20 text-left">
         {heroSlides.map((slide, index) => (
           <div
             key={slide.image}
@@ -917,7 +925,7 @@ export default function HomePage() {
       </section>
 
       {/* ATRAÇÕES */}
-      <section id="atracoes" className="mx-auto max-w-7xl px-5 py-24">
+      <section id="atracoes" className="mx-auto max-w-7xl px-5 py-24 text-left">
         <div className="mb-14 max-w-3xl">
           <p className="mb-3 text-sm font-extrabold uppercase tracking-[0.22em] text-[#009640]">
             Atrações da cidade
@@ -951,9 +959,9 @@ export default function HomePage() {
       </section>
 
       {/* ROTA TURÍSTICA */}
-      <section className="bg-slate-50 py-24">
+      <section className="bg-slate-50 py-24 text-left">
         <div className="mx-auto grid max-w-7xl gap-10 px-5 md:grid-cols-2 md:items-center">
-          <div className="relative min-h-[420px] overflow-hidden rounded-[2.5rem] shadow-xl">
+          <div className="relative min-h-[420px] overflow-hidden rounded-[2.5rem] shadow-xl text-left">
             <div
               className="absolute inset-0 bg-cover bg-center"
               style={{
@@ -1010,10 +1018,13 @@ export default function HomePage() {
       {/* PACOTES LIGADOS À SUPABASE */}
       <SeccaoPacotes /> 
 
+      {/* PASSEIOS LIGADOS À SUPABASE (INSERÇÃO ADICIONADA) */}
+      <SeccaoPasseios />
+
       {/* NOVA SECÇÃO: ALDEIAS INDÍGENAS */}
-      <section className="bg-white py-24 border-t border-slate-100">
-        <div className="mx-auto grid max-w-7xl gap-12 px-5 md:grid-cols-2 md:items-center">
-          <div className="order-2 md:order-1">
+      <section className="bg-white py-24 border-t border-slate-100 text-left">
+        <div className="mx-auto grid max-w-7xl gap-12 px-5 md:grid-cols-2 md:items-center text-left">
+          <div className="order-2 md:order-1 text-left">
             <p className="mb-3 text-sm font-extrabold uppercase tracking-[0.22em] text-[#009640]">
               Patrimônio Vivo
             </p>
@@ -1037,7 +1048,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="order-1 md:order-2 relative min-h-[400px] overflow-hidden rounded-[2.5rem] shadow-xl group">
+          <div className="order-1 md:order-2 relative min-h-[400px] overflow-hidden rounded-[2.5rem] shadow-xl group text-left">
             <Image
               src="https://images.pexels.com/photos/12434691/pexels-photo-12434691.jpeg"
               alt="Aldeias Indígenas"
@@ -1045,7 +1056,7 @@ export default function HomePage() {
               className="object-cover transition-transform duration-700 group-hover:scale-105"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent" />
-            <div className="absolute bottom-8 left-8 right-8">
+            <div className="absolute bottom-8 left-8 right-8 text-left">
               <p className="text-white font-black text-2xl tracking-wide drop-shadow-md">Cultura, respeito e ancestralidade.</p>
             </div>
           </div>
@@ -1053,8 +1064,8 @@ export default function HomePage() {
       </section>
 
       {/* HISTÓRIA */}
-      <section id="historia" className="bg-slate-50 py-24 border-t border-slate-200">
-        <div className="mx-auto grid max-w-7xl gap-12 px-5 md:grid-cols-2 md:items-center">
+      <section id="historia" className="bg-slate-50 py-24 border-t border-slate-200 text-left">
+        <div className="mx-auto grid max-w-7xl gap-12 px-5 md:grid-cols-2 md:items-center text-left">
           <div>
             <p className="mb-3 text-sm font-extrabold uppercase tracking-[0.22em] text-[#009640]">
               História da cidade
@@ -1089,7 +1100,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="rounded-[2.5rem] bg-white p-10 shadow-xl">
+          <div className="rounded-[2.5rem] bg-white p-10 shadow-xl text-left">
             <Landmark className="mb-8 h-12 w-12 text-[#00577C]" />
 
             <p className="text-sm font-extrabold uppercase tracking-[0.22em] text-[#009640]">
@@ -1109,15 +1120,15 @@ export default function HomePage() {
       </section>
 
       {/* BENEFÍCIO */}
-      <section className="bg-[#00577C] py-24 text-white">
+      <section className="bg-[#00577C] py-24 text-white text-left">
         <div className="mx-auto max-w-7xl px-5">
-          <div className="grid gap-10 md:grid-cols-[1.2fr_0.8fr] md:items-center">
-            <div>
+          <div className="grid gap-10 md:grid-cols-[1.2fr_0.8fr] md:items-center text-left">
+            <div className="text-left">
               <p className="mb-3 text-sm font-extrabold uppercase tracking-[0.22em] text-[#F9C400]">
                 Cartão do residente
               </p>
 
-              <h2 className={`${jakarta.className} text-4xl font-bold md:text-6xl`}>
+              <h2 className={`${jakarta.className} text-4xl font-bold md:text-6xl text-left`}>
                 Mora em São Geraldo do Araguaia? O parque também é para ti!
               </h2>
 
@@ -1135,7 +1146,7 @@ export default function HomePage() {
               </Link>
             </div>
 
-            <div className="rounded-[2rem] border border-white/15 bg-white/10 p-8 backdrop-blur">
+            <div className="rounded-[2rem] border border-white/15 bg-white/10 p-8 backdrop-blur text-left">
               <ShieldCheck className="mb-6 h-12 w-12 text-[#F9C400]" />
               <p className="text-6xl font-black">50%</p>
               <p className="mt-3 text-xl font-bold">de desconto para residentes</p>
@@ -1148,15 +1159,15 @@ export default function HomePage() {
       </section>
 
       {/* FOOTER INSTITUCIONAL COMPLETO */}
-      <footer className="py-20 px-8 border-t border-slate-100 bg-white">
+      <footer className="py-20 px-8 border-t border-slate-100 bg-white text-left">
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-16 mb-20">
-            <div className="space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-16 mb-20 text-left">
+            <div className="space-y-8 text-left">
                <img src="/logop.png" alt="Prefeitura SGA" className="h-20 object-contain" />
                <p className="text-sm text-slate-400 font-bold uppercase tracking-widest leading-relaxed">São Geraldo do Araguaia <br/> "Cidade Amada, seguindo em frente"</p>
             </div>
             
-            <div className="space-y-6">
+            <div className="space-y-6 text-left">
               <h5 className="font-black text-slate-900 text-xs uppercase tracking-widest border-b border-slate-100 pb-4">Gestão Executiva</h5>
               <ul className="text-sm text-slate-500 space-y-3 font-medium">
                 <li>Prefeito: <br/><b>Jefferson Douglas de Jesus Oliveira</b></li>
@@ -1164,7 +1175,7 @@ export default function HomePage() {
               </ul>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-6 text-left">
               <h5 className="font-black text-slate-900 text-xs uppercase tracking-widest border-b border-slate-100 pb-4">Turismo (SEMTUR)</h5>
               <ul className="text-sm text-slate-500 space-y-3 font-medium">
                 <li>Secretária: <br/><b>Micheli Stephany de Souza</b></li>
@@ -1173,7 +1184,7 @@ export default function HomePage() {
               </ul>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-6 text-left">
               <h5 className="font-black text-slate-900 text-xs uppercase tracking-widest border-b border-slate-100 pb-4">Equipe Técnica</h5>
               <ul className="text-sm text-slate-500 space-y-2 font-medium">
                 <li>• Adriana da Luz Lima</li>
