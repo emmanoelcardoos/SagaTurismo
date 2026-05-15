@@ -64,10 +64,9 @@ async def webhook_pagbank(request: Request):
         status_sucesso = ["PAID", "AUTHORIZED", "COMPLETED", "APPROVED"]
         
         if status_normalizado in status_sucesso:
-            # A. Atualizar status e timestamp
+            # A. CORREÇÃO: Removido o 'pago_em' que causava erro PGRST204 por não existir na tabela
             supabase.table("pedidos").update({
-                "status_pagamento": "pago",
-                "pago_em": datetime.now().isoformat()
+                "status_pagamento": "pago"
             }).eq("codigo_pedido", reference_id).execute()
             
             print(f"[WEBHOOK] SUCESSO: O pagamento de {reference_id} foi confirmado.")
