@@ -95,7 +95,7 @@ export default function HoteisPage() {
       setCheckout(null);
     } else if (data > checkin) {
       setCheckout(data);
-      setTimeout(() => setShowCalendarPopup(false), 300);
+      setTimeout(() => setShowCalendarPopup(false), 300); // Fecha pop-up após selecionar checkout
     } else {
       setCheckin(data);
     }
@@ -114,16 +114,13 @@ export default function HoteisPage() {
     const primeiroDia = primeiroDiaDoMes(ano, mes);
 
     return (
-      <div 
-        className="absolute top-[calc(100%+12px)] left-0 w-80 bg-white rounded-3xl border border-slate-200 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] p-5 z-[100] animate-in fade-in slide-in-from-top-2 cursor-default"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between mb-5">
-          <button onClick={() => setMesAtualCalendario(new Date(ano, mes - 1))} className="w-8 h-8 flex items-center justify-center hover:bg-slate-100 rounded-full text-[#00577C] transition-colors"><ChevronLeft size={18}/></button>
-          <p className={`${jakarta.className} font-black text-slate-800 capitalize`}>{mesAtualCalendario.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}</p>
-          <button onClick={() => setMesAtualCalendario(new Date(ano, mes + 1))} className="w-8 h-8 flex items-center justify-center hover:bg-slate-100 rounded-full text-[#00577C] transition-colors"><ChevronRight size={18}/></button>
+      <div className="p-4 bg-white rounded-3xl border border-slate-200 shadow-2xl w-80 absolute top-full left-0 mt-4 z-50 animate-in fade-in zoom-in-95">
+        <div className="flex items-center justify-between mb-4">
+          <button onClick={() => setMesAtualCalendario(new Date(ano, mes - 1))} className="p-2 hover:bg-slate-100 rounded-full text-[#00577C]"><ChevronLeft size={20}/></button>
+          <p className="font-bold text-slate-800 capitalize">{mesAtualCalendario.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}</p>
+          <button onClick={() => setMesAtualCalendario(new Date(ano, mes + 1))} className="p-2 hover:bg-slate-100 rounded-full text-[#00577C]"><ChevronRight size={20}/></button>
         </div>
-        <div className="grid grid-cols-7 gap-1 text-center mb-3">
+        <div className="grid grid-cols-7 gap-1 text-center mb-2">
           {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((d, i) => <span key={i} className="text-[10px] font-black text-slate-400">{d}</span>)}
         </div>
         <div className="grid grid-cols-7 gap-y-1">
@@ -136,9 +133,9 @@ export default function HoteisPage() {
             const isInBetween = checkin && checkout && dataAtual > checkin && dataAtual < checkout;
             const isHovered = hoverDate && checkin && !checkout && dataAtual > checkin && dataAtual <= hoverDate;
 
-            let bgClass = "hover:bg-slate-100 text-slate-800 font-semibold";
+            let bgClass = "hover:bg-slate-100 text-slate-800";
             if (isPassado) bgClass = "text-slate-300 cursor-not-allowed";
-            else if (isCheckin || isCheckout) bgClass = "bg-[#00577C] text-white shadow-md rounded-xl font-black scale-105 z-10";
+            else if (isCheckin || isCheckout) bgClass = "bg-[#00577C] text-white shadow-md rounded-lg font-black";
             else if (isInBetween || isHovered) bgClass = "bg-[#00577C]/10 text-[#00577C] rounded-none";
 
             return (
@@ -181,9 +178,8 @@ export default function HoteisPage() {
       </header>
 
       {/* HERO SECTION - REDUZIDO COM BARRA DE PESQUISA HORIZONTAL */}
-      {/* Removido o overflow-hidden para os popups não serem cortados */}
-      <section className="relative pt-[120px] pb-32 bg-[#002f40] z-30">
-        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+      <section className="relative pt-[120px] pb-32 overflow-hidden bg-[#002f40]">
+        <div className="absolute inset-0 z-0">
           <Image src="https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=1740" alt="Background" fill className="object-cover opacity-30" />
           <div className="absolute inset-0 bg-gradient-to-b from-[#002f40]/80 via-transparent to-[#F5F7FA]" />
         </div>
@@ -197,84 +193,74 @@ export default function HoteisPage() {
           </p>
 
           {/* BARRA DE PESQUISA ESTILO BOOKING */}
-          <div className="bg-[#F9C400] p-1.5 md:p-2 rounded-[2rem] shadow-2xl max-w-5xl mx-auto flex flex-col md:flex-row gap-1.5 md:gap-2 relative z-50">
+          <div className="bg-[#F9C400] p-1.5 md:p-2 rounded-[2rem] shadow-2xl max-w-5xl mx-auto flex flex-col md:flex-row gap-1.5 md:gap-2">
             
             {/* 1. Destino Fixo */}
             <div className="bg-white flex-1 rounded-[1.5rem] px-5 py-3 flex items-center gap-3">
-               <MapPin className="text-[#00577C] shrink-0" size={24} />
-               <div className="text-left overflow-hidden">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 truncate">Destino</p>
-                  <p className="font-bold text-slate-800 text-sm truncate">São Geraldo do Araguaia - PA</p>
+               <MapPin className="text-[#00577C]" size={24} />
+               <div className="text-left">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Destino</p>
+                  <p className="font-bold text-slate-800 text-sm">São Geraldo do Araguaia - PA</p>
                </div>
             </div>
 
             {/* 2. Calendário Customizado */}
-            <div 
-              className="bg-white flex-1 rounded-[1.5rem] px-5 py-3 flex items-center gap-3 relative cursor-pointer select-none hover:bg-slate-50 transition-colors" 
-              onClick={() => {setShowCalendarPopup(!showCalendarPopup); setShowHospedesPopup(false);}}
-            >
-               <CalendarIcon className="text-[#00577C] shrink-0" size={24} />
-               <div className="text-left flex-1 overflow-hidden">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 truncate">Check-in — Check-out</p>
-                  <p className="font-bold text-slate-800 text-sm truncate">
+            <div className="bg-white flex-1 rounded-[1.5rem] px-5 py-3 flex items-center gap-3 relative cursor-pointer" onClick={() => {setShowCalendarPopup(!showCalendarPopup); setShowHospedesPopup(false);}}>
+               <CalendarIcon className="text-[#00577C]" size={24} />
+               <div className="text-left flex-1">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Check-in — Check-out</p>
+                  <p className="font-bold text-slate-800 text-sm">
                     {checkin ? formatarDataInput(checkin) : 'Selecionar datas'} {checkout ? ` - ${formatarDataInput(checkout)}` : ''}
                   </p>
                </div>
-               {/* Renderização do Calendário no Hero */}
                {showCalendarPopup && renderMonth()}
             </div>
 
             {/* 3. Hóspedes e Quartos */}
-            <div 
-              className="bg-white flex-1 rounded-[1.5rem] px-5 py-3 flex items-center gap-3 relative cursor-pointer select-none hover:bg-slate-50 transition-colors" 
-              onClick={() => {setShowHospedesPopup(!showHospedesPopup); setShowCalendarPopup(false);}}
-            >
-               <Users className="text-[#00577C] shrink-0" size={24} />
-               <div className="text-left flex-1 overflow-hidden">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 truncate">Hóspedes e Quartos</p>
+            <div className="bg-white flex-1 rounded-[1.5rem] px-5 py-3 flex items-center gap-3 relative cursor-pointer" onClick={() => {setShowHospedesPopup(!showHospedesPopup); setShowCalendarPopup(false);}}>
+               <Users className="text-[#00577C]" size={24} />
+               <div className="text-left flex-1">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Hóspedes e Quartos</p>
                   <p className="font-bold text-slate-800 text-sm truncate">
                     {adultos} Adultos · {criancas} Crianças · {quartos} Quarto
                   </p>
                </div>
 
-               {/* Pop-up Hóspedes (agora com z-[100] e dropdown limpo) */}
+               {/* Pop-up Hóspedes */}
                {showHospedesPopup && (
-                 <div 
-                   className="absolute top-[calc(100%+12px)] left-0 md:left-auto md:right-0 w-[calc(100vw-3rem)] md:w-80 bg-white rounded-3xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] border border-slate-200 p-6 z-[100] text-slate-800 animate-in fade-in slide-in-from-top-2 cursor-default" 
-                   onClick={e => e.stopPropagation()}
-                 >
+                 <div className="absolute top-full left-0 mt-4 w-72 bg-white rounded-3xl shadow-2xl border border-slate-200 p-5 z-50 text-slate-800" onClick={e => e.stopPropagation()}>
                     {/* Adultos */}
-                    <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                    <div className="flex items-center justify-between py-3 border-b border-slate-100">
                       <div><p className="font-bold text-sm">Adultos</p></div>
-                      <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl p-1 shadow-sm">
-                         <button onClick={() => setAdultos(Math.max(1, adultos - 1))} className="w-9 h-9 flex justify-center items-center rounded-lg hover:bg-white hover:shadow-sm text-[#00577C] font-black text-lg transition-all">-</button>
-                         <span className="font-black text-sm w-4 text-center text-[#00577C]">{adultos}</span>
-                         <button onClick={() => setAdultos(adultos + 1)} className="w-9 h-9 flex justify-center items-center rounded-lg hover:bg-white hover:shadow-sm text-[#00577C] font-black text-lg transition-all">+</button>
+                      <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl p-1">
+                         <button onClick={() => setAdultos(Math.max(1, adultos - 1))} className="w-8 h-8 flex justify-center items-center rounded-lg hover:bg-white text-[#00577C] font-black">-</button>
+                         <span className="font-black text-sm w-4 text-center">{adultos}</span>
+                         <button onClick={() => setAdultos(adultos + 1)} className="w-8 h-8 flex justify-center items-center rounded-lg hover:bg-white text-[#00577C] font-black">+</button>
                       </div>
                     </div>
                     {/* Crianças */}
-                    <div className="flex items-center justify-between py-4 border-b border-slate-100">
-                      <div className="text-left"><p className="font-bold text-sm leading-tight">Crianças</p><p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Até 12 anos</p></div>
-                      <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl p-1 shadow-sm">
-                         <button onClick={() => setCriancas(Math.max(0, criancas - 1))} className="w-9 h-9 flex justify-center items-center rounded-lg hover:bg-white hover:shadow-sm text-[#00577C] font-black text-lg transition-all">-</button>
-                         <span className="font-black text-sm w-4 text-center text-[#00577C]">{criancas}</span>
-                         <button onClick={() => setCriancas(criancas + 1)} className="w-9 h-9 flex justify-center items-center rounded-lg hover:bg-white hover:shadow-sm text-[#00577C] font-black text-lg transition-all">+</button>
+                    <div className="flex items-center justify-between py-3 border-b border-slate-100">
+                      <div><p className="font-bold text-sm">Crianças</p><p className="text-[10px] text-slate-400 font-bold uppercase">Até 12 anos</p></div>
+                      <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl p-1">
+                         <button onClick={() => setCriancas(Math.max(0, criancas - 1))} className="w-8 h-8 flex justify-center items-center rounded-lg hover:bg-white text-[#00577C] font-black">-</button>
+                         <span className="font-black text-sm w-4 text-center">{criancas}</span>
+                         <button onClick={() => setCriancas(criancas + 1)} className="w-8 h-8 flex justify-center items-center rounded-lg hover:bg-white text-[#00577C] font-black">+</button>
                       </div>
                     </div>
                     {/* Quartos */}
-                    <div className="flex items-center justify-between pt-4">
+                    <div className="flex items-center justify-between py-3">
                       <div><p className="font-bold text-sm">Quartos</p></div>
-                      <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl p-1 shadow-sm">
-                         <button onClick={() => setQuartos(Math.max(1, quartos - 1))} className="w-9 h-9 flex justify-center items-center rounded-lg hover:bg-white hover:shadow-sm text-[#00577C] font-black text-lg transition-all">-</button>
-                         <span className="font-black text-sm w-4 text-center text-[#00577C]">{quartos}</span>
-                         <button onClick={() => setQuartos(quartos + 1)} className="w-9 h-9 flex justify-center items-center rounded-lg hover:bg-white hover:shadow-sm text-[#00577C] font-black text-lg transition-all">+</button>
+                      <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl p-1">
+                         <button onClick={() => setQuartos(Math.max(1, quartos - 1))} className="w-8 h-8 flex justify-center items-center rounded-lg hover:bg-white text-[#00577C] font-black">-</button>
+                         <span className="font-black text-sm w-4 text-center">{quartos}</span>
+                         <button onClick={() => setQuartos(quartos + 1)} className="w-8 h-8 flex justify-center items-center rounded-lg hover:bg-white text-[#00577C] font-black">+</button>
                       </div>
                     </div>
                  </div>
                )}
             </div>
 
-            <button className="bg-[#00577C] text-white px-10 py-4 md:py-0 rounded-[1.5rem] font-black text-sm uppercase tracking-widest hover:bg-[#004a6b] transition-all shadow-md shrink-0">
+            <button className="bg-[#00577C] text-white px-10 py-4 rounded-[1.5rem] font-black text-lg hover:bg-[#004a6b] transition-all shadow-md">
               Buscar
             </button>
           </div>
@@ -282,23 +268,23 @@ export default function HoteisPage() {
       </section>
 
       {/* CONTEÚDO PRINCIPAL: FILTROS + LISTA HORIZONTAL */}
-      <section className="mx-auto max-w-7xl px-6 pt-12 relative z-20">
+      <section className="mx-auto max-w-7xl px-6 pt-12">
         <div className="flex flex-col lg:flex-row gap-8 items-start">
           
-          {/* BARRA LATERAL DE FILTROS */}
+          {/* BARRA LATERAL DE FILTROS (Visual) */}
           <aside className="w-full lg:w-72 shrink-0 space-y-6">
-            <div className="bg-white rounded-[2.5rem] border border-slate-200 p-8 shadow-sm">
-              <h3 className={`${jakarta.className} text-xl font-black text-slate-900 mb-8 flex items-center gap-3`}>
-                <Filter size={20} className="text-[#00577C]"/> Filtrar
+            <div className="bg-white rounded-[2rem] border border-slate-200 p-6 shadow-sm">
+              <h3 className={`${jakarta.className} text-lg font-black text-slate-900 mb-6 flex items-center gap-2`}>
+                <Filter size={18} className="text-[#00577C]"/> Filtrar Resultados
               </h3>
               
-              <div className="mb-8">
-                <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-4">Categoria</p>
-                <div className="space-y-4">
+              <div className="mb-6">
+                <p className="text-xs font-black uppercase text-slate-500 tracking-widest mb-3">Categoria de Estrelas</p>
+                <div className="space-y-3">
                   {[5, 4, 3].map(star => (
-                    <label key={star} className="flex items-center gap-3 cursor-pointer group">
-                      <input type="checkbox" className="w-5 h-5 rounded-md border-slate-300 text-[#00577C] focus:ring-[#00577C]" />
-                      <div className="flex items-center gap-1 text-[#F9C400] group-hover:opacity-80 transition-opacity">
+                    <label key={star} className="flex items-center gap-3 cursor-pointer">
+                      <input type="checkbox" className="w-5 h-5 rounded border-slate-300 text-[#00577C] focus:ring-[#00577C]" />
+                      <div className="flex items-center gap-1 text-[#F9C400]">
                         {Array.from({ length: star }).map((_, i) => <Star key={i} size={14} fill="currentColor"/>)}
                       </div>
                     </label>
@@ -306,13 +292,13 @@ export default function HoteisPage() {
                 </div>
               </div>
 
-              <div className="pt-8 border-t border-slate-100">
-                <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-4">Comodidades</p>
-                <div className="space-y-4">
+              <div className="pt-6 border-t border-slate-100">
+                <p className="text-xs font-black uppercase text-slate-500 tracking-widest mb-3">Comodidades Principais</p>
+                <div className="space-y-3">
                   {['Piscina', 'Wi-Fi Grátis', 'Estacionamento', 'Pequeno-almoço'].map(item => (
-                    <label key={item} className="flex items-center gap-3 cursor-pointer group">
-                      <input type="checkbox" className="w-5 h-5 rounded-md border-slate-300 text-[#00577C] focus:ring-[#00577C]" />
-                      <span className="text-sm font-bold text-slate-600 group-hover:text-[#00577C] transition-colors">{item}</span>
+                    <label key={item} className="flex items-center gap-3 cursor-pointer">
+                      <input type="checkbox" className="w-5 h-5 rounded border-slate-300 text-[#00577C] focus:ring-[#00577C]" />
+                      <span className="text-sm font-bold text-slate-700">{item}</span>
                     </label>
                   ))}
                 </div>
@@ -320,80 +306,79 @@ export default function HoteisPage() {
             </div>
 
             {/* Banner de Segurança */}
-            <div className="bg-[#EAF8F0] border border-[#009640]/20 rounded-[2.5rem] p-8 text-center shadow-sm">
-               <ShieldCheck className="mx-auto mb-4 text-[#009640]" size={40} />
-               <p className="text-base font-black text-[#009640] mb-2">Reserva Garantida</p>
-               <p className="text-xs text-green-800 font-medium leading-relaxed">Ao reservar pelo portal SagaTurismo, garante suporte local oficial da Prefeitura.</p>
+            <div className="bg-[#EAF8F0] border border-[#009640]/20 rounded-[2rem] p-6 text-center">
+               <ShieldCheck className="mx-auto mb-3 text-[#009640]" size={32} />
+               <p className="text-sm font-black text-[#009640] mb-2">Reserva Garantida</p>
+               <p className="text-xs text-green-800 font-medium">Ao reservar pelo portal SagaTurismo, garante suporte local oficial.</p>
             </div>
           </aside>
 
           {/* LISTA DE HOTÉIS HORIZONTAL */}
-          <div className="flex-1 w-full space-y-8">
-            <div className="flex items-center justify-between mb-2">
-               <h2 className={`${jakarta.className} text-3xl font-black text-slate-800`}>Alojamentos Disponíveis</h2>
-               {!loading && <p className="text-sm font-bold text-slate-400 bg-white px-4 py-2 rounded-full border border-slate-200">{hoteis.length} propriedades</p>}
+          <div className="flex-1 w-full space-y-6">
+            <div className="flex items-center justify-between mb-4">
+               <h2 className={`${jakarta.className} text-2xl font-black text-slate-800`}>Alojamentos em São Geraldo</h2>
+               {!loading && <p className="text-sm font-bold text-slate-500">{hoteis.length} propriedades</p>}
             </div>
 
             {loading ? (
-              <div className="flex flex-col items-center justify-center py-32 bg-white rounded-[3rem] border border-slate-200 shadow-sm">
-                <Loader2 className="animate-spin text-[#00577C] mb-4" size={48}/>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Buscando as melhores opções...</p>
+              <div className="flex flex-col items-center justify-center py-20 bg-white rounded-[2rem] border border-slate-200">
+                <Loader2 className="animate-spin text-[#00577C]" size={40}/>
               </div>
             ) : (
               hoteis.map((hotel) => (
-                <article key={hotel.id} className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-500 flex flex-col md:flex-row overflow-hidden group">
+                <article key={hotel.id} className="bg-white rounded-[2rem] border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col md:flex-row overflow-hidden group">
                   
                   {/* IMAGEM (Lado Esquerdo) */}
-                  <div className="relative w-full md:w-80 h-64 md:h-auto shrink-0 overflow-hidden bg-slate-100">
+                  <div className="relative w-full md:w-72 h-64 md:h-auto shrink-0 overflow-hidden bg-slate-100">
                     <Image src={hotel.imagem_url || FALLBACK_IMAGE} alt={hotel.nome} fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
-                    <div className="absolute top-5 left-5 bg-[#F9C400] text-[#00577C] px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-lg">
+                    <div className="absolute top-4 left-4 bg-[#F9C400] text-[#00577C] px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest shadow-md">
                       {hotel.tipo}
                     </div>
                   </div>
 
                   {/* CONTEÚDO (Lado Direito) */}
-                  <div className="p-8 flex flex-col flex-1 text-left">
-                    <div className="flex justify-between items-start mb-3">
+                  <div className="p-6 flex flex-col flex-1 text-left">
+                    <div className="flex justify-between items-start mb-2">
                       <div>
-                        <div className="flex items-center gap-1 text-[#F9C400] mb-3">
+                        <div className="flex items-center gap-1 text-[#F9C400] mb-2">
                           {Array.from({ length: hotel.estrelas || 3 }).map((_, i) => <Star key={i} size={14} fill="currentColor"/>)}
                         </div>
-                        <h3 className={`${jakarta.className} text-3xl font-black text-[#00577C] leading-tight hover:underline cursor-pointer`}>
+                        <h3 className={`${jakarta.className} text-2xl font-black text-[#00577C] leading-tight hover:underline cursor-pointer`}>
                           <Link href={`/hoteis/${hotel.id}`}>{hotel.nome}</Link>
                         </h3>
                       </div>
-                      <div className="bg-[#00577C] text-white flex flex-col items-center justify-center w-14 h-14 rounded-2xl shadow-lg shrink-0">
-                        <span className="text-sm font-black">9.2</span>
+                      <div className="bg-[#00577C] text-white flex flex-col items-center justify-center w-12 h-12 rounded-xl rounded-tr-sm shadow-md">
+                        <span className="text-xs font-black">9.2</span>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 text-xs font-bold text-slate-500 mb-5">
-                      <MapPin size={16} className="text-[#009640]"/> São Geraldo do Araguaia <span className="text-blue-500 hover:text-blue-700 underline cursor-pointer ml-1 transition-colors">Mostrar no mapa</span>
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 mb-4">
+                      <MapPin size={14} className="text-[#009640]"/> São Geraldo do Araguaia <span className="text-blue-500 underline cursor-pointer ml-2">Mostrar no mapa</span>
                     </div>
                     
-                    <p className="text-slate-500 text-sm leading-relaxed line-clamp-2 mb-6 font-medium pr-4">
+                    <p className="text-slate-600 text-sm leading-relaxed line-clamp-2 mb-4 font-medium">
                       {hotel.descricao}
                     </p>
 
-                    <div className="flex flex-wrap items-center gap-4 text-slate-500 mb-8">
-                       <span className="flex items-center gap-1.5 text-xs font-bold bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100"><Wifi size={14} className="text-[#00577C]"/> Wi-Fi Grátis</span>
-                       <span className="flex items-center gap-1.5 text-xs font-bold bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100"><Coffee size={14} className="text-[#00577C]"/> Pequeno-almoço</span>
-                       <span className="flex items-center gap-1.5 text-xs font-bold bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100"><Car size={14} className="text-[#00577C]"/> Estacionamento</span>
+                    <div className="flex items-center gap-4 text-slate-400 mb-6">
+                       <span className="flex items-center gap-1.5 text-xs font-bold"><Wifi size={14} className="text-slate-600"/> Wi-Fi Gratuito</span>
+                       <span className="flex items-center gap-1.5 text-xs font-bold"><Coffee size={14} className="text-slate-600"/> Pequeno-almoço</span>
+                       <span className="flex items-center gap-1.5 text-xs font-bold"><Car size={14} className="text-slate-600"/> Estacionamento</span>
                     </div>
 
-                    {/* PREÇO E BOTÃO (Rodapé do Card) */}
-                    <div className="mt-auto pt-6 border-t border-slate-100 flex flex-col sm:flex-row sm:items-end justify-between gap-6">
+                    {/* PREÇO E BOTÃO (Fundo à Direita) */}
+                    <div className="mt-auto pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                       <div>
-                         <p className="text-[10px] font-black uppercase text-green-700 tracking-widest bg-green-50 px-3 py-1.5 rounded-lg inline-block mb-3 border border-green-100">Cancelamento Gratuito</p>
+                         <p className="text-[10px] font-black uppercase text-green-700 tracking-widest bg-green-50 px-2 py-1 rounded inline-block mb-2">Cancelamento Gratuito</p>
                          <p className="text-xs font-bold text-slate-500">1 diária, {adultos} adultos</p>
                       </div>
                       <div className="text-right flex flex-col items-end">
                          <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">A partir de</p>
-                         <p className={`${jakarta.className} text-4xl font-black text-[#009640] tabular-nums mb-4 leading-none`}>
+                         <p className={`${jakarta.className} text-3xl font-black text-[#009640] tabular-nums mb-3 leading-none`}>
                            {formatarMoeda(parseValor(hotel.quarto_standard_preco || hotel.preco_medio))}
                          </p>
-                         <Link href={`/hoteis/${hotel.id}`} className="bg-[#00577C] text-white px-10 py-4 rounded-[1.5rem] font-black text-sm uppercase tracking-widest hover:bg-[#004a6b] transition-all shadow-xl hover:shadow-[#00577C]/20 flex items-center gap-3 hover:translate-x-1">
-                           Ver Disponibilidade <ChevronRight size={20}/>
+                         <Link href={`/hoteis/${hotel.id}`} className="bg-[#00577C] text-white px-8 py-3.5 rounded-xl font-black text-sm uppercase tracking-widest hover:bg-[#004a6b] transition-colors shadow-lg flex items-center gap-2">
+                           Ver Disponibilidade <ChevronRight size={18}/>
                          </Link>
                       </div>
                     </div>
