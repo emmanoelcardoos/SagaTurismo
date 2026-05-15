@@ -6,8 +6,8 @@ import Image from 'next/image';
 import {
   Loader2, Menu, MapPin, ArrowRight,
   Bed, Compass, Ticket, CalendarClock,
-  Search, Calendar, Filter, Star, CheckCircle2,
-  ChevronRight, Sparkles, X
+  Search, Calendar, Star, CheckCircle2,
+  ChevronRight, Sparkles, X, ShieldCheck // ADICIONADO AQUI
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -47,6 +47,8 @@ const parseValor = (valor: any): number => {
 
 const formatarMoeda = (valor: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor || 0);
+
+const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?q=80&w=1740";
 
 export default function PacotesPage() {
   const [pacotes, setPacotes] = useState<Pacote[]>([]);
@@ -115,7 +117,7 @@ export default function PacotesPage() {
       <header className={`fixed left-0 top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl transition-transform duration-300 ${showHeader ? 'translate-y-0' : '-translate-y-full'}`}>
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-5">
           <Link href="/" className="flex items-center gap-3">
-            <div className="relative h-12 w-36 sm:h-16 sm:w-56"><Image src="/logop.png" alt="Prefeitura" fill priority className="object-contain object-left" /></div>
+            <div className="relative h-12 w-36 shrink-0 sm:h-16 sm:w-56"><Image src="/logop.png" alt="Prefeitura" fill priority className="object-contain object-left" /></div>
             <div className="hidden border-l border-slate-200 pl-4 lg:block text-left">
               <p className={`${jakarta.className} text-2xl font-bold text-[#00577C]`}>SagaTurismo</p>
               <p className="mt-1 text-[11px] font-bold uppercase tracking-widest text-slate-500">Secretaria de Turismo</p>
@@ -130,7 +132,7 @@ export default function PacotesPage() {
 
       {/* HERO SECTION */}
       <section className="relative pt-[120px] pb-32 overflow-hidden bg-[#00577C]">
-        <div className="absolute inset-0 z-0">
+        <div className="absolute inset-0 z-0 text-left">
           <Image src="https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?q=80&w=1740" alt="Background" fill className="object-cover opacity-30" />
           <div className="absolute inset-0 bg-gradient-to-b from-[#00577C]/50 via-transparent to-[#F8F9FA]" />
         </div>
@@ -148,7 +150,7 @@ export default function PacotesPage() {
             </p>
           </div>
 
-          {/* CAIXA DE BUSCA / CALENDÁRIO */}
+          {/* CAIXA DE BUSCA */}
           <div className="bg-white rounded-[2.5rem] shadow-2xl p-4 md:p-6 border border-slate-100 flex flex-col md:flex-row items-center gap-4 animate-in fade-in slide-in-from-bottom-8 duration-700">
              <div className="w-full md:flex-1 relative">
                 <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
@@ -191,18 +193,13 @@ export default function PacotesPage() {
             {pacotesFiltrados.map((pacote) => (
               <article key={pacote.id} className="group bg-white rounded-[2.5rem] overflow-hidden border border-slate-200 shadow-sm hover:shadow-2xl transition-all hover:-translate-y-2 flex flex-col h-full text-left">
                 
-                {/* IMAGEM COM BADGE */}
                 <div className="relative h-64 overflow-hidden shrink-0">
                   <Image src={pacote.imagem_principal || FALLBACK_IMAGE} alt={pacote.titulo} fill className="object-cover transition-transform duration-700 group-hover:scale-110" />
                   <div className="absolute top-5 left-5 bg-white/95 backdrop-blur px-4 py-2 rounded-xl flex items-center gap-2 text-[10px] font-black uppercase text-[#00577C] shadow-md">
                     <CalendarClock size={14}/> {pacote.dias} Dias / {pacote.noites} Noites
                   </div>
-                  <div className="absolute bottom-5 right-5 bg-white/20 backdrop-blur-md p-2 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity">
-                    <ChevronRight size={24}/>
-                  </div>
                 </div>
 
-                {/* CONTEÚDO */}
                 <div className="p-8 flex flex-col flex-1">
                   <div className="flex items-center gap-2 text-[#009640] mb-4">
                      <CheckCircle2 size={16}/>
@@ -212,7 +209,6 @@ export default function PacotesPage() {
                   <h3 className={`${jakarta.className} text-2xl font-black text-slate-900 mb-3 leading-tight`}>{pacote.titulo}</h3>
                   <p className="text-slate-500 text-sm leading-relaxed line-clamp-2 mb-8">{pacote.descricao_curta}</p>
 
-                  {/* RESUMO DE INCLUSÕES */}
                   <div className="bg-slate-50 rounded-2xl p-5 mb-8 space-y-3 border border-slate-100">
                     <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-2">Este roteiro inclui:</p>
                     {pacote.pacote_itens.slice(0, 3).map((item, idx) => (
@@ -224,7 +220,6 @@ export default function PacotesPage() {
                     ))}
                   </div>
 
-                  {/* RODAPÉ DO CARD */}
                   <div className="mt-auto pt-6 border-t border-slate-100 flex items-center justify-between">
                     <div className="text-left">
                        <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-0.5">A partir de</p>
@@ -239,19 +234,11 @@ export default function PacotesPage() {
             ))}
           </div>
         )}
-
-        {!loading && pacotesFiltrados.length === 0 && (
-          <div className="py-20 text-center">
-             <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-400"><Search size={40}/></div>
-             <h3 className="text-2xl font-bold text-slate-800">Nenhum pacote encontrado</h3>
-             <p className="text-slate-500">Tente ajustar a sua pesquisa ou filtros.</p>
-          </div>
-        )}
       </section>
 
       {/* FOOTER */}
       <footer className="py-20 px-8 border-t border-slate-200 bg-white mt-20 text-left">
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-7xl mx-auto text-left">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-16 mb-20 text-left">
             <div className="space-y-8">
                <img src="/logop.png" alt="Prefeitura" className="h-20 object-contain" />
@@ -266,9 +253,6 @@ export default function PacotesPage() {
           </div>
         </div>
       </footer>
-
     </main>
   );
 }
-
-const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?q=80&w=1740";
