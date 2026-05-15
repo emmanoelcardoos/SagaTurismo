@@ -176,7 +176,7 @@ function CheckoutPacoteContent() {
 
     const payload: any = {
       tipo_item: "pacote",
-      item_id: pacoteId,
+      pacote_id: pacoteId,
       hotel_id: hotelId || null,
       guia_id: guiaId || null,
       nome_cliente: nome,

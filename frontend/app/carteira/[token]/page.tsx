@@ -25,17 +25,19 @@ export default function CarteiraDigitalPage({ params }: { params: { token: strin
   useEffect(() => {
     const checkStatus = async () => {
       try {
-        const res = await fetch(`/api/validar?token=${params.token}`);
+        // Adicionamos o timestamp (&t=...) para forçar o navegador a buscar dados novos sem cache
+        const res = await fetch(`/api/validar?token=${params.token}&t=${Date.now()}`);
         const json = await res.json();
 
-        // ── 1. REDIRECIONAMENTO SE A IA APROVOU MAS FALTA PAGAR ──
+        // ── 1. REDIRECIONAMENTO IMEDIATO PARA PAGAMENTO ──
+        // Se a IA aprovou, não mostramos nada nesta página, saltamos direto para o Checkout
         if (json.sucesso && (json.status === 'aprovada' || json.status === 'aguardando_pagamento' || json.status === 'pendente')) {
           if (pollInterval.current) clearInterval(pollInterval.current);
           router.push(`/checkout-carteira?token=${params.token}`);
           return;
         }
 
-        // ── 2. SE JÁ ESTÁ ATIVA (PAGA) ──
+        // ── 2. CARTEIRA ATIVA (PAGA) ──
         if (json.sucesso && json.status === 'ativa') {
           if (pollInterval.current) clearInterval(pollInterval.current);
           setData(json);
@@ -43,61 +45,59 @@ export default function CarteiraDigitalPage({ params }: { params: { token: strin
           return;
         }
 
-        // ── 3. SE FOI REPROVADA OU ERRO CRÍTICO ──
+        // ── 3. REPROVADA OU ERRO ──
         if (json.status === 'reprovada' || (json.sucesso === false && json.status !== 'processando')) {
           if (pollInterval.current) clearInterval(pollInterval.current);
           setData(json);
           setLoading(false);
           return;
         }
-
-        // Se o status for 'processando' ou similar, o useEffect não faz nada 
-        // e o setInterval disparará novamente em 10 segundos.
       } catch (err) {
         console.error("Erro na validação:", err);
       }
     };
 
-    // Executa a primeira vez de imediato
     checkStatus();
+    // Polling de 5 segundos para máxima rapidez
+    pollInterval.current = setInterval(checkStatus, 5000);
 
-    // Define o Polling a cada 10 segundos (ideal para a demora da IA)
-    pollInterval.current = setInterval(checkStatus, 10000);
-
-    // Limpa o timer quando o componente sai do ecrã
     return () => {
       if (pollInterval.current) clearInterval(pollInterval.current);
     };
   }, [params.token, router]);
 
-  // Enquanto valida ou processa
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-stone-100">
-      <div className="text-center space-y-4">
-        <Loader2 className="w-12 h-12 animate-spin text-[#00577C] mx-auto" />
-        <p className="text-sm font-bold text-stone-500 uppercase tracking-widest px-6">
-          A validar documentação com a IA... <br/>
-          <span className="text-[10px] font-medium opacity-60">Isto pode demorar alguns minutos. Não feche esta página.</span>
-        </p>
+      <div className="text-center space-y-6">
+        <div className="relative">
+          <Loader2 className="w-16 h-16 animate-spin text-[#00577C] mx-auto" strokeWidth={1.5} />
+          <ShieldCheck className="w-6 h-6 text-[#009640] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+        </div>
+        <div className="space-y-2">
+          <p className="text-sm font-black text-slate-800 uppercase tracking-[0.2em]">Análise em Tempo Real</p>
+          <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest opacity-60">A validar a sua residência com a nossa IA...</p>
+        </div>
       </div>
     </div>
   );
 
-  // ESTADO DE ERRO OU REPROVADO
-  if (!data || !data.sucesso) return (
+  if (!data || !data.sucesso || data.status === 'reprovada') return (
     <div className="min-h-screen flex items-center justify-center p-6 text-center bg-stone-100">
-      <div className="bg-red-50 text-red-600 p-8 rounded-[2rem] border border-red-100 max-w-sm shadow-xl">
-        <ShieldCheck className="w-16 h-16 text-red-300 mx-auto mb-6" />
-        <h2 className="text-xl font-black mb-2">Documentação Inválida</h2>
-        <p className="text-sm opacity-80 mb-6">{data?.mensagem || "A inteligência artificial não conseguiu validar os seus dados. Por favor, tente novamente."}</p>
-        <Link href="/cadastro" className="inline-block bg-red-600 text-white px-8 py-3.5 rounded-xl font-bold shadow-md hover:bg-red-700 transition-colors">
-          Refazer Solicitação
+      <div className="bg-white p-10 rounded-[3rem] border border-red-100 max-w-sm shadow-2xl animate-in zoom-in-95 duration-500 text-left">
+        <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center text-red-500 mb-6">
+          <ShieldCheck size={32} />
+        </div>
+        <h2 className="text-2xl font-black text-slate-900 mb-2">Solicitação Recusada</h2>
+        <p className="text-sm font-medium text-slate-500 mb-8 leading-relaxed">
+          {data?.mensagem || "Não foi possível validar os dados do documento enviado. Certifique-se de que a foto está nítida e o comprovativo de morada é atual."}
+        </p>
+        <Link href="/cadastro" className="block w-full bg-slate-900 text-white text-center py-4 rounded-2xl font-bold hover:bg-black transition-all">
+          Tentar Novamente
         </Link>
       </div>
     </div>
   );
 
-  // ESTADO FINAL: CARTEIRA ATIVA E PAGA
   const expira = "29/04/2027";
 
   return (
@@ -212,7 +212,7 @@ export default function CarteiraDigitalPage({ params }: { params: { token: strin
             <Printer className="w-5 h-5" />
             Imprimir ou Salvar PDF
          </button>
-         <Link href="/" className="px-8 py-4 rounded-2xl font-bold text-stone-500 hover:bg-stone-300/20 transition-all flex items-center gap-2">
+         <Link href="/" className="px-8 py-4 rounded-2xl font-bold text-stone-500 hover:bg-stone-300/20 transition-all flex items-center gap-2 text-sm uppercase tracking-widest">
             Voltar ao Início
          </Link>
       </div>
