@@ -52,6 +52,16 @@ type Evento = {
   categoria: string;
 };
 
+type PasseioData = {
+  id: string;
+  titulo: string;
+  descricao_curta: string;
+  imagem_principal: string;
+  valor_total: number;
+  data_passeio: string;
+  nome_guia: string;
+};
+
 type HotelData = {
   id: string;
   nome: string;
@@ -539,6 +549,10 @@ function SeccaoHoteis() {
   );
 }
 
+// ==========================================
+// SECCAO PACOTES
+// ==========================================
+
 function SeccaoPacotes() {
   const [pacotes, setPacotes] = useState<PacoteData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -632,6 +646,116 @@ function SeccaoPacotes() {
         <div className="mt-12 text-center">
           <Link href="/pacotes" className="inline-flex items-center gap-2 font-bold text-[#00577C] hover:text-[#004766] transition-all">
             Ver todos os pacotes disponíveis <ArrowRight size={18} />
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ==========================================
+// SECCAO PASSEIOS
+// ==========================================
+
+function SeccaoPasseios() {
+  const [passeios, setPasseios] = useState<PasseioData[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchPasseios() {
+      const { data } = await supabase
+        .from('passeios')
+        .select('*')
+        .eq('ativo', true)
+        .order('data_passeio', { ascending: true })
+        .limit(3);
+
+      if (data) setPasseios(data);
+      setLoading(false);
+    }
+    fetchPasseios();
+  }, []);
+
+  const formatarDataSimples = (dataStr: string) => {
+    const [ano, mes, dia] = dataStr.split('-');
+    return `${dia}/${mes}`;
+  };
+
+  return (
+    <section id="passeios" className="bg-white py-24 border-t border-slate-100 text-left">
+      <div className="mx-auto max-w-7xl px-5">
+        <div className="mb-14 text-center">
+          <p className="mb-3 text-sm font-extrabold uppercase tracking-[0.22em] text-[#009640]">
+            Bate e Volta
+          </p>
+          <h2 className={`${jakarta.className} text-4xl font-bold text-slate-950 md:text-6xl tracking-tight`}>
+            Passeios de Fim de Semana
+          </h2>
+          <p className="mx-auto mt-5 max-w-2xl text-slate-600 text-lg">
+            Experiências rápidas e intensas. Trilhas, banhos e cultura com guias locais credenciados.
+          </p>
+        </div>
+
+        {loading ? (
+          <div className="flex justify-center py-12 text-[#00577C]"><Loader2 className="animate-spin w-10 h-10" /></div>
+        ) : (
+          <div className="grid gap-7 md:grid-cols-3">
+            {passeios.map((passeio) => (
+              <article
+                key={passeio.id}
+                className="group overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl flex flex-col h-full"
+              >
+                <div className="relative h-48 w-full bg-slate-50 flex items-center justify-center overflow-hidden shrink-0">
+                  <Image 
+                    src={passeio.imagem_principal || 'https://images.unsplash.com/photo-1551632811-561732d1e306'} 
+                    alt={passeio.titulo} 
+                    fill 
+                    className="object-cover transition-transform duration-500 group-hover:scale-110" 
+                  />
+                  <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1.5 rounded-lg text-[9px] font-black uppercase text-[#009640] shadow-sm flex items-center gap-2">
+                    <CalendarDays size={12} /> {formatarDataSimples(passeio.data_passeio)}
+                  </div>
+                </div>
+
+                <div className="p-7 flex flex-col flex-1 text-left">
+                  <div className="mb-4 flex items-center gap-2">
+                    <Compass size={14} className="text-[#00577C]"/>
+                    <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">
+                      Guia: {passeio.nome_guia || 'Local'}
+                    </span>
+                  </div>
+
+                  <h3 className={`${jakarta.className} text-2xl font-bold text-slate-950 mb-3 line-clamp-1`}>
+                    {passeio.titulo}
+                  </h3>
+
+                  <p className="leading-relaxed text-slate-600 flex-1 line-clamp-3 text-sm mb-6">
+                    {passeio.descricao_curta}
+                  </p>
+
+                  <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between">
+                    <div className="text-left">
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Valor por pessoa</p>
+                      <p className={`${jakarta.className} text-xl font-black text-[#009640]`}>
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(passeio.valor_total || 0))}
+                      </p>
+                    </div>
+                    <Link
+                      href={`/passeios/${passeio.id}`}
+                      className="bg-slate-50 hover:bg-[#F9C400] text-[#00577C] p-3 rounded-xl transition-all group-hover:rotate-12"
+                    >
+                      <ArrowRight size={20} />
+                    </Link>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+
+        <div className="mt-12 text-center">
+          <Link href="/passeios" className="inline-flex items-center gap-2 font-bold text-[#00577C] hover:text-[#004766] transition-all">
+            Ver agenda de passeios <ArrowRight size={18} />
           </Link>
         </div>
       </div>

@@ -335,7 +335,7 @@ export default function CadastroPage() {
               </div>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              {['Aprovação rápida', 'Verificação por IA', 'Pacote Família', 'Serviço gratuito'].map((item) => (
+              {['Aprovação rápida', 'Verificação por IA', 'Pacote Família'].map((item) => (
                 <div key={item} className="flex items-center gap-2 rounded-2xl bg-white/10 px-4 py-3">
                   <CheckCircle2 className="h-5 w-5 shrink-0 text-[#F9C400]" />
                   <span className="text-sm font-bold">{item}</span>
