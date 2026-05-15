@@ -74,7 +74,10 @@ async def processar_pagamento(pedido: PedidoPagamento):
         ddd = telefone_limpo[:2]
         numero_tel = telefone_limpo[2:]
 
-        # --- FASE 1: LÓGICA DE PRECIFICAÇÃO ---
+        # ==========================================
+        # FASE 1: LÓGICA DE PRECIFICAÇÃO
+        # ==========================================
+        
         if pedido.tipo_item == "carteira":
             valor_total = 10.00 * pedido.quantidade
             nome_item_checkout = f"Taxa de Emissão - Carteira Digital ({pedido.quantidade}x)"
@@ -96,14 +99,24 @@ async def processar_pagamento(pedido: PedidoPagamento):
                     "receivers": [{"account": {"id": hotel_data["pagbank_recebedor_id"]}, "amount": {"value": int(valor_total * 100)}}]
                 })
 
+        # --- AJUSTE APENAS PARA PACOTES ---
         elif pedido.tipo_item == "pacote":
             res_pacote = supabase.table("pacotes").select("*").eq("id", pedido.pacote_id).single().execute()
-            if not res_pacote.data: raise HTTPException(status_code=404, detail="Pacote não encontrado")
-            valor_total = float(res_pacote.data.get("preco_base", 0))
-            nome_item_checkout = f"Pacote: {res_pacote.data['titulo']}"
-            item_id_db = pedido.pacote_id
+            if not res_pacote.data: 
+                raise HTTPException(status_code=404, detail="Pacote não encontrado")
+            
+            pacote_info = res_pacote.data
+            # Mudança: Usando 'preco' em vez de 'preco_base'
+            valor_total = float(pacote_info.get("preco") or 0)
+            nome_item_checkout = f"Pacote: {pacote_info.get('titulo', 'Turístico')}"
+            
+            # Garante que o item_id_db seja um UUID válido e não a string "None"
+            if pedido.pacote_id and str(pedido.pacote_id).lower() not in ["none", "null"]:
+                item_id_db = pedido.pacote_id
 
-        # --- FASE 2: PERSISTÊNCIA NO SUPABASE (CORRIGIDA) ---
+        # ==========================================
+        # FASE 2: PERSISTÊNCIA NO SUPABASE
+        # ==========================================
         pedido_db = {
             "codigo_pedido": codigo_pedido,
             "tipo_item": pedido.tipo_item,
@@ -113,7 +126,7 @@ async def processar_pagamento(pedido: PedidoPagamento):
             "telefone_cliente": pedido.telefone_cliente,
             "valor_total": valor_total,
             "status_pagamento": "aguardando",
-            "metodo_pagamento": pedido.metodo_pagamento, # CORREÇÃO: Campo obrigatório
+            "metodo_pagamento": pedido.metodo_pagamento,
             "data_checkin": pedido.data_checkin,
             "data_checkout": pedido.data_checkout,
             "data_nascimento": pedido.data_nascimento,
@@ -121,13 +134,14 @@ async def processar_pagamento(pedido: PedidoPagamento):
             "quantidade": pedido.quantidade
         }
         
-        # CORREÇÃO UUID: Só adiciona se existir, para evitar erro de sintaxe "None"
         if item_id_db:
             pedido_db["item_id"] = item_id_db
 
         supabase.table("pedidos").insert(pedido_db).execute()
 
-        # --- FASE 3: PAYLOAD PAGBANK ---
+        # ==========================================
+        # FASE 3: PAYLOAD PAGBANK
+        # ==========================================
         payload_pagbank = {
             "reference_id": codigo_pedido,
             "customer": {
@@ -176,9 +190,11 @@ async def processar_pagamento(pedido: PedidoPagamento):
             
             if pedido.metodo_pagamento == "pix":
                 qr = dados_pb["qr_codes"][0]
+                # Pegamos o link correto do QR Code PNG
+                link_qr = next((l["href"] for l in qr["links"] if l["rel"] == "QRCODE.PNG"), qr["links"][0]["href"])
                 base_retorno.update({
                     "metodo": "pix",
-                    "pix_qrcode_img": qr["links"][0]["href"],
+                    "pix_qrcode_img": link_qr,
                     "pix_copia_cola": qr["text"]
                 })
             else:
