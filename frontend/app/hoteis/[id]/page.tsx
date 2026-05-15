@@ -341,7 +341,6 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
                             <span className="flex items-center gap-1.5"><Wind size={14}/> Ar-condicionado</span>
                             <span className="flex items-center gap-1.5"><Wifi size={14}/> Wi-Fi Grátis</span>
                             <span className="flex items-center gap-1.5"><Bath size={14}/> Banheiro Priv.</span>
-                            <span className="flex items-center gap-1.5"><Maximize size={14}/> 20 m²</span>
                          </div>
                       </div>
                       
@@ -395,7 +394,6 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
                             <span className="flex items-center gap-1.5"><Wind size={14}/> Ar-condicionado</span>
                             <span className="flex items-center gap-1.5"><Wifi size={14}/> Wi-Fi Grátis</span>
                             <span className="flex items-center gap-1.5"><Bath size={14}/> Banheira/Spa</span>
-                            <span className="flex items-center gap-1.5"><Maximize size={14}/> 35 m²</span>
                          </div>
                       </div>
                       
@@ -407,7 +405,7 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
                                  <CheckCircle2 size={16} className="shrink-0 mt-0.5" /> Cancelamento grátis até 24h antes
                                </li>
                                <li className="flex items-start gap-2 text-sm text-[#00577C] font-bold">
-                                 <Coffee size={16} className="shrink-0 mt-0.5" /> Pequeno-almoço Premium Incluído
+                                 <Coffee size={16} className="shrink-0 mt-0.5" /> Café da manhã incluso
                                </li>
                                <li className="flex items-start gap-2 text-sm text-slate-600 font-medium">
                                  <CreditCard size={16} className="shrink-0 mt-0.5" /> Pagamento flexível disponível
