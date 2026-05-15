@@ -114,23 +114,6 @@ const heroSlides = [
   },
 ];
 
-const atracoes = [
-  {
-    title: 'Serra das Andorinhas',
-    desc: 'Um dos maiores símbolos naturais da região, com paisagens marcantes, trilhas, mirantes e o espetáculo das andorinhas ao entardecer.',
-    icon: Mountain,
-  },
-  {
-    title: 'Rio Araguaia',
-    desc: 'Cenário perfeito para lazer, pesca, banho, passeios e contemplação da natureza às margens de um dos rios mais conhecidos do Brasil.',
-    icon: Waves,
-  },
-  {
-    title: 'Trilhas e Ecoturismo',
-    desc: 'Experiências em meio à vegetação, formações rochosas, fauna local e paisagens que revelam a força natural do sul do Pará.',
-    icon: TreePine,
-  },
-];
 
 // ==========================================
 // COMPONENTE: DESTAQUES VERÃO 2026
@@ -911,40 +894,6 @@ export default function HomePage() {
                 index === currentImage ? 'w-8 bg-[#F9C400]' : 'w-2.5 bg-white/45'
               }`}
             />
-          ))}
-        </div>
-      </section>
-
-      {/* ATRAÇÕES */}
-      <section id="atracoes" className="mx-auto max-w-7xl px-5 py-24 text-left">
-        <div className="mb-14 max-w-3xl">
-          <p className="mb-3 text-sm font-extrabold uppercase tracking-[0.22em] text-[#009640]">
-            Atrações da cidade
-          </p>
-          <h2 className={`${jakarta.className} text-4xl font-bold text-slate-950 md:text-6xl`}>
-            Natureza, aventura e paisagens que ficam na memória.
-          </h2>
-          <p className="mt-5 max-w-2xl text-slate-600">
-            Conheça alguns dos principais pontos de interesse turístico de São Geraldo do Araguaia.
-          </p>
-        </div>
-
-        <div className="grid gap-7 md:grid-cols-3">
-          {atracoes.map(({ title, desc, icon: Icon }) => (
-            <article
-              key={title}
-              className="rounded-[2rem] border border-slate-200 bg-white p-7 shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
-            >
-              <div className="mb-8 flex h-16 w-16 items-center justify-center rounded-3xl bg-[#EAF8F0] text-[#009640]">
-                <Icon className="h-8 w-8" />
-              </div>
-
-              <h3 className={`${jakarta.className} text-2xl font-bold text-slate-950`}>
-                {title}
-              </h3>
-
-              <p className="mt-4 leading-relaxed text-slate-600">{desc}</p>
-            </article>
           ))}
         </div>
       </section>
