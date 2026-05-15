@@ -74,9 +74,9 @@ type HotelData = {
 type PacoteData = {
   id: string;
   titulo: string;
-  descricao_curta: string; // Nome exato do seu CSV
+  descricao_curta: string;
   imagem_principal: string;
-  preco?: number; // Opcional, caso adicione depois
+  preco?: number;
 };
 
 type EventoDestaque = {
@@ -96,24 +96,23 @@ type FotoGaleria = {
 // ==========================================
 // DADOS ESTÁTICOS
 // ==========================================
-const heroSlides = [
+const atracoes = [
   {
-    image: 'https://images.unsplash.com/photo-1442850473887-0fb77cd0b337?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0',
-    title: 'Descubra a beleza natural do Araguaia.',
-    subtitle: 'Rios, serras, trilhas e paisagens inesquecíveis no coração do sul do Pará.',
+    title: 'Serra das Andorinhas',
+    desc: 'Um dos maiores símbolos naturais da região, com paisagens marcantes, trilhas, mirantes e o espetáculo das andorinhas ao entardecer.',
+    icon: Mountain,
   },
   {
-    image: 'https://images.pexels.com/photos/33153432/pexels-photo-33153432.jpeg',
-    title: 'Viva experiências únicas em São Geraldo.',
-    subtitle: 'Uma cidade acolhedora, cheia de natureza, cultura e histórias para conhecer.',
+    title: 'Rio Araguaia',
+    desc: 'Cenário perfeito para lazer, pesca, banho, passeios e contemplação da natureza às margens de um dos rios mais conhecidos do Brasil.',
+    icon: Waves,
   },
   {
-    image: 'https://images.pexels.com/photos/16832175/pexels-photo-16832175.jpeg',
-    title: 'A natureza também é patrimônio do povo.',
-    subtitle: 'Residentes têm acesso facilitado ao parque com o Cartão Digital SagaTurismo.',
+    title: 'Trilhas e Ecoturismo',
+    desc: 'Experiências em meio à vegetação, formações rochosas, fauna local e paisagens que revelam a força natural do sul do Pará.',
+    icon: TreePine,
   },
 ];
-
 
 
 // ==========================================
@@ -610,7 +609,6 @@ function SeccaoPacotes() {
                     {pacote.titulo}
                   </h3>
 
-                  {/* CORREÇÃO: Usando descricao_curta conforme seu CSV */}
                   <p className="leading-relaxed text-slate-600 flex-1 line-clamp-3 text-sm mb-6">
                     {pacote.descricao_curta || 'Conheça os encantos naturais e culturais deste roteiro exclusivo em São Geraldo do Araguaia.'}
                   </p>
@@ -619,7 +617,6 @@ function SeccaoPacotes() {
                     <div className="text-left">
                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">A partir de</p>
                       <p className={`${jakarta.className} text-xl font-black text-[#00577C]`}>
-                        {/* Como não há coluna de preço no seu CSV, usei um valor exemplo ou 150.00 se existir futuramente */}
                         {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(pacote.preco || 150))}
                       </p>
                     </div>
@@ -760,18 +757,8 @@ function SeccaoPasseios() {
 // COMPONENTE PRINCIPAL: HOMEPAGE
 // ==========================================
 export default function HomePage() {
-  const [currentImage, setCurrentImage] = useState(0);
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
-
-  const currentSlide = heroSlides[currentImage];
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentImage((prev) => (prev + 1) % heroSlides.length);
-    }, 20000);
-    return () => clearInterval(interval);
-  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -850,66 +837,49 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* HERO */}
-      <section className="relative min-h-screen overflow-hidden pt-20 text-left">
-        {heroSlides.map((slide, index) => (
-          <div
-            key={slide.image}
-            className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ${
-              index === currentImage ? 'opacity-100' : 'opacity-0'
-            }`}
-            style={{ backgroundImage: `url(${slide.image})` }}
+      {/* HERO SECTION SÓBRIA & OFICIAL */}
+      <section className="relative min-h-[90vh] flex items-center justify-center pt-32 pb-24 overflow-hidden bg-[#002f40]">
+        <div className="absolute inset-0 z-0 pointer-events-none">
+          <Image 
+            src="https://images.unsplash.com/photo-1442850473887-0fb77cd0b337?q=80&w=1740&auto=format&fit=crop" 
+            alt="São Geraldo do Araguaia" 
+            fill 
+            priority
+            className="object-cover opacity-30" 
           />
-        ))}
-
-        <div className="absolute inset-0 bg-gradient-to-r from-[#00577C]/90 via-[#00577C]/62 to-[#00577C]/20" />
-        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-white to-transparent" />
-
-        <div className="relative z-10 mx-auto flex min-h-[calc(100vh-80px)] max-w-7xl items-center px-5 py-24">
-          <div className="max-w-3xl text-white">
-
-            <h1 className={`${jakarta.className} text-5xl font-extrabold leading-[0.95] md:text-7xl`}>
-              {currentSlide.title}
-            </h1>
-
-            <p className="mt-6 max-w-2xl text-lg leading-relaxed text-white/85 md:text-xl">
-              {currentSlide.subtitle}
-            </p>
-
-            <div className="mt-8 flex flex-col gap-4 sm:flex-row">
-              <Link
-                href="/cadastro"
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-[#F9C400] px-7 py-4 font-bold text-[#00577C] shadow-xl transition hover:-translate-y-0.5 hover:bg-[#ffd633]"
-              >
-                Solicitar cartão com 50% de desconto
-                <ArrowRight className="h-5 w-5" />
-              </Link>
-
-              <Link
-                href="/roteiro"
-                className="inline-flex items-center justify-center gap-2 rounded-full border border-white/35 px-7 py-4 font-bold text-white backdrop-blur transition hover:bg-white/15"
-              >
-                Explorar rota turística
-              </Link>
-            </div>
-          </div>
+          <div className="absolute inset-0 bg-gradient-to-b from-[#002f40]/80 via-transparent to-white" />
         </div>
 
-        <div className="absolute bottom-8 left-1/2 z-20 flex -translate-x-1/2 gap-2">
-          {heroSlides.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => setCurrentImage(index)}
-              className={`h-2.5 rounded-full transition-all ${
-                index === currentImage ? 'w-8 bg-[#F9C400]' : 'w-2.5 bg-white/45'
-              }`}
-            />
-          ))}
+        <div className="relative z-10 mx-auto max-w-7xl px-6 text-center flex flex-col items-center">
+          <div className="inline-flex items-center gap-2 bg-[#F9C400] text-[#00577C] px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-8 shadow-sm">
+            <ShieldCheck size={14}/> Portal Oficial de Turismo
+          </div>
+          <h1 className={`${jakarta.className} text-5xl md:text-7xl font-black text-white leading-tight mb-6 drop-shadow-lg max-w-4xl`}>
+            Descubra a beleza natural do <span className="text-[#F9C400]">Araguaia.</span>
+          </h1>
+          <p className="text-lg md:text-xl text-white/80 font-medium max-w-2xl mb-12">
+            Rios, serras, trilhas e paisagens inesquecíveis. Viva experiências únicas com a segurança da Prefeitura Municipal.
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+            <Link
+              href="/roteiro"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-[#F9C400] hover:bg-[#e5b500] text-[#00577C] px-10 py-5 rounded-[1.5rem] font-black text-sm uppercase tracking-widest transition-all shadow-xl hover:-translate-y-1"
+            >
+              Explorar Roteiros <ArrowRight size={18} />
+            </Link>
+            <Link
+              href="/cadastro"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white px-10 py-5 rounded-[1.5rem] font-black text-sm uppercase tracking-widest transition-all hover:-translate-y-1"
+            >
+              Cartão Residente
+            </Link>
+          </div>
         </div>
       </section>
 
       {/* ROTA TURÍSTICA */}
-      <section className="bg-slate-50 py-24 text-left">
+      <section className="bg-white py-24 text-left">
         <div className="mx-auto grid max-w-7xl gap-10 px-5 md:grid-cols-2 md:items-center">
           <div className="relative min-h-[420px] overflow-hidden rounded-[2.5rem] shadow-xl text-left">
             <div
