@@ -72,7 +72,6 @@ export default function PacotesPage() {
   const [lastScrollY, setLastScrollY] = useState(0);
 
   // Estados de Filtro
-  const [dataBusca, setDataBusca] = useState('');
   const [categoriaSel, setCategoriaSel] = useState('Todos');
   const [termoBusca, setTermoBusca] = useState('');
 
@@ -190,24 +189,6 @@ export default function PacotesPage() {
                 />
               </div>
 
-              <div className="hidden lg:block w-px h-8 bg-slate-200 mx-1" />
-
-              {/* CALENDÁRIO CORRIGIDO */}
-              <div className="w-full lg:w-64 relative group">
-                <div className="absolute left-5 top-1/2 -translate-y-1/2 text-[#00577C] pointer-events-none z-10">
-                   <Calendar size={18} />
-                </div>
-                <input 
-                  type={dataBusca ? "date" : "text"}
-                  placeholder="QUANDO QUER IR?"
-                  onFocus={(e) => e.target.type = 'date'}
-                  onBlur={(e) => { if (!e.target.value) e.target.type = 'text' }}
-                  value={dataBusca}
-                  onChange={(e) => setDataBusca(e.target.value)}
-                  className="w-full pl-14 pr-4 py-4 rounded-2xl bg-slate-50 border-none font-bold text-slate-700 outline-none cursor-pointer placeholder:text-slate-400 placeholder:text-xs placeholder:tracking-widest transition-all"
-                />
-              </div>
-
               <button className="w-full lg:w-auto bg-[#00577C] text-white px-10 py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-[#004a6b] transition-all flex items-center justify-center gap-2">
                 BUSCAR
               </button>
@@ -273,8 +254,8 @@ export default function PacotesPage() {
           <div className="py-24 text-center bg-white rounded-[3rem] border-2 border-dashed border-slate-200">
              <Search className="mx-auto mb-4 text-slate-300" size={50}/>
              <h3 className={`${jakarta.className} text-2xl font-black text-slate-800`}>Nada encontrado</h3>
-             <p className="text-slate-500 font-medium">Não existem pacotes com estes critérios para a data selecionada.</p>
-             <button onClick={() => {setTermoBusca(''); setCategoriaSel('Todos'); setDataBusca('');}} className="mt-6 text-[#00577C] font-black text-sm uppercase tracking-widest border-b-2 border-[#00577C]">Limpar Filtros</button>
+             <p className="text-slate-500 font-medium">Não existem pacotes com estes critérios.</p>
+             <button onClick={() => {setTermoBusca(''); setCategoriaSel('Todos');}} className="mt-6 text-[#00577C] font-black text-sm uppercase tracking-widest border-b-2 border-[#00577C]">Limpar Filtros</button>
           </div>
         )}
       </section>
