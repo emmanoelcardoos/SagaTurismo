@@ -16,6 +16,17 @@ const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'] });
 
 // ── TIPAGENS ──
+type Hotel = { id: string; nome: string; preco_medio: any; };
+type Guia = { id: string; nome: string; preco_diaria: any; especialidade: string; };
+type Atracao = { id: string; nome: string; preco_entrada: any; tipo: string; };
+
+type PacoteItem = {
+  id: string;
+  hoteis: Hotel | null;
+  guias: Guia | null;
+  atracoes: Atracao | null;
+};
+
 type Pacote = {
   id: string;
   titulo: string;
@@ -28,10 +39,24 @@ type Pacote = {
   pacote_itens: any[];
 };
 
-// ── UTILITÁRIOS ──
+// ── UTILITÁRIOS CORRIGIDOS PARA EVITAR 'NaN' ──
 const parseValor = (valor: any): number => {
-  if (valor === null || valor === undefined || valor === '') return 0;
-  const num = typeof valor === 'string' ? parseFloat(valor.replace(',', '.')) : valor;
+  if (!valor) return 0;
+  if (typeof valor === 'number') return isNaN(valor) ? 0 : valor;
+  
+  // Limpa o texto: Remove "R$", espaços, letras, etc. Deixa apenas números, pontos e vírgulas.
+  let str = String(valor).replace(/[^\d.,]/g, '');
+  
+  // Se tiver ponto de milhar E vírgula decimal (ex: 1.500,00)
+  if (str.includes('.') && str.includes(',')) {
+    str = str.replace(/\./g, '').replace(',', '.');
+  } 
+  // Se tiver só vírgula (ex: 150,00)
+  else if (str.includes(',')) {
+    str = str.replace(',', '.');
+  }
+  
+  const num = parseFloat(str);
   return isNaN(num) ? 0 : num;
 };
 
@@ -55,7 +80,6 @@ export default function PacotesPage() {
 
   useEffect(() => {
     async function fetchPacotes() {
-      // RESTAURADO: Busca com joins para calcular o preço corretamente
       const { data, error } = await supabase
         .from('pacotes')
         .select(`
@@ -139,11 +163,9 @@ export default function PacotesPage() {
             Explore São Geraldo do Araguaia com pacotes planejados para sua melhor experiência.
           </p>
 
-          {/* CAIXA DE BUSCA MODERNA COM CALENDÁRIO ESTILIZADO */}
           <div className="bg-white/10 backdrop-blur-xl p-2 rounded-[2.5rem] border border-white/20 shadow-2xl max-w-5xl">
             <div className="bg-white rounded-[2.2rem] p-3 flex flex-col lg:flex-row items-center gap-2">
               
-              {/* Filtro Categorias */}
               <div className="w-full lg:w-60 relative">
                 <Filter className="absolute left-5 top-1/2 -translate-y-1/2 text-[#00577C]" size={18} />
                 <select 
@@ -157,7 +179,6 @@ export default function PacotesPage() {
 
               <div className="hidden lg:block w-px h-8 bg-slate-200 mx-1" />
 
-              {/* Busca Texto */}
               <div className="w-full flex-1 relative">
                 <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                 <input 
@@ -171,20 +192,20 @@ export default function PacotesPage() {
 
               <div className="hidden lg:block w-px h-8 bg-slate-200 mx-1" />
 
-              {/* Calendário Customizado */}
+              {/* CALENDÁRIO CORRIGIDO */}
               <div className="w-full lg:w-64 relative group">
                 <div className="absolute left-5 top-1/2 -translate-y-1/2 text-[#00577C] pointer-events-none z-10">
                    <Calendar size={18} />
                 </div>
                 <input 
-                  type="date" 
+                  type={dataBusca ? "date" : "text"}
+                  placeholder="QUANDO QUER IR?"
+                  onFocus={(e) => e.target.type = 'date'}
+                  onBlur={(e) => { if (!e.target.value) e.target.type = 'text' }}
                   value={dataBusca}
                   onChange={(e) => setDataBusca(e.target.value)}
-                  className="w-full pl-14 pr-4 py-4 rounded-2xl bg-slate-50 border-none font-bold text-slate-700 outline-none cursor-pointer relative z-0
-                  [text-transform:uppercase] [font-size:12px] [letter-spacing:1px]
-                  [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                  className="w-full pl-14 pr-4 py-4 rounded-2xl bg-slate-50 border-none font-bold text-slate-700 outline-none cursor-pointer placeholder:text-slate-400 placeholder:text-xs placeholder:tracking-widest transition-all"
                 />
-                {!dataBusca && <span className="absolute left-14 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs pointer-events-none">QUANDO QUER IR?</span>}
               </div>
 
               <button className="w-full lg:w-auto bg-[#00577C] text-white px-10 py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-[#004a6b] transition-all flex items-center justify-center gap-2">
@@ -205,7 +226,6 @@ export default function PacotesPage() {
               <Link key={pacote.id} href={`/pacotes/${pacote.id}`} className="group">
                 <article className="h-full bg-white rounded-[2.5rem] overflow-hidden border border-slate-200 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 flex flex-col relative">
                   
-                  {/* Imagem com proporção fixa */}
                   <div className="relative h-60 overflow-hidden shrink-0">
                     <Image src={pacote.imagem_principal || FALLBACK_IMAGE} alt={pacote.titulo} fill className="object-cover transition-transform duration-700 group-hover:scale-110" />
                     <div className="absolute top-4 left-4 bg-white/95 backdrop-blur px-3 py-1.5 rounded-xl flex items-center gap-2 text-[10px] font-black uppercase text-[#00577C] shadow-sm">
@@ -213,7 +233,6 @@ export default function PacotesPage() {
                     </div>
                   </div>
 
-                  {/* Conteúdo do Card */}
                   <div className="p-8 flex flex-col flex-1 text-left">
                     <div className="flex items-center justify-between mb-4">
                       <span className="text-[10px] font-black uppercase tracking-widest text-[#009640] bg-green-50 px-2 py-1 rounded">
@@ -232,7 +251,6 @@ export default function PacotesPage() {
                       {pacote.descricao_curta}
                     </p>
 
-                    {/* Rodapé do Card */}
                     <div className="mt-auto pt-6 border-t border-slate-100 flex items-center justify-between">
                       <div className="text-left">
                          <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest leading-none mb-1">Investimento</p>
@@ -266,7 +284,7 @@ export default function PacotesPage() {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
           <div className="flex flex-col items-center md:items-start gap-4">
              <Image src="/logop.png" alt="SGA" width={160} height={50} className="object-contain" />
-             <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">© 2026 Secretaria Municipal de Turismo - SGA</p>
+             <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.4em]">© 2026 Secretaria Municipal de Turismo - SGA</p>
           </div>
           <div className="flex gap-10">
              <div className="text-left border-l-2 border-slate-100 pl-6">
