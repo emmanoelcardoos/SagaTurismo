@@ -91,7 +91,7 @@ export default function DashboardParceiroPage() {
       } catch (error) {
         console.error("Erro ao carregar dados da API:", error);
         setReservas([]);
-      } finaly {
+      } finally {
         setLoading(false);
       }
     }
