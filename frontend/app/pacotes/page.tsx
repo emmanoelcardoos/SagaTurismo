@@ -155,15 +155,17 @@ export default function PacotesPage() {
             <Link href="/hoteis" className="text-slate-600 hover:text-[#00577C]">Alojamentos</Link>
             <Link href="/cadastro" className="rounded-full bg-[#F9C400] px-5 py-2.5 text-[#00577C] shadow-lg hover:bg-[#ffd633]">Cartão Residente</Link>
           </nav>
-          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="lg:hidden p-2 text-[#00577C]"><Menu size={24}/></button>
+          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="lg:hidden p-2 text-[#00577C]">
+            {isMobileMenuOpen ? <X size={24}/> : <Menu size={24}/>}
+          </button>
         </div>
 
         {/* Menu Mobile */}
         {isMobileMenuOpen && (
           <div className="absolute top-full left-0 w-full bg-white border-b border-slate-200 p-5 flex flex-col gap-4 shadow-xl lg:hidden animate-in slide-in-from-top-4">
-            <Link href="/roteiro" className="font-bold text-slate-700">Rota Turística</Link>
-            <Link href="/hoteis" className="font-bold text-slate-700">Alojamentos</Link>
-            <Link href="/cadastro" className="bg-[#F9C400] text-[#00577C] font-black px-4 py-3 rounded-xl text-center">Cartão Residente</Link>
+            <Link href="/roteiro" onClick={() => setIsMobileMenuOpen(false)} className="font-bold text-slate-700">Rota Turística</Link>
+            <Link href="/hoteis" onClick={() => setIsMobileMenuOpen(false)} className="font-bold text-slate-700">Alojamentos</Link>
+            <Link href="/cadastro" onClick={() => setIsMobileMenuOpen(false)} className="bg-[#F9C400] text-[#00577C] font-black px-4 py-3 rounded-xl text-center">Cartão Residente</Link>
           </div>
         )}
       </header>
@@ -197,7 +199,7 @@ export default function PacotesPage() {
 
       {/* CONTEÚDO */}
       <section className="mx-auto max-w-7xl px-4 md:px-6 pt-8 md:pt-12 relative z-20">
-        <div className="flex lg:hidden items-center justify-between mb-6">
+        <div className="flex lg:hidden items-center justify-between mb-6 text-left">
            <h2 className={`${jakarta.className} text-2xl font-black text-slate-800`}>Pacotes</h2>
            <button onClick={() => setIsMobileFiltersOpen(true)} className="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-full text-sm font-bold text-[#00577C] shadow-sm">
              <SlidersHorizontal size={16} /> Filtros {categoriasSelecionadas.length > 0 && <span className="w-2 h-2 rounded-full bg-[#F9C400]"></span>}
@@ -205,16 +207,21 @@ export default function PacotesPage() {
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8 items-start">
-          {/* SIDEBAR DESKTOP */}
+          {/* SIDEBAR DESKTOP - AGORA COM h-fit e self-start para não "fugir" */}
           <aside className="hidden lg:block w-72 shrink-0 space-y-6 lg:sticky lg:top-32 h-fit lg:self-start">
             <div className="bg-white rounded-[2.5rem] border border-slate-200 p-8 shadow-sm">
-              <h3 className={`${jakarta.className} text-xl font-black text-slate-900 mb-8 flex items-center gap-3`}><Filter size={20} className="text-[#00577C]"/> Filtros</h3>
+              <div className="flex items-center justify-between mb-8">
+                <h3 className={`${jakarta.className} text-xl font-black text-slate-900 flex items-center gap-3`}><Filter size={20} className="text-[#00577C]"/> Filtros</h3>
+                {categoriasSelecionadas.length > 0 && (
+                  <button onClick={limparFiltros} className="text-[10px] font-bold text-slate-400 hover:text-[#00577C] underline">Limpar</button>
+                )}
+              </div>
               <FiltrosConteudo />
             </div>
             <div className="bg-[#e6f4ea] border border-[#009640]/20 rounded-[2.5rem] p-8 text-center shadow-sm">
                <ShieldCheck className="mx-auto mb-4 text-[#009640]" size={40} />
                <p className="text-base font-black text-[#009640] mb-2">Turismo Seguro</p>
-               <p className="text-xs text-green-800 font-medium">Pacotes verificados pela Secretaria de Turismo.</p>
+               <p className="text-xs text-green-800 font-medium leading-relaxed text-center">Pacotes verificados pela Secretaria de Turismo de SGA.</p>
             </div>
           </aside>
 
@@ -239,7 +246,7 @@ export default function PacotesPage() {
                     <div className="absolute top-4 left-4 bg-[#F9C400] text-[#00577C] px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-lg">{pacote.categoria}</div>
                   </div>
 
-                  <div className="p-6 md:p-8 flex flex-col flex-1">
+                  <div className="p-6 md:p-8 flex flex-col flex-1 text-left">
                     <div className="flex items-center gap-2 text-xs font-bold text-[#009640] mb-4 bg-green-50 px-3 py-1 rounded-lg w-fit"><CheckCircle2 size={14} /> Pacote Verificado</div>
                     <h3 className={`${jakarta.className} text-xl md:text-3xl font-black text-[#00577C] leading-tight mb-2 md:mb-4 hover:underline cursor-pointer`}><Link href={`/pacotes/${pacote.id}`}>{pacote.titulo}</Link></h3>
                     <p className="text-slate-500 text-sm leading-relaxed line-clamp-2 mb-6 font-medium">{pacote.descricao_curta}</p>
@@ -265,7 +272,7 @@ export default function PacotesPage() {
       {/* GAVETA DE FILTROS MOBILE */}
       {isMobileFiltersOpen && (
         <div className="fixed inset-0 z-[100] lg:hidden">
-           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsMobileFiltersOpen(false)} />
+           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={() => setIsMobileFiltersOpen(false)} />
            <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2.5rem] p-6 pb-10 flex flex-col max-h-[85vh] animate-in slide-in-from-bottom-full text-left">
               <div className="flex items-center justify-between mb-8 border-b border-slate-100 pb-4">
                  <h3 className={`${jakarta.className} text-2xl font-black text-slate-900`}>Filtros</h3>
@@ -274,22 +281,22 @@ export default function PacotesPage() {
               <div className="overflow-y-auto flex-1"><FiltrosConteudo /></div>
               <div className="pt-4 border-t border-slate-100 mt-6 flex gap-4">
                  <button onClick={limparFiltros} className="flex-1 py-4 text-slate-500 font-bold text-sm underline">Limpar</button>
-                 <button onClick={() => setIsMobileFiltersOpen(false)} className="flex-[2] bg-[#00577C] text-white py-4 rounded-xl font-black text-sm uppercase tracking-widest">Aplicar</button>
+                 <button onClick={() => setIsMobileFiltersOpen(false)} className="flex-[2] bg-[#00577C] text-white py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg">Aplicar</button>
               </div>
            </div>
         </div>
       )}
 
       {/* FOOTER */}
-      <footer className="py-12 md:py-20 px-5 md:px-8 border-t border-slate-200 bg-white mt-12 md:mt-20">
+      <footer className="py-12 md:py-20 px-5 md:px-8 border-t border-slate-200 bg-white mt-12 md:mt-20 text-left">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8 md:gap-10">
           <div className="flex flex-col items-center md:items-start gap-4">
              <Image src="/logop.png" alt="SGA" width={140} height={50} className="object-contain" />
-             <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.4em]">© 2026 Secretaria Municipal de Turismo - SGA</p>
+             <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.4em] text-center md:text-left">© 2026 Secretaria Municipal de Turismo - SGA</p>
           </div>
           <div className="flex items-center gap-6">
-             <div className="text-left border-l-2 border-slate-100 pl-6"><p className="text-[9px] font-black text-[#00577C] uppercase mb-1">Contato</p><p className="text-xs font-bold text-slate-500">setursaga@gmail.com</p></div>
-             <ShieldCheck size={36} className="text-[#009640] opacity-30"/>
+             <div className="text-left md:border-l-2 border-slate-100 md:pl-6"><p className="text-[9px] font-black text-[#00577C] uppercase mb-1">Contato</p><p className="text-xs font-bold text-slate-500">setursaga@gmail.com</p></div>
+             <ShieldCheck size={36} className="text-[#009640] opacity-30 md:w-10 md:h-10"/>
           </div>
         </div>
       </footer>
