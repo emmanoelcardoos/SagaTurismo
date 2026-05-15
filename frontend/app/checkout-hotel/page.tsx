@@ -484,7 +484,7 @@ function CheckoutHotelContent() {
           </div>
 
           {/* COLUNA DIREITA: RESUMO PROFISSIONAL */}
-          <aside className="lg:sticky lg:top-32 order-first lg:order-last">
+          <aside className="lg:sticky lg:top-32 lg:self-start h-fit order-first lg:order-last w-full">
             <SectionCard>
               <div className="h-2 w-full bg-gradient-to-r from-[#00577C] via-[#F9C400] to-[#009640]" />
               <div className="p-6 md:p-8 border-b border-slate-100 text-left bg-slate-50">
