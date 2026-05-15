@@ -7,3 +7,5 @@ python-dotenv
 reportlab
 qrcode
 pillow
+qrcode==7.4.2
+Pillow==10.3.0
