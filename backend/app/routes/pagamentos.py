@@ -75,7 +75,7 @@ async def processar_pagamento(pedido: PedidoPagamento):
         numero_tel = telefone_limpo[2:]
 
         # ==========================================
-        # FASE 1: LÓGICA DE PRECIFICAÇÃO
+        # FASE 1: LÓGICA DE PRECIFICAÇÃO E REPASSES (DINÂMICO)
         # ==========================================
         
         if pedido.tipo_item == "carteira":
@@ -93,26 +93,64 @@ async def processar_pagamento(pedido: PedidoPagamento):
             nome_item_checkout = f"Hospedagem - {hotel_data['nome']}"
             item_id_db = pedido.hotel_id
             
+            # Repasse Automático para o Hotel
             if hotel_data.get("pagbank_recebedor_id"):
                 splits_array.append({
                     "method": "FIXED",
                     "receivers": [{"account": {"id": hotel_data["pagbank_recebedor_id"]}, "amount": {"value": int(valor_total * 100)}}]
                 })
 
-        # --- AJUSTE APENAS PARA PACOTES ---
         elif pedido.tipo_item == "pacote":
             res_pacote = supabase.table("pacotes").select("*").eq("id", pedido.pacote_id).single().execute()
             if not res_pacote.data: 
                 raise HTTPException(status_code=404, detail="Pacote não encontrado")
             
             pacote_info = res_pacote.data
-            # Mudança: Usando 'preco' em vez de 'preco_base'
             valor_total = float(pacote_info.get("preco") or 0)
             nome_item_checkout = f"Pacote: {pacote_info.get('titulo', 'Turístico')}"
             
-            # Garante que o item_id_db seja um UUID válido e não a string "None"
             if pedido.pacote_id and str(pedido.pacote_id).lower() not in ["none", "null"]:
                 item_id_db = pedido.pacote_id
+
+            # --- LÓGICA DE SPLIT DINÂMICO PARA PACOTES ---
+
+            # 1. Repasse para o Hotel (se incluído no pacote)
+            if pedido.hotel_id:
+                res_h = supabase.table("hoteis").select("pagbank_recebedor_id, quarto_standard_preco, quarto_luxo_preco").eq("id", pedido.hotel_id).single().execute()
+                if res_h.data and res_h.data.get("pagbank_recebedor_id"):
+                    h_info = res_h.data
+                    p_diaria = float(h_info["quarto_luxo_preco"] if pedido.tipo_quarto == 'luxo' else h_info["quarto_standard_preco"])
+                    d1 = datetime.strptime(pedido.data_checkin, "%Y-%m-%d")
+                    d2 = datetime.strptime(pedido.data_checkout, "%Y-%m-%d")
+                    noites = (d2 - d1).days
+                    v_hotel = p_diaria * noites * pedido.quantidade
+                    splits_array.append({
+                        "method": "FIXED",
+                        "receivers": [{"account": {"id": h_info["pagbank_recebedor_id"]}, "amount": {"value": int(v_hotel * 100)}}]
+                    })
+
+            # 2. Repasse para o Guia (se incluído no pacote)
+            if pedido.guia_id:
+                res_g = supabase.table("guias").select("pagbank_recebedor_id, preco_diaria").eq("id", pedido.guia_id).single().execute()
+                if res_g.data and res_g.data.get("pagbank_recebedor_id"):
+                    v_guia = float(res_g.data["preco_diaria"])
+                    splits_array.append({
+                        "method": "FIXED",
+                        "receivers": [{"account": {"id": res_g.data["pagbank_recebedor_id"]}, "amount": {"value": int(v_guia * 100)}}]
+                    })
+
+            # 3. Repasse para as Atrações/Parques (via pacote_itens)
+            res_itens = supabase.table("pacote_itens").select("atracao_id").eq("pacote_id", pedido.pacote_id).execute()
+            for item in res_itens.data:
+                atr_id = item.get("atracao_id")
+                if atr_id:
+                    res_atr = supabase.table("atracoes").select("pagbank_recebedor_id, preco_entrada").eq("id", atr_id).single().execute()
+                    if res_atr.data and res_atr.data.get("pagbank_recebedor_id"):
+                        v_atr = float(res_atr.data["preco_entrada"])
+                        splits_array.append({
+                            "method": "FIXED",
+                            "receivers": [{"account": {"id": res_atr.data["pagbank_recebedor_id"]}, "amount": {"value": int(v_atr * 100)}}]
+                        })
 
         # ==========================================
         # FASE 2: PERSISTÊNCIA NO SUPABASE
@@ -140,7 +178,7 @@ async def processar_pagamento(pedido: PedidoPagamento):
         supabase.table("pedidos").insert(pedido_db).execute()
 
         # ==========================================
-        # FASE 3: PAYLOAD PAGBANK
+        # FASE 3: PAYLOAD PAGBANK (USANDO O SPLITS_ARRAY)
         # ==========================================
         payload_pagbank = {
             "reference_id": codigo_pedido,
@@ -156,7 +194,8 @@ async def processar_pagamento(pedido: PedidoPagamento):
 
         if pedido.metodo_pagamento == "pix":
             payload_pagbank["qr_codes"] = [{"amount": {"value": int(valor_total * 100)}}]
-            if splits_array: payload_pagbank["qr_codes"][0]["splits"] = splits_array
+            if splits_array: 
+                payload_pagbank["qr_codes"][0]["splits"] = splits_array
         else:
             charge = {
                 "reference_id": codigo_pedido,
@@ -174,7 +213,8 @@ async def processar_pagamento(pedido: PedidoPagamento):
                     }
                 }
             }
-            if splits_array: charge["splits"] = splits_array
+            if splits_array: 
+                charge["splits"] = splits_array
             payload_pagbank["charges"] = [charge]
 
         async with httpx.AsyncClient() as client:
@@ -190,7 +230,6 @@ async def processar_pagamento(pedido: PedidoPagamento):
             
             if pedido.metodo_pagamento == "pix":
                 qr = dados_pb["qr_codes"][0]
-                # Pegamos o link correto do QR Code PNG
                 link_qr = next((l["href"] for l in qr["links"] if l["rel"] == "QRCODE.PNG"), qr["links"][0]["href"])
                 base_retorno.update({
                     "metodo": "pix",
