@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 # 1. IMPORTAÇÃO DAS ROTAS (Incluindo a rota de validação e a nova de parceiros)
-from app.routes import residentes, fiscal, pagamentos, webhooks, validacao,正式 parceiros
+from app.routes import residentes, fiscal, pagamentos, webhooks, validacao, parceiros
 
 app = FastAPI(title="API SagaTurismo - São Geraldo do Araguaia")
 
@@ -21,8 +21,6 @@ app.include_router(residentes.router, prefix="/api/v1")
 app.include_router(fiscal.router, prefix="/api/v1")
 
 # 2. INCLUSÃO DAS ROTAS FINANCEIRAS, VALIDAÇÃO E PARCEIROS
-# Nota: Não usamos prefix="/api/v1" aqui porque já definimos
-# as rotas completas dentro dos próprios ficheiros.
 app.include_router(pagamentos.router, tags=["Financeiro"])
 app.include_router(webhooks.router, tags=["Webhooks"])
 app.include_router(validacao.router, tags=["Validação de Documentos"])
