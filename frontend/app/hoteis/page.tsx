@@ -309,7 +309,7 @@ export default function HoteisPage() {
               <div className="pt-8 border-t border-slate-100">
                 <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-4">Comodidades</p>
                 <div className="space-y-4">
-                  {['Piscina', 'Wi-Fi Grátis', 'Estacionamento', 'Pequeno-almoço'].map(item => (
+                  {['Piscina', 'Wi-Fi Grátis', 'Estacionamento', 'Café-da-Manhã'].map(item => (
                     <label key={item} className="flex items-center gap-3 cursor-pointer group">
                       <input type="checkbox" className="w-5 h-5 rounded-md border-slate-300 text-[#00577C] focus:ring-[#00577C]" />
                       <span className="text-sm font-bold text-slate-600 group-hover:text-[#00577C] transition-colors">{item}</span>
@@ -377,7 +377,7 @@ export default function HoteisPage() {
 
                     <div className="flex flex-wrap items-center gap-4 text-slate-500 mb-8">
                        <span className="flex items-center gap-1.5 text-xs font-bold bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100"><Wifi size={14} className="text-[#00577C]"/> Wi-Fi Grátis</span>
-                       <span className="flex items-center gap-1.5 text-xs font-bold bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100"><Coffee size={14} className="text-[#00577C]"/> Pequeno-almoço</span>
+                       <span className="flex items-center gap-1.5 text-xs font-bold bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100"><Coffee size={14} className="text-[#00577C]"/> Café-da-Manhã</span>
                        <span className="flex items-center gap-1.5 text-xs font-bold bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100"><Car size={14} className="text-[#00577C]"/> Estacionamento</span>
                     </div>
 
