@@ -141,7 +141,8 @@ async def login_parceiro(payload: LoginParceiroSchema):
             "sucesso": True,
             "mensagem": "Autenticação realizada com sucesso!",
             "parceiro_id": parceiro.get("id"),
-            "nome_negocio": parceiro.get("nome_negocio")
+            "nome_negocio": parceiro.get("nome_negocio"),
+            "tipo": parceiro.get("tipo")  # ◄── Campo adicionado para o Smart Login no Frontend
         }
         
     except HTTPException as http_err:
@@ -161,7 +162,7 @@ async def registrar_interesse_parceiro(payload: InteresseParceiroSchema):
         
         html_content = f"""
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #E2E8F0; border-radius: 10px;">
-            <h2 style="color: #00577C; margin-bottom: 5px;">Novo Pedido de Parceria! 🎯</h2>
+            <h2 style="color: #0085FF; margin-bottom: 5px;">Novo Pedido de Parceria! 🎯</h2>
             <p style="color: #64748B; font-size: 14px; margin-top: 0;">O portal SagaTurismo recebeu um novo interesse de credenciamento.</p>
             <div style="background-color: #F8FAFC; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #F9C400;">
                 <p style="margin: 5px 0;"><strong>👤 Nome do Responsável:</strong> {payload.nome}</p>
@@ -194,7 +195,6 @@ async def registrar_interesse_parceiro(payload: InteresseParceiroSchema):
 @router.get("/api/v1/parceiros/{item_id}/reservas", tags=["Portal dos Parceiros"])
 async def listar_reservas_parceiro(item_id: str):
     try:
-        # ◄── A MAGIA ACONTECE AQUI: A pesquisa agora incluiu o guia_id
         res = supabase.table("pedidos") \
             .select("codigo_pedido, tipo_item, nome_cliente, email_cliente, telefone_cliente, quantidade, valor_total, data_checkin, data_checkout, tipo_quarto, hotel_id, guia_id") \
             .or_(f"item_id.eq.{item_id},hotel_id.eq.{item_id},guia_id.eq.{item_id}") \
@@ -207,7 +207,6 @@ async def listar_reservas_parceiro(item_id: str):
             qtd = int(r.get("quantidade") or 1)
             
             if tipo == "pacote":
-                # Separa se a conta que está a aceder é a do hotel ou a do guia
                 if r.get("hotel_id") == item_id:
                     valor_bruto = calcular_recorte_hotel_pacote(item_id, r.get("tipo_quarto", "standard"), r.get("data_checkin"), r.get("data_checkout")) * qtd
                     r["tipo_item"] = "Pacote (Hospedagem)"
@@ -262,7 +261,7 @@ async def obter_metricas_dashboard(item_id: str):
                     v_bruto = calcular_recorte_guia_pacote(item_id, p.get("data_checkin"), p.get("data_checkout"))
                     fator = obter_fator_liquido("guia")
                 else:
-                    v_bruto = float(p.get("valor_total") or 0.0)
+                    v_bruto = float(r.get("valor_total") or 0.0)
                     fator = 1.0
             else:
                 v_bruto = float(p.get("valor_total") or 0.0)
@@ -307,12 +306,15 @@ async def atualizar_disponibilidade_parceiro(item_id: str, payload: Disponibilid
             "preco": payload.preco,
             "disponivel": payload.disponivel
         }
+        
         res = supabase.table("disponibilidade_hoteis").insert(dados_disponibilidade).execute()
+        
         return {
             "sucesso": True, 
-            "mensagem": "Tarifário atualizado com sucesso na base de dados!",
+            "mensagem": "Tarifário updated com sucesso na base de dados!",
             "dados": res.data
         }
+        
     except Exception as e:
         print(f"[ERRO ATUALIZAR DISPONIBILIDADE] {e}")
         raise HTTPException(
