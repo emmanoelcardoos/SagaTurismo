@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { 
   Loader2, LogOut, Wallet, ShoppingBag, Users2, 
   Bed, Compass, ClipboardList, ShieldCheck, 
-  ArrowUpRight, Home, Calendar
+  ArrowUpRight, Home, Calendar, Search
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 
@@ -25,6 +25,7 @@ type Reserva = {
   id: string;
   codigo_pedido: string;
   nome_cliente: string;
+  telefone_cliente?: string; // Propriedade adicionada para o WhatsApp
   tipo_item: 'hotel' | 'passeio' | 'pacote';
   data_checkin: string;
   data_checkout?: string;
@@ -42,6 +43,9 @@ export default function DashboardParceiroPage() {
   const [loading, setLoading] = useState(true);
   const [metricas, setMetricas] = useState<Metricas | null>(null);
   const [reservas, setReservas] = useState<Reserva[]>([]);
+  
+  // Estado da Pesquisa
+  const [searchTerm, setSearchTerm] = useState('');
 
   // ── SEGURANÇA BÁSICA E SESSÃO ──
   useEffect(() => {
@@ -106,6 +110,16 @@ export default function DashboardParceiroPage() {
     return `${dia}/${mes}/${ano}`;
   };
 
+  // ── LÓGICA DE PESQUISA ──
+  const filteredReservas = reservas.filter((reserva) => {
+    const termo = searchTerm.toLowerCase();
+    return (
+      reserva.nome_cliente?.toLowerCase().includes(termo) ||
+      reserva.codigo_pedido?.toLowerCase().includes(termo) ||
+      reserva.telefone_cliente?.toLowerCase().includes(termo)
+    );
+  });
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 text-[#00577C]">
@@ -115,9 +129,8 @@ export default function DashboardParceiroPage() {
     );
   }
 
-  // Cálculos para os mini-gráficos (Apenas simulações visuais com os dados existentes)
   const percentagemChegadas = Math.min((metricas?.clientes_a_chegar || 0) * 10, 100); 
-  const barrasFaturamento = [40, 60, 45, 80, 50, 90, 75]; // Gráfico decorativo de tendência
+  const barrasFaturamento = [40, 60, 45, 80, 50, 90, 75]; 
 
   return (
     <div className={`${inter.className} min-h-screen bg-[#F1F5F9] text-slate-900 flex flex-col text-left overflow-x-hidden`}>
@@ -159,7 +172,6 @@ export default function DashboardParceiroPage() {
         {/* ── CARDS DE MÉTRICAS PREMIUM ── */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-8">
           
-          {/* Faturamento (Com gráfico de barras decorativo) */}
           <div className="bg-white rounded-[1.5rem] md:rounded-[2rem] border border-slate-200 p-6 md:p-8 shadow-sm flex flex-col justify-between group hover:border-[#00577C]/30 transition-all">
             <div className="flex justify-between items-start mb-6">
               <div>
@@ -180,7 +192,6 @@ export default function DashboardParceiroPage() {
             <p className="text-[10px] font-bold text-slate-400 mt-3 flex items-center gap-1"><ArrowUpRight size={12} className="text-[#009640]"/> Atualizado em tempo real</p>
           </div>
 
-          {/* Total Vendas (Com indicador visual) */}
           <div className="bg-white rounded-[1.5rem] md:rounded-[2rem] border border-slate-200 p-6 md:p-8 shadow-sm flex flex-col justify-between group hover:border-[#00577C]/30 transition-all">
             <div className="flex justify-between items-start mb-6">
               <div>
@@ -202,7 +213,6 @@ export default function DashboardParceiroPage() {
             </div>
           </div>
 
-          {/* Clientes a chegar (Com Progress Circle Simulado) */}
           <div className="bg-white rounded-[1.5rem] md:rounded-[2rem] border border-slate-200 p-6 md:p-8 shadow-sm flex flex-col justify-between group hover:border-[#F9C400]/50 transition-all">
             <div className="flex justify-between items-start mb-6">
               <div>
@@ -227,11 +237,13 @@ export default function DashboardParceiroPage() {
           </div>
         </div>
 
-        {/* ── LISTAGEM DE RESERVAS (ESTILO SAAS) ── */}
+        {/* ── LISTAGEM DE RESERVAS & PESQUISA ── */}
         <div className="bg-white rounded-[1.5rem] md:rounded-[2.5rem] border border-slate-200 shadow-xl overflow-hidden">
-          <div className="p-6 md:p-8 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/50">
+          
+          <div className="p-6 md:p-8 border-b border-slate-100 flex flex-col xl:flex-row xl:items-center justify-between gap-6 bg-slate-50/50">
+            {/* Título */}
             <div className="flex items-center gap-4">
-               <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 flex items-center justify-center shadow-sm">
+               <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 flex items-center justify-center shadow-sm shrink-0">
                  <ClipboardList className="text-[#00577C]" size={24} />
                </div>
                <div>
@@ -239,13 +251,28 @@ export default function DashboardParceiroPage() {
                  <p className="text-xs font-bold text-slate-400 mt-1">Lista oficial de check-ins e reservas pagas.</p>
                </div>
             </div>
+
+            {/* Barra de Pesquisa */}
             {reservas.length > 0 && (
-              <div className="bg-white px-4 py-2 rounded-full border border-slate-200 text-xs font-black text-slate-500 shadow-sm">
-                Total: {reservas.length} registos
+              <div className="flex flex-col sm:flex-row items-center gap-4 w-full xl:w-auto">
+                <div className="relative w-full sm:w-80">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                  <input 
+                    type="text" 
+                    placeholder="Nome, Localizador ou WhatsApp..." 
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:border-[#00577C] focus:ring-1 focus:ring-[#00577C] transition-all shadow-sm"
+                  />
+                </div>
+                <div className="hidden sm:block bg-white px-5 py-3 rounded-xl border border-slate-200 text-xs font-black text-slate-500 shadow-sm shrink-0">
+                  {filteredReservas.length} {filteredReservas.length === 1 ? 'registo' : 'registos'}
+                </div>
               </div>
             )}
           </div>
 
+          {/* ESTADO VAZIO: Nenhuma Reserva na API */}
           {reservas.length === 0 ? (
             <div className="py-32 px-5 text-center flex flex-col items-center justify-center bg-white">
                <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-6">
@@ -254,7 +281,18 @@ export default function DashboardParceiroPage() {
                <p className={`${jakarta.className} text-xl font-bold text-slate-800 mb-2`}>O seu painel está pronto</p>
                <p className="text-sm text-slate-500 max-w-md">As reservas efetuadas pelos turistas aparecerão aqui automaticamente após a confirmação do pagamento.</p>
             </div>
+          ) : filteredReservas.length === 0 ? (
+            /* ESTADO VAZIO: Pesquisa sem resultados */
+            <div className="py-24 px-5 text-center flex flex-col items-center justify-center bg-white">
+               <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                 <Search size={28} className="text-slate-300" />
+               </div>
+               <p className={`${jakarta.className} text-lg font-bold text-slate-800 mb-1`}>Nenhum resultado encontrado</p>
+               <p className="text-sm text-slate-500">Não encontrámos clientes para "{searchTerm}".</p>
+               <button onClick={() => setSearchTerm('')} className="mt-6 text-sm font-bold text-[#00577C] hover:underline">Limpar pesquisa</button>
+            </div>
           ) : (
+            /* TABELA DE DADOS */
             <div className="overflow-x-auto">
               <table className="w-full text-sm text-left border-collapse whitespace-nowrap">
                 <thead>
@@ -268,10 +306,13 @@ export default function DashboardParceiroPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-bold text-slate-700 bg-white">
-                  {reservas.map((reserva) => (
+                  {filteredReservas.map((reserva) => (
                     <tr key={reserva.id} className="hover:bg-slate-50 transition-colors group">
                       <td className="py-5 px-6 md:px-8 font-mono text-xs text-[#00577C] tabular-nums uppercase">{reserva.codigo_pedido}</td>
-                      <td className="py-5 px-6 text-slate-900 font-black">{reserva.nome_cliente}</td>
+                      <td className="py-5 px-6 text-slate-900 font-black">
+                        {reserva.nome_cliente}
+                        {reserva.telefone_cliente && <span className="block text-[10px] text-slate-400 font-medium mt-0.5">{reserva.telefone_cliente}</span>}
+                      </td>
                       <td className="py-5 px-6">
                         <span className={`inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border ${
                           reserva.tipo_item === 'hotel' ? 'bg-blue-50 border-blue-100 text-blue-700' : 'bg-green-50 border-green-100 text-green-700'
