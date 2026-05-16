@@ -24,14 +24,14 @@ class EnderecoFaturacao(BaseModel):
     complement: Optional[str] = None
     locality: str
     city: str
-    region_code: str
+    region_code: str # Ex: PA, TO, SP
     country: str = "BRA"
     postal_code: str
 
 class PedidoPagamento(BaseModel):
     tipo_item: str # 'carteira', 'hotel', 'pacote' ou 'passeio'
     quantidade: Optional[int] = 1 
-    adultos: Optional[int] = 2 # ◄── Adicionado para o cálculo dinâmico das atrações
+    adultos: Optional[int] = 2 # ◄── Essencial para somar o valor correto das atrações no pacote
 
     # IDs dinâmicos
     pacote_id: Optional[str] = None
@@ -55,7 +55,7 @@ class PedidoPagamento(BaseModel):
     data_nascimento: Optional[str] = None
     
     # Pagamento
-    metodo_pagamento: str
+    metodo_pagamento: str 
     encrypted_card: Optional[str] = None
     parcelas: Optional[int] = 1
 
@@ -88,20 +88,20 @@ def calcular_preco_hotel_dinamico(hotel_id: str, tipo_quarto: str, checkin_str: 
     
     while d_atual < d_fim:
         preco_da_noite = None
-        for regra in excecoes_calendario:
-            regra_inicio_raw = str(regra["data_inicio"]).split("T")[0]
-            regra_fim_raw = str(regra["data_fim"]).split("T")[0]
+        for CircleRegra in excecoes_calendario:
+            regra_inicio_raw = str(CircleRegra["data_inicio"]).split("T")[0]
+            regra_fim_raw = str(CircleRegra["data_fim"]).split("T")[0]
             
             regra_inicio = datetime.strptime(regra_inicio_raw, "%Y-%m-%d").date()
             regra_fim = datetime.strptime(regra_fim_raw, "%Y-%m-%d").date()
             
             if regra_inicio <= d_atual <= regra_fim:
-                if not regra.get("disponivel", True):
+                if not CircleRegra.get("disponivel", True):
                     raise HTTPException(
                         status_code=400, 
                         detail=f"Pedimos desculpa, mas a acomodação está esgotada para a data de {d_atual.strftime('%d/%m/%Y')}."
                     )
-                preco_da_noite = float(regra["preco"])
+                preco_da_noite = float(CircleRegra["preco"])
                 break
         
         if preco_da_noite is not None:
@@ -118,7 +118,7 @@ def calcular_preco_hotel_dinamico(hotel_id: str, tipo_quarto: str, checkin_str: 
 async def processar_pagamento(pedido: PedidoPagamento):
     try:
         valor_total = 0.0
-        recebedores_split = [] # ◄── Lista onde agruparemos todos os parceiros
+        recebedores_split = [] # ◄── Armazena os parceiros validados
         splits_array = []
         nome_item_checkout = ""
         item_id_db = None
@@ -156,7 +156,7 @@ async def processar_pagamento(pedido: PedidoPagamento):
             item_id_db = pedido.hotel_id
             
             rec_id = res_hotel_info.data.get("pagbank_recebedor_id")
-            if rec_id and len(rec_id) > 10:
+            if rec_id and str(rec_id).startswith("ACC_"):
                 recebedores_split.append({
                     "account": {"id": rec_id},
                     "amount": {"value": int((valor_total * fator_liquido) * 100)}
@@ -175,7 +175,7 @@ async def processar_pagamento(pedido: PedidoPagamento):
             v_guia_total = 0.0
             v_atracoes_total = 0.0
 
-            # 1. Split Dinâmico do Hotel
+            # 1. Repasse do Hotel
             if pedido.hotel_id:
                 v_hotel_dinamico = calcular_preco_hotel_dinamico(
                     pedido.hotel_id, pedido.tipo_quarto, pedido.data_checkin, pedido.data_checkout
@@ -184,31 +184,31 @@ async def processar_pagamento(pedido: PedidoPagamento):
                 
                 res_h_info = supabase.table("hoteis").select("pagbank_recebedor_id").eq("id", pedido.hotel_id).single().execute()
                 rec_id = res_h_info.data.get("pagbank_recebedor_id") if res_h_info.data else None
-                if rec_id and len(rec_id) > 10:
+                if rec_id and str(rec_id).startswith("ACC_"):
                     recebedores_split.append({
                         "account": {"id": rec_id},
                         "amount": {"value": int((v_hospedagem_total * fator_liquido) * 100)}
                     })
 
-            # Cálculo de Noites exato para o Guia
+            # Cálculo do número de noites exato para o Guia
             d_ci = datetime.strptime(pedido.data_checkin, "%Y-%m-%d")
             d_co = datetime.strptime(pedido.data_checkout, "%Y-%m-%d")
             noites_calculadas = (d_co - d_ci).days
             noites_finais = noites_calculadas if noites_calculadas > 0 else 1
 
-            # 2. Split do Guia de Turismo
+            # 2. Repasse para o Guia
             if pedido.guia_id:
                 res_g = supabase.table("guias").select("pagbank_recebedor_id, preco_diaria").eq("id", pedido.guia_id).single().execute()
                 if res_g.data:
                     v_guia_total = float(res_g.data["preco_diaria"]) * (noites_finais + 1)
                     rec_id = res_g.data.get("pagbank_recebedor_id")
-                    if rec_id and len(rec_id) > 10:
+                    if rec_id and str(rec_id).startswith("ACC_"):
                         recebedores_split.append({
                             "account": {"id": rec_id},
                             "amount": {"value": int((v_guia_total * fator_liquido) * 100)}
                         })
 
-            # 3. Split das Atrações Turísticas inclusas
+            # 3. Repasse para as Atrações
             res_itens = supabase.table("pacote_itens").select("atracao_id").eq("pacote_id", pedido.pacote_id).execute()
             for item in res_itens.data:
                 atr_id = item.get("atracao_id")
@@ -218,23 +218,29 @@ async def processar_pagamento(pedido: PedidoPagamento):
                         v_individual_atr = float(res_atr.data["preco_entrada"]) * pedido.adultos
                         v_atracoes_total += v_individual_atr
                         rec_id = res_atr.data.get("pagbank_recebedor_id")
-                        if rec_id and len(rec_id) > 10:
+                        if rec_id and str(rec_id).startswith("ACC_"):
                             recebedores_split.append({
                                 "account": {"id": rec_id},
                                 "amount": {"value": int((v_individual_atr * fator_liquido) * 100)}
                             })
 
-            # Sincronização matemática absoluta do total do pacote
+            # Sincronização do valor total real
             valor_total = v_hospedagem_total + v_guia_total + v_atracoes_total
 
         # ==========================================
-        # FASE 2: CONSTRUÇÃO UNIFICADA DO SPLIT (PADRÃO PAGBANK)
+        # FASE 2: VALIDAÇÃO DA REGRA DE NEGÓCIO DO SPLIT
         # ==========================================
-        if recebedores_split:
+        soma_splits_centavos = sum(r["amount"]["value"] for r in recebedores_split)
+        valor_total_centavos = int(valor_total * 100)
+
+        # O PagBank proíbe repassar 100% ou mais do valor total (a conta principal precisa reter a taxa)
+        if recebedores_split and (soma_splits_centavos < valor_total_centavos):
             splits_array = [{
                 "method": "FIXED",
                 "receivers": recebedores_split
             }]
+        else:
+            splits_array = []
 
         # ==========================================
         # FASE 3: PERSISTÊNCIA NO SUPABASE
