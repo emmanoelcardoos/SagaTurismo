@@ -8,7 +8,7 @@ import {
   Loader2, ArrowLeft, Calendar as CalendarIcon, 
   CheckCircle2, AlertTriangle, Save, Info, Compass, 
   ChevronLeft, ChevronRight, Plus, DollarSign, Users, 
-  MapPin, Link2, Trash2, Eye
+  MapPin, Link2, Trash2, Eye, ToggleLeft, ToggleRight
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
