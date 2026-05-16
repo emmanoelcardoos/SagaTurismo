@@ -6,9 +6,9 @@ import Link from 'next/link';
 import Script from 'next/script';
 import { 
   Loader2, MapPin, ShieldCheck, Bed, QrCode, CheckCircle2, 
-  User, Mail, FileText, Smartphone, Copy, AlertCircle, 
+  User, Mail, FileText, Copy, AlertCircle, 
   CreditCard, Lock, ShieldAlert, Home, Clock, Info, Check, ChevronRight,
-  Wallet // ◄── CORRIGIDO: Importação adicionada
+  Wallet
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -19,9 +19,7 @@ const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] }
 // ── TIPAGENS ──
 declare global {
   interface Window {
-    PagSeguro?: {
-      encryptCard: (params: any) => { encryptedCard?: string; hasErrors?: boolean; errors?: any[] };
-    };
+    PagSeguro?: any;
   }
 }
 
@@ -118,7 +116,7 @@ function CheckoutHotelContent() {
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
 
-  // ── ESTADOS REATIVOS DO MOTOR DA RAILWAY ──
+  // Estados Reativos do Motor de Preços
   const [valorTotalReserva, setValorTotalReserva] = useState<number>(0);
   const [numNoites, setNumNoites] = useState<number>(1);
   const [loadingPreco, setLoadingPreco] = useState<boolean>(false);
@@ -167,7 +165,7 @@ function CheckoutHotelContent() {
     carregarHotel();
   }, [hotelId]);
 
-  // ── BUSCA AUTOMÁTICA E DINÂMICA DO PREÇO DA RAILWAY ──
+  // Consultar preços na API Railway
   useEffect(() => {
     if (!hotelId || !checkinData || !checkoutData || !quartoTipo) return;
 
@@ -222,7 +220,7 @@ function CheckoutHotelContent() {
         street: rua,
         number: numero,
         locality: bairro,
-        city: cidade, // ◄── CORRIGIDO: de 'city' para 'cidade'
+        city: cidade, 
         region_code: estado.replace(/\s/g, ''),
         country: "BRA",
         postal_code: cep.replace(/\D/g, '')
@@ -232,11 +230,20 @@ function CheckoutHotelContent() {
     try {
       if (metodoPagamento === 'cartao') {
         if (!window.PagSeguro) throw new Error('Checkout SDK do PagBank não foi inicializado.');
-        const result = window.PagSeguro.encryptCard({
-          publicKey: process.env.NEXT_PUBLIC_PAGBANK_PUBLIC_KEY,
-          holder: nomeCartao, number: numeroCartao.replace(/\D/g,''),
-          expMonth: mesCartao, expYear: anoCartao, securityCode: cvvCartao
+        
+        // ── SOLUÇÃO DO OPERADOR 'NEW' INSTANCIANDO A CLASSE DO SDK ──
+        const pagseguroInstance = new window.PagSeguro({
+          publicKey: process.env.NEXT_PUBLIC_PAGBANK_PUBLIC_KEY
         });
+
+        const result = pagseguroInstance.encryptCard({
+          holder: nomeCartao, 
+          number: numeroCartao.replace(/\D/g,''),
+          expMonth: mesCartao, 
+          expYear: anoCartao, 
+          securityCode: cvvCartao
+        });
+
         if (result.hasErrors) throw new Error('Cartão recusado. Verifique os dados introduzidos.');
         payload.metodo_pagamento = 'cartao';
         payload.encrypted_card = result.encryptedCard;
@@ -303,7 +310,7 @@ function CheckoutHotelContent() {
       </div>
 
       <div className="mx-auto max-w-7xl px-4 md:px-8 py-8 md:py-12">
-        <BarraTempoReserva /> {/* ◄── CORRIGIDO: de BarraTempo Reserva para BarraTempoReserva */}
+        <BarraTempoReserva />
 
         <div className="grid gap-8 lg:grid-cols-[1fr_400px] items-start">
           
@@ -419,7 +426,7 @@ function CheckoutHotelContent() {
             )}
           </div>
 
-          {/* ── COLUNA DIREITA (RESUMO COMPLETO DA API - ESTÁTICO) ── */}
+          {/* ── COLUNA DIREITA: RESUMO PROFISSIONAL (ESTÁTICO) ── */}
           <aside className="w-full h-fit lg:self-start order-first lg:order-last relative">
             <SectionCard>
               <div className="h-2 w-full bg-gradient-to-r from-[#00577C] via-[#F9C400] to-[#009640]" />
