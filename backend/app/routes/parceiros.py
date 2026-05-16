@@ -237,3 +237,73 @@ async def atualizar_disponibilidade_parceiro(item_id: str, payload: Disponibilid
             status_code=500, 
             detail="Erro interno ao salvar as alterações do calendário no servidor."
         )
+    
+@router.get("/api/v1/public/hoteis/{hotel_id}/calcular-preco", tags=["Consultas Públicas"])
+async def obter_preco_hospedagem_publico(
+    hotel_id: str, 
+    tipo_quarto: str = "standard", 
+    checkin: str = None, 
+    checkout: str = None,
+    quantidade: int = 1
+):
+    """
+    Rota pública para o Frontend consultar o preço real e dinâmico de um hotel
+    já considerando as regras do calendário de disponibilidade.
+    """
+    if not checkin or not checkout:
+        raise HTTPException(status_code=400, detail="Check-in and Check-out dates are required.")
+        
+    try:
+        # 1. Busca a tarifa base do hotel
+        res_h = supabase.table("hoteis").select("*").eq("id", hotel_id).single().execute()
+        if not res_h.data:
+            raise HTTPException(status_code=404, detail="Hotel não encontrado.")
+        
+        hotel_data = res_h.data
+        base_preco = float(hotel_data["quarto_luxo_preco"] if tipo_quarto == 'luxo' else hotel_data["quarto_standard_preco"])
+        
+        # 2. Busca as regras customizadas do calendário
+        res_custom = supabase.table("disponibilidade_hoteis") \
+            .select("*") \
+            .eq("hotel_id", hotel_id) \
+            .eq("tipo_quarto", tipo_quarto) \
+            .lte("data_inicio", checkout) \
+            .gte("data_fim", checkin) \
+            .execute()
+            
+        excecoes = res_custom.data or []
+        
+        from datetime import datetime, timedelta
+        d_atual = datetime.strptime(checkin, "%Y-%m-%d").date()
+        d_fim = datetime.strptime(checkout, "%Y-%m-%d").date()
+        
+        valor_total_bruto = 0.0
+        
+        # Calcula noite por noite
+        while d_atual < d_fim:
+            preco_noite = None
+            for regra in excecoes:
+                regra_inicio = datetime.strptime(regra["data_inicio"], "%Y-%m-%d").date()
+                regra_fim = datetime.strptime(regra["data_fim"], "%Y-%m-%d").date()
+                
+                if regra_inicio <= d_atual <= regra_fim:
+                    if not regra.get("disponivel", True):
+                        return {"sucesso": False, "disponivel": False, "mensagem": "Esgotado para as datas selecionadas."}
+                    preco_noite = float(regra["preco"])
+                    break
+            
+            valor_total_bruto += preco_noite if preco_noite is not None else base_preco
+            d_atual += timedelta(days=1)
+            
+        valor_final = valor_total_bruto * quantidade
+        
+        return {
+            "sucesso": True,
+            "disponivel": True,
+            "valor_total": valor_final,
+            "noites": (d_fim - datetime.strptime(checkin, "%Y-%m-%d").date()).days
+        }
+        
+    except Exception as e:
+        print(f"[ERRO CALCULO PUBLICO PRECO] {e}")
+        raise HTTPException(status_code=500, detail="Erro ao calcular preço dinâmico.")
