@@ -34,11 +34,12 @@ class DisponibilidadeParceiroSchema(BaseModel):
 def obter_fator_liquido(tipo_item: str) -> float:
     """
     Consulta a tabela 'taxas_servicos' no Supabase para descobrir a taxa.
-    Retorna o multiplicador líquido (ex: 10% de taxa retorna 0.90).
     """
     try:
-        # Se for um item de hotel vendido via pacote, a taxa cobrada é a do hotel
-        tipo_busca = "hotel" if "pacote" in tipo_item or "hotel" in tipo_item else tipo_item
+        tipo_busca = tipo_item.lower()
+        if "hotel" in tipo_busca: tipo_busca = "hotel"
+        elif "guia" in tipo_busca: tipo_busca = "guia"
+        
         res = supabase.table("taxas_servicos").select("porcentagem").eq("tipo_servico", tipo_busca).execute()
         if res.data:
             taxa_pct = float(res.data[0]["porcentagem"])
@@ -50,12 +51,10 @@ def obter_fator_liquido(tipo_item: str) -> float:
 
 def calcular_recorte_hotel_pacote(hotel_id: str, tipo_quarto: str, checkin_str: str, checkout_str: str) -> float:
     """
-    Calcula apenas a fatia de dinheiro que pertence ao hotel quando a reserva 
-    foi feita através de um pacote turístico.
+    Calcula apenas a fatia de dinheiro que pertence ao hotel.
     """
     try:
         if not checkin_str or not checkout_str: return 0.0
-        
         res_h = supabase.table("hoteis").select("*").eq("id", hotel_id).single().execute()
         if not res_h.data: return 0.0
         
@@ -69,11 +68,10 @@ def calcular_recorte_hotel_pacote(hotel_id: str, tipo_quarto: str, checkin_str: 
             .execute()
             
         excecoes = res_custom.data or []
-        
         d_atual = datetime.strptime(checkin_str, "%Y-%m-%d").date()
         d_fim = datetime.strptime(checkout_str, "%Y-%m-%d").date()
-        
         subtotal = 0.0
+        
         while d_atual < d_fim:
             preco_noite = None
             for regra in excecoes:
@@ -84,10 +82,30 @@ def calcular_recorte_hotel_pacote(hotel_id: str, tipo_quarto: str, checkin_str: 
                     break
             subtotal += preco_noite if preco_noite is not None else base_preco
             d_atual += timedelta(days=1)
-            
         return subtotal
     except Exception as e:
-        print(f"[ERRO CALCULO RECORTE PACOTE] {e}")
+        print(f"[ERRO CALCULO RECORTE HOTEL] {e}")
+        return 0.0
+
+def calcular_recorte_guia_pacote(guia_id: str, checkin_str: str, checkout_str: str) -> float:
+    """
+    Calcula apenas a fatia de dinheiro que pertence ao Guia de Turismo (Diária x Noites Finais + 1).
+    """
+    try:
+        if not checkin_str or not checkout_str: return 0.0
+        res_g = supabase.table("guias").select("preco_diaria").eq("id", guia_id).single().execute()
+        if not res_g.data: return 0.0
+        
+        preco_diaria = float(res_g.data["preco_diaria"])
+        
+        d_ci = datetime.strptime(checkin_str, "%Y-%m-%d")
+        d_co = datetime.strptime(checkout_str, "%Y-%m-%d")
+        noites = (d_co - d_ci).days
+        noites_finais = noites if noites > 0 else 1
+        
+        return preco_diaria * (noites_finais + 1)
+    except Exception as e:
+        print(f"[ERRO CALCULO RECORTE GUIA] {e}")
         return 0.0
 
 # ── ROTA DE AUTENTICAÇÃO DO PARCEIRO ──
@@ -107,7 +125,6 @@ async def login_parceiro(payload: LoginParceiroSchema):
             )
             
         parceiro = res.data[0]
-        
         if parceiro.get("senha") != payload.senha:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -177,10 +194,10 @@ async def registrar_interesse_parceiro(payload: InteresseParceiroSchema):
 @router.get("/api/v1/parceiros/{item_id}/reservas", tags=["Portal dos Parceiros"])
 async def listar_reservas_parceiro(item_id: str):
     try:
-        # Busca inteligente: item_id original OU a nova coluna de rastreio hotel_id
+        # ◄── A MAGIA ACONTECE AQUI: A pesquisa agora incluiu o guia_id
         res = supabase.table("pedidos") \
-            .select("codigo_pedido, tipo_item, nome_cliente, email_cliente, telefone_cliente, quantidade, valor_total, data_checkin, data_checkout, tipo_quarto") \
-            .or_(f"item_id.eq.{item_id},hotel_id.eq.{item_id}") \
+            .select("codigo_pedido, tipo_item, nome_cliente, email_cliente, telefone_cliente, quantidade, valor_total, data_checkin, data_checkout, tipo_quarto, hotel_id, guia_id") \
+            .or_(f"item_id.eq.{item_id},hotel_id.eq.{item_id},guia_id.eq.{item_id}") \
             .eq("status_pagamento", "pago") \
             .execute()
             
@@ -189,19 +206,24 @@ async def listar_reservas_parceiro(item_id: str):
             tipo = r.get("tipo_item")
             qtd = int(r.get("quantidade") or 1)
             
-            # Se for uma reserva vinda de um pacote, o hotel só pode ver a sua parte!
             if tipo == "pacote":
-                valor_bruto = calcular_recorte_hotel_pacote(
-                    item_id, 
-                    r.get("tipo_quarto", "standard"), 
-                    r.get("data_checkin"), 
-                    r.get("data_checkout")
-                ) * qtd
-                r["tipo_item"] = "Pacote (Sua Hospedagem)"
+                # Separa se a conta que está a aceder é a do hotel ou a do guia
+                if r.get("hotel_id") == item_id:
+                    valor_bruto = calcular_recorte_hotel_pacote(item_id, r.get("tipo_quarto", "standard"), r.get("data_checkin"), r.get("data_checkout")) * qtd
+                    r["tipo_item"] = "Pacote (Hospedagem)"
+                    fator = obter_fator_liquido("hotel")
+                elif r.get("guia_id") == item_id:
+                    valor_bruto = calcular_recorte_guia_pacote(item_id, r.get("data_checkin"), r.get("data_checkout"))
+                    r["tipo_item"] = "Pacote (Serviço de Guia)"
+                    fator = obter_fator_liquido("guia")
+                else:
+                    valor_bruto = float(r.get("valor_total") or 0.0)
+                    fator = 1.0
             else:
                 valor_bruto = float(r.get("valor_total") or 0.0)
+                tipo_real = "hotel" if "hotel" in tipo else "guia" if "guia" in tipo else tipo
+                fator = obter_fator_liquido(tipo_real)
             
-            fator = obter_fator_liquido("hotel")
             r["valor_total"] = round(valor_bruto, 2)
             r["valor_liquido"] = round(valor_bruto * fator, 2)
             reservas_processadas.append(r)
@@ -212,15 +234,15 @@ async def listar_reservas_parceiro(item_id: str):
             "reservas": reservas_processadas
         }
     except Exception as e:
-        print(f"[ERRO PORTAL PARCEIROS] {e}")
+        print(f"[ERRO PORTAL PARCEIROS RESERVAS] {e}")
         raise HTTPException(status_code=500, detail="Erro ao buscar lista de reservas.")
 
 @router.get("/api/v1/parceiros/{item_id}/dashboard", tags=["Portal dos Parceiros"])
 async def obter_metricas_dashboard(item_id: str):
     try:
         res = supabase.table("pedidos") \
-            .select("valor_total, tipo_item, quantity:quantidade, data_checkin, data_checkout, tipo_quarto") \
-            .or_(f"item_id.eq.{item_id},hotel_id.eq.{item_id}") \
+            .select("valor_total, tipo_item, quantity:quantidade, data_checkin, data_checkout, tipo_quarto, hotel_id, guia_id") \
+            .or_(f"item_id.eq.{item_id},hotel_id.eq.{item_id},guia_id.eq.{item_id}") \
             .eq("status_pagamento", "pago") \
             .execute()
             
@@ -233,16 +255,20 @@ async def obter_metricas_dashboard(item_id: str):
             qtd = int(p.get("quantity", 1))
             
             if tipo == "pacote":
-                v_bruto = calcular_recorte_hotel_pacote(
-                    item_id, 
-                    p.get("tipo_quarto", "standard"), 
-                    p.get("data_checkin"), 
-                    p.get("data_checkout")
-                ) * qtd
+                if p.get("hotel_id") == item_id:
+                    v_bruto = calcular_recorte_hotel_pacote(item_id, p.get("tipo_quarto", "standard"), p.get("data_checkin"), p.get("data_checkout")) * qtd
+                    fator = obter_fator_liquido("hotel")
+                elif p.get("guia_id") == item_id:
+                    v_bruto = calcular_recorte_guia_pacote(item_id, p.get("data_checkin"), p.get("data_checkout"))
+                    fator = obter_fator_liquido("guia")
+                else:
+                    v_bruto = float(p.get("valor_total") or 0.0)
+                    fator = 1.0
             else:
                 v_bruto = float(p.get("valor_total") or 0.0)
+                tipo_real = "hotel" if "hotel" in tipo else "guia" if "guia" in tipo else tipo
+                fator = obter_fator_liquido(tipo_real)
                 
-            fator = obter_fator_liquido("hotel")
             faturamento_liquido_total += (v_bruto * fator)
         
         hoje = datetime.now().date()
@@ -272,10 +298,6 @@ async def obter_metricas_dashboard(item_id: str):
     
 @router.post("/api/v1/parceiros/{item_id}/disponibilidade", tags=["Portal dos Parceiros"])
 async def atualizar_disponibilidade_parceiro(item_id: str, payload: DisponibilidadeParceiroSchema):
-    """
-    Recebe as alterações de tarifas e bloqueios de datas enviadas pelo calendário
-    do parceiro e grava na tabela do Supabase.
-    """
     try:
         dados_disponibilidade = {
             "hotel_id": item_id,
@@ -285,15 +307,12 @@ async def atualizar_disponibilidade_parceiro(item_id: str, payload: Disponibilid
             "preco": payload.preco,
             "disponivel": payload.disponivel
         }
-        
         res = supabase.table("disponibilidade_hoteis").insert(dados_disponibilidade).execute()
-        
         return {
             "sucesso": True, 
             "mensagem": "Tarifário atualizado com sucesso na base de dados!",
             "dados": res.data
         }
-        
     except Exception as e:
         print(f"[ERRO ATUALIZAR DISPONIBILIDADE] {e}")
         raise HTTPException(
