@@ -330,9 +330,11 @@ function PacoteDetalheContent() {
       </header>
 
       {/* ── HERO SECTION ── */}
-      <div className="relative w-full h-[40vh] md:h-[50vh] bg-slate-900 mt-[65px] md:mt-[80px]">
-        <Image src={pacote.imagem_principal || FALLBACK_IMAGE} alt={pacote.titulo || 'Pacote'} fill className="object-cover opacity-60" priority />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#F5F7FA] via-transparent to-transparent" />
+      <div className="relative w-full h-[40vh] md:h-[50vh] bg-slate-900 mt-[64px] md:mt-[80px]">
+        {/* RETIRADA a opacity-60 para garantir uma foto super nítida */}
+        <Image src={pacote.imagem_principal || FALLBACK_IMAGE} alt={pacote.titulo || 'Pacote'} fill className="object-cover" priority />
+        {/* GRADIENTE ajustado para ser visível apenas na base, mantendo o topo da foto 100% natural */}
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/20 to-transparent" />
         <div className="absolute bottom-6 md:bottom-10 left-5 md:left-16 right-5 text-left">
           <Link href="/pacotes" className="inline-flex items-center gap-2 text-[10px] md:text-xs font-black uppercase text-white/70 mb-3 hover:text-white transition-colors">
             <ArrowLeft size={14}/> Voltar aos Pacotes
@@ -349,8 +351,9 @@ function PacoteDetalheContent() {
         </div>
       </div>
 
-      {/* BARRA DE SELEÇÃO RÁPIDA (MOBILE FOCUS) */}
-      <div className="sticky top-[65px] md:top-[80px] z-40 bg-white border-b border-slate-200 shadow-sm">
+      {/* ── BARRA DE SELEÇÃO RÁPIDA (MOBILE FOCUS) ── */}
+      {/* ◄── AQUI A MÁGICA DO STICKY INTELIGENTE: Alterna entre top-[64px] e top-0 conforme o header desliza! */}
+      <div className={`sticky z-40 bg-white border-b border-slate-200 shadow-sm lg:hidden transition-all duration-300 ${showHeader ? 'top-[64px] md:top-[80px]' : 'top-0'}`}>
          <div className="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between gap-4 overflow-x-auto text-left">
             <div className="flex items-center gap-3 shrink-0">
                <div className="bg-blue-50 p-2 rounded-lg text-[#00577C]"><CalendarIcon size={18}/></div>
@@ -466,7 +469,6 @@ function PacoteDetalheContent() {
                            <div className="w-full sm:w-48 p-4 md:p-5 flex flex-col items-center sm:items-end justify-center bg-slate-50/50">
                               <div className="mt-auto text-center sm:text-right w-full">
                                 <p className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Custo da Estadia</p>
-                                {/* CORRIGIDO AQUI: noitesReserva -> totalNoites */}
                                 <p className={`${jakarta.className} text-2xl md:text-3xl font-black text-slate-900 leading-none`}>{formatarMoeda(parseValor(hotelSelecionado.quarto_standard_preco) * totalNoites * quartos)}</p>
                               </div>
                            </div>
@@ -511,7 +513,6 @@ function PacoteDetalheContent() {
                            <div className="w-full sm:w-48 p-4 md:p-5 flex flex-col items-center sm:items-end justify-center bg-blue-50/10">
                               <div className="mt-auto text-center sm:text-right w-full">
                                 <p className="text-[9px] md:text-[10px] font-black uppercase text-[#00577C] tracking-widest mb-1">Custo da Estadia</p>
-                                {/* CORRIGIDO AQUI: noitesReserva -> totalNoites */}
                                 <p className={`${jakarta.className} text-2xl md:text-3xl font-black text-[#00577C] leading-none`}>{formatarMoeda(parseValor(hotelSelecionado.quarto_luxo_preco) * totalNoites * quartos)}</p>
                               </div>
                            </div>
@@ -554,7 +555,6 @@ function PacoteDetalheContent() {
                     <div className="flex items-center justify-between sm:justify-end gap-5 w-full sm:w-auto border-t border-slate-100 sm:border-t-0 pt-3 sm:pt-0">
                       <div className="text-left sm:text-right">
                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5 text-left sm:text-right">Custo Serviço</p>
-                        {/* CORRIGIDO AQUI: noitesReserva -> totalNoites */}
                         <p className={`${jakarta.className} text-lg md:text-xl font-black text-slate-900`}>{formatarMoeda(parseValor(guia.preco_diaria) * (totalNoites + 1))}</p>
                       </div>
                       <div className={`w-5 h-5 md:w-6 md:h-6 shrink-0 rounded-full border-2 flex items-center justify-center ${selected ? 'border-[#009640] bg-[#009640]' : 'border-slate-300'}`}>
@@ -645,7 +645,6 @@ function PacoteDetalheContent() {
               {/* RESUMO DOS VALORES */}
               <div className="space-y-2.5 md:space-y-3 mb-6 md:mb-8 text-xs md:text-sm font-semibold border-t border-slate-100 pt-5 md:pt-6">
                 <div className="flex justify-between items-center text-slate-600">
-                  {/* CORRIGIDO AQUI: noitesReserva -> totalNoites */}
                   <span className="flex items-center gap-2"><Bed size={14} className="text-[#00577C] shrink-0" /> Hospedagem ({totalNoites} nts)</span>
                   <span className="text-slate-800 tabular-nums">{formatarMoeda(totalHospedagem)}</span>
                 </div>
