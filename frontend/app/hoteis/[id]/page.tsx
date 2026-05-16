@@ -302,7 +302,7 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
                 {Array.from({ length: hotel.estrelas }).map((_, i) => <Star key={i} className="h-3.5 w-3.5 md:h-4 md:w-4 fill-[#F9C400] text-[#F9C400]" />)}
              </div>
           </div>
-          h1 className={`${jakarta.className} text-3xl sm:text-4xl md:text-6xl font-black text-white leading-tight drop-shadow-lg`}>{hotel.nome}</h1>
+          <h1 className={`${jakarta.className} text-3xl sm:text-4xl md:text-6xl font-black text-white leading-tight drop-shadow-lg`}>{hotel.nome}</h1>
           <p className="text-white/80 font-medium flex items-center gap-2 mt-2 md:mt-3 text-xs md:text-sm">
              <MapPin size={16} className="text-[#009640] w-4 h-4"/> {hotel.endereco || 'São Geraldo do Araguaia, Pará'}
           </p>
@@ -505,7 +505,6 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
         </div>
 
         {/* ── COLUNA DIREITA: CALENDÁRIO COM CLASSES NATIVAS ── */}
-        {/* Substituí 'lg:top-[110px]' por 'lg:top-28' que é nativo e compila sem problemas na Vercel */}
         <div id="motor-reservas" className="w-full lg:w-[380px] shrink-0 lg:sticky lg:top-28 lg:self-start relative z-30">
           <div className="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] shadow-xl border border-slate-200 text-left">
              <h3 className={`${jakarta.className} text-lg md:text-xl font-black text-slate-900 mb-5 flex items-center gap-2`}>
