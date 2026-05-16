@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { 
   Loader2, CheckCircle2, Mail, FileText, Calendar, 
   MapPin, Bed, Compass, User, ShieldCheck, 
-  ArrowRight, ArrowLeft, Info, Printer, Lock, Check, Menu, Wallet
+  ArrowRight, ArrowLeft, Info, Printer, Lock, Menu, Star
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -17,7 +17,9 @@ const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] }
 
 // ── UTILITÁRIOS BLINDADOS ──
 const formatarMoeda = (valor: any) => {
-  const num = Number(valor);
+  if (!valor) return 'Sob consulta';
+  const strVal = typeof valor === 'string' ? valor.replace(',', '.') : valor;
+  const num = Number(strVal);
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(isNaN(num) ? 0 : num);
 };
 
@@ -36,6 +38,7 @@ function SucessoContent() {
   const [isMounted, setIsMounted] = useState(false);
   const [pedido, setPedido] = useState<any>(null);
   const [detalhesItem, setDetalhesItem] = useState<any>(null);
+  const [sugestoes, setSugestoes] = useState<any[]>([]); // Estado para o Cross-Sell
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState('');
   
@@ -66,6 +69,7 @@ function SucessoContent() {
       }
 
       try {
+        // 1. Busca o Pedido
         const { data: pData, error: pError } = await supabase
           .from('pedidos') 
           .select('*') 
@@ -84,11 +88,21 @@ function SucessoContent() {
         
         setPedido(pData);
 
+        // 2. Busca os detalhes do item comprado
         const tabela = pData.tipo_item === 'hotel' ? 'hoteis' : 'pacotes';
         if (pData.item_id) {
           const { data: iData } = await supabase.from(tabela).select('*').eq('id', pData.item_id).maybeSingle();
           if (iData) setDetalhesItem(iData);
         }
+
+        // 3. MAGIA DO CROSS-SELLING: Busca sugestões da tabela oposta!
+        const tabelaOposta = pData.tipo_item === 'hotel' ? 'pacotes' : 'hoteis';
+        const { data: sugData } = await supabase
+          .from(tabelaOposta)
+          .select('*')
+          .limit(3); // Pega 3 itens para sugerir
+          
+        if (sugData) setSugestoes(sugData);
 
         setLoading(false);
       } catch (err: any) {
@@ -126,7 +140,7 @@ function SucessoContent() {
   const nomeExibicao = pedido?.nome_cliente ? String(pedido.nome_cliente).split(' ')[0] : 'Viajante';
 
   return (
-    <main className={`${inter.className} min-h-screen bg-[#F8F9FA] text-slate-900 flex flex-col`}>
+    <main className={`${inter.className} min-h-screen bg-[#F8F9FA] text-slate-900 flex flex-col overflow-x-hidden`}>
       
       {/* HEADER OFICIAL */}
       <header className={`fixed left-0 top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl transition-transform duration-300 ${showHeader ? 'translate-y-0' : '-translate-y-full'}`}>
@@ -159,8 +173,8 @@ function SucessoContent() {
              Pedido Confirmado
            </h1>
            <p className="text-lg text-slate-600 max-w-2xl mx-auto font-medium leading-relaxed">
-             Olá <span className="text-[#00577C] font-bold">{nomeExibicao}</span>, o seu pagamento foi confirmado!O seu número de pedido é <span className="font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">{pedido?.codigo_pedido || '---'}</span>.<br/>
-             A sua reserva no <span className="text-[#00577C] font-bold">{tituloReserva || 'hotel'}</span> foi confirmada com sucesso.
+             Olá <span className="text-[#00577C] font-bold">{nomeExibicao}</span>, o seu pagamento foi confirmado! O seu número de pedido é <span className="font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">{pedido?.codigo_pedido || '---'}</span>.<br/>
+             A sua reserva no <span className="text-[#00577C] font-bold">{tituloReserva || 'serviço'}</span> foi confirmada com sucesso.
            </p>
         </div>
 
@@ -183,8 +197,8 @@ function SucessoContent() {
            </div>
         </div>
 
-        {/* CARTÃO DA RESERVA (Design Profissional sem o card preto) */}
-        <div className="w-full bg-white rounded-[2.5rem] border border-slate-200 shadow-xl overflow-hidden relative animate-in slide-in-from-bottom-10 duration-1000">
+        {/* CARTÃO DA RESERVA */}
+        <div className="w-full bg-white rounded-[2.5rem] border border-slate-200 shadow-xl overflow-hidden relative animate-in slide-in-from-bottom-10 duration-1000 mb-16">
            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#00577C] via-[#F9C400] to-[#009640]" />
            
            <div className="p-8 md:p-12">
@@ -238,7 +252,7 @@ function SucessoContent() {
                     </div>
                  </div>
 
-                 {/* Resumo de Pagamento Elegante (Substituiu o Card Preto) */}
+                 {/* Resumo de Pagamento Elegante */}
                  <div className="bg-white border-2 border-slate-100 rounded-[2.5rem] p-8 space-y-6 relative overflow-hidden">
                     <div className="flex justify-between items-center text-sm font-bold text-slate-500 uppercase tracking-widest">
                        <span>Total Pago</span>
@@ -249,14 +263,14 @@ function SucessoContent() {
                     <p className={`${jakarta.className} text-5xl font-black text-slate-900`}>{formatarMoeda(pedido?.valor_total)}</p>
                     
                     <div className="pt-6 border-t border-slate-100 flex items-center gap-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                       <Lock size={14} className="text-slate-300"/> Transação Segura PagBank
+                       <Lock size={14} className="text-slate-300"/> Transação Segura
                     </div>
                  </div>
               </div>
 
               <div className="flex flex-col sm:flex-row items-center justify-between gap-6 mt-12 pt-8 border-t border-slate-100">
                  <Link href="/" className="text-slate-500 hover:text-[#00577C] font-bold text-sm flex items-center gap-2 transition-colors">
-                    <ArrowLeft size={16}/> Voltar ao Portal Principal
+                    <ArrowLeft size={16}/> Voltar ao Portal
                  </Link>
                  <button onClick={() => window.print()} className="w-full sm:w-auto bg-slate-50 border border-slate-200 text-slate-700 px-8 py-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 hover:bg-white transition-all active:scale-95 shadow-sm">
                     <Printer size={18}/> Imprimir Recibo
@@ -266,6 +280,73 @@ function SucessoContent() {
         </div>
 
       </div>
+
+      {/* ── SECÇÃO CROSS-SELLING MÁGICA ── */}
+      {sugestoes.length > 0 && (
+        <section className="w-full bg-[#002f40] py-20 px-6 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#00577C] rounded-full blur-[120px] opacity-20 pointer-events-none" />
+          
+          <div className="max-w-7xl mx-auto relative z-10 text-left">
+            <div className="mb-10">
+              <span className="bg-[#F9C400] text-[#00577C] px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-md">
+                Recomendações Especiais
+              </span>
+              <h2 className={`${jakarta.className} text-3xl md:text-4xl font-black text-white mt-4`}>
+                {isHotel 
+                  ? 'Aproveite a cidade com aventuras inesquecíveis' 
+                  : 'Precisa de um lugar para descansar após a aventura?'}
+              </h2>
+              <p className="text-white/70 font-medium mt-2 max-w-2xl">
+                {isHotel
+                  ? 'Como já garantiu o seu alojamento, veja as experiências mais procuradas pelos turistas na nossa região.'
+                  : 'Veja as opções de hospedagem mais bem avaliadas para completar a sua viagem com todo o conforto.'}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {sugestoes.map((item) => {
+                const isSugestaoHotel = !isHotel; // Se eu comprei hotel, sugestão é pacote. Logo se isHotel é true, isSugestaoHotel é false.
+                const img = isSugestaoHotel ? item.imagem_url : item.imagem_principal;
+                const titulo = isSugestaoHotel ? item.nome : item.titulo;
+                const preco = isSugestaoHotel ? item.quarto_standard_preco : item.preco;
+                const linkDestino = isSugestaoHotel ? `/hoteis/${item.id}` : `/roteiro/${item.id}`;
+
+                return (
+                  <Link href={linkDestino} key={item.id} className="group bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all hover:-translate-y-1 block">
+                    <div className="relative h-48 w-full overflow-hidden">
+                      <img src={img || 'https://images.unsplash.com/photo-1542314831-c53cd6b7608b?q=80&w=1740'} alt={titulo} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                      <div className="absolute top-4 right-4 bg-white/90 backdrop-blur text-slate-900 px-3 py-1.5 rounded-full text-[10px] font-black flex items-center gap-1">
+                         {isSugestaoHotel ? <><Star size={12} className="text-[#F9C400] fill-[#F9C400]"/> Alojamento</> : <><Compass size={12} className="text-[#00577C]"/> Experiência</>}
+                      </div>
+                    </div>
+                    <div className="p-6">
+                      <h3 className={`${jakarta.className} text-lg font-bold text-slate-900 mb-1 truncate`}>{titulo}</h3>
+                      <p className="text-xs text-slate-500 font-medium flex items-center gap-1 mb-4">
+                        <MapPin size={14} className="text-[#009640]"/> São Geraldo do Araguaia
+                      </p>
+                      <div className="flex items-end justify-between mt-4 pt-4 border-t border-slate-100">
+                         <div>
+                           <p className="text-[10px] font-black uppercase text-slate-400">A partir de</p>
+                           <p className="text-[#00577C] font-black text-lg">{formatarMoeda(preco)}</p>
+                         </div>
+                         <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-[#00577C] group-hover:bg-[#F9C400] transition-colors">
+                           <ArrowRight size={18}/>
+                         </div>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+            
+            <div className="mt-10 text-center">
+               <Link href={isHotel ? '/roteiro' : '/hoteis'} className="inline-block text-white font-bold text-sm border-b-2 border-transparent hover:border-[#F9C400] transition-colors pb-1">
+                 Ver todas as opções de {isHotel ? 'passeios e atividades' : 'alojamentos oficiais'}
+               </Link>
+            </div>
+          </div>
+        </section>
+      )}
 
       <footer className="mt-auto py-12 text-center border-t border-slate-200 bg-white">
          <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.5em]">
