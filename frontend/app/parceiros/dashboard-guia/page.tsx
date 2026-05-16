@@ -129,7 +129,7 @@ export default function DashboardGuiaPage() {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <Link href="/parceiros/dashboard/disponibilidade" className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white bg-[#009640] hover:bg-[#007a33] px-5 py-2.5 rounded-full shadow-md"><Plus size={14} /> <span className="hidden sm:inline">Criar Novo Passeio</span></Link>
+            <Link href="/parceiros/dashboard-guia/disponibilidade" className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white bg-[#009640] hover:bg-[#007a33] px-5 py-2.5 rounded-full shadow-md"><Plus size={14} /> <span className="hidden sm:inline">Criar Novo Passeio</span></Link>
             <button onClick={handleLogout} className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white bg-slate-900 hover:bg-black px-5 py-2.5 rounded-full shadow-md"><LogOut size={14} /> Sair</button>
           </div>
         </div>
