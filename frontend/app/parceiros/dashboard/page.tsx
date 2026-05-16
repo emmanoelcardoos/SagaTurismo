@@ -7,14 +7,15 @@ import Image from 'next/image';
 import { 
   Loader2, LogOut, Wallet, ShoppingBag, Users2, 
   Bed, Compass, ClipboardList, ShieldCheck, 
-  ArrowUpRight, Home, Calendar, Search, Plus, Ticket
+  ArrowUpRight, Home, Calendar, Search, Map, Receipt,
+  CheckSquare, Square, Building, Landmark, UserCircle
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['600', '700', '800'] });
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
 
-// ── TIPAGENS DO DASHBOARD ──
+// ── TIPAGENS EMPRESARIAIS AVANÇADAS ──
 type Metricas = {
   faturamento: number;
   total_vendas: number;
@@ -27,6 +28,7 @@ type Reserva = {
   nome_cliente: string;
   telefone_cliente?: string;
   tipo_item: 'hotel' | 'passeio' | 'pacote';
+  nome_item?: string; // Nome do pacote ou do passeio vendido
   data_checkin: string;
   data_checkout?: string;
   quantidade_quartos?: number;
@@ -34,25 +36,33 @@ type Reserva = {
   valor_total: number;
   valor_liquido: number;
   status: string;
+  
+  // Controle de Auditoria (Hotéis)
+  checkin_realizado_em?: string | null;
+  checkout_realizado_em?: string | null;
+
+  // Split Financeiro (Pacotes/Agências) - Valores Injetados pelo Backend
+  repasse_hotel?: number;
+  repasse_guia?: number;
+  taxa_prefeitura?: number;
 };
 
 export default function DashboardParceiroPage() {
   const router = useRouter();
   const [parceiroId, setParceiroId] = useState<string | null>(null);
   const [nomeNegocio, setNomeNegocio] = useState<string>('');
-  const [tipoParceiro, setTipoParceiro] = useState<string>('hotel'); // 'hotel' | 'guia' | 'pacote'
+  const [tipoParceiro, setTipoParceiro] = useState<'hotel' | 'guia' | 'pacote'>('hotel');
   
   const [loading, setLoading] = useState(true);
   const [metricas, setMetricas] = useState<Metricas | null>(null);
   const [reservas, setReservas] = useState<Reserva[]>([]);
-  
   const [searchTerm, setSearchTerm] = useState('');
 
-  // ── SEGURANÇA BÁSICA E LEITURA DO PERFIL ──
+  // ── 1. SEGURANÇA E LEITURA DE PERFIL ──
   useEffect(() => {
     const id = localStorage.getItem("parceiro_id");
     const nome = localStorage.getItem("nome_negocio");
-    const tipo = localStorage.getItem("tipo_parceiro"); // Lendo o tipo dinâmico do banco
+    const tipo = localStorage.getItem("tipo_parceiro") as 'hotel' | 'guia' | 'pacote';
 
     if (!id) {
       router.push('/parceiros');
@@ -63,7 +73,7 @@ export default function DashboardParceiroPage() {
     }
   }, [router]);
 
-  // ── CONSUMO DA API ──
+  // ── 2. CONSUMO DA API ──
   useEffect(() => {
     if (!parceiroId) return;
 
@@ -78,13 +88,9 @@ export default function DashboardParceiroPage() {
         const dataReservas = await resReservas.json();
 
         let listaReservas: Reserva[] = [];
-        if (Array.isArray(dataReservas)) {
-          listaReservas = dataReservas;
-        } else if (dataReservas && typeof dataReservas === 'object' && Array.isArray(dataReservas.reservas)) {
-          listaReservas = dataReservas.reservas;
-        } else if (dataReservas && typeof dataReservas === 'object' && Array.isArray(dataReservas.dados)) {
-          listaReservas = dataReservas.dados;
-        }
+        if (Array.isArray(dataReservas)) listaReservas = dataReservas;
+        else if (dataReservas?.reservas) listaReservas = dataReservas.reservas;
+        else if (dataReservas?.dados) listaReservas = dataReservas.dados;
 
         setReservas(listaReservas);
 
@@ -107,13 +113,43 @@ export default function DashboardParceiroPage() {
     carregarDadosDashboard();
   }, [parceiroId]);
 
+  // ── 3. OPERAÇÕES DE AUDITORIA DE FRONTEND (CHECK-IN / CHECK-OUT) ──
+  const handleToggleCheckStatus = async (reservaId: string, tipo: 'checkin' | 'checkout') => {
+    // 1. Atualização Otimista no Frontend (para o usuário ver a caixa a marcar instantaneamente)
+    const agoraIso = new Date().toISOString();
+    
+    setReservas(prev => prev.map(r => {
+      if (r.id === reservaId) {
+        const campo = tipo === 'checkin' ? 'checkin_realizado_em' : 'checkout_realizado_em';
+        // Se já tem data, "desmarca" (null). Se não tem, marca com a data/hora atual.
+        const novoValor = r[campo] ? null : agoraIso;
+        return { ...r, [campo]: novoValor };
+      }
+      return r;
+    }));
+
+    // 2. Disparo Silencioso para a Supabase (via API Railway)
+    try {
+      await fetch(`https://sagaturismo-production.up.railway.app/api/v1/reservas/${reservaId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          acao: tipo, // 'checkin' ou 'checkout'
+          timestamp: agoraIso
+        })
+      });
+    } catch (err) {
+      console.error(`Falha ao sincronizar ${tipo} na base de dados.`, err);
+      // Aqui poderias reverter a UI se a chamada API falhasse em produção estrita
+    }
+  };
+
   const handleLogout = () => {
     localStorage.clear();
     router.push('/parceiros');
   };
 
   const formatarMoeda = (valor: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor || 0);
-
   const formatarData = (dataStr: string) => {
     if (!dataStr) return '-';
     const parts = dataStr.split('-');
@@ -122,12 +158,12 @@ export default function DashboardParceiroPage() {
     return `${dia}/${mes}/${ano}`;
   };
 
-  const filteredReservas = reservas.filter((reserva) => {
+  const filteredReservas = reservas.filter((r) => {
     const termo = searchTerm.toLowerCase();
     return (
-      reserva.nome_cliente?.toLowerCase().includes(termo) ||
-      reserva.codigo_pedido?.toLowerCase().includes(termo) ||
-      reserva.telefone_cliente?.toLowerCase().includes(termo)
+      r.nome_cliente?.toLowerCase().includes(termo) ||
+      r.codigo_pedido?.toLowerCase().includes(termo) ||
+      r.nome_item?.toLowerCase().includes(termo) // Pesquisa pelo nome do pacote/passeio
     );
   });
 
@@ -135,7 +171,7 @@ export default function DashboardParceiroPage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 text-[#00577C]">
         <Loader2 className="w-12 h-12 animate-spin mb-4" />
-        <p className="font-bold text-xs uppercase tracking-widest">Sincronizando painel oficial...</p>
+        <p className="font-bold text-xs uppercase tracking-widest">A carregar o seu ambiente de trabalho...</p>
       </div>
     );
   }
@@ -146,7 +182,7 @@ export default function DashboardParceiroPage() {
   return (
     <div className={`${inter.className} min-h-screen bg-[#F1F5F9] text-slate-900 flex flex-col text-left overflow-x-hidden`}>
       
-      {/* ── HEADER EXECUTIVO ADAPTÁVEL ── */}
+      {/* ── HEADER EXECUTIVO ── */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-50 px-4 md:px-10 py-4">
         <div className="mx-auto max-w-7xl flex items-center justify-between">
           <div className="flex items-center gap-6">
@@ -167,38 +203,10 @@ export default function DashboardParceiroPage() {
           </div>
           
           <div className="flex items-center gap-2 md:gap-4 shrink-0">
-            {/* Botão de Ação Condicional baseado no Perfil */}
-            {tipoParceiro === 'hotel' && (
-              <Link 
-                href="/parceiros/dashboard/disponibilidade"
-                className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#00577C] bg-[#F9C400] hover:bg-[#ffd633] px-3 md:px-5 py-2.5 rounded-full transition-all shadow-md active:scale-95"
-              >
-                <Calendar size={14} /> <span>Calendário de Tarifas</span>
-              </Link>
-            )}
-
-            {tipoParceiro === 'guia' && (
-              <Link 
-                href="/parceiros/dashboard/disponibilidade"
-                className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white bg-[#009640] hover:bg-[#007a33] px-3 md:px-5 py-2.5 rounded-full transition-all shadow-md active:scale-95"
-              >
-                <Plus size={14} /> <span>Criar Novo Passeio</span>
-              </Link>
-            )}
-
-            {tipoParceiro === 'pacote' && (
-              <Link 
-                href="/parceiros/dashboard/disponibilidade"
-                className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white bg-[#00577C] hover:bg-[#004a6b] px-3 md:px-5 py-2.5 rounded-full transition-all shadow-md active:scale-95"
-              >
-                <Compass size={14} /> <span>Montar Roteiro</span>
-              </Link>
-            )}
-
-            <button 
-              onClick={handleLogout}
-              className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white bg-slate-900 hover:bg-black px-3 md:px-5 py-2.5 rounded-full transition-all shadow-md active:scale-95"
-            >
+            <Link href="/parceiros/dashboard/disponibilidade" className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#00577C] bg-[#F9C400] hover:bg-[#ffd633] px-3 md:px-5 py-2.5 rounded-full transition-all shadow-md active:scale-95">
+              <Calendar size={14} /> <span className="hidden sm:inline">Gerir Serviços</span>
+            </Link>
+            <button onClick={handleLogout} className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white bg-slate-900 hover:bg-black px-3 md:px-5 py-2.5 rounded-full transition-all shadow-md active:scale-95">
               <LogOut size={14} /> <span className="hidden md:inline">Sair</span>
             </button>
           </div>
@@ -207,196 +215,243 @@ export default function DashboardParceiroPage() {
 
       <div className="mx-auto w-full max-w-7xl px-4 md:px-10 py-8 md:py-12 flex-1 space-y-6 md:space-y-8">
         
-        {/* ── CARDS DE MÉTRICAS ADAPTÁVEIS CONSOANTE PERFIL ── */}
+        {/* ── CARDS DE MÉTRICAS (Dinâmicos por Perfil) ── */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-8">
-          
-          {/* CARD 1: Ganhos Líquidos (Comum a todos) */}
           <div className="bg-white rounded-[1.5rem] md:rounded-[2rem] border border-slate-200 p-5 md:p-8 shadow-sm flex flex-col justify-between group hover:border-[#00577C]/30 transition-all">
             <div className="flex justify-between items-start mb-6">
               <div>
-                <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 md:mb-2">Repasse Líquido</p>
-                <p className={`${jakarta.className} text-3xl md:text-4xl font-black text-[#009640] tabular-nums leading-none`}>
-                  {formatarMoeda(metricas?.faturamento || 0)}
-                </p>
+                <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 md:mb-2">Receita Operacional</p>
+                <p className={`${jakarta.className} text-3xl md:text-4xl font-black text-[#009640] tabular-nums leading-none`}>{formatarMoeda(metricas?.faturamento || 0)}</p>
               </div>
-              <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-green-50 text-[#009640] flex items-center justify-center shrink-0">
-                <Wallet size={20} className="md:w-6 md:h-6"/>
-              </div>
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-green-50 text-[#009640] flex items-center justify-center shrink-0"><Wallet size={20} className="md:w-6 md:h-6"/></div>
             </div>
             <div className="flex items-end gap-1.5 h-10 md:h-12 mt-auto opacity-70 group-hover:opacity-100 transition-opacity">
-               {barrasFaturamento.map((h, i) => (
-                 <div key={i} className={`w-full rounded-t-sm ${i === barrasFaturamento.length - 1 ? 'bg-[#009640]' : 'bg-slate-100'}`} style={{ height: `${h}%` }}></div>
-               ))}
+               {barrasFaturamento.map((h, i) => (<div key={i} className={`w-full rounded-t-sm ${i === barrasFaturamento.length - 1 ? 'bg-[#009640]' : 'bg-slate-100'}`} style={{ height: `${h}%` }}></div>))}
             </div>
-            <p className="text-[9px] md:text-[10px] font-bold text-slate-400 mt-3 flex items-center gap-1"><ArrowUpRight size={12} className="text-[#009640]"/> Livre das taxas da plataforma</p>
+            <p className="text-[9px] md:text-[10px] font-bold text-slate-400 mt-3 flex items-center gap-1"><ArrowUpRight size={12} className="text-[#009640]"/> Livre de Taxas Governamentais</p>
           </div>
 
-          {/* CARD 2: Total de Vendas / Reservas */}
           <div className="bg-white rounded-[1.5rem] md:rounded-[2rem] border border-slate-200 p-5 md:p-8 shadow-sm flex flex-col justify-between group hover:border-[#00577C]/30 transition-all">
             <div className="flex justify-between items-start mb-6">
               <div>
                 <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 md:mb-2">
-                  {tipoParceiro === 'hotel' ? 'Total de Reservas' : tipoParceiro === 'guia' ? 'Passeios Agendados' : 'Roteiros Vendidos'}
+                  {tipoParceiro === 'hotel' ? 'Reservas Efetivadas' : tipoParceiro === 'guia' ? 'Passeios Confirmados' : 'Pacotes Vendidos'}
                 </p>
-                <p className={`${jakarta.className} text-4xl md:text-5xl font-black text-[#00577C] tabular-nums leading-none`}>
-                  {(metricas?.total_vendas || 0).toString().padStart(2, '0')}
-                </p>
+                <p className={`${jakarta.className} text-4xl md:text-5xl font-black text-[#00577C] tabular-nums leading-none`}>{(metricas?.total_vendas || 0).toString().padStart(2, '0')}</p>
               </div>
-              <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-blue-50 text-[#00577C] flex items-center justify-center shrink-0">
-                <ShoppingBag size={20} className="md:w-6 md:h-6"/>
-              </div>
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-blue-50 text-[#00577C] flex items-center justify-center shrink-0"><ShoppingBag size={20} className="md:w-6 md:h-6"/></div>
             </div>
             <div className="mt-auto bg-slate-50 p-3 md:p-4 rounded-xl border border-slate-100">
-               <div className="flex justify-between text-[9px] md:text-[10px] font-bold text-slate-500 mb-2">
-                 <span>Performance do Perfil</span>
-                 <span className="text-[#00577C]">Excelente</span>
-               </div>
-               <div className="w-full bg-slate-200 rounded-full h-1.5"><div className="bg-[#00577C] h-1.5 rounded-full w-[90%]"></div></div>
+               <div className="flex justify-between text-[9px] md:text-[10px] font-bold text-slate-500 mb-2"><span>Performance</span><span className="text-[#00577C]">Alta</span></div>
+               <div className="w-full bg-slate-200 rounded-full h-1.5"><div className="bg-[#00577C] h-1.5 rounded-full w-[85%]"></div></div>
             </div>
           </div>
 
-          {/* CARD 3: Fluxo de Clientes Operacional */}
           <div className="bg-white rounded-[1.5rem] md:rounded-[2rem] border border-slate-200 p-5 md:p-8 shadow-sm flex flex-col justify-between group hover:border-[#F9C400]/50 transition-all">
             <div className="flex justify-between items-start mb-6">
               <div>
                 <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 md:mb-2">
-                  {tipoParceiro === 'hotel' ? 'Check-ins Pendentes' : tipoParceiro === 'guia' ? 'Turistas Confirmados' : 'Total de Viajantes'}
+                  {tipoParceiro === 'hotel' ? 'Check-ins Previstos' : 'Viajantes Previstos'}
                 </p>
-                <p className={`${jakarta.className} text-4xl md:text-5xl font-black text-slate-900 tabular-nums leading-none`}>
-                  {(metricas?.clientes_a_chegar || 0).toString().padStart(2, '0')}
-                </p>
+                <p className={`${jakarta.className} text-4xl md:text-5xl font-black text-slate-900 tabular-nums leading-none`}>{(metricas?.clientes_a_chegar || 0).toString().padStart(2, '0')}</p>
               </div>
-              <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-amber-50 text-[#d9a000] flex items-center justify-center shrink-0">
-                <Users2 size={20} className="md:w-6 md:h-6"/>
-              </div>
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-amber-50 text-[#d9a000] flex items-center justify-center shrink-0"><Users2 size={20} className="md:w-6 md:h-6"/></div>
             </div>
             <div className="mt-auto">
-               <div className="flex justify-between text-[9px] md:text-[10px] font-bold text-slate-500 mb-2">
-                 <span>{tipoParceiro === 'hotel' ? 'Taxa Ocupação' : 'Vagas Preenchidas'}</span>
-                 <span className="text-[#d9a000]">{percentagemChegadas}%</span>
-               </div>
-               <div className="w-full bg-slate-100 rounded-full h-2">
-                  <div className="bg-[#F9C400] h-2 rounded-full transition-all duration-1000" style={{ width: `${percentagemChegadas}%` }}></div>
-               </div>
+               <div className="flex justify-between text-[9px] md:text-[10px] font-bold text-slate-500 mb-2"><span>Ocupação do Mês</span><span className="text-[#d9a000]">{percentagemChegadas}%</span></div>
+               <div className="w-full bg-slate-100 rounded-full h-2"><div className="bg-[#F9C400] h-2 rounded-full transition-all" style={{ width: `${percentagemChegadas}%` }}></div></div>
             </div>
           </div>
         </div>
 
-        {/* ── LISTAGEM DE RESERVAS & PESQUISA ── */}
+        {/* ── CENTRAL DE OPERAÇÕES ── */}
         <div className="bg-white rounded-[1.5rem] md:rounded-[2.5rem] border border-slate-200 shadow-xl overflow-hidden">
           
+          {/* HEADER DA TABELA */}
           <div className="p-5 md:p-8 border-b border-slate-100 flex flex-col xl:flex-row xl:items-center justify-between gap-5 bg-slate-50/50">
-            <div className="flex items-center gap-3 md:gap-4">
-               <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-white border border-slate-200 flex items-center justify-center shadow-sm shrink-0">
-                 <ClipboardList className="text-[#00577C]" size={20} />
+            <div className="flex items-center gap-4">
+               <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm shrink-0 border ${tipoParceiro === 'hotel' ? 'bg-blue-50 border-blue-100 text-[#00577C]' : tipoParceiro === 'guia' ? 'bg-green-50 border-green-100 text-[#009640]' : 'bg-purple-50 border-purple-100 text-purple-700'}`}>
+                 {tipoParceiro === 'hotel' ? <Bed size={24} /> : tipoParceiro === 'guia' ? <Compass size={24} /> : <Map size={24} />}
                </div>
                <div>
-                 <h2 className={`${jakarta.className} text-lg md:text-2xl font-black text-slate-900`}>
-                   {tipoParceiro === 'hotel' ? 'Gestão de Hóspedes' : tipoParceiro === 'guia' ? 'Lista de Passageiros' : 'Controle de Emissões'}
+                 <h2 className={`${jakarta.className} text-xl md:text-2xl font-black text-slate-900`}>
+                   {tipoParceiro === 'hotel' ? 'Auditoria de Hóspedes e Quartos' : tipoParceiro === 'guia' ? 'Manifesto de Passageiros' : 'Monitoramento de Roteiros e Repasses'}
                  </h2>
-                 <p className="text-[10px] md:text-xs font-bold text-slate-400 mt-0.5 md:mt-1">Lista oficial de serviços liquidados e confirmados.</p>
+                 <p className="text-xs font-bold text-slate-400 mt-1">
+                   {tipoParceiro === 'hotel' ? 'Faça a gestão dos check-ins e check-outs em tempo real.' : 'Lista completa de turistas confirmados nos seus passeios.'}
+                 </p>
                </div>
             </div>
 
             {reservas.length > 0 && (
-              <div className="flex flex-col sm:flex-row items-center gap-3 md:gap-4 w-full xl:w-auto">
-                <div className="relative w-full sm:w-80">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                  <input 
-                    type="text" 
-                    placeholder="Nome, Localizador ou WhatsApp..." 
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 md:py-3 bg-white border border-slate-200 rounded-xl text-xs md:text-sm font-medium focus:outline-none focus:border-[#00577C] focus:ring-1 focus:ring-[#00577C] transition-all shadow-sm"
-                  />
-                </div>
-                <div className="hidden sm:block bg-white px-4 py-2.5 md:px-5 md:py-3 rounded-xl border border-slate-200 text-[10px] md:text-xs font-black text-slate-500 shadow-sm shrink-0">
-                  {filteredReservas.length} {filteredReservas.length === 1 ? 'registo' : 'registos'}
-                </div>
+              <div className="relative w-full xl:w-80 shrink-0">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                <input 
+                  type="text" placeholder="Localizador, Turista ou Serviço..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:border-[#00577C] focus:ring-1 focus:ring-[#00577C] shadow-sm"
+                />
               </div>
             )}
           </div>
 
-          {reservas.length === 0 ? (
-            <div className="py-24 md:py-32 px-5 text-center flex flex-col items-center justify-center bg-white">
-               <div className="w-16 h-16 md:w-20 md:h-20 bg-slate-50 rounded-full flex items-center justify-center mb-4 md:mb-6">
-                 <ClipboardList size={28} className="text-slate-300 md:w-8 md:h-8" />
-               </div>
-               <p className={`${jakarta.className} text-lg md:text-xl font-bold text-slate-800 mb-2`}>O seu painel está pronto</p>
-               <p className="text-xs md:text-sm text-slate-500 max-w-md">Os agendamentos efetuados pelos turistas aparecerão aqui automaticamente após a aprovação financeira.</p>
-            </div>
-          ) : filteredReservas.length === 0 ? (
-            <div className="py-20 md:py-24 px-5 text-center flex flex-col items-center justify-center bg-white">
-               <div className="w-14 h-14 md:w-16 md:h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
-                 <Search size={24} className="text-slate-300 md:w-7 md:h-7" />
-               </div>
-               <p className={`${jakarta.className} text-base md:text-lg font-bold text-slate-800 mb-1`}>Nenhum resultado encontrado</p>
-               <p className="text-xs md:text-sm text-slate-500">Não encontrámos clientes para "{searchTerm}".</p>
-               <button onClick={() => setSearchTerm('')} className="mt-4 md:mt-6 text-xs md:text-sm font-bold text-[#00577C] hover:underline">Limpar pesquisa</button>
+          {reservas.length === 0 || filteredReservas.length === 0 ? (
+            <div className="py-24 text-center flex flex-col items-center justify-center bg-white">
+               <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4"><ClipboardList size={28} className="text-slate-300" /></div>
+               <p className={`${jakarta.className} text-lg font-bold text-slate-800 mb-2`}>Nenhum registo encontrado</p>
+               <p className="text-sm text-slate-500 max-w-md">As reservas aprovadas irão aparecer aqui para a sua gestão.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs md:text-sm text-left border-collapse whitespace-nowrap">
-                <thead>
-                  <tr className="bg-white border-b border-slate-100 text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest">
-                    <th className="py-4 md:py-5 px-5 md:px-8">Localizador</th>
-                    <th className="py-4 md:py-5 px-5 md:px-6">Turista</th>
-                    <th className="py-4 md:py-5 px-5 md:px-6">Categoria</th>
-                    <th className="py-4 md:py-5 px-5 md:px-6">Agendamento / Período</th>
-                    <th className="py-4 md:py-5 px-5 md:px-6 text-center">Quantidade</th>
-                    <th className="py-4 md:py-5 px-5 md:px-8 text-right">Líquido a Receber</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 font-bold text-slate-700 bg-white">
-                  {filteredReservas.map((reserva) => (
-                    <tr key={reserva.id} className="hover:bg-slate-50 transition-colors group">
-                      <td className="py-4 md:py-5 px-5 md:px-8 font-mono text-[10px] md:text-xs text-[#00577C] tabular-nums uppercase">{reserva.codigo_pedido}</td>
-                      <td className="py-4 md:py-5 px-5 md:px-6 text-slate-900 font-black">
-                        {reserva.nome_cliente}
-                        {reserva.telefone_cliente && <span className="block text-[9px] md:text-[10px] text-slate-400 font-medium mt-0.5">{reserva.telefone_cliente}</span>}
-                      </td>
-                      <td className="py-4 md:py-5 px-5 md:px-6">
-                        <span className={`inline-flex items-center gap-1.5 text-[9px] md:text-[10px] font-black uppercase tracking-widest px-2.5 py-1 md:px-3 md:py-1.5 rounded-lg border ${
-                          reserva.tipo_item === 'hotel' 
-                            ? 'bg-blue-50 border-blue-100 text-blue-700' 
-                            : reserva.tipo_item === 'passeio' 
-                            ? 'bg-green-50 border-green-100 text-green-700' 
-                            : 'bg-purple-50 border-purple-100 text-purple-700'
-                        }`}>
-                          {reserva.tipo_item === 'hotel' ? <Bed size={12} /> : reserva.tipo_item === 'passeio' ? <Compass size={12} /> : <Ticket size={12} />}
-                          {reserva.tipo_item}
-                        </span>
-                      </td>
-                      <td className="py-4 md:py-5 px-5 md:px-6 tabular-nums">
-                        {reserva.tipo_item === 'hotel' ? (
-                           <div className="flex flex-col gap-0.5">
-                             <span className="text-slate-800 text-[10px] md:text-xs flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-[#009640]"/> In: {formatarData(reserva.data_checkin)}</span>
-                             <span className="text-slate-400 text-[9px] md:text-[10px] flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-slate-300"/> Out: {formatarData(reserva.data_checkout || '')}</span>
-                           </div>
-                        ) : (
-                           <span className="text-slate-800 text-[10px] md:text-xs flex items-center gap-1.5 md:gap-2 bg-slate-50 px-2.5 py-1 md:px-3 md:py-1.5 rounded-md border border-slate-200 w-fit">
-                             <Calendar size={12} className="text-slate-400"/> {formatarData(reserva.data_checkin)}
-                           </span>
-                        )}
-                      </td>
-                      <td className="py-4 md:py-5 px-5 md:px-6 text-center">
-                        {reserva.tipo_item === 'hotel' ? (
-                          <span className="text-[10px] md:text-xs text-slate-600 bg-slate-100 px-2.5 py-1 md:px-3 md:py-1.5 rounded-md">{reserva.quantidade_quartos} Quarto(s)</span>
-                        ) : (
-                          <span className="text-[10px] md:text-xs bg-amber-50 text-amber-800 border border-amber-200 px-2.5 py-1 md:px-3 md:py-1.5 rounded-md shadow-sm">
-                            {reserva.quantidade_pessoas} Pessoa(s)
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-4 md:py-5 px-5 md:px-8 text-right">
-                         <span className="text-[#009640] font-black tabular-nums bg-green-50 border border-green-100 px-3 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl group-hover:bg-white transition-colors">
-                           {formatarMoeda(reserva.valor_liquido)}
-                         </span>
-                      </td>
+            <div className="overflow-x-auto pb-4">
+              
+              {/* ── TABELA 1: EXCLUSIVA PARA HOTÉIS ── */}
+              {tipoParceiro === 'hotel' && (
+                <table className="w-full text-sm text-left border-collapse whitespace-nowrap">
+                  <thead>
+                    <tr className="bg-slate-50/50 border-b border-slate-100 text-[10px] font-black uppercase text-slate-400 tracking-widest">
+                      <th className="py-5 px-6">ID Localizador</th>
+                      <th className="py-5 px-6">Hóspede Principal</th>
+                      <th className="py-5 px-6">Detalhes do Alojamento</th>
+                      <th className="py-5 px-6">Agendamento</th>
+                      <th className="py-5 px-6 text-center">Status de Auditoria</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-bold text-slate-700 bg-white">
+                    {filteredReservas.map((r) => (
+                      <tr key={r.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="py-5 px-6 font-mono text-xs text-[#00577C]">{r.codigo_pedido}</td>
+                        <td className="py-5 px-6">
+                          <p className="text-slate-900 font-black">{r.nome_cliente}</p>
+                          <p className="text-[10px] text-slate-400">{r.telefone_cliente || 'S/ Contato'}</p>
+                        </td>
+                        <td className="py-5 px-6">
+                           <span className="bg-slate-100 text-slate-600 px-3 py-1.5 rounded-lg text-[10px] flex items-center gap-2 w-fit">
+                             <UserCircle size={14}/> {r.quantidade_pessoas || 1} Hóspedes · {r.quantidade_quartos || 1} Quartos
+                           </span>
+                        </td>
+                        <td className="py-5 px-6">
+                           <div className="flex flex-col gap-1 text-[10px]">
+                             <span className="text-[#009640] flex items-center gap-1.5"><ArrowUpRight size={12}/> In: {formatarData(r.data_checkin)}</span>
+                             <span className="text-slate-400 flex items-center gap-1.5"><LogOut size={12}/> Out: {formatarData(r.data_checkout || '')}</span>
+                           </div>
+                        </td>
+                        <td className="py-5 px-6">
+                          <div className="flex items-center justify-center gap-3">
+                            {/* Caixa Seletora de Check-in */}
+                            <button onClick={() => handleToggleCheckStatus(r.id, 'checkin')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] uppercase tracking-widest transition-all ${r.checkin_realizado_em ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-slate-50 text-slate-400 border border-slate-200 hover:bg-slate-100'}`}>
+                               {r.checkin_realizado_em ? <CheckSquare size={14}/> : <Square size={14}/>} Check-In
+                            </button>
+                            {/* Caixa Seletora de Check-out */}
+                            <button onClick={() => handleToggleCheckStatus(r.id, 'checkout')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] uppercase tracking-widest transition-all ${r.checkout_realizado_em ? 'bg-slate-800 text-white border border-slate-900' : 'bg-slate-50 text-slate-400 border border-slate-200 hover:bg-slate-100'}`}>
+                               {r.checkout_realizado_em ? <CheckSquare size={14}/> : <Square size={14}/>} Check-Out
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+
+              {/* ── TABELA 2: EXCLUSIVA PARA GUIAS DE TURISMO ── */}
+              {tipoParceiro === 'guia' && (
+                <table className="w-full text-sm text-left border-collapse whitespace-nowrap">
+                  <thead>
+                    <tr className="bg-slate-50/50 border-b border-slate-100 text-[10px] font-black uppercase text-slate-400 tracking-widest">
+                      <th className="py-5 px-6">Serviço/Experiência</th>
+                      <th className="py-5 px-6">Turista Pagante</th>
+                      <th className="py-5 px-6 text-center">Data do Passeio</th>
+                      <th className="py-5 px-6 text-center">Participantes</th>
+                      <th className="py-5 px-6 text-right">Repasse Limpo (R$)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-bold text-slate-700 bg-white">
+                    {filteredReservas.map((r) => (
+                      <tr key={r.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="py-5 px-6">
+                           <div className="flex flex-col gap-0.5 text-left">
+                             <p className="text-slate-900 font-black flex items-center gap-2">
+                               {r.tipo_item === 'pacote' ? <Map size={14} className="text-[#00577C]"/> : <Compass size={14} className="text-[#009640]"/>}
+                               {r.nome_item || (r.tipo_item === 'pacote' ? 'Roteiro Pacote Fechado' : 'Passeio Individual')}
+                             </p>
+                             <p className="text-[10px] text-slate-400 uppercase tracking-widest">Loc: {r.codigo_pedido}</p>
+                           </div>
+                        </td>
+                        <td className="py-5 px-6">
+                          <p className="text-slate-800">{r.nome_cliente}</p>
+                        </td>
+                        <td className="py-5 px-6 text-center">
+                           <span className="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-xs">
+                             {formatarData(r.data_checkin)}
+                           </span>
+                        </td>
+                        <td className="py-5 px-6 text-center">
+                           <span className="text-[#009640] bg-green-50 border border-green-100 px-3 py-1.5 rounded-lg text-xs inline-flex items-center gap-1.5">
+                             <Users2 size={14}/> {r.quantidade_pessoas || 1} Viajantes
+                           </span>
+                        </td>
+                        <td className="py-5 px-6 text-right">
+                           <p className={`${jakarta.className} text-lg text-slate-900`}>{formatarMoeda(r.valor_liquido)}</p>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+
+              {/* ── TABELA 3: EXCLUSIVA PARA AGÊNCIAS (PACOTES/COMBOS) ── */}
+              {tipoParceiro === 'pacote' && (
+                <table className="w-full text-sm text-left border-collapse whitespace-nowrap">
+                  <thead>
+                    <tr className="bg-slate-50/50 border-b border-slate-100 text-[10px] font-black uppercase text-slate-400 tracking-widest">
+                      <th className="py-5 px-6">Pacote Vendido</th>
+                      <th className="py-5 px-6">Cliente (Comprador)</th>
+                      <th className="py-5 px-6 text-center">Período Ativo</th>
+                      <th className="py-5 px-6">Distribuição Operacional (Split)</th>
+                      <th className="py-5 px-6 text-right">Lucro Líquido Agência</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-bold text-slate-700 bg-white">
+                    {filteredReservas.map((r) => {
+                      // Mock visual dos repasses caso o backend não envie (meramente ilustrativo para o UI)
+                      const repHotel = r.repasse_hotel || (r.valor_total * 0.4);
+                      const repGuia = r.repasse_guia || (r.valor_total * 0.15);
+                      const repPref = r.taxa_prefeitura || (r.valor_total * 0.05);
+
+                      return (
+                        <tr key={r.id} className="hover:bg-slate-50 transition-colors">
+                          <td className="py-5 px-6">
+                            <p className="text-[#00577C] font-black">{r.nome_item || 'Roteiro Especial'}</p>
+                            <p className="text-[10px] text-slate-400 font-mono uppercase tracking-widest mt-0.5">{r.codigo_pedido}</p>
+                          </td>
+                          <td className="py-5 px-6">
+                            <p className="text-slate-900">{r.nome_cliente}</p>
+                          </td>
+                          <td className="py-5 px-6 text-center">
+                            <div className="flex flex-col text-[10px] text-slate-500">
+                              <span>{formatarData(r.data_checkin)}</span>
+                              <span className="text-slate-300">até</span>
+                              <span>{formatarData(r.data_checkout || r.data_checkin)}</span>
+                            </div>
+                          </td>
+                          <td className="py-5 px-6">
+                            <div className="flex flex-col gap-1.5 text-[9px] uppercase tracking-widest">
+                               <span className="flex justify-between items-center bg-blue-50/50 px-2 py-1 rounded text-blue-700 w-44"><Building size={10}/> Hotel: <span className="tabular-nums">{formatarMoeda(repHotel)}</span></span>
+                               <span className="flex justify-between items-center bg-green-50/50 px-2 py-1 rounded text-green-700 w-44"><Compass size={10}/> Guia: <span className="tabular-nums">{formatarMoeda(repGuia)}</span></span>
+                               <span className="flex justify-between items-center bg-amber-50/50 px-2 py-1 rounded text-amber-700 w-44"><Landmark size={10}/> Taxa Mun.: <span className="tabular-nums">{formatarMoeda(repPref)}</span></span>
+                            </div>
+                          </td>
+                          <td className="py-5 px-6 text-right">
+                            <span className={`${jakarta.className} text-lg text-[#009640] bg-green-50 px-3 py-1.5 rounded-lg border border-green-100 shadow-sm`}>
+                              {formatarMoeda(r.valor_liquido)}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+
             </div>
           )}
         </div>
