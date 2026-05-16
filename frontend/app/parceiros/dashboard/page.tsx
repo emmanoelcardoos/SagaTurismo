@@ -14,20 +14,6 @@ import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['600', '700', '800'] });
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
 
-// ── TABELA DE TAXAS DA PREFEITURA ──
-// Mantemos isto espelhado com a base de dados do Supabase
-const TAXAS_SERVICOS = {
-  hotel: 0.10,   // 10%
-  passeio: 0.05, // 5%
-  pacote: 0.02   // 2%
-};
-
-// Função auxiliar para calcular o valor líquido
-const calcularValorLiquido = (valorTotal: number, tipoItem: string) => {
-  const taxa = TAXAS_SERVICOS[tipoItem as keyof typeof TAXAS_SERVICOS] || 0;
-  return valorTotal * (1 - taxa);
-};
-
 // ── TIPAGENS DO DASHBOARD ──
 type Metricas = {
   faturamento: number;
@@ -46,6 +32,7 @@ type Reserva = {
   quantidade_quartos?: number;
   quantidade_pessoas?: number;
   valor_total: number;
+  valor_liquido: number; // ◄── Injetado pelo backend dinamicamente
   status: string;
 };
 
@@ -73,7 +60,7 @@ export default function DashboardParceiroPage() {
     }
   }, [router]);
 
-  // ── CONSUMO DA API E CÁLCULO INTELIGENTE ──
+  // ── CONSUMO DA API E MAPEAMENTO SEGURO ──
   useEffect(() => {
     if (!parceiroId) return;
 
@@ -99,20 +86,15 @@ export default function DashboardParceiroPage() {
 
         setReservas(listaReservas);
 
-        // 2. CÁLCULO INTELIGENTE DO VALOR LÍQUIDO
-        // Iteramos pelas reservas e somamos apenas o que o parceiro vai realmente receber
-        const faturamentoLiquido = listaReservas.reduce((acc, r) => {
-          const valorBruto = Number(r.valor_total) || 0;
-          return acc + calcularValorLiquido(valorBruto, r.tipo_item);
-        }, 0);
-        
+        // 2. CÁLCULO DE BACKUP INTEGRAVEL (FALLBACK LÍQUIDO)
+        const faturamentoLiquidoCalculado = listaReservas.reduce((acc, r) => acc + (Number(r.valor_liquido) || 0), 0);
         const totalVendasCalculadas = listaReservas.length;
         
         setMetricas({
-          // Ignoramos o faturamento bruto da API e forçamos o faturamento líquido calculado
-          faturamento: faturamentoLiquido,
-          total_vendas: dataMetricas?.total_vendas || totalVendasCalculadas,
-          clientes_a_chegar: dataMetricas?.clientes_a_chegar || totalVendasCalculadas, 
+          // Mapeia diretamente as propriedades calculadas na base de dados pelo backend
+          faturamento: dataMetricas?.metricas?.faturamento_total ?? faturamentoLiquidoCalculado,
+          total_vendas: dataMetricas?.metricas?.total_vendas ?? totalVendasCalculadas,
+          clientes_a_chegar: dataMetricas?.metricas?.clientes_a_chegar ?? totalVendasCalculadas, 
         });
 
       } catch (error) {
@@ -178,7 +160,7 @@ export default function DashboardParceiroPage() {
               </div>
               <div>
                 <h1 className={`${jakarta.className} font-black text-slate-900 text-base md:text-xl leading-none tracking-tight truncate max-w-[150px] sm:max-w-[200px] md:max-w-none`}>{nomeNegocio}</h1>
-                <p className="text-[9px] md:text-[10px] font-black uppercase text-[#009640] tracking-[0.2em] mt-1">Portal Oficial do Parceiro</p>
+                <p className="text-[9px] md:text-[10px] font-black uppercase text-[#009640] tracking-[0.2em] mt-1">Portal Oficial do Partner</p>
               </div>
             </div>
           </div>
@@ -188,7 +170,6 @@ export default function DashboardParceiroPage() {
               <Home size={14} /> Ver Portal
             </Link>
 
-            {/* NOVO BOTÃO AMARELO DE EDIÇÃO */}
             <Link 
               href="/parceiros/dashboard/disponibilidade"
               className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#00577C] bg-[#F9C400] hover:bg-[#ffd633] px-3 md:px-5 py-2.5 rounded-full transition-all shadow-md active:scale-95"
@@ -283,10 +264,9 @@ export default function DashboardParceiroPage() {
         <div className="bg-white rounded-[1.5rem] md:rounded-[2.5rem] border border-slate-200 shadow-xl overflow-hidden">
           
           <div className="p-5 md:p-8 border-b border-slate-100 flex flex-col xl:flex-row xl:items-center justify-between gap-5 bg-slate-50/50">
-            {/* Título */}
             <div className="flex items-center gap-3 md:gap-4">
                <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-white border border-slate-200 flex items-center justify-center shadow-sm shrink-0">
-                 <ClipboardList className="text-[#00577C]" size={20} className="md:w-6 md:h-6" />
+                 <ClipboardList className="text-[#00577C]" size={20} />
                </div>
                <div>
                  <h2 className={`${jakarta.className} text-lg md:text-2xl font-black text-slate-900`}>Gestão de Clientes</h2>
@@ -294,7 +274,6 @@ export default function DashboardParceiroPage() {
                </div>
             </div>
 
-            {/* Barra de Pesquisa */}
             {reservas.length > 0 && (
               <div className="flex flex-col sm:flex-row items-center gap-3 md:gap-4 w-full xl:w-auto">
                 <div className="relative w-full sm:w-80">
@@ -314,7 +293,6 @@ export default function DashboardParceiroPage() {
             )}
           </div>
 
-          {/* ESTADO VAZIO: Nenhuma Reserva na API */}
           {reservas.length === 0 ? (
             <div className="py-24 md:py-32 px-5 text-center flex flex-col items-center justify-center bg-white">
                <div className="w-16 h-16 md:w-20 md:h-20 bg-slate-50 rounded-full flex items-center justify-center mb-4 md:mb-6">
@@ -324,7 +302,6 @@ export default function DashboardParceiroPage() {
                <p className="text-xs md:text-sm text-slate-500 max-w-md">As reservas efetuadas pelos turistas aparecerão aqui automaticamente após a confirmação do pagamento.</p>
             </div>
           ) : filteredReservas.length === 0 ? (
-            /* ESTADO VAZIO: Pesquisa sem resultados */
             <div className="py-20 md:py-24 px-5 text-center flex flex-col items-center justify-center bg-white">
                <div className="w-14 h-14 md:w-16 md:h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
                  <Search size={24} className="text-slate-300 md:w-7 md:h-7" />
@@ -334,7 +311,6 @@ export default function DashboardParceiroPage() {
                <button onClick={() => setSearchTerm('')} className="mt-4 md:mt-6 text-xs md:text-sm font-bold text-[#00577C] hover:underline">Limpar pesquisa</button>
             </div>
           ) : (
-            /* TABELA DE DADOS */
             <div className="overflow-x-auto">
               <table className="w-full text-xs md:text-sm text-left border-collapse whitespace-nowrap">
                 <thead>
@@ -359,7 +335,7 @@ export default function DashboardParceiroPage() {
                         <span className={`inline-flex items-center gap-1.5 text-[9px] md:text-[10px] font-black uppercase tracking-widest px-2.5 py-1 md:px-3 md:py-1.5 rounded-lg border ${
                           reserva.tipo_item === 'hotel' ? 'bg-blue-50 border-blue-100 text-blue-700' : 'bg-green-50 border-green-100 text-green-700'
                         }`}>
-                          {reserva.tipo_item === 'hotel' ? <Bed size={12} className="md:w-3.5 md:h-3.5"/> : <Compass size={12} className="md:w-3.5 md:h-3.5"/>}
+                          {reserva.tipo_item === 'hotel' ? <Bed size={12} /> : <Compass size={12} />}
                           {reserva.tipo_item}
                         </span>
                       </td>
@@ -371,7 +347,7 @@ export default function DashboardParceiroPage() {
                            </div>
                         ) : (
                            <span className="text-slate-800 text-[10px] md:text-xs flex items-center gap-1.5 md:gap-2 bg-slate-50 px-2.5 py-1 md:px-3 md:py-1.5 rounded-md border border-slate-200 w-fit">
-                             <Calendar size={12} className="md:w-3.5 md:h-3.5 text-slate-400"/> {formatarData(reserva.data_checkin)}
+                             <Calendar size={12} className="text-slate-400"/> {formatarData(reserva.data_checkin)}
                            </span>
                         )}
                       </td>
@@ -385,9 +361,9 @@ export default function DashboardParceiroPage() {
                         )}
                       </td>
                       <td className="py-4 md:py-5 px-5 md:px-8 text-right">
-                         {/* AQUI DESENHAMOS O VALOR LÍQUIDO NA TABELA */}
+                         {/* LÊ DIRETAMENTE O VALOR JÁ CALCULADO PELO BACKEND */}
                          <span className="text-[#009640] font-black tabular-nums bg-green-50 border border-green-100 px-3 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl group-hover:bg-white transition-colors">
-                           {formatarMoeda(calcularValorLiquido(reserva.valor_total, reserva.tipo_item))}
+                           {formatarMoeda(reserva.valor_liquido)}
                          </span>
                       </td>
                     </tr>
