@@ -29,7 +29,7 @@ class EnderecoFaturacao(BaseModel):
     postal_code: str
 
 class PedidoPagamento(BaseModel):
-    tipo_item: str # 'carteira', 'hotel' ou 'pacote'
+    tipo_item: str # 'carteira', 'hotel', 'pacote' ou 'passeio'
     quantidade: Optional[int] = 1 
 
     # IDs dinâmicos
@@ -75,12 +75,23 @@ async def processar_pagamento(pedido: PedidoPagamento):
         numero_tel = telefone_limpo[2:]
 
         # ==========================================
-        # FASE 1: LÓGICA DE PRECIFICAÇÃO E REPASSES (DINÂMICO)
+        # BUSCA DA TAXA DINÂMICA DA PREFEITURA
+        # ==========================================
+        taxa_prefeitura_pct = 0.0
+        res_taxa = supabase.table("taxas_servicos").select("porcentagem").eq("tipo_servico", pedido.tipo_item).execute()
+        if res_taxa.data:
+            taxa_prefeitura_pct = float(res_taxa.data[0]["porcentagem"])
+
+        fator_liquido = 1.0 - (taxa_prefeitura_pct / 100.0)
+
+        # ==========================================
+        # FASE 1: LÓGICA DE PRECIFICAÇÃO E REPASSES
         # ==========================================
         
         if pedido.tipo_item == "carteira":
             valor_total = 10.00 * pedido.quantidade
             nome_item_checkout = f"Taxa de Emissão - Carteira Digital ({pedido.quantidade}x)"
+            # Carteira não tem split (100% prefeitura)
 
         elif pedido.tipo_item == "hotel":
             res_hotel = supabase.table("hoteis").select("*").eq("id", pedido.hotel_id).single().execute()
@@ -89,15 +100,17 @@ async def processar_pagamento(pedido: PedidoPagamento):
             d2 = datetime.strptime(pedido.data_checkout, "%Y-%m-%d")
             noites = (d2 - d1).days
             preco = float(hotel_data["quarto_luxo_preco"] if pedido.tipo_quarto == 'luxo' else hotel_data["quarto_standard_preco"])
+            
             valor_total = preco * noites * pedido.quantidade
             nome_item_checkout = f"Hospedagem - {hotel_data['nome']}"
             item_id_db = pedido.hotel_id
             
-            # Repasse Automático para o Hotel
+            # Repasse Automático (Valor Total - Taxa da Prefeitura)
             if hotel_data.get("pagbank_recebedor_id"):
+                valor_parceiro_liquido = valor_total * fator_liquido
                 splits_array.append({
                     "method": "FIXED",
-                    "receivers": [{"account": {"id": hotel_data["pagbank_recebedor_id"]}, "amount": {"value": int(valor_total * 100)}}]
+                    "receivers": [{"account": {"id": hotel_data["pagbank_recebedor_id"]}, "amount": {"value": int(valor_parceiro_liquido * 100)}}]
                 })
 
         elif pedido.tipo_item == "pacote":
@@ -112,8 +125,6 @@ async def processar_pagamento(pedido: PedidoPagamento):
             if pedido.pacote_id and str(pedido.pacote_id).lower() not in ["none", "null"]:
                 item_id_db = pedido.pacote_id
 
-            # --- LÓGICA DE SPLIT DINÂMICO PARA PACOTES ---
-
             # 1. Repasse para o Hotel (se incluído no pacote)
             if pedido.hotel_id:
                 res_h = supabase.table("hoteis").select("pagbank_recebedor_id, quarto_standard_preco, quarto_luxo_preco").eq("id", pedido.hotel_id).single().execute()
@@ -124,9 +135,10 @@ async def processar_pagamento(pedido: PedidoPagamento):
                     d2 = datetime.strptime(pedido.data_checkout, "%Y-%m-%d")
                     noites = (d2 - d1).days
                     v_hotel = p_diaria * noites * pedido.quantidade
+                    v_hotel_liquido = v_hotel * fator_liquido
                     splits_array.append({
                         "method": "FIXED",
-                        "receivers": [{"account": {"id": h_info["pagbank_recebedor_id"]}, "amount": {"value": int(v_hotel * 100)}}]
+                        "receivers": [{"account": {"id": h_info["pagbank_recebedor_id"]}, "amount": {"value": int(v_hotel_liquido * 100)}}]
                     })
 
             # 2. Repasse para o Guia (se incluído no pacote)
@@ -134,12 +146,13 @@ async def processar_pagamento(pedido: PedidoPagamento):
                 res_g = supabase.table("guias").select("pagbank_recebedor_id, preco_diaria").eq("id", pedido.guia_id).single().execute()
                 if res_g.data and res_g.data.get("pagbank_recebedor_id"):
                     v_guia = float(res_g.data["preco_diaria"])
+                    v_guia_liquido = v_guia * fator_liquido
                     splits_array.append({
                         "method": "FIXED",
-                        "receivers": [{"account": {"id": res_g.data["pagbank_recebedor_id"]}, "amount": {"value": int(v_guia * 100)}}]
+                        "receivers": [{"account": {"id": res_g.data["pagbank_recebedor_id"]}, "amount": {"value": int(v_guia_liquido * 100)}}]
                     })
 
-            # 3. Repasse para as Atrações/Parques (via pacote_itens)
+            # 3. Repasse para as Atrações/Parques
             res_itens = supabase.table("pacote_itens").select("atracao_id").eq("pacote_id", pedido.pacote_id).execute()
             for item in res_itens.data:
                 atr_id = item.get("atracao_id")
@@ -147,9 +160,10 @@ async def processar_pagamento(pedido: PedidoPagamento):
                     res_atr = supabase.table("atracoes").select("pagbank_recebedor_id, preco_entrada").eq("id", atr_id).single().execute()
                     if res_atr.data and res_atr.data.get("pagbank_recebedor_id"):
                         v_atr = float(res_atr.data["preco_entrada"])
+                        v_atr_liquido = v_atr * fator_liquido
                         splits_array.append({
                             "method": "FIXED",
-                            "receivers": [{"account": {"id": res_atr.data["pagbank_recebedor_id"]}, "amount": {"value": int(v_atr * 100)}}]
+                            "receivers": [{"account": {"id": res_atr.data["pagbank_recebedor_id"]}, "amount": {"value": int(v_atr_liquido * 100)}}]
                         })
 
         # ==========================================
