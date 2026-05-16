@@ -855,6 +855,7 @@ export default function HomePage() {
             <Link href="/aldeias" onClick={() => setIsMobileMenuOpen(false)} className="font-bold text-slate-700 text-lg">Aldeias</Link>
             <Link href="/hoteis" onClick={() => setIsMobileMenuOpen(false)} className="font-bold text-slate-700 text-lg">Hospedagem</Link>
             <Link href="/cadastro" onClick={() => setIsMobileMenuOpen(false)} className="bg-[#F9C400] text-[#00577C] font-black px-4 py-3.5 rounded-xl text-center mt-2 uppercase tracking-widest text-sm shadow-md">Cartão Residente</Link>
+            <Link href="/parceiros" onClick={() => setIsMobileMenuOpen(false)} className="bg-[#F9C400] text-[#00577C] font-black px-4 py-3.5 rounded-xl text-center mt-2 uppercase tracking-widest text-sm shadow-md">Torne-se um parceiro</Link>
           </div>
         )}
       </header>
