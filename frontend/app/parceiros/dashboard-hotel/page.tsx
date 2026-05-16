@@ -144,7 +144,7 @@ export default function DashboardHotelPage() {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <Link href="/parceiros/dashboard/disponibilidade" className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#00577C] bg-[#F9C400] hover:bg-[#ffd633] px-5 py-2.5 rounded-full shadow-md"><Calendar size={14} /> <span className="hidden sm:inline">Gerir Quartos</span></Link>
+            <Link href="/parceiros/dashboard-hotel/disponibilidade-hotel" className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#00577C] bg-[#F9C400] hover:bg-[#ffd633] px-5 py-2.5 rounded-full shadow-md"><Calendar size={14} /> <span className="hidden sm:inline">Gerir Quartos</span></Link>
             <button onClick={handleLogout} className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white bg-slate-900 hover:bg-black px-5 py-2.5 rounded-full shadow-md"><LogOut size={14} /> Sair</button>
           </div>
         </div>
