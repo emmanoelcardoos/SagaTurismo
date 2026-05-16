@@ -268,7 +268,7 @@ export default function DisponibilidadePage() {
           <Link href="/" className="relative h-10 w-28 md:w-36 shrink-0 transition-transform active:scale-95">
             <Image src="/logop.png" alt="Prefeitura" fill priority className="object-contain object-left" />
           </Link>
-          <Link href="/parceiros/dashboard" className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#00577C] bg-slate-50 hover:bg-slate-100 border border-slate-200 px-4 py-2.5 rounded-full shadow-sm">
+          <Link href="/parceiros/dashboard-hotel" className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#00577C] bg-slate-50 hover:bg-slate-100 border border-slate-200 px-4 py-2.5 rounded-full shadow-sm">
             <ArrowLeft size={14} /> <span>Voltar ao Painel</span>
           </Link>
         </div>
