@@ -231,20 +231,53 @@ function CheckoutHotelContent() {
       if (metodoPagamento === 'cartao') {
         if (!window.PagSeguro) throw new Error('Checkout SDK do PagBank não foi inicializado.');
         
-        // ── SOLUÇÃO DO OPERADOR 'NEW' INSTANCIANDO A CLASSE DO SDK ──
-        const pagseguroInstance = new window.PagSeguro({
-          publicKey: process.env.NEXT_PUBLIC_PAGBANK_PUBLIC_KEY
-        });
-
-        const result = pagseguroInstance.encryptCard({
+        let result: any = null;
+        const key = process.env.NEXT_PUBLIC_PAGBANK_PUBLIC_KEY;
+        const cardData = {
           holder: nomeCartao, 
           number: numeroCartao.replace(/\D/g,''),
           expMonth: mesCartao, 
           expYear: anoCartao, 
           securityCode: cvvCartao
-        });
+        };
 
-        if (result.hasErrors) throw new Error('Cartão recusado. Verifique os dados introduzidos.');
+        // ── TENTATIVA 1: MÉTODO ESTÁTICO DIRETO (Padrão oficial em navegadores modernos) ──
+        try {
+          if (typeof window.PagSeguro.encryptCard === 'function') {
+            result = window.PagSeguro.encryptCard({
+              publicKey: key,
+              ...cardData
+            });
+          }
+        } catch (err1) {
+          console.warn("Tentativa 1 (Estático) ignorada:", err1);
+        }
+
+        // ── TENTATIVA 2: CLASSE COM OPERADOR 'NEW' (Caso o ecossistema trate como classe) ──
+        if (!result || result.hasErrors) {
+          try {
+            const pagseguroInstance = new window.PagSeguro({ publicKey: key });
+            result = pagseguroInstance.encryptCard(cardData);
+          } catch (err2) {
+            console.warn("Tentativa 2 (Instância Class) ignorada:", err2);
+          }
+        }
+
+        // ── TENTATIVA 3: FUNÇÃO DE FÁBRICA SEM 'NEW' (Formatos de compatibilidade legados) ──
+        if (!result || result.hasErrors) {
+          try {
+            const pagseguroInstance = window.PagSeguro({ publicKey: key });
+            result = pagseguroInstance.encryptCard(cardData);
+          } catch (err3) {
+            console.warn("Tentativa 3 (Fábrica) ignorada:", err3);
+          }
+        }
+
+        // Se todas as abordagens falharem ou o PagBank retornar erro interno de dados
+        if (!result || result.hasErrors) {
+          throw new Error('Falha na validação do cartão de crédito. Verifique os números digitados.');
+        }
+
         payload.metodo_pagamento = 'cartao';
         payload.encrypted_card = result.encryptedCard;
         payload.parcelas = parcelas;
