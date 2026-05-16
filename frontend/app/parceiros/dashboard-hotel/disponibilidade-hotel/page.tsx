@@ -8,7 +8,7 @@ import {
   Loader2, ArrowLeft, Calendar as CalendarIcon, 
   CheckCircle2, AlertTriangle, Save, ToggleLeft, 
   ToggleRight, Info, Bed, Compass, ChevronLeft, ChevronRight,
-  Plus, Award, Percent
+  Plus, Award, Percent, Trash2
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -18,7 +18,7 @@ const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] }
 
 type HotelOpcao = { id: string; nome: string; };
 type GuiaOpcao = { id: string; nome: string; specialty: string; };
-type TarifaCalendario = { data_inicio: string; data_fim: string; preco: number; tipo_quarto: string; };
+type TarifaCalendario = { id: string; data_inicio: string; data_fim: string; preco: number; tipo_quarto: string; };
 
 export default function DisponibilidadePage() {
   const router = useRouter();
@@ -38,8 +38,8 @@ export default function DisponibilidadePage() {
   const [estaDisponivel, setEstaDisponivel] = useState(true);
   const [dataInicio, setDataInicio] = useState<Date | null>(null);
   const [dataFim, setDataFim] = useState<Date | null>(null);
-  const [porcentagemAcompanhante, setPorcentagemAcompanhante] = useState(''); // ◄── NOVO: Campo de taxa %
-  const [tarifasCarregadas, setTarifasCarregadas] = useState<TarifaCalendario[]>([]); // ◄── NOVO: Tarifas dinâmicas
+  const [porcentagemAcompanhante, setPorcentagemAcompanhante] = useState(''); 
+  const [tarifasCarregadas, setTarifasCarregadas] = useState<TarifaCalendario[]>([]); 
 
   // ── ESTADOS EXCLUSIVOS: PERFIL GUIA (PASSEIOS) ──
   const [tituloPasseio, setTituloPasseio] = useState('');
@@ -49,7 +49,7 @@ export default function DisponibilidadePage() {
   const [vagasPasseio, setVagasPasseio] = useState('15');
   const [dataPasseio, setDataPasseio] = useState<Date | null>(null);
 
-  // ── ESTADOS EXCLUSIVOS: PERFIL AGÊNCIA (PACOTES) ──
+  // ── ESTADOS EXCLUSIVOS: PERFIL AGÊNCIA ──
   const [hoteisDb, setHoteisDb] = useState<HotelOpcao[]>([]);
   const [guiasDb, setGuiasDb] = useState<GuiaOpcao[]>([]);
   const [tituloPacote, setTituloPacote] = useState('');
@@ -77,13 +77,12 @@ export default function DisponibilidadePage() {
     }
   }, [router]);
 
-  // 2. BUSCAR DADOS DE TARIFAS E CONFIGURAÇÕES DO HOTEL (SUPABASE)
+  // 2. BUSCAR CONFIGURAÇÕES E MAPA TARIFÁRIO DO SUPABASE (Com ID de segurança)
   useEffect(() => {
     if (!parceiroId || tipoParceiro !== 'hotel') return;
 
     async function carregarDadosHotel() {
       try {
-        // Puxa a porcentagem atual configurada para o Hotel
         const { data: hotelData } = await supabase
           .from('hoteis')
           .select('porcentagem_acompanhante')
@@ -94,21 +93,20 @@ export default function DisponibilidadePage() {
           setPorcentagemAcompanhante(hotelData.porcentagem_acompanhante.toString());
         }
 
-        // Puxa o histórico de preços por período para renderizar no calendário
         const { data: dadosTarifas } = await supabase
           .from('disponibilidade_hoteis')
-          .select('data_inicio, data_fim, preco, tipo_quarto')
+          .select('id, data_inicio, data_fim, preco, tipo_quarto')
           .eq('hotel_id', parceiroId);
 
         if (dadosTarifas) setTarifasCarregadas(dadosTarifas);
       } catch (err) {
-        console.error("Erro ao carregar mapeamento tarifário:", err);
+        console.error("Erro ao mapear tarifas:", err);
       }
     }
     carregarDadosHotel();
   }, [parceiroId, tipoParceiro, isSubmitting, tipoQuarto]);
 
-  // CARREGAR DEPENDÊNCIAS DO MONTADOR DE PACOTES
+  // CARREGAR CONFIGURAÇÕES DO MONTADOR DE PACOTES
   useEffect(() => {
     if (tipoParceiro !== 'pacote') return;
 
@@ -122,7 +120,7 @@ export default function DisponibilidadePage() {
         if (resHoteis.data) setHoteisDb(resHoteis.data);
         if (resGuias.data) setGuiasDb(resGuias.data.map(g => ({ id: g.id, nome: g.nome, specialty: g.specialty || 'Geral' })));
       } catch (err) {
-        console.error("Erro ao alimentar selects do montador de pacotes:", err);
+        console.error("Erro selects pacotes:", err);
       }
     }
     carregarDadosDeSuporte();
@@ -145,7 +143,27 @@ export default function DisponibilidadePage() {
     }
   };
 
-  // 3. SUBMISSÃO DE DADOS
+  // ── LIMPAR/APAGAR TARIFA DIRETO NO SUPABASE ──
+  const handleExcluirTarifa = async (idTarifa: string) => {
+    if (!confirm("Deseja mesmo apagar este período customizado? O valor dos dias correspondentes voltará ao preço padrão.")) return;
+    
+    try {
+      const { error } = await supabase
+        .from('disponibilidade_hoteis')
+        .delete()
+        .eq('id', idTarifa);
+
+      if (error) throw error;
+
+      setStatusMensagem({ tipo: 'sucesso', texto: 'Período deletado com sucesso. O calendário foi reajustado.' });
+      setTarifasCarregadas(prev => prev.filter(t => t.id !== idTarifa));
+    } catch (err) {
+      console.error(err);
+      setStatusMensagem({ tipo: 'erro', texto: 'Falha ao tentar remover a tarifa da base de dados.' });
+    }
+  };
+
+  // 3. SUBMISSÃO DE DADOS VIA API
   const handleSalvarDados = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!parceiroId) return;
@@ -163,17 +181,15 @@ export default function DisponibilidadePage() {
         return;
       }
 
-      // 1. Atualiza a porcentagem de acompanhante estrutural na tabela hoteis via Supabase Client
       try {
         await supabase
           .from('hoteis')
           .update({ porcentagem_acompanhante: parseFloat(porcentagemAcompanhante.replace(',', '.')) || 0 })
           .eq('id', parceiroId);
       } catch (err) {
-        console.error("Erro ao atualizar metadados do hotel:", err);
+        console.error("Erro update hoteleiro:", err);
       }
 
-      // 2. Prepara o envio do período tarifário para a API da Railway
       endpoint = `https://sagaturismo-production.up.railway.app/api/v1/parceiros/${parceiroId}/disponibilidade`;
       bodyPayload = {
         tipo_quarto: tipoQuarto,
@@ -223,17 +239,13 @@ export default function DisponibilidadePage() {
         body: JSON.stringify(bodyPayload)
       });
 
-      const data = await response.json();
-
       if (response.ok) {
-        setStatusMensagem({
-          tipo: 'sucesso',
-          texto: `Excelente! Alterações gravadas com sucesso no ecossistema oficial.`
-        });
+        setStatusMensagem({ tipo: 'sucesso', texto: `Excelente! Alterações gravadas com sucesso no ecossistema oficial.` });
         setNovoPreco('');
         setTituloPasseio(''); setRotaPasseio(''); setValorPasseio(''); setTituloPacote(''); setValorPacote('');
         setDataInicio(null); setDataFim(null); setDataPasseio(null); setDataInicioPacote(null); setDataFimPacote(null);
       } else {
+        const data = await response.json();
         setStatusMensagem({ tipo: 'erro', texto: data.detail || 'Falha ao sincronizar dados.' });
       }
     } catch (error) {
@@ -250,14 +262,18 @@ export default function DisponibilidadePage() {
   const hoje = new Date();
   hoje.setHours(0,0,0,0);
 
-  // Função auxiliar para encontrar o preço ativo de um dia no calendário do hotel
+  // ── CORREÇÃO DO CONFLITO DE SOBREPOSIÇÃO ──
+  // Fazemos um .reverse() no array temporário para que a regra mais RECENTE inserida tenha prioridade de exibição
   const obterPrecoDoDia = (dataDia: Date) => {
     const dataStr = formatarDataIso(dataDia);
-    const correspondencia = tarifasCarregadas.find(t => {
+    const correspondencia = [...tarifasCarregadas].reverse().find(t => {
       return dataStr >= t.data_inicio && dataStr <= t.data_fim && t.tipo_quarto === tipoQuarto;
     });
     return correspondencia ? correspondencia.preco : null;
   };
+
+  // Filtragem das tarifas ativas para listar no histórico de exclusão
+  const tarifasDoQuartoAtual = tarifasCarregadas.filter(t => t.tipo_quarto === tipoQuarto);
 
   return (
     <div className={`${inter.className} min-h-screen bg-[#F1F5F9] text-slate-900 flex flex-col text-left overflow-x-hidden`}>
@@ -291,7 +307,7 @@ export default function DisponibilidadePage() {
                      {tipoParceiro === 'pacote' && 'Montador de Combos & Pacotes'}
                    </h2>
                    <p className="text-xs font-bold text-slate-400 mt-1 leading-relaxed">
-                     {tipoParceiro === 'hotel' && 'Ajuste preços, diárias e bloqueie quartos em massa direto no Supabase.'}
+                     {tipoParceiro === 'hotel' && 'Ajuste preços, diárias e gerencie a taxa de ocupação direto no Supabase.'}
                      {tipoParceiro === 'guia' && 'Lance novos roteiros turísticos ecológicos e defina o número limite de vagas.'}
                      {tipoParceiro === 'pacote' && 'Combine hotéis e guias locais para comercializar pacotes unificados de turismo.'}
                    </p>
@@ -312,7 +328,7 @@ export default function DisponibilidadePage() {
                 {/* ── VISÃO 1: FORMULÁRIO EXCLUSIVO DE HOTÉIS ── */}
                 {tipoParceiro === 'hotel' && (
                   <>
-                    {/* NOVO: Ajuste de Taxa Adicional por Acompanhante */}
+                    {/* Ajuste de Taxa Adicional por Acompanhante */}
                     <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl p-5 shadow-sm">
                        <label className="text-[10px] font-black uppercase tracking-widest text-[#00577C] block mb-2">Taxa de Hóspede Acompanhante (% por Quarto)</label>
                        <p className="text-[11px] text-slate-400 font-medium mb-3">Defina a porcentagem extra cobrada por cada pessoa adicional instalada no mesmo quarto.</p>
@@ -328,13 +344,13 @@ export default function DisponibilidadePage() {
                           {['standard', 'plus'].map(t => (
                             <button key={t} type="button" onClick={() => setTipoQuarto(t)} className={`p-4 rounded-xl border-2 font-bold text-xs uppercase flex flex-col items-center justify-center gap-2 transition-all ${tipoQuarto === t ? 'border-[#00577C] bg-blue-50/50 text-[#00577C]' : 'border-slate-100 bg-slate-50 text-slate-500'}`}>
                                {t === 'standard' ? <Bed size={20} /> : <Award size={20} />}
-                               <span className="capitalize">{t}</span>
+                               <span className="normalize capitalize">{t}</span>
                             </button>
                           ))}
                        </div>
                     </div>
 
-                    {/* CALENDÁRIO HOTEL COM PREÇOS EMBAIXO DE CADA DIA */}
+                    {/* CALENDÁRIO HOTEL COM CONFLITO RESOLVIDO */}
                     <div>
                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Selecione o Período Tarifário no Calendário</label>
                        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 md:p-6 shadow-inner">
@@ -360,7 +376,6 @@ export default function DisponibilidadePage() {
                                 return (
                                   <button type="button" key={i} disabled={passes} onClick={() => handleDateClickCommon(dDia, dataInicio, dataFim, setDataInicio, setDataFim)} className={`w-full aspect-square flex flex-col items-center justify-center text-xs font-bold transition-all relative py-1 rounded-lg ${passes ? 'text-slate-300 pointer-events-none' : isI || isF ? 'bg-[#00577C] text-white shadow-md' : isM ? 'bg-[#00577C]/10 text-[#00577C] rounded-none' : 'text-slate-800 hover:bg-slate-200'}`}>
                                      <span>{i + 1}</span>
-                                     {/* ◄── NOVO: Valor renderizado embaixo de cada dia do mês ── */}
                                      {!passes && precoExistente && (
                                        <span className={`text-[8px] font-black block mt-0.5 tracking-tighter ${isI || isF ? 'text-amber-300' : 'text-[#009640]'}`}>
                                          R${Math.round(precoExistente)}
@@ -380,7 +395,7 @@ export default function DisponibilidadePage() {
                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Valor da Diária para este intervalo</label>
                        <div className="relative">
                           <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-black text-sm">R$</div>
-                          <input type="text" required placeholder="0,00" value={novoPreco} onChange={e => setNovoPreco(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-3.5 pl-11 pr-4 text-sm font-black text-slate-800 outline-none focus:border-[#00577C] focus:bg-white" />
+                          <input type="text" required placeholder="0,00" value={novoPreco} onChange={e => setNovoPreco(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-3.5 pl-11 pr-4 text-sm font-black text-slate-800 outline-none focus:border-[#00577C]" />
                        </div>
                     </div>
 
@@ -389,6 +404,28 @@ export default function DisponibilidadePage() {
                        <button type="button" onClick={() => setEstaDisponivel(!estaDisponivel)} className={`transition-colors ${estaDisponivel ? 'text-[#009640]' : 'text-slate-300'}`}>
                           {estaDisponivel ? <ToggleRight size={44} /> : <ToggleLeft size={44} />}
                        </button>
+                    </div>
+
+                    {/* ── NOVO: HISTÓRICO DE EXCLUSÃO DE TARIFAS (NÍVEL ENTERPRISE) ── */}
+                    <div className="pt-4 border-t border-slate-100">
+                       <label className="text-[10px] font-black uppercase tracking-widest text-red-500 block mb-3">Limpar / Deletar Tarifas Customizadas</label>
+                       {tarifasDoQuartoAtual.length === 0 ? (
+                          <p className="text-xs font-medium text-slate-400 bg-slate-50 p-4 rounded-xl text-center">Nenhum período customizado cadastrado para esta categoria.</p>
+                       ) : (
+                          <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                             {tarifasDoQuartoAtual.map((t) => (
+                                <div key={t.id} className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex items-center justify-between text-xs font-bold transition-all hover:bg-slate-100/70">
+                                   <div className="text-slate-600">
+                                      <span className="text-slate-900 capitalize font-black">{t.tipo_quarto}</span>: {t.data_inicio.split('-').reverse().join('/')} até {t.data_fim.split('-').reverse().join('/')}
+                                      <span className="block text-[#009640] text-[11px] mt-0.5">Preço: R$ {Number(t.preco).toFixed(2)}</span>
+                                   </div>
+                                   <button type="button" onClick={() => handleExcluirTarifa(t.id)} className="p-2 text-slate-400 hover:text-red-600 bg-white border border-slate-200 rounded-xl shadow-sm transition-colors" title="Apagar este período">
+                                      <Trash2 size={15} />
+                                   </button>
+                                </div>
+                             ))}
+                          </div>
+                       )}
                     </div>
                   </>
                 )}
@@ -444,7 +481,7 @@ export default function DisponibilidadePage() {
                        <label className="text-[10px] font-black uppercase text-slate-400 block mb-2">Valor por Turista (R$)</label>
                        <div className="relative">
                           <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">R$</div>
-                          <input type="text" required placeholder="0,00" value={valorPasseio} onChange={e => setValorPasseio(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-3.5 pl-11 pr-4 text-sm font-black text-slate-800 focus:border-[#009640]" />
+                          <input type="text" required placeholder="0,00" value={valorPasseio} onChange={e => setValorPasseio(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-3.5 pl-11 pr-4 text-sm font-black text-slate-800 outline-none focus:border-[#009640]" />
                        </div>
                     </div>
                   </>
@@ -483,7 +520,7 @@ export default function DisponibilidadePage() {
                           <label className="text-[10px] font-black uppercase text-slate-400 block mb-2">2. Vincular Guia de Turismo Parceiro</label>
                           <select value={guiaSelecionadoId} onChange={e => setGuiaSelecionadoId(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-4 text-sm font-bold text-slate-800 cursor-pointer">
                              <option value="">Sem guia incluso no roteiro</option>
-                             {guiasDb.map(g => <option key={g.id} value={g.id}>{g.nome} ({g.especialidade})</option>)}
+                             {guiasDb.map(g => <option key={g.id} value={g.id}>{g.nome} ({g.specialty})</option>)}
                           </select>
                        </div>
                     </div>
