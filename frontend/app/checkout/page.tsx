@@ -473,8 +473,8 @@ function CheckoutPacoteContent() {
             )}
           </div>
 
-          {/* COLUNA DIREITA: RESUMO PROFISSIONAL */}
-          <aside className="lg:sticky lg:top-32 order-first lg:order-last">
+          {/* ── COLUNA DIREITA: RESUMO PROFISSIONAL (ESTÁTICO) ── */}
+          <aside className="order-first lg:order-last w-full">
             <SectionCard>
               <div className="h-2 w-full bg-gradient-to-r from-[#00577C] via-[#F9C400] to-[#009640]" />
               <div className="p-6 md:p-8 border-b border-slate-100 text-left bg-slate-50">
@@ -511,7 +511,7 @@ function CheckoutPacoteContent() {
                          <Ticket size={20} className="text-[#d9a000]"/>
                        </div>
                        <div className="flex-1 pt-1.5">
-                          <p className="text-sm font-black text-slate-800 leading-none">{atracoes.length} Atrações Inclusas</p>
+                          <p className="text-sm font-black text-slate-800 line-clamp-1">{atracoes.length} Atrações Inclusas</p>
                        </div>
                     </div>
                  )}
