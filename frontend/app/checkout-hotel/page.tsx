@@ -3,11 +3,11 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Script from 'next/script';
 import { 
   Loader2, MapPin, ShieldCheck, Bed, QrCode, CheckCircle2, 
   User, Mail, FileText, Copy, AlertCircle, 
-  CreditCard, Lock, ShieldAlert, Home, Clock, Check, ChevronRight, Wallet
+  CreditCard, Lock, ShieldAlert, Home, Clock, Check, ChevronRight,
+  Wallet
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -28,8 +28,15 @@ type Hotel = {
   quarto_luxo_nome: string; quarto_luxo_preco: any; 
 };
 
-// ── UTILITÁRIOS ──
-const formatarMoeda = (valor: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
+// ── UTILITÁRIOS SEGUROS (SEM USAR 'new' em funções de sistema para evitar conflitos) ──
+const parseValor = (valor: any): number => {
+  if (!valor) return 0;
+  const num = typeof valor === 'string' ? parseFloat(valor.replace(',', '.')) : valor;
+  return isNaN(num) ? 0 : num;
+};
+const formatarMoeda = (valor: number) => {
+  return (valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+};
 const mascaraCPF = (v: string) => v.replace(/\D/g, '').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})/, '$1-$2').slice(0, 14);
 const mascaraCartao = (v: string) => v.replace(/\D/g, '').replace(/(\d{4})(?=\d)/g, '$1 ').slice(0, 19);
 const mascaraTelefone = (v: string) => v.replace(/\D/g, '').replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d{4})/, '$1-$2').slice(0, 15);
@@ -42,13 +49,19 @@ const formatarData = (dataStr: string) => {
 };
 
 function SectionCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={`rounded-[2rem] border-2 border-slate-100 bg-white shadow-sm overflow-hidden ${className}`}>{children}</div>;
+  return (
+    <div className={`rounded-[2rem] border-2 border-slate-100 bg-white shadow-sm overflow-hidden ${className}`}>
+      {children}
+    </div>
+  );
 }
 
 function SectionHeader({ step, title, icon }: { step: number; title: string; icon: React.ReactNode }) {
   return (
     <div className="flex items-center gap-4 mb-8">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#0085FF] text-white text-sm font-black shadow-md">{step}</div>
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#0085FF] text-white text-sm font-black shadow-md">
+        {step}
+      </div>
       <div className="flex items-center gap-2">
         <span className="text-[#0085FF] bg-blue-50 p-2 rounded-xl hidden sm:block">{icon}</span>
         <h2 className={`${jakarta.className} text-xl md:text-2xl font-black text-slate-900 tracking-tight`}>{title}</h2>
@@ -132,6 +145,16 @@ function CheckoutHotelContent() {
   const [erroApi, setErroApi] = useState('');
   const [qrCodeData, setQrCodeData] = useState<{ link: string; texto: string; id_pedido: string } | null>(null);
 
+  // ── INJEÇÃO SILENCIOSA DO PAGBANK SDK ──
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !window.PagSeguro) {
+      const script = document.createElement('script');
+      script.src = "https://assets.pagseguro.com.br/checkout-sdk-js/rc/dist/browser/pagseguro.min.js";
+      script.async = true;
+      document.body.appendChild(script);
+    }
+  }, []);
+
   useEffect(() => {
     const handleScroll = () => {
       const cur = window.scrollY;
@@ -142,10 +165,13 @@ function CheckoutHotelContent() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
-  // Carregar dados base
+  // Carregamento de dados básicos do hotel
   useEffect(() => {
     async function carregarHotel() {
-      if (!hotelId) return;
+      if (!hotelId) {
+        setLoadingInitial(false);
+        return;
+      }
       const { data, error } = await supabase.from('hoteis').select('*').eq('id', hotelId).single();
       if (!error && data) setHotel(data as Hotel);
       setLoadingInitial(false);
@@ -153,7 +179,7 @@ function CheckoutHotelContent() {
     carregarHotel();
   }, [hotelId]);
 
-  // Consultar API Railway Dinâmica
+  // Consultar preços na API Railway
   useEffect(() => {
     if (!hotelId || !checkinData || !checkoutData || !quartoTipo) return;
 
@@ -169,44 +195,58 @@ function CheckoutHotelContent() {
           setValorTotalReserva(data.valor_total);
           setNumNoites(data.noites);
           setAcomodacaoDisponivel(data.disponivel);
-          if (!data.disponivel) setErroApi("Atenção: A acomodação escolhida esgotou nas datas selecionadas.");
+          if (!data.disponivel) {
+            setErroApi("Atenção: A acomodação escolhida esgotou nas datas selecionadas.");
+          }
         } else {
           setErroApi(data.detail || "Erro ao calcular preço dinâmico.");
         }
       } catch (err) {
-        console.error("Erro ao consultar API:", err);
+        console.error("Erro rede ao consultar API pública de preços:", err);
       } finally {
         setLoadingPreco(false);
       }
     }
+
     obterPrecoOficialAPI();
   }, [hotelId, quartoTipo, checkinData, checkoutData, quartosParam]);
 
   const handlePagamento = async (e: React.FormEvent) => {
     e.preventDefault();
     setErroApi('');
-    if (!acomodacaoDisponivel) { setErroApi('Quarto esgotado.'); return; }
+    if (!acomodacaoDisponivel) { setErroApi('Impossível prosseguir. Quarto esgotado.'); return; }
     if (cpf.length < 14) { setErroApi('CPF inválido.'); return; }
     setIsSubmitting(true);
 
     const payload: any = {
-      tipo_item: "hotel", hotel_id: hotelId, tipo_quarto: quartoTipo, 
-      data_checkin: checkinData, data_checkout: checkoutData, adultos: adultosParam, quantidade: quartosParam,
-      nome_cliente: nome, cpf_cliente: cpf.replace(/\D/g, ''), email_cliente: email, telefone_cliente: telefone.replace(/\D/g, ''), 
-      endereco_faturacao: { street: rua, number: numero, locality: bairro, city: cidade, region_code: estado.replace(/\s/g, ''), country: "BRA", postal_code: cep.replace(/\D/g, '') }
+      tipo_item: "hotel", 
+      hotel_id: hotelId, 
+      tipo_quarto: quartoTipo, 
+      data_checkin: checkinData, 
+      data_checkout: checkoutData,
+      adultos: adultosParam, 
+      quantidade: quartosParam,
+      nome_cliente: nome, 
+      cpf_cliente: cpf.replace(/\D/g, ''), 
+      email_cliente: email,
+      telefone_cliente: telefone.replace(/\D/g, ''), 
+      endereco_faturacao: {
+        street: rua, number: numero, locality: bairro, city: cidade, 
+        region_code: estado.replace(/\s/g, ''), country: "BRA", postal_code: cep.replace(/\D/g, '')
+      }
     };
 
     try {
       if (metodoPagamento === 'cartao') {
         if (!window.PagSeguro || typeof window.PagSeguro.encryptCard !== 'function') {
-          throw new Error('SDK do PagBank não inicializou a tempo. Tente atualizar a página.');
+          throw new Error('O sistema de segurança do cartão ainda está a carregar. Aguarde 2 segundos e tente de novo.');
         }
         
         const key = process.env.NEXT_PUBLIC_PAGBANK_PUBLIC_KEY;
-        if (!key) throw new Error('Chave do PagBank não localizada.');
+        if (!key) throw new Error('Chave pública do PagBank não localizada.');
 
-        // Execução síncrona exigida pelo PagBank (sem operator 'new' ou 'await')
-        const result = window.PagSeguro.encryptCard({
+        // O método correto e síncrono da API do PagBank
+        const cardData = window.PagSeguro.encryptCard({
           publicKey: key,
           holder: nomeCartao,
           number: numeroCartao.replace(/\D/g, ''),
@@ -215,25 +255,30 @@ function CheckoutHotelContent() {
           securityCode: cvvCartao
         });
 
-        if (result.hasErrors) {
+        if (cardData.hasErrors) {
           throw new Error('Dados do cartão recusados pelo gateway de segurança do PagBank.');
         }
 
         payload.metodo_pagamento = 'cartao';
-        payload.encrypted_card = result.encryptedCard;
+        payload.encrypted_card = cardData.encryptedCard;
         payload.parcelas = parcelas;
       } else {
         payload.metodo_pagamento = 'pix';
       }
 
       const res = await fetch(`https://sagaturismo-production.up.railway.app/api/v1/pagamentos/processar`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
       });
       const data = await res.json();
 
       if (data.sucesso) {
         if (metodoPagamento === 'pix') {
-          setQrCodeData({ link: data.pix_qrcode_img, texto: data.pix_copia_cola, id_pedido: data.codigo_pedido });
+          setQrCodeData({ 
+            link: data.pix_qrcode_img, 
+            texto: data.pix_copia_cola, 
+            id_pedido: data.codigo_pedido 
+          });
         } else {
           router.push(`/sucesso?pedido=${data.codigo_pedido}`);
         }
@@ -251,13 +296,11 @@ function CheckoutHotelContent() {
 
   return (
     <main className={`${inter.className} min-h-screen bg-[#F5F7FA] text-slate-900 pb-20`}>
-      <Script src="https://assets.pagseguro.com.br/checkout-sdk-js/rc/dist/browser/pagseguro.min.js" strategy="afterInteractive" />
-
       {/* HEADER */}
       <header className={`fixed left-0 top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl transition-transform duration-300 ${showHeader ? 'translate-y-0' : '-translate-y-full'}`}>
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-5 text-left">
           <Link href="/" className="flex items-center gap-3">
-            <div className="relative h-10 w-28 md:h-12 md:w-36 lg:h-16 lg:w-56 shrink-0"><Image src="/logop.png" alt="SagaTurismo" fill priority className="object-contain object-left" /></div>
+            <div className="relative h-10 w-28 md:h-12 md:w-36 lg:h-16 lg:w-56 shrink-0"><img src="/logop.png" alt="SagaTurismo" className="h-full w-full object-contain object-left" /></div>
             <div className="hidden border-l border-slate-200 pl-4 lg:block">
               <p className={`${jakarta.className} text-2xl font-bold leading-none text-[#0085FF]`}>SagaTurismo</p>
               <p className="mt-1 text-[11px] font-bold uppercase tracking-widest text-slate-500">Agência Oficial</p>

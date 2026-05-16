@@ -11,7 +11,7 @@ import {
   Award, Image as ImageIcon, Smartphone, Map, UserCheck,
   ChevronLeft, ChevronRight as ChevronRightIcon, ZoomIn,
   Landmark, Check, Users, Baby, DoorOpen, Phone, Mail, Globe,
-  Wind, Wifi, Bath, Maximize, Zap, CreditCard, Coffee, Edit3, Menu
+  Wind, Wifi, Bath, Maximize, Zap, CreditCard, Coffee, Edit3, Menu, ArrowRight
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -466,7 +466,8 @@ function PacoteDetalheContent() {
                            <div className="w-full sm:w-48 p-4 md:p-5 flex flex-col items-center sm:items-end justify-center bg-slate-50/50">
                               <div className="mt-auto text-center sm:text-right w-full">
                                 <p className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Custo da Estadia</p>
-                                <p className={`${jakarta.className} text-2xl md:text-3xl font-black text-slate-900 leading-none`}>{formatarMoeda(parseValor(hotelSelecionado.quarto_standard_preco) * noitesReserva * quartos)}</p>
+                                {/* CORRIGIDO AQUI: noitesReserva -> totalNoites */}
+                                <p className={`${jakarta.className} text-2xl md:text-3xl font-black text-slate-900 leading-none`}>{formatarMoeda(parseValor(hotelSelecionado.quarto_standard_preco) * totalNoites * quartos)}</p>
                               </div>
                            </div>
                         </div>
@@ -494,7 +495,7 @@ function PacoteDetalheContent() {
                            </div>
                            <div className="grid grid-cols-2 gap-2 md:gap-3 text-[10px] md:text-xs text-slate-600 font-medium mt-auto">
                               <span className="flex items-center gap-1.5"><Wind size={12} className="md:w-3.5 md:h-3.5"/> Ar-condicionado</span>
-                              <span className="flex items-center gap-1.5"><Wifi size={12} className="md:w-3.5 md:h-3.5"/> Wi-Fi Grátis</span>
+                              <span className="flex items-center gap-1.5"><Wifi size={12} className="md:w-3.5 md:h-3.5"/> Wi-Fi Premium</span>
                               <span className="flex items-center gap-1.5"><Bath size={12} className="md:w-3.5 md:h-3.5"/> Banheira/Spa</span>
                            </div>
                         </div>
@@ -510,7 +511,8 @@ function PacoteDetalheContent() {
                            <div className="w-full sm:w-48 p-4 md:p-5 flex flex-col items-center sm:items-end justify-center bg-blue-50/10">
                               <div className="mt-auto text-center sm:text-right w-full">
                                 <p className="text-[9px] md:text-[10px] font-black uppercase text-[#00577C] tracking-widest mb-1">Custo da Estadia</p>
-                                <p className={`${jakarta.className} text-2xl md:text-3xl font-black text-[#00577C] leading-none`}>{formatarMoeda(parseValor(hotelSelecionado.quarto_luxo_preco) * noitesReserva * quartos)}</p>
+                                {/* CORRIGIDO AQUI: noitesReserva -> totalNoites */}
+                                <p className={`${jakarta.className} text-2xl md:text-3xl font-black text-[#00577C] leading-none`}>{formatarMoeda(parseValor(hotelSelecionado.quarto_luxo_preco) * totalNoites * quartos)}</p>
                               </div>
                            </div>
                         </div>
@@ -552,7 +554,8 @@ function PacoteDetalheContent() {
                     <div className="flex items-center justify-between sm:justify-end gap-5 w-full sm:w-auto border-t border-slate-100 sm:border-t-0 pt-3 sm:pt-0">
                       <div className="text-left sm:text-right">
                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5 text-left sm:text-right">Custo Serviço</p>
-                        <p className={`${jakarta.className} text-lg md:text-xl font-black text-slate-900`}>{formatarMoeda(parseValor(guia.preco_diaria) * (noitesReserva + 1))}</p>
+                        {/* CORRIGIDO AQUI: noitesReserva -> totalNoites */}
+                        <p className={`${jakarta.className} text-lg md:text-xl font-black text-slate-900`}>{formatarMoeda(parseValor(guia.preco_diaria) * (totalNoites + 1))}</p>
                       </div>
                       <div className={`w-5 h-5 md:w-6 md:h-6 shrink-0 rounded-full border-2 flex items-center justify-center ${selected ? 'border-[#009640] bg-[#009640]' : 'border-slate-300'}`}>
                          {selected && <Check size={12} className="text-white md:w-3.5 md:h-3.5" strokeWidth={4} />}
@@ -564,7 +567,7 @@ function PacoteDetalheContent() {
             </div>
           </section>
 
-          {/* ── 3. AVALIAÇÕES E POLÍTICAS (Preservados do design anterior, adaptados mobile) ── */}
+          {/* ── 3. AVALIAÇÕES E POLÍTICAS ── */}
           <section className="bg-white rounded-[2rem] md:rounded-[2.5rem] border border-slate-200 shadow-sm p-6 md:p-10 text-left">
              <h3 className={`${jakarta.className} text-xl md:text-2xl font-black text-slate-900 mb-6 md:mb-8`}>Políticas do Pacote Oficial</h3>
              <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-x-8 gap-y-5 text-sm">
@@ -642,7 +645,8 @@ function PacoteDetalheContent() {
               {/* RESUMO DOS VALORES */}
               <div className="space-y-2.5 md:space-y-3 mb-6 md:mb-8 text-xs md:text-sm font-semibold border-t border-slate-100 pt-5 md:pt-6">
                 <div className="flex justify-between items-center text-slate-600">
-                  <span className="flex items-center gap-2"><Bed size={14} className="text-[#00577C] shrink-0" /> Hospedagem ({noitesReserva} nts)</span>
+                  {/* CORRIGIDO AQUI: noitesReserva -> totalNoites */}
+                  <span className="flex items-center gap-2"><Bed size={14} className="text-[#00577C] shrink-0" /> Hospedagem ({totalNoites} nts)</span>
                   <span className="text-slate-800 tabular-nums">{formatarMoeda(totalHospedagem)}</span>
                 </div>
                 <div className="flex justify-between items-center text-slate-600">
