@@ -3,7 +3,7 @@ from pydantic import BaseModel
 import os
 import resend
 from supabase import create_client, Client
-from datetime import datetime
+from datetime import datetime, timedelta
 
 router = APIRouter()
 
@@ -41,7 +41,7 @@ def obter_fator_liquido(tipo_item: str) -> float:
         if res.data:
             taxa_pct = float(res.data[0]["porcentagem"])
             return 1.0 - (taxa_pct / 100.0)
-        return 1.0 # Se não achar a taxa, assume repasse de 100% por segurança
+        return 1.0
     except Exception as e:
         print(f"[ERRO AO BUSCAR TAXA DINÂMICA] {e}")
         return 1.0
@@ -128,7 +128,7 @@ async def registrar_interesse_parceiro(payload: InteresseParceiroSchema):
         print(f"[ERRO ENVIO EMAIL INTERESSE] {e}")
         raise HTTPException(status_code=500, detail="Erro interno ao processar o formulário.")
 
-# ── ROTAS DE CONSULTA DO PAINEL (COM DESCONTO DINÂMICO DE TAXAS) ──
+# ── ROTAS DE CONSULTA DO PAINEL ──
 
 @router.get("/api/v1/parceiros/{item_id}/reservas", tags=["Portal dos Parceiros"])
 async def listar_reservas_parceiro(item_id: str):
@@ -143,12 +143,8 @@ async def listar_reservas_parceiro(item_id: str):
         for r in res.data:
             tipo = r.get("tipo_item")
             valor_bruto = float(r.get("valor_total") or 0.0)
-            
-            # Descobre a taxa na base de dados e aplica
             fator = obter_fator_liquido(tipo)
-            
-            # Adicionamos o campo 'valor_liquido' diretamente na resposta da API
-            r["valor_liquido"] = round(valor_bruto * fator, 2)
+            r["valor_liquido"] = round(valor_bruto * faktor, 2)
             reservas_processadas.append(r)
             
         return {
@@ -173,7 +169,6 @@ async def obter_metricas_dashboard(item_id: str):
         faturamento_liquido_total = 0.0
         total_itens_vendidos = sum(int(p.get("quantity", 1)) for p in pedidos)
         
-        # Calcula o faturamento já com os descontos dinâmicos da base de dados
         for p in pedidos:
             tipo = p.get("tipo_item")
             v_bruto = float(p.get("valor_total") or 0.0)
@@ -195,7 +190,7 @@ async def obter_metricas_dashboard(item_id: str):
         return {
             "sucesso": True,
             "metricas": {
-                "faturamento_total": round(faturamento_liquido_total, 2), # Envia o líquido calculado direto do banco
+                "faturamento_total": round(faturamento_liquido_total, 2),
                 "total_vendas": len(pedidos),
                 "total_produtos_entregues": total_itens_vendidos,
                 "clientes_a_chegar": proximos_clientes
@@ -207,12 +202,7 @@ async def obter_metricas_dashboard(item_id: str):
     
 @router.post("/api/v1/parceiros/{item_id}/disponibilidade", tags=["Portal dos Parceiros"])
 async def atualizar_disponibilidade_parceiro(item_id: str, payload: DisponibilidadeParceiroSchema):
-    """
-    Recebe as alterações de tarifas e bloqueios de datas enviadas pelo calendário
-    do parceiro e grava na tabela do Supabase.
-    """
     try:
-        # Prepara o dicionário para inserir na nova tabela
         dados_disponibilidade = {
             "hotel_id": item_id,
             "tipo_quarto": payload.tipo_quarto,
@@ -221,22 +211,15 @@ async def atualizar_disponibilidade_parceiro(item_id: str, payload: Disponibilid
             "preco": payload.preco,
             "disponivel": payload.disponivel
         }
-        
-        # Grava os dados no Supabase
         res = supabase.table("disponibilidade_hoteis").insert(dados_disponibilidade).execute()
-        
         return {
             "sucesso": True, 
             "mensagem": "Tarifário atualizado com sucesso na base de dados!",
             "dados": res.data
         }
-        
     except Exception as e:
         print(f"[ERRO ATUALIZAR DISPONIBILIDADE] {e}")
-        raise HTTPException(
-            status_code=500, 
-            detail="Erro interno ao salvar as alterações do calendário no servidor."
-        )
+        raise HTTPException(status_code=500, detail="Erro interno ao salvar as alterações.")
     
 @router.get("/api/v1/public/hoteis/{hotel_id}/calcular-preco", tags=["Consultas Públicas"])
 async def obter_preco_hospedagem_publico(
@@ -250,7 +233,6 @@ async def obter_preco_hospedagem_publico(
         raise HTTPException(status_code=400, detail="Check-in and Check-out dates are required.")
         
     try:
-        # 1. Busca a tarifa base do hotel
         res_h = supabase.table("hoteis").select("*").eq("id", hotel_id).single().execute()
         if not res_h.data:
             raise HTTPException(status_code=404, detail="Hotel não encontrado.")
@@ -258,26 +240,23 @@ async def obter_preco_hospedagem_publico(
         hotel_data = res_h.data
         base_preco = float(hotel_data["quarto_luxo_preco"] if tipo_quarto == 'luxo' else hotel_data["quarto_standard_preco"])
         
-        # 2. Busca TODAS as regras deste quarto (Deixamos o filtro de datas para o Python)
+        # Injetada ordenação pela regra mais recente criada na base de dados
         res_custom = supabase.table("disponibilidade_hoteis") \
             .select("*") \
             .eq("hotel_id", hotel_id) \
             .eq("tipo_quarto", tipo_quarto) \
+            .order("criado_em", desc=True) \
             .execute()
             
         excecoes = res_custom.data or []
         
-        from datetime import datetime, timedelta
         d_atual = datetime.strptime(checkin, "%Y-%m-%d").date()
         d_fim = datetime.strptime(checkout, "%Y-%m-%d").date()
-        
         valor_total_bruto = 0.0
         
-        # Calcula noite por noite
         while d_atual < d_fim:
             preco_noite = None
             for regra in excecoes:
-                # CORREÇÃO DEFINITIVA AQUI: Garantir que se a DB vier com TIMEZONE, o python corta e lê apenas o YYYY-MM-DD
                 regra_inicio_raw = str(regra["data_inicio"]).split("T")[0]
                 regra_fim_raw = str(regra["data_fim"]).split("T")[0]
                 
@@ -293,15 +272,12 @@ async def obter_preco_hospedagem_publico(
             valor_total_bruto += preco_noite if preco_noite is not None else base_preco
             d_atual += timedelta(days=1)
             
-        valor_final = valor_total_bruto * quantidade
-        
         return {
             "sucesso": True,
             "disponivel": True,
-            "valor_total": valor_final,
+            "valor_total": valor_total_bruto * quantidade,
             "noites": (d_fim - datetime.strptime(checkin, "%Y-%m-%d").date()).days
         }
-        
     except Exception as e:
         print(f"[ERRO CALCULO PUBLICO PRECO] {e}")
         raise HTTPException(status_code=500, detail="Erro ao calcular preço dinâmico.")
