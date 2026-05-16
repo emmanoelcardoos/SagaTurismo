@@ -6,8 +6,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { 
   Loader2, ArrowLeft, Calendar as CalendarIcon, 
-  CheckCircle2, AlertTriangle, Save, Info, Compass, 
-  ChevronLeft, ChevronRight, Plus, DollarSign, Users, 
+  CheckCircle2, Save, Info, Compass, 
+  ChevronLeft, ChevronRight, DollarSign, Users, 
   MapPin, Trash2, Upload, Images, MailWarning
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
@@ -49,7 +49,7 @@ export default function DisponibilidadeGuiaPage() {
   const [vagasTotais, setVagasTotais] = useState('20');
   const [dataPasseio, setDataPasseio] = useState<Date | null>(null);
 
-  // ── ESTADOS EXCLUSIVOS DE ARQUIVOS (AUTOMATIZAÇÃO SUPABASE) ──
+  // ── ESTADOS DE ARQUIVOS ──
   const [arquivoCapa, setArquivoCapa] = useState<File | null>(null);
   const [arquivosGaleria, setArquivosGaleria] = useState<File[]>([]);
 
@@ -92,24 +92,21 @@ export default function DisponibilidadeGuiaPage() {
   const diasDoMes = (ano: number, mes: number) => new Date(ano, mes + 1, 0).getDate();
   const primeiroDiaDoMes = (ano: number, mes: number) => new Date(ano, mes, 1).getDay();
 
-  const handleDateClickCommon = (data: Date, inicio: Date | null, fim: Date | null, setIn: Function, setFi: Function) => {
-    if (!inicio || (inicio && fim)) {
-      setIn(data);
-      setFi(null);
-    } else if (data > inicio) {
-      setFi(data);
-    } else {
-      setIn(data);
-      setFi(null);
-    }
+  // ── FUNÇÃO DE SANITIZAÇÃO DE NOMES (CORREÇÃO DO ERRO 400) ──
+  const limparNomeArquivo = (nomeOriginal: string) => {
+    return nomeOriginal
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+      .replace(/[^a-z0-9.]/g, '_')     // Substitui espaços, vírgulas e símbolos por under_score
+      .replace(/_{2,}/g, '_');         // Evita múltiplos underscores seguidos
   };
 
-  // Lógica para capturar múltiplos arquivos da galeria (Max 6)
   const handleGaleriaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const arquivosSelecionados = Array.from(e.target.files);
       if (arquivosSelecionados.length > 6) {
-        alert("Atenção: O sistema municipal permite no máximo 6 fotos para a galeria do roteiro.");
+        alert("Atenção: O sistema municipal permite no máximo 6 fotos para a galeria.");
         setArquivosGaleria(arquivosSelecionados.slice(0, 6));
       } else {
         setArquivosGaleria(arquivosSelecionados);
@@ -117,7 +114,7 @@ export default function DisponibilidadeGuiaPage() {
     }
   };
 
-  // 3. ENGENHARIA DE SUBMISSÃO COM UPLOAD AUTOMÁTICO E ALERTA RESEND
+  // 3. ENGENHARIA DE SUBMISSÃO COM DISPARO SEGURO
   const handleCriarPasseio = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!parceiroId) return;
@@ -128,7 +125,7 @@ export default function DisponibilidadeGuiaPage() {
     }
 
     if (!arquivoCapa) {
-      setStatusMensagem({ tipo: 'erro', texto: 'Por favor, anexe uma imagem de capa oficial para homologação.' });
+      setStatusMensagem({ tipo: 'erro', texto: 'Por favor, anexe uma imagem de capa oficial.' });
       return;
     }
 
@@ -139,30 +136,39 @@ export default function DisponibilidadeGuiaPage() {
     const taxaPref = vTotal * 0.10;
 
     try {
-      // [A] MOTOR DE UPLOAD AUTOMÁTICO - FOTO DE CAPA
-      const pathCapa = `capas/${parceiroId}_${Date.now()}_${arquivoCapa.name}`;
+      // [A] UPLOAD DA FOTO DE CAPA SANITIZADA
+      const nomeCapaLimpo = limparNomeArquivo(arquivoCapa.name);
+      const pathCapa = `capas/${parceiroId}_${Date.now()}_${nomeCapaLimpo}`;
+      
       const { error: errCapa } = await supabase.storage
         .from('imagens-passeios')
         .upload(pathCapa, arquivoCapa);
       
-      if (errCapa) throw new Error("Falha no upload da foto de capa.");
+      if (errCapa) {
+        console.error("Detalhe do erro de capa na Supabase:", errCapa);
+        throw new Error(`Falha no upload da foto de capa: ${errCapa.message}`);
+      }
       
       const { data: urlCapaPublica } = supabase.storage
         .from('imagens-passeios')
         .getPublicUrl(pathCapa);
 
-      // [B] MOTOR DE UPLOAD AUTOMÁTICO - GALERIA DE FOTOS (ATÉ 6)
+      // [B] UPLOAD DA GALERIA SANITIZADA
       const urlsGaleria: string[] = [];
       for (const file of arquivosGaleria) {
-        const pathFoto = `galeria/${parceiroId}_${Date.now()}_${file.name}`;
+        const nomeFotoLimpo = limparNomeArquivo(file.name);
+        const pathFoto = `galeria/${parceiroId}_${Date.now()}_${nomeFotoLimpo}`;
+        
         const { error: errFoto } = await supabase.storage.from('imagens-passeios').upload(pathFoto, file);
         if (!errFoto) {
           const { data: urlFotoPublica } = supabase.storage.from('imagens-passeios').getPublicUrl(pathFoto);
           urlsGaleria.push(urlFotoPublica.publicUrl);
+        } else {
+          console.error("Erro ao subir imagem da galeria:", errFoto);
         }
       }
 
-      // [C] INSERÇÃO RESTRITA NA BASE DE DADOS (Entra desativado para auditoria)
+      // [C] INSERÇÃO NA BASE DE DADOS (Inativo por padrão para moderação)
       const { error: errInsert } = await supabase
         .from('passeios')
         .insert([{
@@ -181,13 +187,13 @@ export default function DisponibilidadeGuiaPage() {
           taxa_prefeitura: taxaPref,
           vagas_totais: parseInt(vagasTotais),
           vagas_disponiveis: parseInt(vagasTotais),
-          ativo: false, // ◄── FORÇADO FALSE: Entra em análise
-          destaque: false // ◄── FORÇADO FALSE: Sem privilégios automáticos
+          ativo: false, 
+          destaque: false 
         }]);
 
       if (errInsert) throw errInsert;
 
-      // [D] DISPARO DO ALERTA DE E-MAIL (RESEND VIA BACKEND/RAILWAY)
+      // [D] ALERTA RESEND VIA BACKEND
       try {
         await fetch(`https://sagaturismo-production.up.railway.app/api/v1/notificacoes/novo-passeio`, {
           method: 'POST',
@@ -199,36 +205,35 @@ export default function DisponibilidadeGuiaPage() {
           })
         });
       } catch (errEmail) {
-        console.error("Falha silenciosa ao emitir e-mail de alerta do Resend.", errEmail);
+        print("Falha ao emitir e-mail do Resend:", errEmail);
       }
 
       setStatusMensagem({ 
         tipo: 'sucesso', 
-        texto: 'Solicitação enviada! O roteiro e as imagens foram processados pela Supabase. Aguarde a homologação da prefeitura para ativação.' 
+        texto: 'Solicitação enviada com sucesso! As imagens foram higienizadas e salvas no Storage. Aguarde a homologação técnica para ativação.' 
       });
       
-      // Limpeza de formulário
       setTitulo(''); setDescricaoCurta(''); setDescricaoCompleta('');
       setHorarioSaida(''); setPontoEncontro(''); setCoordenadas(''); setValorTotal('');
       setDataPasseio(null); setArquivoCapa(null); setArquivosGaleria([]);
 
     } catch (err: any) {
       console.error(err);
-      setStatusMensagem({ tipo: 'erro', texto: err.message || 'Erro de comunicação interna.' });
+      setStatusMensagem({ tipo: 'erro', texto: err.message || 'Erro interno de processamento.' });
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDeletarPasseio = async (idPasseio: string) => {
-    if (!confirm("Tem certeza que deseja remover este roteiro da vitrine?")) return;
+    if (!confirm("Tem certeza que deseja remover este roteiro?")) return;
     try {
       const { error } = await supabase.from('passeios').delete().eq('id', idPasseio);
       if (error) throw error;
       setStatusMensagem({ tipo: 'sucesso', texto: 'Roteiro removido com sucesso.' });
       setPasseiosExistentes(prev => prev.filter(p => p.id !== idPasseio));
     } catch (err) {
-      setStatusMensagem({ tipo: 'erro', texto: 'Incapaz de deletar roteiros que possuem histórico operacional ativo.' });
+      setStatusMensagem({ tipo: 'erro', texto: 'Incapaz de deletar roteiros ativos no sistema.' });
     }
   };
 
@@ -241,8 +246,6 @@ export default function DisponibilidadeGuiaPage() {
 
   return (
     <div className={`${inter.className} min-h-screen bg-[#F1F5F9] text-slate-900 flex flex-col`}>
-      
-      {/* HEADER */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-50 px-4 md:px-10 py-4">
         <div className="mx-auto max-w-5xl flex items-center justify-between gap-4">
           <Link href="/" className="relative h-10 w-28 md:w-36 shrink-0"><Image src="/logop.png" alt="SGA" fill priority className="object-contain object-left" /></Link>
@@ -252,7 +255,6 @@ export default function DisponibilidadeGuiaPage() {
         </div>
       </header>
 
-      {/* CONTEÚDO */}
       <div className="mx-auto w-full max-w-3xl px-4 py-6 md:py-12 flex-1 space-y-8">
         <div className="bg-white rounded-2xl md:rounded-[2.5rem] border border-slate-200 shadow-xl overflow-hidden">
           
@@ -277,8 +279,6 @@ export default function DisponibilidadeGuiaPage() {
              )}
 
              <form onSubmit={handleCriarPasseio} className="space-y-6">
-                
-                {/* 1. INFORMAÇÕES BÁSICAS */}
                 <div className="grid gap-4 sm:grid-cols-2">
                    <div className="sm:col-span-2">
                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Título do Passeio</label>
@@ -295,7 +295,6 @@ export default function DisponibilidadeGuiaPage() {
                       </select>
                    </div>
 
-                   {/* NOVO: UPLOAD NATIVO - AUTOMATIZAÇÃO DE IMAGEM DE CAPA */}
                    <div>
                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Foto de Capa do Evento</label>
                       <label className="w-full bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl py-2.5 px-4 text-xs font-bold text-slate-500 flex items-center gap-2 cursor-pointer hover:bg-slate-100 transition-colors">
@@ -305,27 +304,25 @@ export default function DisponibilidadeGuiaPage() {
                       </label>
                    </div>
 
-                   {/* NOVO: UPLOAD NATIVO - AUTOMATIZAÇÃO DA GALERIA MÚLTIPLA (MAX 6) */}
                    <div className="sm:col-span-2">
                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Fotos Adicionais da Galeria (Máximo 6 Imagens)</label>
                       <label className="w-full bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl p-4 text-xs font-bold text-slate-500 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-100 transition-colors">
                          <Images size={24} className="text-slate-400"/>
-                         <span>{arquivosGaleria.length > 0 ? `${arquivosGaleria.length} imagem(ns) selecionada(s)` : 'Clique aqui para carregar a galeria de fotos'}</span>
+                         <span>{arquivosGaleria.length > 0 ? `${arquivosGaleria.length} imagem(ns) selecionada(s)` : 'Clique aqui para carregar a galeria'}</span>
                          <input type="file" accept="image/*" multiple className="hidden" onChange={handleGaleriaChange} />
                       </label>
                    </div>
 
                    <div className="sm:col-span-2">
                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Resumo Comercial (Descrição Curta)</label>
-                      <input required type="text" value={descricaoCurta} onChange={e => setDescricaoCurta(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-3 px-4 text-sm font-semibold outline-none focus:border-[#009640]" placeholder="Uma frase chamativa para o card de listagem..." />
+                      <input required type="text" value={descricaoCurta} onChange={e => setDescricaoCurta(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-3 px-4 text-sm font-semibold outline-none focus:border-[#009640]" placeholder="Uma frase chamativa para o card..." />
                    </div>
                    <div className="sm:col-span-2">
                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Itinerário Completo & Recomendações (Descrição Detalhada)</label>
-                      <textarea required value={descricaoCompleta} onChange={e => setDescricaoCompleta(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-3 px-4 text-sm font-medium outline-none h-24 focus:border-[#009640]" placeholder="Descreva os pontos de paragem, regras de segurança, o que levar e detalhes operacionais..." />
+                      <textarea required value={descricaoCompleta} onChange={e => setDescricaoCompleta(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-3 px-4 text-sm font-medium outline-none h-24 focus:border-[#009640]" placeholder="Descreva os detalhes operacionais..." />
                    </div>
                 </div>
 
-                {/* 2. CALENDÁRIO COM DIAS DA SEMANA COMPLETOS */}
                 <div className="border-t border-slate-100 pt-6">
                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-3">Escolha o Dia do Evento no Calendário</label>
                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 md:p-6 shadow-inner">
@@ -335,7 +332,6 @@ export default function DisponibilidadeGuiaPage() {
                          <button type="button" onClick={() => setMesAtual(new Date(anoCorrente, mesCorrente + 1))} className="p-1.5 hover:bg-slate-200 rounded-full"><ChevronRight size={18}/></button>
                       </div>
                       
-                      {/* ── ATUALIZAÇÃO CORRIGIDA: Cabeçalho com dias da semana legíveis ── */}
                       <div className="grid grid-cols-7 gap-1 text-center mb-2">
                          {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((d, i) => (
                            <span key={i} className="text-[10px] font-black text-slate-400 uppercase tracking-wider">{d}</span>
@@ -349,7 +345,7 @@ export default function DisponibilidadeGuiaPage() {
                             const passes = dDia < hoje;
                             const selecionado = dataPasseio && dDia.getTime() === dataPasseio.getTime();
                             return (
-                              <button type="button" key={i} disabled={passes} onClick={() => handleDateClickCommon(dDia, dataPasseio, null, setDataPasseio, () => {})} className={`w-full aspect-square flex items-center justify-center text-xs font-bold rounded-lg transition-all ${passes ? 'text-slate-300 pointer-events-none' : selecionado ? 'bg-[#009640] text-white shadow-md scale-105' : 'text-slate-800 hover:bg-slate-200'}`}>
+                              <button type="button" key={i} disabled={passes} onClick={() => handleDateClickCommon(dDia, dataPasseio, null, setDataPasseio, () => {})} className={`w-full aspect-square flex items-center justify-center text-xs font-bold rounded-lg transition-all ${passes ? 'text-slate-300 pointer-events-none' : selecionado ? 'bg-[#009640] text-white shadow-md' : 'text-slate-800 hover:bg-slate-200'}`}>
                                  {i + 1}
                               </button>
                             );
@@ -361,7 +357,6 @@ export default function DisponibilidadeGuiaPage() {
                    </div>
                 </div>
 
-                {/* 3. LOGÍSTICA DE EMBARQUE */}
                 <div className="grid gap-4 sm:grid-cols-3 border-t border-slate-100 pt-6">
                    <div>
                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Horário de Saída</label>
@@ -369,18 +364,14 @@ export default function DisponibilidadeGuiaPage() {
                    </div>
                    <div className="sm:col-span-2">
                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Ponto de Encontro Físico</label>
-                      <div className="relative">
-                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16}/>
-                        <input type="text" value={pontoEncontro} onChange={e => setPontoEncontro(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-3 pl-10 pr-4 text-sm font-semibold outline-none focus:border-[#009640]" placeholder="Ex: Barraca Central, Praia do Pium" />
-                      </div>
+                      <input type="text" value={pontoEncontro} onChange={e => setPontoEncontro(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-3 px-4 text-sm font-semibold outline-none focus:border-[#009640]" placeholder="Ex: Barraca Central, Praia do Pium" />
                    </div>
                    <div className="sm:col-span-3">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Coordenadas do Google Maps (Opcional)</label>
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Coordenadas do Google Maps</label>
                       <input type="text" value={coordenadas} onChange={e => setCoordenadas(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-3 px-4 text-sm font-medium outline-none focus:border-[#009640]" placeholder="Ex: -6.40129, -48.51092" />
                    </div>
                 </div>
 
-                {/* 4. PREÇOS, VAGAS & IMPACTO FINANCEIRO */}
                 <div className="grid gap-4 sm:grid-cols-3 border-t border-slate-100 pt-6">
                    <div>
                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Vagas do Grupo</label>
@@ -404,18 +395,18 @@ export default function DisponibilidadeGuiaPage() {
                 <div className="p-4 bg-amber-50 text-amber-800 rounded-xl flex items-start gap-3 border border-amber-100 text-left">
                    <MailWarning size={18} className="shrink-0 mt-0.5 text-amber-600" />
                    <p className="text-[11px] font-bold leading-relaxed">
-                     Nota de Moderação: O roteiro será guardado na base de dados com o estado inativo por omissão. Um e-mail de alerta do Resend será enviado automaticamente para a Secretaria de Turismo proceder à auditoria das imagens e ativação comercial da rota.
+                     Nota de Moderação: O roteiro será guardado com o estado inativo por omissão. Um e-mail será emitido via Resend para homologação técnica e auditoria das fotos.
                    </p>
                 </div>
 
                 <button type="submit" disabled={isSubmitting} className="w-full bg-[#009640] hover:bg-[#007a33] text-white py-4 rounded-xl font-black uppercase text-xs md:text-sm tracking-widest shadow-xl flex items-center justify-center gap-2">
-                   {isSubmitting ? <><Loader2 className="animate-spin" size={18}/> Submetendo e efetuando Upload...</> : <><Save size={16}/> Submeter Solicitação Comercial</>}
+                   {isSubmitting ? <><Loader2 className="animate-spin" size={18}/> Efetuando Upload e Registro...</> : <><Save size={16}/> Submeter Solicitação Comercial</>}
                 </button>
              </form>
           </div>
         </div>
 
-        {/* GERENCIADOR DE EXPEDIÇÕES ATIVAS */}
+        {/* GERENCIADOR DE EXPEDIÇÕES */}
         <div className="bg-white rounded-2xl md:rounded-[2.5rem] border border-slate-200 shadow-xl p-5 md:p-8 text-left">
            <h3 className={`${jakarta.className} text-lg font-black text-slate-900 mb-2`}>Minhas Expedições Cadastradas</h3>
            <p className="text-xs font-bold text-slate-400 mb-4">Histórico de roteiros submetidos.</p>
@@ -442,7 +433,6 @@ export default function DisponibilidadeGuiaPage() {
               </div>
            )}
         </div>
-
       </div>
     </div>
   );
