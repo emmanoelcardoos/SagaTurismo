@@ -7,8 +7,7 @@ import Image from 'next/image';
 import { 
   Loader2, LogOut, Wallet, ShoppingBag, Users2, 
   Bed, ClipboardList, ShieldCheck, 
-  ArrowUpRight, Calendar, Search, 
-  CheckSquare, Square, UserCircle
+  ArrowUpRight, Calendar, Search, UserCircle
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 
@@ -26,15 +25,15 @@ type ReservaHotel = {
   tipo_item: string;
   data_checkin: string;
   data_checkout?: string;
-  // A API deve enviar estes dados, caso contrário ficarão vazios (undefined)
+  
+  // Fallbacks estruturais de compatibilidade da tabela
+  quantidade?: number;
   quantidade_quartos?: number;
   quantidade_pessoas?: number;
+  
   valor_total: number;
   valor_liquido: number;
   status: string;
-  // Auditoria
-  checkin_realizado_em?: string | null;
-  checkout_realizado_em?: string | null;
 };
 
 export default function DashboardHotelPage() {
@@ -47,7 +46,7 @@ export default function DashboardHotelPage() {
   const [reservas, setReservas] = useState<ReservaHotel[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // 1. SEGURANÇA E LEITURA (Garante que é um Hotel)
+  // 1. SEGURANÇA E RETENÇÃO DE PERFIL
   useEffect(() => {
     const id = localStorage.getItem("parceiro_id");
     const nome = localStorage.getItem("nome_negocio");
@@ -61,7 +60,7 @@ export default function DashboardHotelPage() {
     }
   }, [router]);
 
-  // 2. CONSUMO DA API
+  // 2. CONSUMO DE DADOS DA API
   useEffect(() => {
     if (!parceiroId) return;
 
@@ -96,30 +95,6 @@ export default function DashboardHotelPage() {
     }
     carregarDados();
   }, [parceiroId]);
-
-  // 3. LÓGICA DE CHECK-IN / CHECK-OUT (CORRIGIDA: Baseada no codigo_pedido)
-  const handleToggleCheckStatus = async (codigoPedido: string, tipo: 'checkin' | 'checkout') => {
-    const agoraIso = new Date().toISOString();
-    
-    setReservas(prev => prev.map(r => {
-      // ◄── AQUI ESTÁ A CORREÇÃO CRÍTICA: Só afeta a reserva que tem o código exato
-      if (r.codigo_pedido === codigoPedido) {
-        const campo = tipo === 'checkin' ? 'checkin_realizado_em' : 'checkout_realizado_em';
-        return { ...r, [campo]: r[campo] ? null : agoraIso };
-      }
-      return r;
-    }));
-
-    try {
-      await fetch(`https://sagaturismo-production.up.railway.app/api/v1/pedidos/${codigoPedido}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ acao: tipo, timestamp: agoraIso })
-      });
-    } catch (err) {
-      console.error(`Falha ao sincronizar ${tipo}.`, err);
-    }
-  };
 
   const handleLogout = () => {
     localStorage.clear();
@@ -176,6 +151,7 @@ export default function DashboardHotelPage() {
       </header>
 
       <div className="mx-auto w-full max-w-7xl px-4 md:px-10 py-8 flex-1 space-y-8">
+        {/* CARDS DE MÉTRICAS */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-white rounded-[2rem] border border-slate-200 p-8 shadow-sm flex flex-col justify-between group">
              <div>
@@ -206,23 +182,24 @@ export default function DashboardHotelPage() {
           </div>
         </div>
 
+        {/* TABELA DE GESTÃO DE RESERVAS EXCLUSIVA */}
         <div className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden">
           <div className="p-6 md:p-8 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-5 bg-slate-50/50">
              <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 flex items-center justify-center shadow-sm shrink-0"><ClipboardList className="text-[#00577C]" size={20} /></div>
                 <div>
-                   <h2 className={`${jakarta.className} text-xl font-black text-slate-900`}>Recepção & Check-in</h2>
-                   <p className="text-xs font-bold text-slate-400 mt-1">Lista de hóspedes e gestão de entradas.</p>
+                   <h2 className={`${jakarta.className} text-xl font-black text-slate-900`}>Controle de Reservas Recentes</h2>
+                   <p className="text-xs font-bold text-slate-400 mt-1">Lista unificada de hóspedes e conciliação financeira individual.</p>
                 </div>
              </div>
-             <div className="relative w-full sm:w-80 shrink-0"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} /><input type="text" placeholder="Procurar hóspede..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-[#00577C] shadow-sm" /></div>
+             <div className="relative w-full sm:w-80 shrink-0"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} /><input type="text" placeholder="Procurar localizador ou nome..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-[#00577C] shadow-sm" /></div>
           </div>
           
           {filteredReservas.length === 0 ? (
             <div className="py-24 px-5 text-center flex flex-col items-center justify-center bg-white">
                <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4"><ClipboardList size={28} className="text-slate-300" /></div>
-               <p className={`${jakarta.className} text-xl font-bold text-slate-800 mb-2`}>O seu painel hoteleiro está pronto</p>
-               <p className="text-sm text-slate-500 max-w-md">As reservas efetuadas pelos turistas aparecerão aqui automaticamente.</p>
+               <p className={`${jakarta.className} text-xl font-bold text-slate-800 mb-2`}>Nenhuma atividade registrada</p>
+               <p className="text-sm text-slate-500 max-w-md">As vendas processadas pela API aparecerão listadas neste espaço.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -233,42 +210,45 @@ export default function DashboardHotelPage() {
                     <th className="py-5 px-6">Hóspede Principal</th>
                     <th className="py-5 px-6">Ocupação Declarada</th>
                     <th className="py-5 px-6">Estadia (Datas)</th>
-                    <th className="py-5 px-6 text-center">Auditoria Diária (Recepção)</th>
+                    <th className="py-5 px-6 text-right">Valor Total</th>
+                    <th className="py-5 px-6 text-right">Teu Repasse Líquido</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-bold text-slate-700 bg-white">
-                  {filteredReservas.map((r) => (
-                    <tr key={r.codigo_pedido} className="hover:bg-slate-50 transition-colors">
-                      <td className="py-5 px-6 font-mono text-xs text-[#00577C] uppercase">{r.codigo_pedido}</td>
-                      <td className="py-5 px-6">
-                        <p className="text-slate-900 font-black">{r.nome_cliente}</p>
-                        <p className="text-[10px] text-slate-400 font-medium mt-0.5">{r.telefone_cliente || 'Sem contato'}</p>
-                      </td>
-                      <td className="py-5 px-6">
-                         <span className="bg-slate-100 text-slate-600 px-3 py-1.5 rounded-lg text-xs flex items-center gap-2 w-fit border border-slate-200">
-                           <UserCircle size={16} className="text-[#00577C]" /> 
-                           {/* AQUI NÃO FAZEMOS FALLBACK PARA "1". Se não vier da API, o dono do hotel sabe que a base de dados falhou */}
-                           {r.quantidade_pessoas ?? <span className="text-red-500">?</span>} Pax · {r.quantidade_quartos ?? <span className="text-red-500">?</span>} Quarto(s)
-                         </span>
-                      </td>
-                      <td className="py-5 px-6 text-xs">
-                         <div className="flex flex-col gap-1.5">
-                           <span className="text-[#009640] flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-[#009640]"/> In: {formatarData(r.data_checkin)}</span>
-                           <span className="text-slate-500 flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-slate-400"/> Out: {formatarData(r.data_checkout || '')}</span>
-                         </div>
-                      </td>
-                      <td className="py-5 px-6">
-                        <div className="flex items-center justify-center gap-3">
-                          <button onClick={() => handleToggleCheckStatus(r.codigo_pedido, 'checkin')} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${r.checkin_realizado_em ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-100'}`}>
-                             {r.checkin_realizado_em ? <CheckSquare size={16}/> : <Square size={16}/>} Check-In
-                          </button>
-                          <button onClick={() => handleToggleCheckStatus(r.codigo_pedido, 'checkout')} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${r.checkout_realizado_em ? 'bg-slate-800 text-white border border-slate-900' : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-100'}`}>
-                             {r.checkout_realizado_em ? <CheckSquare size={16}/> : <Square size={16}/>} Check-Out
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                  {filteredReservas.map((r) => {
+                    const qQuartos = r.quantidade_quartos || r.quantidade || 1;
+                    const qPessoas = r.quantidade_pessoas || '?';
+
+                    return (
+                      <tr key={r.codigo_pedido} className="hover:bg-slate-50 transition-colors">
+                        <td className="py-5 px-6 font-mono text-xs text-[#00577C] uppercase">{r.codigo_pedido}</td>
+                        <td className="py-5 px-6">
+                          <p className="text-slate-900 font-black">{r.nome_cliente}</p>
+                          <p className="text-[10px] text-slate-400 font-medium mt-0.5">{r.telefone_cliente || 'Sem contato'}</p>
+                        </td>
+                        <td className="py-5 px-6">
+                           <span className="bg-slate-100 text-slate-600 px-3 py-1.5 rounded-lg text-xs flex items-center gap-2 w-fit border border-slate-200">
+                             <UserCircle size={16} className="text-[#00577C]" /> 
+                             {qPessoas} Pax · {qQuartos} Quarto(s)
+                           </span>
+                        </td>
+                        <td className="py-5 px-6 text-xs">
+                           <div className="flex flex-col gap-0.5 font-semibold">
+                             <span className="text-[#009640]">In: {formatarData(r.data_checkin)}</span>
+                             <span className="text-slate-400">Out: {formatarData(r.data_checkout || '')}</span>
+                           </div>
+                        </td>
+                        <td className="py-5 px-6 text-right text-slate-500 font-medium tabular-nums">
+                          {formatarMoeda(r.valor_total || 0)}
+                        </td>
+                        <td className="py-5 px-6 text-right">
+                          <span className={`${jakarta.className} text-sm font-black text-[#009640] bg-green-50 px-3 py-1.5 rounded-lg border border-green-100 shadow-sm inline-block tabular-nums`}>
+                            {formatarMoeda(r.valor_liquido || 0)}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
