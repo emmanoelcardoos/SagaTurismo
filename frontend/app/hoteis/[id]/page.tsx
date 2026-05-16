@@ -505,7 +505,8 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
         </div>
 
         {/* ── COLUNA DIREITA: CALENDÁRIO COM CLASSES NATIVAS ── */}
-        <div id="motor-reservas" className="w-full lg:w-[380px] shrink-0 lg:sticky lg:top-28 lg:self-start relative z-30">
+        {/* Removeu-se o lg:sticky e lg:top-28. Adicionou-se o h-fit para alinhar perfeitamente */}
+        <div id="motor-reservas" className="w-full lg:w-[380px] shrink-0 h-fit lg:self-start relative z-30">
           <div className="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] shadow-xl border border-slate-200 text-left">
              <h3 className={`${jakarta.className} text-lg md:text-xl font-black text-slate-900 mb-5 flex items-center gap-2`}>
                 <CalendarIcon className="text-[#00577C]" size={20}/> Escolher Período
