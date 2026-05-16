@@ -6,9 +6,8 @@ import Link from 'next/link';
 import Script from 'next/script';
 import { 
   Loader2, MapPin, ShieldCheck, Bed, QrCode, CheckCircle2, 
-  User, Mail, FileText, Copy, AlertCircle, 
-  CreditCard, Lock, ShieldAlert, Home, Clock, Info, Check, ChevronRight,
-  Wallet
+  User, Mail, FileText, Smartphone, Copy, AlertCircle, 
+  CreditCard, Lock, ShieldAlert, Home, Clock, Info, Check, ChevronRight, <BarraTempo></BarraTempo>
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -19,7 +18,9 @@ const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] }
 // ── TIPAGENS ──
 declare global {
   interface Window {
-    PagSeguro?: any;
+    PagSeguro?: {
+      encryptCard: (params: any) => { encryptedCard?: string; hasErrors?: boolean; errors?: any[] };
+    };
   }
 }
 
@@ -116,7 +117,7 @@ function CheckoutHotelContent() {
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
 
-  // Estados Reativos do Motor de Preços
+  // ── NOVOS ESTADOS REATIVOS DO MOTOR DA RAILWAY ──
   const [valorTotalReserva, setValorTotalReserva] = useState<number>(0);
   const [numNoites, setNumNoites] = useState<number>(1);
   const [loadingPreco, setLoadingPreco] = useState<boolean>(false);
@@ -165,7 +166,7 @@ function CheckoutHotelContent() {
     carregarHotel();
   }, [hotelId]);
 
-  // Consultar preços na API Railway
+  // ── BUSCA AUTOMÁTICA E DINÂMICA DO PREÇO DA RAILWAY ──
   useEffect(() => {
     if (!hotelId || !checkinData || !checkoutData || !quartoTipo) return;
 
@@ -220,7 +221,7 @@ function CheckoutHotelContent() {
         street: rua,
         number: numero,
         locality: bairro,
-        city: cidade, 
+        city: city,
         region_code: estado.replace(/\s/g, ''),
         country: "BRA",
         postal_code: cep.replace(/\D/g, '')
@@ -230,80 +231,14 @@ function CheckoutHotelContent() {
     try {
       if (metodoPagamento === 'cartao') {
         if (!window.PagSeguro) throw new Error('Checkout SDK do PagBank não foi inicializado.');
-        
-        let encryptedToken = '';
-        const key = process.env.NEXT_PUBLIC_PAGBANK_PUBLIC_KEY;
-        const cardParams = {
-          holder: nomeCartao, 
-          number: numeroCartao.replace(/\D/g,''),
-          expMonth: mesCartao, 
-          expYear: anoCartao, 
-          securityCode: cvvCartao
-        };
-
-        // ── ABORDAGEM 1: NOVA INSTÂNCIA DA CLASSE COM OPERADOR NEW (PADRÃO V2) ──
-        if (!encryptedToken) {
-          try {
-            const instance = new window.PagSeguro({ publicKey: key });
-            const res = instance.encryptCard(cardParams);
-            if (res && res.encryptedCard && !res.hasErrors) {
-              encryptedToken = res.encryptedCard;
-            }
-          } catch (err1) {
-            console.warn("Falha na abordagem de Instância Geral:", err1);
-          }
-        }
-
-        // ── ABORDAGEM 2: OPERADOR NEW DIRETAMENTE NO MÉTODO METHOD (CASO SEJA COMPILADO COMO INTERNO) ──
-        if (!encryptedToken) {
-          try {
-            const res = new window.PagSeguro.encryptCard({
-              publicKey: key,
-              ...cardParams
-            });
-            if (res && res.encryptedCard && !res.hasErrors) {
-              encryptedToken = res.encryptedCard;
-            }
-          } catch (err2) {
-            console.warn("Falha na abordagem de Instância Direta do Método:", err2);
-          }
-        }
-
-        // ── ABORDAGEM 3: MÉTODO ESTÁTICO PURO SEM OPERADOR NEW (SÍNCRONO CLASSIC) ──
-        if (!encryptedToken) {
-          try {
-            const res = window.PagSeguro.encryptCard({
-              publicKey: key,
-              ...cardParams
-            });
-            if (res && res.encryptedCard && !res.hasErrors) {
-              encryptedToken = res.encryptedCard;
-            }
-          } catch (err3) {
-            console.warn("Falha na abordagem estática tradicional:", err3);
-          }
-        }
-
-        // ── ABORDAGEM 4: INVOCAÇÃO COMO FUNÇÃO DE FÁBRICA SEM OPERADOR NEW ──
-        if (!encryptedToken) {
-          try {
-            const instance = window.PagSeguro({ publicKey: key });
-            const res = instance.encryptCard(cardParams);
-            if (res && res.encryptedCard && !res.hasErrors) {
-              encryptedToken = res.encryptedCard;
-            }
-          } catch (err4) {
-            console.warn("Falha na abordagem funcional de fábrica:", err4);
-          }
-        }
-
-        // Se todas as permutações falharem na encriptação segura
-        if (!encryptedToken) {
-          throw new Error('Não foi possível encriptar o cartão com segurança. Revise os dados ou tente via PIX.');
-        }
-
+        const result = window.PagSeguro.encryptCard({
+          publicKey: process.env.NEXT_PUBLIC_PAGBANK_PUBLIC_KEY,
+          holder: nomeCartao, number: numeroCartao.replace(/\D/g,''),
+          expMonth: mesCartao, expYear: anoCartao, securityCode: cvvCartao
+        });
+        if (result.hasErrors) throw new Error('Cartão recusado. Verifique os dados introduzidos.');
         payload.metodo_pagamento = 'cartao';
-        payload.encrypted_card = encryptedToken;
+        payload.encrypted_card = result.encryptedCard;
         payload.parcelas = parcelas;
       } else {
         payload.metodo_pagamento = 'pix';
@@ -317,6 +252,7 @@ function CheckoutHotelContent() {
 
       if (data.sucesso) {
         if (metodoPagamento === 'pix') {
+          // ◄── ALINHADO 100% COM AS CHAVES QUE O TEU BACKEND RESPONDE
           setQrCodeData({ 
             link: data.pix_qrcode_img, 
             texto: data.pix_copia_cola, 
@@ -367,7 +303,7 @@ function CheckoutHotelContent() {
       </div>
 
       <div className="mx-auto max-w-7xl px-4 md:px-8 py-8 md:py-12">
-        <BarraTempoReserva />
+        <BarraTempo Reserva />
 
         <div className="grid gap-8 lg:grid-cols-[1fr_400px] items-start">
           
@@ -483,7 +419,7 @@ function CheckoutHotelContent() {
             )}
           </div>
 
-          {/* ── COLUNA DIREITA: RESUMO PROFISSIONAL (ESTÁTICO) ── */}
+          {/* ── COLUNA DIREITA (RESUMO COMPLETO DA API - ESTÁTICO) ── */}
           <aside className="w-full h-fit lg:self-start order-first lg:order-last relative">
             <SectionCard>
               <div className="h-2 w-full bg-gradient-to-r from-[#00577C] via-[#F9C400] to-[#009640]" />
