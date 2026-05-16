@@ -231,9 +231,9 @@ function CheckoutHotelContent() {
       if (metodoPagamento === 'cartao') {
         if (!window.PagSeguro) throw new Error('Checkout SDK do PagBank não foi inicializado.');
         
-        let result: any = null;
+        let encryptedToken = '';
         const key = process.env.NEXT_PUBLIC_PAGBANK_PUBLIC_KEY;
-        const cardData = {
+        const cardParams = {
           holder: nomeCartao, 
           number: numeroCartao.replace(/\D/g,''),
           expMonth: mesCartao, 
@@ -241,45 +241,69 @@ function CheckoutHotelContent() {
           securityCode: cvvCartao
         };
 
-        // ── TENTATIVA 1: MÉTODO ESTÁTICO DIRETO (Padrão oficial em navegadores modernos) ──
-        try {
-          if (typeof window.PagSeguro.encryptCard === 'function') {
-            result = window.PagSeguro.encryptCard({
+        // ── ABORDAGEM 1: NOVA INSTÂNCIA DA CLASSE COM OPERADOR NEW (PADRÃO V2) ──
+        if (!encryptedToken) {
+          try {
+            const instance = new window.PagSeguro({ publicKey: key });
+            const res = instance.encryptCard(cardParams);
+            if (res && res.encryptedCard && !res.hasErrors) {
+              encryptedToken = res.encryptedCard;
+            }
+          } catch (err1) {
+            console.warn("Falha na abordagem de Instância Geral:", err1);
+          }
+        }
+
+        // ── ABORDAGEM 2: OPERADOR NEW DIRETAMENTE NO MÉTODO METHOD (CASO SEJA COMPILADO COMO INTERNO) ──
+        if (!encryptedToken) {
+          try {
+            const res = new window.PagSeguro.encryptCard({
               publicKey: key,
-              ...cardData
+              ...cardParams
             });
-          }
-        } catch (err1) {
-          console.warn("Tentativa 1 (Estático) ignorada:", err1);
-        }
-
-        // ── TENTATIVA 2: CLASSE COM OPERADOR 'NEW' (Caso o ecossistema trate como classe) ──
-        if (!result || result.hasErrors) {
-          try {
-            const pagseguroInstance = new window.PagSeguro({ publicKey: key });
-            result = pagseguroInstance.encryptCard(cardData);
+            if (res && res.encryptedCard && !res.hasErrors) {
+              encryptedToken = res.encryptedCard;
+            }
           } catch (err2) {
-            console.warn("Tentativa 2 (Instância Class) ignorada:", err2);
+            console.warn("Falha na abordagem de Instância Direta do Método:", err2);
           }
         }
 
-        // ── TENTATIVA 3: FUNÇÃO DE FÁBRICA SEM 'NEW' (Formatos de compatibilidade legados) ──
-        if (!result || result.hasErrors) {
+        // ── ABORDAGEM 3: MÉTODO ESTÁTICO PURO SEM OPERADOR NEW (SÍNCRONO CLASSIC) ──
+        if (!encryptedToken) {
           try {
-            const pagseguroInstance = window.PagSeguro({ publicKey: key });
-            result = pagseguroInstance.encryptCard(cardData);
+            const res = window.PagSeguro.encryptCard({
+              publicKey: key,
+              ...cardParams
+            });
+            if (res && res.encryptedCard && !res.hasErrors) {
+              encryptedToken = res.encryptedCard;
+            }
           } catch (err3) {
-            console.warn("Tentativa 3 (Fábrica) ignorada:", err3);
+            console.warn("Falha na abordagem estática tradicional:", err3);
           }
         }
 
-        // Se todas as abordagens falharem ou o PagBank retornar erro interno de dados
-        if (!result || result.hasErrors) {
-          throw new Error('Falha na validação do cartão de crédito. Verifique os números digitados.');
+        // ── ABORDAGEM 4: INVOCAÇÃO COMO FUNÇÃO DE FÁBRICA SEM OPERADOR NEW ──
+        if (!encryptedToken) {
+          try {
+            const instance = window.PagSeguro({ publicKey: key });
+            const res = instance.encryptCard(cardParams);
+            if (res && res.encryptedCard && !res.hasErrors) {
+              encryptedToken = res.encryptedCard;
+            }
+          } catch (err4) {
+            console.warn("Falha na abordagem funcional de fábrica:", err4);
+          }
+        }
+
+        // Se todas as permutações falharem na encriptação segura
+        if (!encryptedToken) {
+          throw new Error('Não foi possível encriptar o cartão com segurança. Revise os dados ou tente via PIX.');
         }
 
         payload.metodo_pagamento = 'cartao';
-        payload.encrypted_card = result.encryptedCard;
+        payload.encrypted_card = encryptedToken;
         payload.parcelas = parcelas;
       } else {
         payload.metodo_pagamento = 'pix';
