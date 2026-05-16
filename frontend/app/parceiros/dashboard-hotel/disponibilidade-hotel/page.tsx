@@ -8,22 +8,23 @@ import {
   Loader2, ArrowLeft, Calendar as CalendarIcon, 
   CheckCircle2, AlertTriangle, Save, ToggleLeft, 
   ToggleRight, Info, Bed, Compass, ChevronLeft, ChevronRight,
-  MapPin, Users2, Ticket, Plus, Award
+  Plus, Award, Percent
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
-import { supabase } from '@/lib/supabase'; // ◄── Injetado para buscar listas dinâmicas
+import { supabase } from '@/lib/supabase';
 
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['600', '700', '800'] });
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
 
 type HotelOpcao = { id: string; nome: string; };
-type GuiaOpcao = { id: string; nome: string; especialidade: string; };
+type GuiaOpcao = { id: string; nome: string; specialty: string; };
+type TarifaCalendario = { data_inicio: string; data_fim: string; preco: number; tipo_quarto: string; };
 
 export default function DisponibilidadePage() {
   const router = useRouter();
   const [parceiroId, setParceiroId] = useState<string | null>(null);
   const [nomeNegocio, setNomeNegocio] = useState<string>('');
-  const [tipoParceiro, setTipoParceiro] = useState<string>('hotel'); // 'hotel' | 'guia' | 'pacote'
+  const [tipoParceiro, setTipoParceiro] = useState<string>('hotel');
   const [loadingSessao, setLoadingSessao] = useState(true);
 
   // ── ESTADOS COMUNS DE FEEDBACK ──
@@ -37,6 +38,8 @@ export default function DisponibilidadePage() {
   const [estaDisponivel, setEstaDisponivel] = useState(true);
   const [dataInicio, setDataInicio] = useState<Date | null>(null);
   const [dataFim, setDataFim] = useState<Date | null>(null);
+  const [porcentagemAcompanhante, setPorcentagemAcompanhante] = useState(''); // ◄── NOVO: Campo de taxa %
+  const [tarifasCarregadas, setTarifasCarregadas] = useState<TarifaCalendario[]>([]); // ◄── NOVO: Tarifas dinâmicas
 
   // ── ESTADOS EXCLUSIVOS: PERFIL GUIA (PASSEIOS) ──
   const [tituloPasseio, setTituloPasseio] = useState('');
@@ -46,7 +49,7 @@ export default function DisponibilidadePage() {
   const [vagasPasseio, setVagasPasseio] = useState('15');
   const [dataPasseio, setDataPasseio] = useState<Date | null>(null);
 
-  // ── ESTADOS EXCLUSIVOS: PERFIL AGÊNCIA (PACÓTES) ──
+  // ── ESTADOS EXCLUSIVOS: PERFIL AGÊNCIA (PACOTES) ──
   const [hoteisDb, setHoteisDb] = useState<HotelOpcao[]>([]);
   const [guiasDb, setGuiasDb] = useState<GuiaOpcao[]>([]);
   const [tituloPacote, setTituloPacote] = useState('');
@@ -58,7 +61,7 @@ export default function DisponibilidadePage() {
   const [dataInicioPacote, setDataInicioPacote] = useState<Date | null>(null);
   const [dataFimPacote, setDataFimPacote] = useState<Date | null>(null);
 
-  // ── 1. GESTÃO DE SESSÃO E PERFIS ──
+  // 1. GESTÃO DE SESSÃO E PERFIS
   useEffect(() => {
     const id = localStorage.getItem("parceiro_id");
     const nome = localStorage.getItem("nome_negocio");
@@ -74,7 +77,38 @@ export default function DisponibilidadePage() {
     }
   }, [router]);
 
-  // ── 2. CARREGAR DEPENDÊNCIAS DO SUPABASE PARA MONTAR PACOTES ──
+  // 2. BUSCAR DADOS DE TARIFAS E CONFIGURAÇÕES DO HOTEL (SUPABASE)
+  useEffect(() => {
+    if (!parceiroId || tipoParceiro !== 'hotel') return;
+
+    async function carregarDadosHotel() {
+      try {
+        // Puxa a porcentagem atual configurada para o Hotel
+        const { data: hotelData } = await supabase
+          .from('hoteis')
+          .select('porcentagem_acompanhante')
+          .eq('id', parceiroId)
+          .single();
+        
+        if (hotelData?.porcentagem_acompanhante) {
+          setPorcentagemAcompanhante(hotelData.porcentagem_acompanhante.toString());
+        }
+
+        // Puxa o histórico de preços por período para renderizar no calendário
+        const { data: dadosTarifas } = await supabase
+          .from('disponibilidade_hoteis')
+          .select('data_inicio, data_fim, preco, tipo_quarto')
+          .eq('hotel_id', parceiroId);
+
+        if (dadosTarifas) setTarifasCarregadas(dadosTarifas);
+      } catch (err) {
+        console.error("Erro ao carregar mapeamento tarifário:", err);
+      }
+    }
+    carregarDadosHotel();
+  }, [parceiroId, tipoParceiro, isSubmitting, tipoQuarto]);
+
+  // CARREGAR DEPENDÊNCIAS DO MONTADOR DE PACOTES
   useEffect(() => {
     if (tipoParceiro !== 'pacote') return;
 
@@ -111,7 +145,7 @@ export default function DisponibilidadePage() {
     }
   };
 
-  // ── 3. SUBMISSÃO UNIFICADA CONSOANTE O PERFIL LOGADO ──
+  // 3. SUBMISSÃO DE DADOS
   const handleSalvarDados = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!parceiroId) return;
@@ -122,13 +156,24 @@ export default function DisponibilidadePage() {
     let endpoint = '';
     let bodyPayload = {};
 
-    // Validações e montagem de payload específicas por perfil
     if (tipoParceiro === 'hotel') {
       if (!dataInicio || !dataFim) {
-        setStatusMensagem({ tipo: 'erro', texto: 'Selecione o intervalo de check-in e check-out no calendário.' });
+        setStatusMensagem({ tipo: 'erro', texto: 'Selecione o intervalo de diárias diretamente no calendário.' });
         setIsSubmitting(false);
         return;
       }
+
+      // 1. Atualiza a porcentagem de acompanhante estrutural na tabela hoteis via Supabase Client
+      try {
+        await supabase
+          .from('hoteis')
+          .update({ porcentagem_acompanhante: parseFloat(porcentagemAcompanhante.replace(',', '.')) || 0 })
+          .eq('id', parceiroId);
+      } catch (err) {
+        console.error("Erro ao atualizar metadados do hotel:", err);
+      }
+
+      // 2. Prepara o envio do período tarifário para a API da Railway
       endpoint = `https://sagaturismo-production.up.railway.app/api/v1/parceiros/${parceiroId}/disponibilidade`;
       bodyPayload = {
         tipo_quarto: tipoQuarto,
@@ -185,8 +230,8 @@ export default function DisponibilidadePage() {
           tipo: 'sucesso',
           texto: `Excelente! Alterações gravadas com sucesso no ecossistema oficial.`
         });
-        // Limpezas de forms
-        setNovoPreco(''); setTituloPasseio(''); setRotaPasseio(''); setValorPasseio(''); setTituloPacote(''); setValorPacote('');
+        setNovoPreco('');
+        setTituloPasseio(''); setRotaPasseio(''); setValorPasseio(''); setTituloPacote(''); setValorPacote('');
         setDataInicio(null); setDataFim(null); setDataPasseio(null); setDataInicioPacote(null); setDataFimPacote(null);
       } else {
         setStatusMensagem({ tipo: 'erro', texto: data.detail || 'Falha ao sincronizar dados.' });
@@ -204,6 +249,15 @@ export default function DisponibilidadePage() {
   const primeiroDia = primeiroDiaDoMes(anoCorrente, mesCorrente);
   const hoje = new Date();
   hoje.setHours(0,0,0,0);
+
+  // Função auxiliar para encontrar o preço ativo de um dia no calendário do hotel
+  const obterPrecoDoDia = (dataDia: Date) => {
+    const dataStr = formatarDataIso(dataDia);
+    const correspondencia = tarifasCarregadas.find(t => {
+      return dataStr >= t.data_inicio && dataStr <= t.data_fim && t.tipo_quarto === tipoQuarto;
+    });
+    return correspondencia ? correspondencia.preco : null;
+  };
 
   return (
     <div className={`${inter.className} min-h-screen bg-[#F1F5F9] text-slate-900 flex flex-col text-left overflow-x-hidden`}>
@@ -258,21 +312,31 @@ export default function DisponibilidadePage() {
                 {/* ── VISÃO 1: FORMULÁRIO EXCLUSIVO DE HOTÉIS ── */}
                 {tipoParceiro === 'hotel' && (
                   <>
+                    {/* NOVO: Ajuste de Taxa Adicional por Acompanhante */}
+                    <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl p-5 shadow-sm">
+                       <label className="text-[10px] font-black uppercase tracking-widest text-[#00577C] block mb-2">Taxa de Hóspede Acompanhante (% por Quarto)</label>
+                       <p className="text-[11px] text-slate-400 font-medium mb-3">Defina a porcentagem extra cobrada por cada pessoa adicional instalada no mesmo quarto.</p>
+                       <div className="relative max-w-[200px]">
+                          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm"><Percent size={16}/></div>
+                          <input type="text" placeholder="0" value={porcentagemAcompanhante} onChange={e => setPorcentagemAcompanhante(e.target.value)} className="w-full bg-white border-2 border-slate-200 rounded-xl py-2.5 pl-11 pr-4 text-sm font-black text-slate-800 outline-none focus:border-[#00577C]" />
+                       </div>
+                    </div>
+
                     <div>
                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2.5">Acomodação a atualizar</label>
                        <div className="grid grid-cols-2 gap-3">
-                          {['standard', 'luxo'].map(t => (
+                          {['standard', 'plus'].map(t => (
                             <button key={t} type="button" onClick={() => setTipoQuarto(t)} className={`p-4 rounded-xl border-2 font-bold text-xs uppercase flex flex-col items-center justify-center gap-2 transition-all ${tipoQuarto === t ? 'border-[#00577C] bg-blue-50/50 text-[#00577C]' : 'border-slate-100 bg-slate-50 text-slate-500'}`}>
                                {t === 'standard' ? <Bed size={20} /> : <Award size={20} />}
-                               <span>{t}</span>
+                               <span className="capitalize">{t}</span>
                             </button>
                           ))}
                        </div>
                     </div>
 
-                    {/* CALENDÁRIO HOTEL */}
+                    {/* CALENDÁRIO HOTEL COM PREÇOS EMBAIXO DE CADA DIA */}
                     <div>
-                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Período de Bloqueio/Preço</label>
+                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Selecione o Período Tarifário no Calendário</label>
                        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 md:p-6 shadow-inner">
                           <div className="flex items-center justify-between mb-4">
                              <button type="button" onClick={() => setMesAtual(new Date(anoCorrente, mesCorrente - 1))} className="p-1.5 hover:bg-slate-200 rounded-full text-slate-600"><ChevronLeft size={18}/></button>
@@ -282,7 +346,7 @@ export default function DisponibilidadePage() {
                           <div className="grid grid-cols-7 gap-1 text-center mb-2">
                              {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((d, i) => <span key={i} className="text-[9px] md:text-[10px] font-black text-slate-400">{d}</span>)}
                           </div>
-                          <div className="grid grid-cols-7 gap-y-1">
+                          <div className="grid grid-cols-7 gap-y-2">
                              {Array.from({ length: primeiroDia }).map((_, i) => <div key={`empty-${i}`} />)}
                              {Array.from({ length: diasMes }).map((_, i) => {
                                 const dDia = new Date(anoCorrente, mesCorrente, i + 1);
@@ -290,9 +354,18 @@ export default function DisponibilidadePage() {
                                 const isI = dataInicio && dDia.getTime() === dataInicio.getTime();
                                 const isF = dataFim && dDia.getTime() === dataFim.getTime();
                                 const isM = dataInicio && dataFim && dDia > dataInicio && dDia < dataFim;
+                                
+                                const precoExistente = obterPrecoDoDia(dDia);
+
                                 return (
-                                  <button type="button" key={i} disabled={passes} onClick={() => handleDateClickCommon(dDia, dataInicio, dataFim, setDataInicio, setDataFim)} className={`w-full aspect-square flex items-center justify-center text-xs font-bold transition-all ${passes ? 'text-slate-300 pointer-events-none' : isI || isF ? 'bg-[#00577C] text-white rounded-lg' : isM ? 'bg-[#00577C]/10 text-[#00577C]' : 'text-slate-800 hover:bg-slate-200'}`}>
-                                     {i + 1}
+                                  <button type="button" key={i} disabled={passes} onClick={() => handleDateClickCommon(dDia, dataInicio, dataFim, setDataInicio, setDataFim)} className={`w-full aspect-square flex flex-col items-center justify-center text-xs font-bold transition-all relative py-1 rounded-lg ${passes ? 'text-slate-300 pointer-events-none' : isI || isF ? 'bg-[#00577C] text-white shadow-md' : isM ? 'bg-[#00577C]/10 text-[#00577C] rounded-none' : 'text-slate-800 hover:bg-slate-200'}`}>
+                                     <span>{i + 1}</span>
+                                     {/* ◄── NOVO: Valor renderizado embaixo de cada dia do mês ── */}
+                                     {!passes && precoExistente && (
+                                       <span className={`text-[8px] font-black block mt-0.5 tracking-tighter ${isI || isF ? 'text-amber-300' : 'text-[#009640]'}`}>
+                                         R${Math.round(precoExistente)}
+                                       </span>
+                                     )}
                                   </button>
                                 );
                              })}
@@ -342,7 +415,7 @@ export default function DisponibilidadePage() {
                        </div>
                     </div>
 
-                    {/* CALENDÁRIO GUIA (DATA ÚNICA) */}
+                    {/* CALENDÁRIO GUIA */}
                     <div>
                        <label className="text-[10px] font-black uppercase text-slate-400 block mb-2">Data do Evento / Saída</label>
                        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 shadow-inner">
@@ -377,7 +450,7 @@ export default function DisponibilidadePage() {
                   </>
                 )}
 
-                {/* ── VISÃO 3: FORMULÁRIO EXCLUSIVO DE AGÊNCIAS (MONTAR PACOTE AUTOMÁTICO) ── */}
+                {/* ── VISÃO 3: FORMULÁRIO EXCLUSIVO DE AGÊNCIAS ── */}
                 {tipoParceiro === 'pacote' && (
                   <>
                     <div className="grid gap-5 sm:grid-cols-2">
@@ -390,7 +463,6 @@ export default function DisponibilidadePage() {
                           <textarea required value={descricaoPacote} onChange={e => setDescricaoPacote(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-4 text-sm font-bold text-slate-800 h-24 focus:border-[#00577C]" placeholder="Resumo dos benefícios inclusos..." />
                        </div>
                        
-                       {/* SELECT DE HOTÉIS DISPONÍVEIS VINDO DO BANCO */}
                        <div>
                           <label className="text-[10px] font-black uppercase text-slate-400 block mb-2">1. Escolha o Hotel Integrado</label>
                           <select value={hotelSelecionadoId} onChange={e => setHotelSelecionadoId(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-4 text-sm font-bold text-slate-800 cursor-pointer">
@@ -399,16 +471,14 @@ export default function DisponibilidadePage() {
                           </select>
                        </div>
 
-                       {/* SELECT DE QUARTO DO PACOTE */}
                        <div>
                           <label className="text-[10px] font-black uppercase text-slate-400 block mb-2">Tipo de Quarto Oferecido</label>
                           <select value={tipoQuartoPacote} onChange={e => setTipoQuartoPacote(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-4 text-sm font-bold text-slate-800 cursor-pointer">
                              <option value="standard">Standard Simples</option>
-                             <option value="luxo">Suíte Luxo / Premium</option>
+                             <option value="plus">Suíte Plus / Premium</option>
                           </select>
                        </div>
 
-                       {/* SELECT DE GUIAS DISPONÍVEIS VINDO DO BANCO */}
                        <div className="sm:col-span-2">
                           <label className="text-[10px] font-black uppercase text-slate-400 block mb-2">2. Vincular Guia de Turismo Parceiro</label>
                           <select value={guiaSelecionadoId} onChange={e => setGuiaSelecionadoId(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-4 text-sm font-bold text-slate-800 cursor-pointer">
