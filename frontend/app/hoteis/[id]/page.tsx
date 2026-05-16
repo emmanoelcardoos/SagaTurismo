@@ -118,7 +118,7 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
         }
       } catch (err: any) {
         setErro(err.message || "Ocorreu um erro inesperado.");
-      } finally { // ◄── CORRIGIDO: de 'ball' para 'finally'
+      } finally {
         setLoading(false);
       }
     }
@@ -169,7 +169,7 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
 
       } catch (err) {
         console.error("Erro ao sincronizar valores dinâmicos do calendário:", err);
-      } finaly {
+      } finally { // ◄── FIXO: Corrigido de 'finaly' para 'finally'
         setCalculandoPreco(false);
       }
     }
@@ -271,7 +271,7 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
               <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Secretaria de Turismo</p>
             </div>
           </Link>
-          <nav className="hidden items-center gap-7 md:flex">
+          <nav className="hidden items-center gap-7 lg:flex">
             <Link href="/hoteis" className="text-[#00577C]">Alojamentos</Link>
             <Link href="/roteiro" className="text-slate-600 hover:text-[#00577C]">Rota Turística</Link>
             <Link href="/cadastro" className="rounded-full bg-[#F9C400] px-5 py-3 text-[#00577C] shadow-lg transition hover:bg-[#ffd633]">Cartão Residente</Link>
@@ -403,7 +403,6 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
                       <div className="w-full xl:w-2/5 p-4 md:p-5 border-b xl:border-b-0 xl:border-r border-slate-100 flex flex-col">
                          <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden mb-3 md:mb-4 group">
                             <Image src={imagensLuxo[imgIdxLuxo]} alt="Quarto Luxo" fill className="object-cover" />
-                            {/* ── CORRIGIDO: de 'imagensxo' para 'imagensLuxo' ── */}
                             <button onClick={() => setImgIdxLuxo((prev) => (prev - 1 + imagensLuxo.length) % imagensLuxo.length)} className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 bg-black/50 text-white rounded-full flex items-center justify-center"><ChevronLeft size={16}/></button>
                             <button onClick={() => setImgIdxLuxo((prev) => (prev + 1) % imagensLuxo.length)} className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 bg-black/50 text-white rounded-full flex items-center justify-center"><ChevronRightIcon size={16}/></button>
                          </div>
@@ -504,7 +503,6 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
         </div>
 
         {/* ── COLUNA DIREITA: CALENDÁRIO FIXADO NO TOPO (REATIVADO COM STICKY) ── */}
-        {/* ◄── AQUI: Injetado o lg:sticky e o lg:top-[110px] para colar perfeitamente abaixo do Menu sem flutuar de forma desalinhada */}
         <div id="motor-reservas" className="w-full lg:w-[380px] shrink-0 lg:self-start lg:sticky lg:top-[110px] relative z-30">
           <div className="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] shadow-xl border border-slate-200 text-left">
              <h3 className={`${jakarta.className} text-lg md:text-xl font-black text-slate-900 mb-5 flex items-center gap-2`}>
