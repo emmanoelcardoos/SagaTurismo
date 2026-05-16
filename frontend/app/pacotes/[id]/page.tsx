@@ -266,7 +266,7 @@ function PacoteDetalheContent() {
       return;
     }
 
-    router.push(`/checkout-pacote?pacote=${pacote?.id}&hotel=${hotelSelecionado?.id}&quarto=${tipoQuarto}&guia=${guiaSelecionado?.id}&checkin=${formatarDataIso(checkin)}&checkout=${formatarDataIso(checkout)}&adultos=${adultos}&quartos=${quartos}`);
+    router.push(`/checkout?pacote=${pacote?.id}&hotel=${hotelSelecionado?.id}&quarto=${tipoQuarto}&guia=${guiaSelecionado?.id}&checkin=${formatarDataIso(checkin)}&checkout=${formatarDataIso(checkout)}&adultos=${adultos}&quartos=${quartos}`);
   };
 
   if (!mounted || loading || !pacote || !mesAtualCalendario) return (
