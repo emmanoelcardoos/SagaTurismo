@@ -1,16 +1,14 @@
 'use client';
 
-import { useEffect, useState, Suspense, useRef } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import Script from 'next/script';
 import { 
   Loader2, ArrowLeft, ShieldCheck, MapPin, 
   Bed, Compass, Ticket, QrCode, CheckCircle2, 
   User, Mail, FileText, Smartphone, Copy, AlertCircle,
-  CreditCard, Home, Clock, Lock, ShieldAlert, Menu, Info,
-  ChevronRight, Wallet, Check, CalendarDays, Hash
+  CreditCard, Home, Clock, Lock, ShieldAlert, ChevronRight, Wallet, Check
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -21,9 +19,7 @@ const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] }
 // ── TIPAGENS ──
 declare global {
   interface Window {
-    PagSeguro?: {
-      encryptCard: (params: any) => { encryptedCard?: string; hasErrors?: boolean; errors?: any[] };
-    };
+    PagSeguro?: any;
   }
 }
 
@@ -44,7 +40,13 @@ const mascaraCartao = (v: string) => v.replace(/\D/g, '').replace(/(\d{4})(?=\d)
 const mascaraTelefone = (v: string) => v.replace(/\D/g, '').replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d{4})/, '$1-$2').slice(0, 15);
 const mascaraCEP = (v: string) => v.replace(/\D/g, '').replace(/(\d{5})(\d)/, '$1-$2').slice(0, 9);
 
-// ─── COMPONENTES UI ESTILO NOVO ───
+function formatarData(dataStr: string | null) {
+  if (!dataStr) return '';
+  const [ano, mes, dia] = dataStr.split('-');
+  return `${dia}/${mes}/${ano}`;
+}
+
+// ─── COMPONENTES UI ───
 
 function SectionCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
@@ -57,11 +59,11 @@ function SectionCard({ children, className = "" }: { children: React.ReactNode; 
 function SectionHeader({ step, title, icon }: { step: number; title: string; icon: React.ReactNode }) {
   return (
     <div className="flex items-center gap-4 mb-8">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#00577C] text-white text-sm font-black shadow-md">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#0085FF] text-white text-sm font-black shadow-md">
         {step}
       </div>
       <div className="flex items-center gap-2">
-        <span className="text-[#00577C] bg-blue-50 p-2 rounded-xl hidden sm:block">{icon}</span>
+        <span className="text-[#0085FF] bg-blue-50 p-2 rounded-xl hidden sm:block">{icon}</span>
         <h2 className={`${jakarta.className} text-xl md:text-2xl font-black text-slate-900 tracking-tight`}>{title}</h2>
       </div>
     </div>
@@ -69,7 +71,7 @@ function SectionHeader({ step, title, icon }: { step: number; title: string; ico
 }
 
 function BarraTempoReserva() {
-  const [segundos, setSegundos] = useState(900); // 15 min
+  const [segundos, setSegundos] = useState(900);
   useEffect(() => {
     const id = setInterval(() => setSegundos(s => Math.max(0, s - 1)), 1000);
     return () => clearInterval(id);
@@ -82,18 +84,18 @@ function BarraTempoReserva() {
     <div className="mb-8 overflow-hidden rounded-[2rem] border-2 border-blue-50 bg-blue-50/50 shadow-sm">
       <div className="p-5 md:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-left">
         <div>
-          <p className="font-black text-base text-[#00577C] flex items-center gap-2">
+          <p className="font-black text-base text-[#0085FF] flex items-center gap-2">
              <ShieldCheck size={18} className="text-[#009640]"/> Disponibilidade Garantida
           </p>
           <p className="text-xs md:text-sm font-bold text-slate-500 mt-1">Conclua o pagamento nos próximos minutos para garantir este pacote.</p>
         </div>
         <div className="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 shadow-sm border border-blue-100 w-fit">
-          <Clock size={18} className="text-[#00577C] animate-pulse" />
-          <span className="text-xl md:text-2xl font-black text-[#00577C] tabular-nums">{String(min).padStart(2, "0")}:{String(seg).padStart(2, "0")}</span>
+          <Clock size={18} className="text-[#0085FF] animate-pulse" />
+          <span className="text-xl md:text-2xl font-black text-[#0085FF] tabular-nums">{String(min).padStart(2, "0")}:{String(seg).padStart(2, "0")}</span>
         </div>
       </div>
       <div className="h-2 w-full bg-slate-200">
-        <div className="h-full bg-[#00577C] transition-all duration-1000 ease-linear" style={{ width: `${percent}%` }} />
+        <div className="h-full bg-[#0085FF] transition-all duration-1000 ease-linear" style={{ width: `${percent}%` }} />
       </div>
     </div>
   );
@@ -108,6 +110,10 @@ function CheckoutPacoteContent() {
   const hotelId = searchParams.get('hotel');
   const quartoTipo = searchParams.get('quarto') as 'standard' | 'luxo' | null;
   const guiaId = searchParams.get('guia');
+  const checkinData = searchParams.get('checkin');
+  const checkoutData = searchParams.get('checkout');
+  const adultosParam = Number(searchParams.get('adultos')) || 2;
+  const quartosParam = Number(searchParams.get('quartos')) || 1;
 
   // Estados de Dados
   const [pacote, setPacote] = useState<Pacote | null>(null);
@@ -117,6 +123,12 @@ function CheckoutPacoteContent() {
   const [loadingInitial, setLoadingInitial] = useState(true);
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+
+  // API Railway Valores Dinâmicos
+  const [valorHospedagemDin, setValorHospedagemDin] = useState<number>(0);
+  const [numNoites, setNumNoites] = useState<number>(1);
+  const [loadingPreco, setLoadingPreco] = useState<boolean>(false);
+  const [pacoteDisponivel, setPacoteDisponivel] = useState<boolean>(true);
 
   // Estados do Formulário
   const [nome, setNome] = useState('');
@@ -129,7 +141,7 @@ function CheckoutPacoteContent() {
   const [cep, setCep] = useState('');
   const [cidade, setCidade] = useState('');
   const [estado, setEstado] = useState('');
-  const [metodoPagamento, setMetodoPagamento] = useState<'pix' | 'cartao'>('cartao'); // Mudado padrão para cartão para ver o design
+  const [metodoPagamento, setMetodoPagamento] = useState<'pix' | 'cartao'>('cartao');
   const [nomeCartao, setNomeCartao] = useState('');
   const [numeroCartao, setNumeroCartao] = useState('');
   const [mesCartao, setMesCartao] = useState('');
@@ -139,6 +151,16 @@ function CheckoutPacoteContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [erroApi, setErroApi] = useState('');
   const [qrCodeData, setQrCodeData] = useState<{ link: string; texto: string; id_pedido: string } | null>(null);
+
+  // ── INJEÇÃO SILENCIOSA DO PAGBANK SDK ──
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !window.PagSeguro) {
+      const script = document.createElement('script');
+      script.src = "https://assets.pagseguro.com.br/checkout-sdk-js/rc/dist/browser/pagseguro.min.js";
+      script.async = true;
+      document.body.appendChild(script);
+    }
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -150,6 +172,7 @@ function CheckoutPacoteContent() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
+  // Carrega Estrutura Básica do Pacote
   useEffect(() => {
     async function carregarResumo() {
       if (!pacoteId) { router.push('/#pacotes'); return; }
@@ -165,14 +188,54 @@ function CheckoutPacoteContent() {
     carregarResumo();
   }, [pacoteId, hotelId, guiaId, router]);
 
-  const precoHotel = hotelSel ? (quartoTipo === 'luxo' ? parseValor(hotelSel.quarto_luxo_preco) : parseValor(hotelSel.quarto_standard_preco)) : 0;
-  const precoGuia = guiaSel ? parseValor(guiaSel.preco_diaria) : 0;
-  const precoAtracoes = atracoes.reduce((acc, curr) => acc + parseValor(curr.preco_entrada), 0);
-  const totalPagamento = precoHotel + precoGuia + precoAtracoes;
+  // Consulta API da Railway para o Preço Dinâmico do Hotel
+  useEffect(() => {
+    if (!checkinData || !checkoutData) return;
+
+    if (!hotelId) {
+      // Se não tem hotel no pacote, calcula apenas a diferença de noites matematicamente
+      const ci = new Date(checkinData);
+      const co = new Date(checkoutData);
+      const diff = Math.ceil((co.getTime() - ci.getTime()) / (1000 * 3600 * 24));
+      setNumNoites(diff > 0 ? diff : 1);
+      return;
+    }
+
+    async function obterPrecoDin() {
+      setLoadingPreco(true);
+      try {
+        const response = await fetch(
+          `https://sagaturismo-production.up.railway.app/api/v1/public/hoteis/${hotelId}/calcular-preco?tipo_quarto=${quartoTipo || 'standard'}&checkin=${checkinData}&checkout=${checkoutData}&quantidade=${quartosParam}`
+        );
+        const data = await response.json();
+        
+        if (data.sucesso) {
+          setValorHospedagemDin(data.valor_total);
+          setNumNoites(data.noites);
+          setPacoteDisponivel(data.disponivel);
+          if (!data.disponivel) setErroApi("O hotel esgotou as vagas nestas datas. Regresse e escolha outro período.");
+        } else {
+          setErroApi(data.detail || "Erro de sincronização com o calendário.");
+        }
+      } catch (err) {
+        console.error("Erro API Railway:", err);
+      } finally {
+        setLoadingPreco(false);
+      }
+    }
+
+    obterPrecoDin();
+  }, [hotelId, quartoTipo, checkinData, checkoutData, quartosParam]);
+
+  // Totais do Carrinho
+  const precoGuia = guiaSel ? parseValor(guiaSel.preco_diaria) * (numNoites + 1) : 0;
+  const precoAtracoes = atracoes.reduce((acc, curr) => acc + parseValor(curr.preco_entrada), 0) * adultosParam;
+  const totalPagamento = valorHospedagemDin + precoGuia + precoAtracoes;
 
   const handlePagamento = async (e: React.FormEvent) => {
     e.preventDefault();
     setErroApi('');
+    if (!pacoteDisponivel) { setErroApi('Pacote esgotado.'); return; }
     if (cpf.length < 14) { setErroApi('CPF inválido.'); return; }
     setIsSubmitting(true);
 
@@ -180,12 +243,16 @@ function CheckoutPacoteContent() {
       tipo_item: "pacote",
       pacote_id: pacoteId,
       hotel_id: hotelId || null,
+      tipo_quarto: quartoTipo || "standard",
       guia_id: guiaId || null,
+      data_checkin: checkinData,
+      data_checkout: checkoutData,
+      quantidade: quartosParam,
+      adultos: adultosParam,
       nome_cliente: nome,
       cpf_cliente: cpf.replace(/\D/g, ''),
       email_cliente: email,
       telefone_cliente: telefone.replace(/\D/g, ''),
-      valor_total: totalPagamento,
       endereco_faturacao: {
         street: rua,
         number: numero,
@@ -199,13 +266,24 @@ function CheckoutPacoteContent() {
 
     try {
       if (metodoPagamento === 'cartao') {
-        if (!window.PagSeguro) throw new Error('Sistema de criptografia não carregado.');
+        if (!window.PagSeguro || typeof window.PagSeguro.encryptCard !== 'function') {
+          throw new Error('Sistema de criptografia não carregado. Tente novamente em 2 segundos.');
+        }
+        
+        const key = process.env.NEXT_PUBLIC_PAGBANK_PUBLIC_KEY;
+        if (!key) throw new Error('Chave pública não localizada.');
+
         const result = window.PagSeguro.encryptCard({
-          publicKey: process.env.NEXT_PUBLIC_PAGBANK_PUBLIC_KEY,
-          holder: nomeCartao, number: numeroCartao.replace(/\D/g,''),
-          expMonth: mesCartao, expYear: anoCartao, securityCode: cvvCartao
+          publicKey: key,
+          holder: nomeCartao, 
+          number: numeroCartao.replace(/\D/g,''),
+          expMonth: mesCartao, 
+          expYear: anoCartao, 
+          securityCode: cvvCartao
         });
-        if (result.hasErrors) throw new Error('Dados do cartão inválidos.');
+        
+        if (result.hasErrors) throw new Error('Dados do cartão rejeitados pelo sistema antifraude.');
+        
         payload.metodo_pagamento = 'cartao';
         payload.encrypted_card = result.encryptedCard;
         payload.parcelas = parcelas;
@@ -213,7 +291,7 @@ function CheckoutPacoteContent() {
         payload.metodo_pagamento = 'pix';
       }
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/pagamentos/processar`, {
+      const res = await fetch(`https://sagaturismo-production.up.railway.app/api/v1/pagamentos/processar`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
@@ -221,35 +299,34 @@ function CheckoutPacoteContent() {
 
       if (data.sucesso) {
         if (metodoPagamento === 'pix') {
-          setQrCodeData({ link: data.qr_code_link, texto: data.qr_code_text, id_pedido: data.codigo_pedido });
+          setQrCodeData({ link: data.pix_qrcode_img, texto: data.pix_copia_cola, id_pedido: data.codigo_pedido });
         } else {
           router.push(`/sucesso?pedido=${data.codigo_pedido}`);
         }
       } else {
-        setErroApi(data.mensagem || 'Rejeitado pela operadora.');
+        setErroApi(data.detail || data.mensagem || 'Rejeitado pela operadora.');
       }
     } catch (err: any) { setErroApi(err.message); } finally { setIsSubmitting(false); }
   };
 
-  if (loadingInitial) return <div className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="animate-spin text-[#00577C]" size={40} /></div>;
+  if (loadingInitial) return <div className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="animate-spin text-[#0085FF]" size={40} /></div>;
 
   return (
     <main className={`${inter.className} min-h-screen bg-[#F5F7FA] text-slate-900 pb-20`}>
-      <Script src="https://assets.pagseguro.com.br/checkout-sdk-js/rc/dist/browser/pagseguro.min.js" strategy="afterInteractive" />
 
       {/* HEADER */}
       <header className={`fixed left-0 top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl transition-transform duration-300 ${showHeader ? 'translate-y-0' : '-translate-y-full'}`}>
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-5 text-left">
           <Link href="/" className="flex items-center gap-3">
-            <div className="relative h-10 w-28 md:h-12 md:w-36 lg:h-16 lg:w-56 shrink-0"><Image src="/logop.png" alt="Prefeitura" fill priority className="object-contain object-left" /></div>
+            <div className="relative h-10 w-28 md:h-12 md:w-36 lg:h-16 lg:w-56 shrink-0"><Image src="/logop.png" alt="SagaTurismo" fill priority className="object-contain object-left" /></div>
             <div className="hidden border-l border-slate-200 pl-4 lg:block">
-              <p className={`${jakarta.className} text-2xl font-bold leading-none text-[#00577C]`}>SagaTurismo</p>
-              <p className="mt-1 text-[11px] font-bold uppercase tracking-widest text-slate-500">Secretaria de Turismo</p>
+              <p className={`${jakarta.className} text-2xl font-bold leading-none text-[#0085FF]`}>SagaTurismo</p>
+              <p className="mt-1 text-[11px] font-bold uppercase tracking-widest text-slate-500">Agência Oficial</p>
             </div>
           </Link>
           <div className="flex items-center gap-2">
             <ShieldCheck className="text-[#009640]" size={20}/>
-            <span className="text-xs font-black uppercase tracking-widest text-slate-400 hidden sm:inline-block">Checkout Oficial</span>
+            <span className="text-xs font-black uppercase tracking-widest text-slate-400 hidden sm:inline-block">Checkout Seguro</span>
           </div>
         </div>
       </header>
@@ -260,7 +337,7 @@ function CheckoutPacoteContent() {
           <div className="flex items-center justify-center md:justify-start gap-2 md:gap-4 text-[9px] md:text-[10px] uppercase tracking-[0.2em] font-black text-slate-400">
             <span className="hidden sm:inline-block">Pacote</span> <ChevronRight size={14} className="hidden sm:inline-block"/> 
             <span>Escolha</span> <ChevronRight size={14}/> 
-            <span className="text-[#00577C] bg-blue-50 px-3 py-1.5 rounded-full flex items-center gap-2"><Lock size={12}/> Pagamento</span> <ChevronRight size={14}/> 
+            <span className="text-[#0085FF] bg-blue-50 px-3 py-1.5 rounded-full flex items-center gap-2"><Lock size={12}/> Pagamento</span> <ChevronRight size={14}/> 
             <span>Sucesso</span>
           </div>
         </div>
@@ -303,28 +380,28 @@ function CheckoutPacoteContent() {
                       <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Nome Completo (Conforme Documento) *</label>
                       <div className="relative">
                         <User className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-                        <input required value={nome} onChange={e => setNome(e.target.value)} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 pl-12 pr-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white hover:border-slate-200 transition-all" placeholder="Nome do responsável pela reserva" />
+                        <input required value={nome} onChange={e => setNome(e.target.value)} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 pl-12 pr-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF] focus:bg-white hover:border-slate-200 transition-all" placeholder="Nome do responsável pela reserva" />
                       </div>
                     </div>
                     <div>
                       <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">CPF *</label>
                       <div className="relative">
                         <FileText className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-                        <input required value={cpf} onChange={e => setCpf(mascaraCPF(e.target.value))} maxLength={14} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 pl-12 pr-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white hover:border-slate-200 transition-all" placeholder="000.000.000-00" />
+                        <input required value={cpf} onChange={e => setCpf(mascaraCPF(e.target.value))} maxLength={14} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 pl-12 pr-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF] focus:bg-white hover:border-slate-200 transition-all" placeholder="000.000.000-00" />
                       </div>
                     </div>
                     <div>
                       <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Telemóvel / WhatsApp *</label>
                       <div className="relative">
                         <Smartphone className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-                        <input required value={telefone} onChange={e => setTelefone(mascaraTelefone(e.target.value))} maxLength={15} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 pl-12 pr-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white hover:border-slate-200 transition-all" placeholder="(99) 99999-9999" />
+                        <input required value={telefone} onChange={e => setTelefone(mascaraTelefone(e.target.value))} maxLength={15} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 pl-12 pr-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF] focus:bg-white hover:border-slate-200 transition-all" placeholder="(99) 99999-9999" />
                       </div>
                     </div>
                     <div className="sm:col-span-2">
                       <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">E-mail para Receber o Voucher *</label>
                       <div className="relative">
                         <Mail className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-                        <input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 pl-12 pr-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white hover:border-slate-200 transition-all" placeholder="seu@email.com" />
+                        <input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 pl-12 pr-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF] focus:bg-white hover:border-slate-200 transition-all" placeholder="seu@email.com" />
                       </div>
                     </div>
                   </div>
@@ -337,28 +414,28 @@ function CheckoutPacoteContent() {
                     <div className="sm:col-span-2 grid grid-cols-[1fr_100px] gap-4">
                       <div>
                         <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Morada *</label>
-                        <input required value={rua} onChange={e => setRua(e.target.value)} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="Rua / Avenida" />
+                        <input required value={rua} onChange={e => setRua(e.target.value)} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF] focus:bg-white transition-all" placeholder="Rua / Avenida" />
                       </div>
                       <div>
                         <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Nº *</label>
-                        <input required value={numero} onChange={e => setNumero(e.target.value)} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 text-center outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="Nº" />
+                        <input required value={numero} onChange={e => setNumero(e.target.value)} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 text-center outline-none focus:border-[#0085FF] focus:bg-white transition-all" placeholder="Nº" />
                       </div>
                     </div>
                     <div>
                       <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Bairro *</label>
-                      <input required value={bairro} onChange={e => setBairro(e.target.value)} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="Bairro" />
+                      <input required value={bairro} onChange={e => setBairro(e.target.value)} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF] focus:bg-white transition-all" placeholder="Bairro" />
                     </div>
                     <div>
                       <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">CEP *</label>
-                      <input required value={cep} onChange={e => setCep(mascaraCEP(e.target.value))} maxLength={9} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="00000-000" />
+                      <input required value={cep} onChange={e => setCep(mascaraCEP(e.target.value))} maxLength={9} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF] focus:bg-white transition-all" placeholder="00000-000" />
                     </div>
                     <div>
                       <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Cidade *</label>
-                      <input required value={cidade} onChange={e => setCidade(e.target.value)} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="Sua Cidade" />
+                      <input required value={cidade} onChange={e => setCidade(e.target.value)} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF] focus:bg-white transition-all" placeholder="Sua Cidade" />
                     </div>
                     <div>
                       <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Estado (UF) *</label>
-                      <input required value={estado} onChange={e => setEstado(e.target.value.toUpperCase())} maxLength={2} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 text-center outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="EX: PA" />
+                      <input required value={estado} onChange={e => setEstado(e.target.value.toUpperCase())} maxLength={2} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 text-center outline-none focus:border-[#0085FF] focus:bg-white transition-all" placeholder="EX: PA" />
                     </div>
                   </div>
                 </SectionCard>
@@ -372,21 +449,21 @@ function CheckoutPacoteContent() {
                     <button type="button" onClick={() => setMetodoPagamento('pix')} className={`flex flex-col items-center justify-center gap-3 p-5 md:p-6 rounded-2xl border-2 transition-all ${metodoPagamento === 'pix' ? 'border-[#009640] bg-[#009640]/5 text-[#009640] shadow-sm' : 'border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200'}`}>
                       <QrCode size={32} /> <span className="text-[10px] md:text-xs font-black uppercase tracking-widest">PIX Rápido</span>
                     </button>
-                    <button type="button" onClick={() => setMetodoPagamento('cartao')} className={`flex flex-col items-center justify-center gap-3 p-5 md:p-6 rounded-2xl border-2 transition-all ${metodoPagamento === 'cartao' ? 'border-[#00577C] bg-blue-50/50 text-[#00577C] shadow-sm' : 'border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200'}`}>
+                    <button type="button" onClick={() => setMetodoPagamento('cartao')} className={`flex flex-col items-center justify-center gap-3 p-5 md:p-6 rounded-2xl border-2 transition-all ${metodoPagamento === 'cartao' ? 'border-[#0085FF] bg-blue-50/50 text-[#0085FF] shadow-sm' : 'border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200'}`}>
                       <CreditCard size={32} /> <span className="text-[10px] md:text-xs font-black uppercase tracking-widest">Cartão de Crédito</span>
                     </button>
                   </div>
 
                   {/* FORMULÁRIO DE CARTÃO REDESENHADO */}
                   {metodoPagamento === 'cartao' && (
-                    <div className="space-y-5 bg-white border-2 border-[#00577C]/10 p-6 md:p-8 rounded-[2rem] shadow-inner mb-8 animate-in slide-in-from-top-4 duration-300">
+                    <div className="space-y-5 bg-white border-2 border-[#0085FF]/10 p-6 md:p-8 rounded-[2rem] shadow-inner mb-8 animate-in slide-in-from-top-4 duration-300">
                       
                       {/* Nome no Cartão */}
                       <div>
                         <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Nome Impresso no Cartão *</label>
                         <div className="relative">
                           <User className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-                          <input required value={nomeCartao} onChange={e => setNomeCartao(e.target.value.toUpperCase())} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 pl-12 pr-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white hover:border-slate-200 transition-all uppercase" placeholder="JOAO S SANTOS" />
+                          <input required value={nomeCartao} onChange={e => setNomeCartao(e.target.value.toUpperCase())} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 pl-12 pr-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF] focus:bg-white hover:border-slate-200 transition-all uppercase" placeholder="JOAO S SANTOS" />
                         </div>
                       </div>
 
@@ -395,7 +472,7 @@ function CheckoutPacoteContent() {
                         <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Número do Cartão *</label>
                         <div className="relative">
                           <CreditCard className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-                          <input required value={numeroCartao} onChange={e => setNumeroCartao(mascaraCartao(e.target.value))} maxLength={19} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 pl-12 pr-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white hover:border-slate-200 transition-all tabular-nums tracking-widest" placeholder="0000 0000 0000 0000" />
+                          <input required value={numeroCartao} onChange={e => setNumeroCartao(mascaraCartao(e.target.value))} maxLength={19} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 pl-12 pr-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF] focus:bg-white hover:border-slate-200 transition-all tabular-nums tracking-widest" placeholder="0000 0000 0000 0000" />
                         </div>
                       </div>
 
@@ -403,17 +480,17 @@ function CheckoutPacoteContent() {
                       <div className="grid grid-cols-[1fr_1fr_1.5fr] gap-3 md:gap-4">
                         <div>
                           <label className="block text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Mês *</label>
-                          <input required value={mesCartao} maxLength={2} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-2 py-4 text-sm font-bold text-slate-800 text-center outline-none focus:border-[#00577C] focus:bg-white transition-all tabular-nums" placeholder="MM" onChange={e => setMesCartao(e.target.value.replace(/\D/g,''))} />
+                          <input required value={mesCartao} maxLength={2} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-2 py-4 text-sm font-bold text-slate-800 text-center outline-none focus:border-[#0085FF] focus:bg-white transition-all tabular-nums" placeholder="MM" onChange={e => setMesCartao(e.target.value.replace(/\D/g,''))} />
                         </div>
                         <div>
                           <label className="block text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Ano *</label>
-                          <input required value={anoCartao} maxLength={4} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-2 py-4 text-sm font-bold text-slate-800 text-center outline-none focus:border-[#00577C] focus:bg-white transition-all tabular-nums" placeholder="AAAA" onChange={e => setAnoCartao(e.target.value.replace(/\D/g,''))} />
+                          <input required value={anoCartao} maxLength={4} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-2 py-4 text-sm font-bold text-slate-800 text-center outline-none focus:border-[#0085FF] focus:bg-white transition-all tabular-nums" placeholder="AAAA" onChange={e => setAnoCartao(e.target.value.replace(/\D/g,''))} />
                         </div>
                         <div>
                           <label className="block text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Cód. Segurança *</label>
                           <div className="relative">
                             <Lock className="absolute left-3 md:left-4 top-1/2 h-4 w-4 md:h-5 md:w-5 -translate-y-1/2 text-slate-400" />
-                            <input required type="password" value={cvvCartao} maxLength={4} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 pl-9 pr-2 md:pl-11 md:pr-4 py-4 text-sm font-bold text-slate-800 text-center outline-none focus:border-[#00577C] focus:bg-white transition-all tabular-nums tracking-widest" placeholder="CVV" onChange={e => setCvvCartao(e.target.value.replace(/\D/g,''))} />
+                            <input required type="password" value={cvvCartao} maxLength={4} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 pl-9 pr-2 md:pl-11 md:pr-4 py-4 text-sm font-bold text-slate-800 text-center outline-none focus:border-[#0085FF] focus:bg-white transition-all tabular-nums tracking-widest" placeholder="CVV" onChange={e => setCvvCartao(e.target.value.replace(/\D/g,''))} />
                           </div>
                         </div>
                       </div>
@@ -421,7 +498,7 @@ function CheckoutPacoteContent() {
                       {/* Parcelas */}
                       <div>
                         <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Opção de Parcelamento *</label>
-                        <select value={parcelas} onChange={e => setParcelas(Number(e.target.value))} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-all cursor-pointer appearance-none">
+                        <select value={parcelas} onChange={e => setParcelas(Number(e.target.value))} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF] focus:bg-white transition-all cursor-pointer appearance-none">
                           {[...Array(12)].map((_, i) => <option key={i+1} value={i+1}>{i+1}x de {formatarMoeda(totalPagamento/(i+1))} {!i && ' (À Vista)'}</option>)}
                         </select>
                       </div>
@@ -436,8 +513,8 @@ function CheckoutPacoteContent() {
                   )}
                   
                   {/* BOTÃO FINALIZAR */}
-                  <button type="submit" disabled={isSubmitting} className="w-full py-6 md:py-7 rounded-[1.5rem] font-black text-lg md:text-xl text-white shadow-xl bg-slate-900 hover:bg-black transition-all active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-70">
-                    {isSubmitting ? <><Loader2 className="animate-spin" size={24}/> Processando Pagamento...</> : <><Lock size={22}/> Confirmar Reserva Segura</>}
+                  <button type="submit" disabled={isSubmitting || loadingPreco || !pacoteDisponivel} className="w-full py-6 md:py-7 rounded-[1.5rem] font-black text-lg md:text-xl text-white shadow-xl bg-slate-900 hover:bg-black transition-all active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed">
+                    {isSubmitting ? <><Loader2 className="animate-spin" size={24}/> Processando Pagamento...</> : loadingPreco ? 'A Sincronizar Calendário...' : !pacoteDisponivel ? 'Esgotado' : <><Lock size={22}/> Confirmar Reserva Segura</>}
                   </button>
 
                   <div className="mt-6 flex flex-wrap items-center justify-center gap-4 opacity-50 grayscale">
@@ -476,18 +553,29 @@ function CheckoutPacoteContent() {
           {/* ── COLUNA DIREITA: RESUMO PROFISSIONAL (ESTÁTICO) ── */}
           <aside className="w-full h-fit lg:self-start order-first lg:order-last relative">
             <SectionCard>
-              <div className="h-2 w-full bg-gradient-to-r from-[#00577C] via-[#F9C400] to-[#009640]" />
+              <div className="h-2 w-full bg-gradient-to-r from-[#0085FF] via-[#F9C400] to-[#009640]" />
               <div className="p-6 md:p-8 border-b border-slate-100 text-left bg-slate-50">
-                <p className="text-[10px] font-black uppercase text-[#00577C] tracking-widest mb-2 flex items-center gap-2"><CheckCircle2 size={14}/> Resumo da Reserva</p>
+                <p className="text-[10px] font-black uppercase text-[#0085FF] tracking-widest mb-2 flex items-center gap-2"><CheckCircle2 size={14}/> Resumo da Reserva</p>
                 <h3 className={`${jakarta.className} text-xl md:text-2xl font-black text-slate-900 leading-tight`}>{pacote?.titulo}</h3>
               </div>
 
               <div className="p-6 md:p-8 space-y-6 text-left">
                  {/* Itens do Pacote */}
+                 {checkinData && checkoutData && (
+                    <div className="flex items-start gap-4 pb-4 border-b border-slate-100">
+                       <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
+                         <CalendarDays size={20} className="text-slate-500"/>
+                       </div>
+                       <div className="flex-1 pt-1">
+                          <p className="text-sm font-black text-slate-800 leading-none mb-1.5">{formatarData(checkinData)} a {formatarData(checkoutData)}</p>
+                          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{numNoites} Noite(s)</p>
+                       </div>
+                    </div>
+                 )}
                  {hotelSel && (
                     <div className="flex items-start gap-4">
                        <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
-                         <Bed size={20} className="text-[#00577C]"/>
+                         <Bed size={20} className="text-[#0085FF]"/>
                        </div>
                        <div className="flex-1 pt-1">
                           <p className="text-sm font-black text-slate-800 leading-none mb-1.5">{hotelSel.nome}</p>
@@ -524,11 +612,13 @@ function CheckoutPacoteContent() {
                           <Check size={12} strokeWidth={3}/> Sem Taxas Extras
                        </div>
                     </div>
-                    <p className={`${jakarta.className} text-4xl md:text-5xl font-black text-[#00577C] tabular-nums leading-none`}>{formatarMoeda(totalPagamento)}</p>
+                    <p className={`${jakarta.className} text-4xl md:text-5xl font-black text-[#0085FF] tabular-nums leading-none`}>
+                      {loadingPreco ? '...' : formatarMoeda(totalPagamento)}
+                    </p>
                  </div>
               </div>
 
-              <div className="p-6 md:p-8 bg-[#00577C] text-white flex items-center gap-4">
+              <div className="p-6 md:p-8 bg-[#0085FF] text-white flex items-center gap-4">
                  <ShieldAlert size={28} className="text-[#F9C400] shrink-0" />
                  <p className="text-[10px] md:text-xs font-bold text-blue-100 uppercase tracking-wider leading-relaxed text-left">Este é um roteiro oficial gerido e garantido pela Secretaria de Turismo de São Geraldo do Araguaia.</p>
               </div>
@@ -543,7 +633,7 @@ function CheckoutPacoteContent() {
 
 export default function CheckoutPacotePage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#F5F7FA]"><Loader2 className="animate-spin text-[#00577C] w-12 h-12" /></div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#F5F7FA]"><Loader2 className="animate-spin text-[#0085FF] w-12 h-12" /></div>}>
       <CheckoutPacoteContent />
     </Suspense>
   );
