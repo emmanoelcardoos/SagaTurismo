@@ -583,7 +583,7 @@ function PacoteDetalheContent() {
 
         {/* ── COLUNA DIREITA — MOTOR DE RESERVAS (STICKY NO DESKTOP) ── */}
         <div id="motor-reservas" className="w-full lg:w-[400px] shrink-0 lg:self-start text-left relative z-40">
-          <aside className="lg:sticky lg:top-32 space-y-6">
+          <aside className="hidden lg:block w-72 shrink-0 space-y-6 h-fit lg:self-start">
 
             <div className="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[3rem] shadow-xl border border-slate-200 overflow-hidden">
 
