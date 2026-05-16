@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { 
   Loader2, LogOut, Wallet, ShoppingBag, Users2, 
   Bed, Compass, ClipboardList, ShieldCheck, 
-  ArrowUpRight, Home, Calendar, Search
+  ArrowUpRight, Home, Calendar, Search, Plus, Ticket
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 
@@ -32,7 +32,7 @@ type Reserva = {
   quantidade_quartos?: number;
   quantidade_pessoas?: number;
   valor_total: number;
-  valor_liquido: number; // ◄── Injetado pelo backend dinamicamente
+  valor_liquido: number;
   status: string;
 };
 
@@ -40,6 +40,7 @@ export default function DashboardParceiroPage() {
   const router = useRouter();
   const [parceiroId, setParceiroId] = useState<string | null>(null);
   const [nomeNegocio, setNomeNegocio] = useState<string>('');
+  const [tipoParceiro, setTipoParceiro] = useState<string>('hotel'); // 'hotel' | 'guia' | 'pacote'
   
   const [loading, setLoading] = useState(true);
   const [metricas, setMetricas] = useState<Metricas | null>(null);
@@ -47,20 +48,22 @@ export default function DashboardParceiroPage() {
   
   const [searchTerm, setSearchTerm] = useState('');
 
-  // ── SEGURANÇA BÁSICA E SESSÃO ──
+  // ── SEGURANÇA BÁSICA E LEITURA DO PERFIL ──
   useEffect(() => {
     const id = localStorage.getItem("parceiro_id");
     const nome = localStorage.getItem("nome_negocio");
+    const tipo = localStorage.getItem("tipo_parceiro"); // Lendo o tipo dinâmico do banco
 
     if (!id) {
       router.push('/parceiros');
     } else {
       setParceiroId(id);
       setNomeNegocio(nome || 'Painel do Parceiro');
+      setTipoParceiro(tipo || 'hotel');
     }
   }, [router]);
 
-  // ── CONSUMO DA API E MAPEAMENTO SEGURO ──
+  // ── CONSUMO DA API ──
   useEffect(() => {
     if (!parceiroId) return;
 
@@ -74,7 +77,6 @@ export default function DashboardParceiroPage() {
         const dataMetricas = await resMetricas.json();
         const dataReservas = await resReservas.json();
 
-        // 1. Extrair as reservas de forma segura
         let listaReservas: Reserva[] = [];
         if (Array.isArray(dataReservas)) {
           listaReservas = dataReservas;
@@ -86,12 +88,10 @@ export default function DashboardParceiroPage() {
 
         setReservas(listaReservas);
 
-        // 2. CÁLCULO DE BACKUP INTEGRAVEL (FALLBACK LÍQUIDO)
         const faturamentoLiquidoCalculado = listaReservas.reduce((acc, r) => acc + (Number(r.valor_liquido) || 0), 0);
         const totalVendasCalculadas = listaReservas.length;
         
         setMetricas({
-          // Mapeia diretamente as propriedades calculadas na base de dados pelo backend
           faturamento: dataMetricas?.metricas?.faturamento_total ?? faturamentoLiquidoCalculado,
           total_vendas: dataMetricas?.metricas?.total_vendas ?? totalVendasCalculadas,
           clientes_a_chegar: dataMetricas?.metricas?.clientes_a_chegar ?? totalVendasCalculadas, 
@@ -122,7 +122,6 @@ export default function DashboardParceiroPage() {
     return `${dia}/${mes}/${ano}`;
   };
 
-  // ── LÓGICA DE PESQUISA ──
   const filteredReservas = reservas.filter((reserva) => {
     const termo = searchTerm.toLowerCase();
     return (
@@ -147,8 +146,8 @@ export default function DashboardParceiroPage() {
   return (
     <div className={`${inter.className} min-h-screen bg-[#F1F5F9] text-slate-900 flex flex-col text-left overflow-x-hidden`}>
       
-      {/* ── HEADER EXECUTIVO ── */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-50 px-5 md:px-10 py-4">
+      {/* ── HEADER EXECUTIVO ADAPTÁVEL ── */}
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-50 px-4 md:px-10 py-4">
         <div className="mx-auto max-w-7xl flex items-center justify-between">
           <div className="flex items-center gap-6">
             <Link href="/" className="hidden sm:block relative h-10 w-32 border-r border-slate-200 pr-6">
@@ -159,23 +158,42 @@ export default function DashboardParceiroPage() {
                 <ShieldCheck size={20} />
               </div>
               <div>
-                <h1 className={`${jakarta.className} font-black text-slate-900 text-base md:text-xl leading-none tracking-tight truncate max-w-[150px] sm:max-w-[200px] md:max-w-none`}>{nomeNegocio}</h1>
-                <p className="text-[9px] md:text-[10px] font-black uppercase text-[#009640] tracking-[0.2em] mt-1">Portal Oficial do Partner</p>
+                <h1 className={`${jakarta.className} font-black text-slate-900 text-base md:text-xl leading-none tracking-tight truncate max-w-[150px] sm:max-w-[200px]`}>{nomeNegocio}</h1>
+                <p className="text-[9px] md:text-[10px] font-black uppercase text-[#009640] tracking-[0.2em] mt-1">
+                  Portal {tipoParceiro === 'hotel' ? 'Hoteleiro' : tipoParceiro === 'guia' ? 'de Guias' : 'de Agências'}
+                </p>
               </div>
             </div>
           </div>
           
           <div className="flex items-center gap-2 md:gap-4 shrink-0">
-            <Link href="/" className="hidden lg:flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-[#00577C] transition-colors bg-slate-50 px-4 py-2.5 rounded-full border border-slate-200">
-              <Home size={14} /> Ver Portal
-            </Link>
+            {/* Botão de Ação Condicional baseado no Perfil */}
+            {tipoParceiro === 'hotel' && (
+              <Link 
+                href="/parceiros/dashboard/disponibilidade"
+                className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#00577C] bg-[#F9C400] hover:bg-[#ffd633] px-3 md:px-5 py-2.5 rounded-full transition-all shadow-md active:scale-95"
+              >
+                <Calendar size={14} /> <span>Calendário de Tarifas</span>
+              </Link>
+            )}
 
-            <Link 
-              href="/parceiros/dashboard/disponibilidade"
-              className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#00577C] bg-[#F9C400] hover:bg-[#ffd633] px-3 md:px-5 py-2.5 rounded-full transition-all shadow-md active:scale-95"
-            >
-              <Calendar size={14} /> <span className="hidden sm:inline">Editar Tarifas</span>
-            </Link>
+            {tipoParceiro === 'guia' && (
+              <Link 
+                href="/parceiros/dashboard/disponibilidade"
+                className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white bg-[#009640] hover:bg-[#007a33] px-3 md:px-5 py-2.5 rounded-full transition-all shadow-md active:scale-95"
+              >
+                <Plus size={14} /> <span>Criar Novo Passeio</span>
+              </Link>
+            )}
+
+            {tipoParceiro === 'pacote' && (
+              <Link 
+                href="/parceiros/dashboard/disponibilidade"
+                className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white bg-[#00577C] hover:bg-[#004a6b] px-3 md:px-5 py-2.5 rounded-full transition-all shadow-md active:scale-95"
+              >
+                <Compass size={14} /> <span>Montar Roteiro</span>
+              </Link>
+            )}
 
             <button 
               onClick={handleLogout}
@@ -189,14 +207,14 @@ export default function DashboardParceiroPage() {
 
       <div className="mx-auto w-full max-w-7xl px-4 md:px-10 py-8 md:py-12 flex-1 space-y-6 md:space-y-8">
         
-        {/* ── CARDS DE MÉTRICAS PREMIUM ── */}
+        {/* ── CARDS DE MÉTRICAS ADAPTÁVEIS CONSOANTE PERFIL ── */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-8">
           
-          {/* Faturamento */}
+          {/* CARD 1: Ganhos Líquidos (Comum a todos) */}
           <div className="bg-white rounded-[1.5rem] md:rounded-[2rem] border border-slate-200 p-5 md:p-8 shadow-sm flex flex-col justify-between group hover:border-[#00577C]/30 transition-all">
             <div className="flex justify-between items-start mb-6">
               <div>
-                <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 md:mb-2">Ganhos Líquidos</p>
+                <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 md:mb-2">Repasse Líquido</p>
                 <p className={`${jakarta.className} text-3xl md:text-4xl font-black text-[#009640] tabular-nums leading-none`}>
                   {formatarMoeda(metricas?.faturamento || 0)}
                 </p>
@@ -210,14 +228,16 @@ export default function DashboardParceiroPage() {
                  <div key={i} className={`w-full rounded-t-sm ${i === barrasFaturamento.length - 1 ? 'bg-[#009640]' : 'bg-slate-100'}`} style={{ height: `${h}%` }}></div>
                ))}
             </div>
-            <p className="text-[9px] md:text-[10px] font-bold text-slate-400 mt-3 flex items-center gap-1"><ArrowUpRight size={12} className="text-[#009640]"/> Já livre das taxas governamentais</p>
+            <p className="text-[9px] md:text-[10px] font-bold text-slate-400 mt-3 flex items-center gap-1"><ArrowUpRight size={12} className="text-[#009640]"/> Livre das taxas da plataforma</p>
           </div>
 
-          {/* Total Vendas */}
+          {/* CARD 2: Total de Vendas / Reservas */}
           <div className="bg-white rounded-[1.5rem] md:rounded-[2rem] border border-slate-200 p-5 md:p-8 shadow-sm flex flex-col justify-between group hover:border-[#00577C]/30 transition-all">
             <div className="flex justify-between items-start mb-6">
               <div>
-                <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 md:mb-2">Total de Reservas</p>
+                <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 md:mb-2">
+                  {tipoParceiro === 'hotel' ? 'Total de Reservas' : tipoParceiro === 'guia' ? 'Passeios Agendados' : 'Roteiros Vendidos'}
+                </p>
                 <p className={`${jakarta.className} text-4xl md:text-5xl font-black text-[#00577C] tabular-nums leading-none`}>
                   {(metricas?.total_vendas || 0).toString().padStart(2, '0')}
                 </p>
@@ -228,18 +248,20 @@ export default function DashboardParceiroPage() {
             </div>
             <div className="mt-auto bg-slate-50 p-3 md:p-4 rounded-xl border border-slate-100">
                <div className="flex justify-between text-[9px] md:text-[10px] font-bold text-slate-500 mb-2">
-                 <span>Taxa de Conversão da Página</span>
-                 <span className="text-[#00577C]">Alta</span>
+                 <span>Performance do Perfil</span>
+                 <span className="text-[#00577C]">Excelente</span>
                </div>
-               <div className="w-full bg-slate-200 rounded-full h-1.5"><div className="bg-[#00577C] h-1.5 rounded-full w-[85%]"></div></div>
+               <div className="w-full bg-slate-200 rounded-full h-1.5"><div className="bg-[#00577C] h-1.5 rounded-full w-[90%]"></div></div>
             </div>
           </div>
 
-          {/* Check-ins Pendentes */}
+          {/* CARD 3: Fluxo de Clientes Operacional */}
           <div className="bg-white rounded-[1.5rem] md:rounded-[2rem] border border-slate-200 p-5 md:p-8 shadow-sm flex flex-col justify-between group hover:border-[#F9C400]/50 transition-all">
             <div className="flex justify-between items-start mb-6">
               <div>
-                <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 md:mb-2">Check-ins Pendentes</p>
+                <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 md:mb-2">
+                  {tipoParceiro === 'hotel' ? 'Check-ins Pendentes' : tipoParceiro === 'guia' ? 'Turistas Confirmados' : 'Total de Viajantes'}
+                </p>
                 <p className={`${jakarta.className} text-4xl md:text-5xl font-black text-slate-900 tabular-nums leading-none`}>
                   {(metricas?.clientes_a_chegar || 0).toString().padStart(2, '0')}
                 </p>
@@ -250,7 +272,7 @@ export default function DashboardParceiroPage() {
             </div>
             <div className="mt-auto">
                <div className="flex justify-between text-[9px] md:text-[10px] font-bold text-slate-500 mb-2">
-                 <span>Capacidade Ocupada Hoje</span>
+                 <span>{tipoParceiro === 'hotel' ? 'Taxa Ocupação' : 'Vagas Preenchidas'}</span>
                  <span className="text-[#d9a000]">{percentagemChegadas}%</span>
                </div>
                <div className="w-full bg-slate-100 rounded-full h-2">
@@ -269,8 +291,10 @@ export default function DashboardParceiroPage() {
                  <ClipboardList className="text-[#00577C]" size={20} />
                </div>
                <div>
-                 <h2 className={`${jakarta.className} text-lg md:text-2xl font-black text-slate-900`}>Gestão de Clientes</h2>
-                 <p className="text-[10px] md:text-xs font-bold text-slate-400 mt-0.5 md:mt-1">Lista oficial de check-ins e reservas pagas.</p>
+                 <h2 className={`${jakarta.className} text-lg md:text-2xl font-black text-slate-900`}>
+                   {tipoParceiro === 'hotel' ? 'Gestão de Hóspedes' : tipoParceiro === 'guia' ? 'Lista de Passageiros' : 'Controle de Emissões'}
+                 </h2>
+                 <p className="text-[10px] md:text-xs font-bold text-slate-400 mt-0.5 md:mt-1">Lista oficial de serviços liquidados e confirmados.</p>
                </div>
             </div>
 
@@ -299,7 +323,7 @@ export default function DashboardParceiroPage() {
                  <ClipboardList size={28} className="text-slate-300 md:w-8 md:h-8" />
                </div>
                <p className={`${jakarta.className} text-lg md:text-xl font-bold text-slate-800 mb-2`}>O seu painel está pronto</p>
-               <p className="text-xs md:text-sm text-slate-500 max-w-md">As reservas efetuadas pelos turistas aparecerão aqui automaticamente após a confirmação do pagamento.</p>
+               <p className="text-xs md:text-sm text-slate-500 max-w-md">Os agendamentos efetuados pelos turistas aparecerão aqui automaticamente após a aprovação financeira.</p>
             </div>
           ) : filteredReservas.length === 0 ? (
             <div className="py-20 md:py-24 px-5 text-center flex flex-col items-center justify-center bg-white">
@@ -315,10 +339,10 @@ export default function DashboardParceiroPage() {
               <table className="w-full text-xs md:text-sm text-left border-collapse whitespace-nowrap">
                 <thead>
                   <tr className="bg-white border-b border-slate-100 text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest">
-                    <th className="py-4 md:py-5 px-5 md:px-8">ID do Pedido</th>
-                    <th className="py-4 md:py-5 px-5 md:px-6">Nome do Turista</th>
-                    <th className="py-4 md:py-5 px-5 md:px-6">Serviço</th>
-                    <th className="py-4 md:py-5 px-5 md:px-6">Datas / Agendamento</th>
+                    <th className="py-4 md:py-5 px-5 md:px-8">Localizador</th>
+                    <th className="py-4 md:py-5 px-5 md:px-6">Turista</th>
+                    <th className="py-4 md:py-5 px-5 md:px-6">Categoria</th>
+                    <th className="py-4 md:py-5 px-5 md:px-6">Agendamento / Período</th>
                     <th className="py-4 md:py-5 px-5 md:px-6 text-center">Quantidade</th>
                     <th className="py-4 md:py-5 px-5 md:px-8 text-right">Líquido a Receber</th>
                   </tr>
@@ -333,9 +357,13 @@ export default function DashboardParceiroPage() {
                       </td>
                       <td className="py-4 md:py-5 px-5 md:px-6">
                         <span className={`inline-flex items-center gap-1.5 text-[9px] md:text-[10px] font-black uppercase tracking-widest px-2.5 py-1 md:px-3 md:py-1.5 rounded-lg border ${
-                          reserva.tipo_item === 'hotel' ? 'bg-blue-50 border-blue-100 text-blue-700' : 'bg-green-50 border-green-100 text-green-700'
+                          reserva.tipo_item === 'hotel' 
+                            ? 'bg-blue-50 border-blue-100 text-blue-700' 
+                            : reserva.tipo_item === 'passeio' 
+                            ? 'bg-green-50 border-green-100 text-green-700' 
+                            : 'bg-purple-50 border-purple-100 text-purple-700'
                         }`}>
-                          {reserva.tipo_item === 'hotel' ? <Bed size={12} /> : <Compass size={12} />}
+                          {reserva.tipo_item === 'hotel' ? <Bed size={12} /> : reserva.tipo_item === 'passeio' ? <Compass size={12} /> : <Ticket size={12} />}
                           {reserva.tipo_item}
                         </span>
                       </td>
@@ -361,7 +389,6 @@ export default function DashboardParceiroPage() {
                         )}
                       </td>
                       <td className="py-4 md:py-5 px-5 md:px-8 text-right">
-                         {/* LÊ DIRETAMENTE O VALOR JÁ CALCULADO PELO BACKEND */}
                          <span className="text-[#009640] font-black tabular-nums bg-green-50 border border-green-100 px-3 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl group-hover:bg-white transition-colors">
                            {formatarMoeda(reserva.valor_liquido)}
                          </span>
