@@ -582,9 +582,8 @@ function PacoteDetalheContent() {
         </div>
 
         {/* ── COLUNA DIREITA — MOTOR DE RESERVAS (ESTÁTICO) ── */}
-        <div id="motor-reservas" className="w-full lg:w-[400px] shrink-0 lg:self-start text-left relative z-40">
+        <div id="motor-reservas" className="w-full lg:w-[400px] shrink-0 h-fit lg:self-start text-left relative z-40">
           
-          {/* NOTA: Mantém o "space-y-6", mas removemos o "hidden lg:block" para o calendário aparecer no Mobile! */}
           <aside className="w-full space-y-6 h-fit">
 
             <div className="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[3rem] shadow-xl border border-slate-200 overflow-hidden">

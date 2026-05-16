@@ -474,7 +474,7 @@ function CheckoutPacoteContent() {
           </div>
 
           {/* ── COLUNA DIREITA: RESUMO PROFISSIONAL (ESTÁTICO) ── */}
-          <aside className="order-first lg:order-last w-full">
+          <aside className="w-full h-fit lg:self-start order-first lg:order-last relative">
             <SectionCard>
               <div className="h-2 w-full bg-gradient-to-r from-[#00577C] via-[#F9C400] to-[#009640]" />
               <div className="p-6 md:p-8 border-b border-slate-100 text-left bg-slate-50">
