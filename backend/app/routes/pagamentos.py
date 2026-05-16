@@ -189,7 +189,7 @@ async def processar_pagamento(pedido: PedidoPagamento):
                 "phones": [{"country": "55", "area": ddd, "number": numero_tel, "type": "MOBILE"}]
             },
             "items": [{"name": nome_item_checkout, "quantity": 1, "unit_amount": int(valor_total * 100)}],
-            "notification_urls": ["https://seu-backend.railway.app/api/v1/webhooks/pagbank"]
+            "notification_urls": ["https://sagaturismo-production.up.railway.app/api/v1/webhooks/pagbank"]
         }
 
         if pedido.metodo_pagamento == "pix":
