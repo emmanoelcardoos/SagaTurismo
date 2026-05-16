@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation'; // ◄── AQUI: Importação adicionada
 import { 
   Menu, X, Lock, Mail, Building2, 
   Map as MapIcon, UserCheck, TrendingUp, ShieldCheck, Globe, 
@@ -41,6 +42,8 @@ function ScrollReveal({ children, className = "", delay = 0 }: { children: React
 }
 
 export default function ParceirosPage() {
+  const router = useRouter(); // ◄── AQUI: Variável declarada para o login funcionar
+
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -70,41 +73,40 @@ export default function ParceirosPage() {
   }, [lastScrollY]);
 
   const handleLogin = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setIsLoggingIn(true);
-  
-  try {
-    const response = await fetch("https://sagaturismo-production.up.railway.app/api/v1/parceiros/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
-        email: loginEmail, 
-        senha: loginSenha 
-      })
-    });
+    e.preventDefault();
+    setIsLoggingIn(true);
     
-    const data = await response.json();
-    
-    if (response.ok && data.sucesso) {
-      // Sucesso! Guarda os dados do parceiro no navegador
-      localStorage.setItem("parceiro_id", data.parceiro_id);
-      localStorage.setItem("nome_negocio", data.nome_negocio);
+    try {
+      const response = await fetch("https://sagaturismo-production.up.railway.app/api/v1/parceiros/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          email: loginEmail, 
+          senha: loginSenha 
+        })
+      });
       
-      // ── REDIRECIONAMENTO COM ROUTER DO NEXT.JS ──
-      // Substitui o alert e o window.location por uma navegação fluida de SPA
-      router.push("/parceiros/dashboard");
+      const data = await response.json();
       
-    } else {
-      // Mostra o erro exato que vem do backend ou o fallback se detail não existir
-      alert(data.detail || data.mensagem || "Erro ao fazer login. Verifique os dados.");
+      if (response.ok && data.sucesso) {
+        // Sucesso! Guarda os dados do parceiro no navegador
+        localStorage.setItem("parceiro_id", data.parceiro_id);
+        localStorage.setItem("nome_negocio", data.nome_negocio);
+        
+        // ── REDIRECIONAMENTO COM ROUTER DO NEXT.JS ──
+        router.push("/parceiros/dashboard");
+        
+      } else {
+        // Mostra o erro exato que vem do backend ou o fallback se detail não existir
+        alert(data.detail || data.mensagem || "Erro ao fazer login. Verifique os dados.");
+      }
+    } catch (error) {
+      console.error("Erro na comunicação com a API:", error);
+      alert("Falha na conexão com o servidor.");
+    } finally {
+      setIsLoggingIn(false);
     }
-  } catch (error) {
-    console.error("Erro na comunicação com a API:", error);
-    alert("Falha na conexão com o servidor.");
-  } finally {
-    setIsLoggingIn(false);
-  }
-};
+  };
 
   const handleInteresse = (e: React.FormEvent) => {
     e.preventDefault();
@@ -156,7 +158,7 @@ export default function ParceirosPage() {
         <div className="mx-auto w-full max-w-7xl px-5 relative z-10">
           <div className="grid lg:grid-cols-2 gap-10 lg:gap-20 items-center">
             
-            {/* TEXTO HERO (Esquerda) - Agora sem order-2 */}
+            {/* TEXTO HERO (Esquerda) */}
             <ScrollReveal delay={100} className="text-left mt-6 lg:mt-0">
                <div className="inline-flex items-center gap-2 bg-[#F9C400] text-[#00577C] px-3 md:px-4 py-1.5 md:py-2 rounded-lg text-[10px] md:text-xs font-black uppercase tracking-widest shadow-md mb-6">
                  <ShieldCheck size={16} /> Sistema Oficial
@@ -173,7 +175,7 @@ export default function ParceirosPage() {
                </div>
             </ScrollReveal>
 
-            {/* CARD DE LOGIN (Direita) - Agora sem order-1 */}
+            {/* CARD DE LOGIN (Direita) */}
             <ScrollReveal delay={300} className="w-full max-w-md mx-auto lg:ml-auto">
                <div className="bg-white rounded-[2rem] md:rounded-[2.5rem] shadow-2xl p-8 md:p-10 border border-slate-100 relative overflow-hidden text-left">
                   <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-[#00577C] to-[#F9C400]" />
