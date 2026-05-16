@@ -7,7 +7,8 @@ import Script from 'next/script';
 import { 
   Loader2, MapPin, ShieldCheck, Bed, QrCode, CheckCircle2, 
   User, Mail, FileText, Smartphone, Copy, AlertCircle, 
-  CreditCard, Lock, ShieldAlert, Home, Clock, Info, Check, ChevronRight
+  CreditCard, Lock, ShieldAlert, Home, Clock, Info, Check, ChevronRight,
+  Wallet // ◄── CORRIGIDO: Importação adicionada
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -117,7 +118,7 @@ function CheckoutHotelContent() {
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
 
-  // ── NOVOS ESTADOS REATIVOS DO MOTOR DA RAILWAY ──
+  // ── ESTADOS REATIVOS DO MOTOR DA RAILWAY ──
   const [valorTotalReserva, setValorTotalReserva] = useState<number>(0);
   const [numNoites, setNumNoites] = useState<number>(1);
   const [loadingPreco, setLoadingPreco] = useState<boolean>(false);
@@ -221,7 +222,7 @@ function CheckoutHotelContent() {
         street: rua,
         number: numero,
         locality: bairro,
-        city: city,
+        city: cidade, // ◄── CORRIGIDO: de 'city' para 'cidade'
         region_code: estado.replace(/\s/g, ''),
         country: "BRA",
         postal_code: cep.replace(/\D/g, '')
@@ -252,7 +253,6 @@ function CheckoutHotelContent() {
 
       if (data.sucesso) {
         if (metodoPagamento === 'pix') {
-          // ◄── ALINHADO 100% COM AS CHAVES QUE O TEU BACKEND RESPONDE
           setQrCodeData({ 
             link: data.pix_qrcode_img, 
             texto: data.pix_copia_cola, 
@@ -303,7 +303,7 @@ function CheckoutHotelContent() {
       </div>
 
       <div className="mx-auto max-w-7xl px-4 md:px-8 py-8 md:py-12">
-        <BarraTempo Reserva />
+        <BarraTempoReserva /> {/* ◄── CORRIGIDO: de BarraTempo Reserva para BarraTempoReserva */}
 
         <div className="grid gap-8 lg:grid-cols-[1fr_400px] items-start">
           
