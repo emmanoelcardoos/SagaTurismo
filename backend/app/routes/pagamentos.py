@@ -257,7 +257,11 @@ async def processar_pagamento(pedido: PedidoPagamento):
             # ── RASTREIO EXPLÍCITO DE PARCEIROS COMPOSITOS ──
             "hotel_id": pedido.hotel_id if pedido.hotel_id else None,
             "guia_id": pedido.guia_id if pedido.guia_id else None,
-            "tipo_quarto": pedido.tipo_quarto if pedido.tipo_quarto else "standard"
+            "tipo_quarto": pedido.tipo_quarto if pedido.tipo_quarto else "standard",
+            # ── NOVAS COLUNAS DO SMART CHECKOUT MAUPEADAS PELO FRONTEND ──
+            "quantidade_pessoas": pedido.adultos if pedido.adultos else 2,
+            "quantidade_quartos": pedido.quantidade if pedido.tipo_item in ["hotel", "pacote"] else 1,
+            "nome_item": nome_item_checkout
         }
         
         if item_id_db:

@@ -142,7 +142,7 @@ async def login_parceiro(payload: LoginParceiroSchema):
             "mensagem": "Autenticação realizada com sucesso!",
             "parceiro_id": parceiro.get("id"),
             "nome_negocio": parceiro.get("nome_negocio"),
-            "tipo": parceiro.get("tipo")  # ◄── Campo adicionado para o Smart Login no Frontend
+            "tipo": parceiro.get("tipo")
         }
         
     except HTTPException as http_err:
@@ -195,8 +195,9 @@ async def registrar_interesse_parceiro(payload: InteresseParceiroSchema):
 @router.get("/api/v1/parceiros/{item_id}/reservas", tags=["Portal dos Parceiros"])
 async def listar_reservas_parceiro(item_id: str):
     try:
+        # ◄── SELECT ATUALIZADO: quantidade_pessoas, quantidade_quartos e nome_item adicionados
         res = supabase.table("pedidos") \
-            .select("codigo_pedido, tipo_item, nome_cliente, email_cliente, telefone_cliente, quantidade, valor_total, data_checkin, data_checkout, tipo_quarto, hotel_id, guia_id") \
+            .select("codigo_pedido, tipo_item, nome_cliente, email_cliente, telefone_cliente, quantidade, valor_total, data_checkin, data_checkout, tipo_quarto, hotel_id, guia_id, quantidade_pessoas, quantidade_quartos, nome_item") \
             .or_(f"item_id.eq.{item_id},hotel_id.eq.{item_id},guia_id.eq.{item_id}") \
             .eq("status_pagamento", "pago") \
             .execute()
@@ -239,8 +240,9 @@ async def listar_reservas_parceiro(item_id: str):
 @router.get("/api/v1/parceiros/{item_id}/dashboard", tags=["Portal dos Parceiros"])
 async def obter_metricas_dashboard(item_id: str):
     try:
+        # Sincronizado o select do dashboard também para evitar quebras
         res = supabase.table("pedidos") \
-            .select("valor_total, tipo_item, quantity:quantidade, data_checkin, data_checkout, tipo_quarto, hotel_id, guia_id") \
+            .select("valor_total, tipo_item, quantity:quantidade, data_checkin, data_checkout, tipo_quarto, hotel_id, guia_id, quantidade_pessoas, quantidade_quartos, nome_item") \
             .or_(f"item_id.eq.{item_id},hotel_id.eq.{item_id},guia_id.eq.{item_id}") \
             .eq("status_pagamento", "pago") \
             .execute()
@@ -261,7 +263,7 @@ async def obter_metricas_dashboard(item_id: str):
                     v_bruto = calcular_recorte_guia_pacote(item_id, p.get("data_checkin"), p.get("data_checkout"))
                     fator = obter_fator_liquido("guia")
                 else:
-                    v_bruto = float(r.get("valor_total") or 0.0)
+                    v_bruto = float(p.get("valor_total") or 0.0) # CORRIGIDO: de 'r' para 'p'
                     fator = 1.0
             else:
                 v_bruto = float(p.get("valor_total") or 0.0)
@@ -306,15 +308,12 @@ async def atualizar_disponibilidade_parceiro(item_id: str, payload: Disponibilid
             "preco": payload.preco,
             "disponivel": payload.disponivel
         }
-        
         res = supabase.table("disponibilidade_hoteis").insert(dados_disponibilidade).execute()
-        
         return {
             "sucesso": True, 
             "mensagem": "Tarifário updated com sucesso na base de dados!",
             "dados": res.data
         }
-        
     except Exception as e:
         print(f"[ERRO ATUALIZAR DISPONIBILIDADE] {e}")
         raise HTTPException(
