@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { 
   Loader2, LogOut, Wallet, ShoppingBag, Users2, 
   Bed, Compass, ClipboardList, ShieldCheck, 
-  ArrowUpRight, Home
+  ArrowUpRight, Home, Calendar
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 
