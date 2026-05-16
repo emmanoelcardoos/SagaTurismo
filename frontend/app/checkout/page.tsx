@@ -8,7 +8,7 @@ import {
   Loader2, ArrowLeft, ShieldCheck, MapPin, 
   Bed, Compass, Ticket, QrCode, CheckCircle2, 
   User, Mail, FileText, Smartphone, Copy, AlertCircle,
-  CreditCard, Home, Clock, Lock, ShieldAlert, ChevronRight, Wallet, Check
+  CreditCard, Home, Clock, Lock, ShieldAlert, ChevronRight, Wallet, Check, CalendarDays
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
