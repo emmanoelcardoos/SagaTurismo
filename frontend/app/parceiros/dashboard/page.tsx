@@ -14,6 +14,20 @@ import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['600', '700', '800'] });
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
 
+// ── TABELA DE TAXAS DA PREFEITURA ──
+// Mantemos isto espelhado com a base de dados do Supabase
+const TAXAS_SERVICOS = {
+  hotel: 0.10,   // 10%
+  passeio: 0.05, // 5%
+  pacote: 0.02   // 2%
+};
+
+// Função auxiliar para calcular o valor líquido
+const calcularValorLiquido = (valorTotal: number, tipoItem: string) => {
+  const taxa = TAXAS_SERVICOS[tipoItem as keyof typeof TAXAS_SERVICOS] || 0;
+  return valorTotal * (1 - taxa);
+};
+
 // ── TIPAGENS DO DASHBOARD ──
 type Metricas = {
   faturamento: number;
@@ -85,16 +99,20 @@ export default function DashboardParceiroPage() {
 
         setReservas(listaReservas);
 
-        // 2. CÁLCULO INTELIGENTE DE MÉTRICAS (FALLBACK)
-        // Se a API de métricas devolver 0 ou falhar, o frontend soma os dados da tabela!
-        const faturamentoCalculado = listaReservas.reduce((acc, r) => acc + (Number(r.valor_total) || 0), 0);
+        // 2. CÁLCULO INTELIGENTE DO VALOR LÍQUIDO
+        // Iteramos pelas reservas e somamos apenas o que o parceiro vai realmente receber
+        const faturamentoLiquido = listaReservas.reduce((acc, r) => {
+          const valorBruto = Number(r.valor_total) || 0;
+          return acc + calcularValorLiquido(valorBruto, r.tipo_item);
+        }, 0);
+        
         const totalVendasCalculadas = listaReservas.length;
         
         setMetricas({
-          // Pega o valor da API, mas se for 0 ou indefinido, usa a soma real da tabela
-          faturamento: dataMetricas?.faturamento || faturamentoCalculado,
+          // Ignoramos o faturamento bruto da API e forçamos o faturamento líquido calculado
+          faturamento: faturamentoLiquido,
           total_vendas: dataMetricas?.total_vendas || totalVendasCalculadas,
-          clientes_a_chegar: dataMetricas?.clientes_a_chegar || totalVendasCalculadas, // Fallback simplificado
+          clientes_a_chegar: dataMetricas?.clientes_a_chegar || totalVendasCalculadas, 
         });
 
       } catch (error) {
@@ -159,21 +177,30 @@ export default function DashboardParceiroPage() {
                 <ShieldCheck size={20} />
               </div>
               <div>
-                <h1 className={`${jakarta.className} font-black text-slate-900 text-base md:text-xl leading-none tracking-tight truncate max-w-[200px] md:max-w-none`}>{nomeNegocio}</h1>
+                <h1 className={`${jakarta.className} font-black text-slate-900 text-base md:text-xl leading-none tracking-tight truncate max-w-[150px] sm:max-w-[200px] md:max-w-none`}>{nomeNegocio}</h1>
                 <p className="text-[9px] md:text-[10px] font-black uppercase text-[#009640] tracking-[0.2em] mt-1">Portal Oficial do Parceiro</p>
               </div>
             </div>
           </div>
           
           <div className="flex items-center gap-2 md:gap-4 shrink-0">
-            <Link href="/" className="hidden md:flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-[#00577C] transition-colors bg-slate-50 px-4 py-2.5 rounded-full border border-slate-200">
+            <Link href="/" className="hidden lg:flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-[#00577C] transition-colors bg-slate-50 px-4 py-2.5 rounded-full border border-slate-200">
               <Home size={14} /> Ver Portal
             </Link>
+
+            {/* NOVO BOTÃO AMARELO DE EDIÇÃO */}
+            <Link 
+              href="/parceiros/dashboard/disponibilidade"
+              className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#00577C] bg-[#F9C400] hover:bg-[#ffd633] px-3 md:px-5 py-2.5 rounded-full transition-all shadow-md active:scale-95"
+            >
+              <Calendar size={14} /> <span className="hidden sm:inline">Editar Tarifas</span>
+            </Link>
+
             <button 
               onClick={handleLogout}
-              className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white bg-slate-900 hover:bg-black px-4 md:px-5 py-2.5 rounded-full transition-all shadow-md active:scale-95"
+              className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white bg-slate-900 hover:bg-black px-3 md:px-5 py-2.5 rounded-full transition-all shadow-md active:scale-95"
             >
-              <LogOut size={14} /> <span className="hidden sm:inline">Encerrar Sessão</span>
+              <LogOut size={14} /> <span className="hidden md:inline">Sair</span>
             </button>
           </div>
         </div>
@@ -188,8 +215,8 @@ export default function DashboardParceiroPage() {
           <div className="bg-white rounded-[1.5rem] md:rounded-[2rem] border border-slate-200 p-5 md:p-8 shadow-sm flex flex-col justify-between group hover:border-[#00577C]/30 transition-all">
             <div className="flex justify-between items-start mb-6">
               <div>
-                <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 md:mb-2">Faturamento Total</p>
-                <p className={`${jakarta.className} text-3xl md:text-4xl font-black text-slate-900 tabular-nums leading-none`}>
+                <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 md:mb-2">Ganhos Líquidos</p>
+                <p className={`${jakarta.className} text-3xl md:text-4xl font-black text-[#009640] tabular-nums leading-none`}>
                   {formatarMoeda(metricas?.faturamento || 0)}
                 </p>
               </div>
@@ -202,7 +229,7 @@ export default function DashboardParceiroPage() {
                  <div key={i} className={`w-full rounded-t-sm ${i === barrasFaturamento.length - 1 ? 'bg-[#009640]' : 'bg-slate-100'}`} style={{ height: `${h}%` }}></div>
                ))}
             </div>
-            <p className="text-[9px] md:text-[10px] font-bold text-slate-400 mt-3 flex items-center gap-1"><ArrowUpRight size={12} className="text-[#009640]"/> Atualizado em tempo real</p>
+            <p className="text-[9px] md:text-[10px] font-bold text-slate-400 mt-3 flex items-center gap-1"><ArrowUpRight size={12} className="text-[#009640]"/> Já livre das taxas governamentais</p>
           </div>
 
           {/* Total Vendas */}
@@ -358,8 +385,9 @@ export default function DashboardParceiroPage() {
                         )}
                       </td>
                       <td className="py-4 md:py-5 px-5 md:px-8 text-right">
-                         <span className="text-slate-900 font-black tabular-nums bg-slate-50 border border-slate-100 px-3 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl group-hover:bg-white transition-colors">
-                           {formatarMoeda(reserva.valor_total)}
+                         {/* AQUI DESENHAMOS O VALOR LÍQUIDO NA TABELA */}
+                         <span className="text-[#009640] font-black tabular-nums bg-green-50 border border-green-100 px-3 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl group-hover:bg-white transition-colors">
+                           {formatarMoeda(calcularValorLiquido(reserva.valor_total, reserva.tipo_item))}
                          </span>
                       </td>
                     </tr>
