@@ -1,16 +1,13 @@
 'use client';
 
-import { useEffect, useState, Suspense, useRef } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import Image from 'next/image';
 import Link from 'next/link';
 import Script from 'next/script';
 import { 
-  Loader2, ArrowLeft, ShieldCheck, MapPin, 
-  Bed, QrCode, CheckCircle2, User, Mail, FileText, 
-  Smartphone, Copy, AlertCircle, CreditCard, 
-  Calendar, Home, Clock, Lock, ShieldAlert, Menu, Info,
-  ChevronRight, Wallet, Check
+  Loader2, MapPin, ShieldCheck, Bed, QrCode, CheckCircle2, 
+  User, Mail, FileText, Smartphone, Copy, AlertCircle, 
+  CreditCard, Lock, ShieldAlert, Home, Clock, Info, Check, ChevronRight
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -33,7 +30,7 @@ type Hotel = {
   quarto_luxo_nome: string; quarto_luxo_preco: any; 
 };
 
-// ── UTILITÁRIOS ──
+// ── UTILITÁRIOS DE MÁSCARA ──
 const parseValor = (valor: any): number => {
   if (!valor) return 0;
   const num = typeof valor === 'string' ? parseFloat(valor.replace(',', '.')) : valor;
@@ -51,22 +48,12 @@ const formatarData = (dataStr: string) => {
   return `${dia}/${mes}/${ano}`;
 };
 
-const calcularNoites = (checkin: string | null, checkout: string | null) => {
-  if (!checkin || !checkout) return 0;
-  const start = new Date(checkin);
-  const end = new Date(checkout);
-  const diff = end.getTime() - start.getTime();
-  return Math.ceil(diff / (1000 * 3600 * 24)) || 1;
-};
-
-// ─── COMPONENTES UI ESTILO NOVO ───
-
 function SectionCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
     <div className={`rounded-[2rem] border-2 border-slate-100 bg-white shadow-sm overflow-hidden ${className}`}>
       {children}
     </div>
-  )
+  );
 }
 
 function SectionHeader({ step, title, icon }: { step: number; title: string; icon: React.ReactNode }) {
@@ -80,11 +67,11 @@ function SectionHeader({ step, title, icon }: { step: number; title: string; ico
         <h2 className={`${jakarta.className} text-xl md:text-2xl font-black text-slate-900 tracking-tight`}>{title}</h2>
       </div>
     </div>
-  )
+  );
 }
 
 function BarraTempoReserva() {
-  const [segundos, setSegundos] = useState(900); // 15 min
+  const [segundos, setSegundos] = useState(900);
   useEffect(() => {
     const id = setInterval(() => setSegundos(s => Math.max(0, s - 1)), 1000);
     return () => clearInterval(id);
@@ -118,7 +105,6 @@ function CheckoutHotelContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  // Parâmetros e Estados
   const hotelId = searchParams.get('hotel');
   const quartoTipo = searchParams.get('quarto') as 'standard' | 'luxo' | null;
   const checkinData = searchParams.get('checkin');
@@ -131,6 +117,12 @@ function CheckoutHotelContent() {
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
 
+  // ── NOVOS ESTADOS REATIVOS DO MOTOR DA RAILWAY ──
+  const [valorTotalReserva, setValorTotalReserva] = useState<number>(0);
+  const [numNoites, setNumNoites] = useState<number>(1);
+  const [loadingPreco, setLoadingPreco] = useState<boolean>(false);
+  const [acomodacaoDisponivel, setAcomodacaoDisponivel] = useState<boolean>(true);
+
   // Estados Form
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
@@ -142,7 +134,7 @@ function CheckoutHotelContent() {
   const [cep, setCep] = useState('');
   const [cidade, setCidade] = useState('');
   const [estado, setEstado] = useState('');
-  const [metodoPagamento, setMetodoPagamento] = useState<'pix' | 'cartao'>('cartao'); // Padrão 'cartao'
+  const [metodoPagamento, setMetodoPagamento] = useState<'pix' | 'cartao'>('cartao');
   const [nomeCartao, setNomeCartao] = useState('');
   const [numeroCartao, setNumeroCartao] = useState('');
   const [mesCartao, setMesCartao] = useState('');
@@ -163,6 +155,7 @@ function CheckoutHotelContent() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
+  // Carregamento de dados básicos do hotel
   useEffect(() => {
     async function carregarHotel() {
       if (!hotelId) return;
@@ -173,13 +166,42 @@ function CheckoutHotelContent() {
     carregarHotel();
   }, [hotelId]);
 
-  const numNoites = calcularNoites(checkinData, checkoutData);
-  const precoDiaria = hotel ? (quartoTipo === 'luxo' ? parseValor(hotel.quarto_luxo_preco) : parseValor(hotel.quarto_standard_preco)) : 0;
-  const valorTotalReserva = precoDiaria * numNoites * quartosParam;
+  // ── BUSCA AUTOMÁTICA E DINÂMICA DO PREÇO DA RAILWAY ──
+  useEffect(() => {
+    if (!hotelId || !checkinData || !checkoutData || !quartoTipo) return;
+
+    async function obterPrecoOficialAPI() {
+      setLoadingPreco(true);
+      try {
+        const response = await fetch(
+          `https://sagaturismo-production.up.railway.app/api/v1/public/hoteis/${hotelId}/calcular-preco?tipo_quarto=${quartoTipo}&checkin=${checkinData}&checkout=${checkoutData}&quantidade=${quartosParam}`
+        );
+        const data = await response.json();
+        
+        if (data.sucesso) {
+          setValorTotalReserva(data.valor_total);
+          setNumNoites(data.noites);
+          setAcomodacaoDisponivel(data.disponivel);
+          if (!data.disponivel) {
+            setErroApi("Atenção: A acomodação escolhida esgotou nas datas selecionadas.");
+          }
+        } else {
+          setErroApi(data.detail || "Erro ao calcular preço dinâmico.");
+        }
+      } catch (err) {
+        console.error("Erro rede ao consultar API pública de preços:", err);
+      } finally {
+        setLoadingPreco(false);
+      }
+    }
+
+    obterPrecoOficialAPI();
+  }, [hotelId, quartoTipo, checkinData, checkoutData, quartosParam]);
 
   const handlePagamento = async (e: React.FormEvent) => {
     e.preventDefault();
     setErroApi('');
+    if (!acomodacaoDisponivel) { setErroApi('Impossível prosseguir. Quarto esgotado.'); return; }
     if (cpf.length < 14) { setErroApi('CPF inválido.'); return; }
     setIsSubmitting(true);
 
@@ -190,17 +212,16 @@ function CheckoutHotelContent() {
       data_checkin: checkinData, 
       data_checkout: checkoutData,
       adultos: adultosParam, 
-      quartos: quartosParam,
+      quantidade: quartosParam,
       nome_cliente: nome, 
       cpf_cliente: cpf.replace(/\D/g, ''), 
       email_cliente: email,
       telefone_cliente: telefone.replace(/\D/g, ''), 
-      valor_total: valorTotalReserva,
       endereco_faturacao: {
         street: rua,
         number: numero,
         locality: bairro,
-        city: cidade,
+        city: city,
         region_code: estado.replace(/\s/g, ''),
         country: "BRA",
         postal_code: cep.replace(/\D/g, '')
@@ -209,13 +230,13 @@ function CheckoutHotelContent() {
 
     try {
       if (metodoPagamento === 'cartao') {
-        if (!window.PagSeguro) throw new Error('PagSeguro não carregado.');
+        if (!window.PagSeguro) throw new Error('Checkout SDK do PagBank não foi inicializado.');
         const result = window.PagSeguro.encryptCard({
           publicKey: process.env.NEXT_PUBLIC_PAGBANK_PUBLIC_KEY,
           holder: nomeCartao, number: numeroCartao.replace(/\D/g,''),
           expMonth: mesCartao, expYear: anoCartao, securityCode: cvvCartao
         });
-        if (result.hasErrors) throw new Error('Dados do cartão inválidos.');
+        if (result.hasErrors) throw new Error('Cartão recusado. Verifique os dados introduzidos.');
         payload.metodo_pagamento = 'cartao';
         payload.encrypted_card = result.encryptedCard;
         payload.parcelas = parcelas;
@@ -223,7 +244,7 @@ function CheckoutHotelContent() {
         payload.metodo_pagamento = 'pix';
       }
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/pagamentos/processar`, {
+      const res = await fetch(`https://sagaturismo-production.up.railway.app/api/v1/pagamentos/processar`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
@@ -231,12 +252,17 @@ function CheckoutHotelContent() {
 
       if (data.sucesso) {
         if (metodoPagamento === 'pix') {
-          setQrCodeData({ link: data.qr_code_link, texto: data.qr_code_text, id_pedido: data.codigo_pedido });
+          // ◄── ALINHADO 100% COM AS CHAVES QUE O TEU BACKEND RESPONDE
+          setQrCodeData({ 
+            link: data.pix_qrcode_img, 
+            texto: data.pix_copia_cola, 
+            id_pedido: data.codigo_pedido 
+          });
         } else {
           router.push(`/sucesso?pedido=${data.codigo_pedido}`);
         }
       } else {
-        setErroApi(data.mensagem || 'Ocorreu um erro no processamento.');
+        setErroApi(data.detail || data.mensagem || 'Ocorreu um erro no processamento financeiro.');
       }
     } catch (err: any) { setErroApi(err.message); } finally { setIsSubmitting(false); }
   };
@@ -264,7 +290,7 @@ function CheckoutHotelContent() {
         </div>
       </header>
 
-      {/* PROGRESS BAR ESTILO PREMIUM */}
+      {/* PROGRESS BAR */}
       <div className="bg-white border-b border-slate-200 mt-[65px] md:mt-[80px]">
         <div className="mx-auto max-w-7xl px-4 md:px-8 py-4 md:py-5">
           <div className="flex items-center justify-center md:justify-start gap-2 md:gap-4 text-[9px] md:text-[10px] uppercase tracking-[0.2em] font-black text-slate-400">
@@ -277,14 +303,12 @@ function CheckoutHotelContent() {
       </div>
 
       <div className="mx-auto max-w-7xl px-4 md:px-8 py-8 md:py-12">
-        <BarraTempoReserva />
+        <BarraTempo Reserva />
 
         <div className="grid gap-8 lg:grid-cols-[1fr_400px] items-start">
           
           {/* COLUNA ESQUERDA */}
           <div className="space-y-6 md:space-y-8">
-            
-            {/* CARD DO HOTEL */}
             <SectionCard>
                <div className="flex flex-col md:flex-row h-full">
                   <div className="relative h-56 md:h-auto md:w-72 shrink-0 overflow-hidden bg-slate-100">
@@ -304,38 +328,25 @@ function CheckoutHotelContent() {
 
             {!qrCodeData ? (
               <form onSubmit={handlePagamento} className="space-y-6 md:space-y-8">
-                
                 {/* 1. DADOS DO HÓSPEDE */}
                 <SectionCard className="p-6 md:p-10 text-left">
                   <SectionHeader step={1} title="Hóspede Principal" icon={<User size={20} />} />
                   <div className="grid gap-5 md:gap-6 sm:grid-cols-2">
                     <div className="sm:col-span-2">
-                      <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Nome Completo (Conforme Documento) *</label>
-                      <div className="relative">
-                        <User className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-                        <input required value={nome} onChange={e => setNome(e.target.value)} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 pl-12 pr-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white hover:border-slate-200 transition-all" placeholder="Nome do responsável pela reserva" />
-                      </div>
+                      <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Nome Completo *</label>
+                      <input required value={nome} onChange={e => setNome(e.target.value)} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white" placeholder="Nome completo do hóspede" />
                     </div>
                     <div>
                       <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">CPF *</label>
-                      <div className="relative">
-                        <FileText className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-                        <input required value={cpf} onChange={e => setCpf(mascaraCPF(e.target.value))} maxLength={14} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 pl-12 pr-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white hover:border-slate-200 transition-all" placeholder="000.000.000-00" />
-                      </div>
+                      <input required value={cpf} onChange={e => setCpf(mascaraCPF(e.target.value))} maxLength={14} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white" placeholder="000.000.000-00" />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Telemóvel / WhatsApp *</label>
-                      <div className="relative">
-                        <Smartphone className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-                        <input required value={telefone} onChange={e => setTelefone(mascaraTelefone(e.target.value))} maxLength={15} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 pl-12 pr-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white hover:border-slate-200 transition-all" placeholder="(99) 99999-9999" />
-                      </div>
+                      <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">WhatsApp *</label>
+                      <input required value={telefone} onChange={e => setTelefone(mascaraTelefone(e.target.value))} maxLength={15} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white" placeholder="(99) 99999-9999" />
                     </div>
                     <div className="sm:col-span-2">
-                      <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">E-mail para Receber a Confirmação *</label>
-                      <div className="relative">
-                        <Mail className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-                        <input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 pl-12 pr-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white hover:border-slate-200 transition-all" placeholder="seu@email.com" />
-                      </div>
+                      <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">E-mail *</label>
+                      <input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white" placeholder="seu@email.com" />
                     </div>
                   </div>
                 </SectionCard>
@@ -345,118 +356,48 @@ function CheckoutHotelContent() {
                   <SectionHeader step={2} title="Endereço de Faturação" icon={<Home size={20} />} />
                   <div className="grid gap-5 md:gap-6 sm:grid-cols-2">
                     <div className="sm:col-span-2 grid grid-cols-[1fr_100px] gap-4">
-                      <div>
-                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Morada *</label>
-                        <input required value={rua} onChange={e => setRua(e.target.value)} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="Rua / Avenida" />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Nº *</label>
-                        <input required value={numero} onChange={e => setNumero(e.target.value)} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 text-center outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="Nº" />
-                      </div>
+                      <input required value={rua} onChange={e => setRua(e.target.value)} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C]" placeholder="Rua / Avenida" />
+                      <input required value={numero} onChange={e => setNumero(e.target.value)} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 text-center outline-none focus:border-[#00577C]" placeholder="Nº" />
                     </div>
-                    <div>
-                      <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Bairro *</label>
-                      <input required value={bairro} onChange={e => setBairro(e.target.value)} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="Bairro" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">CEP *</label>
-                      <input required value={cep} onChange={e => setCep(mascaraCEP(e.target.value))} maxLength={9} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="00000-000" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Cidade *</label>
-                      <input required value={cidade} onChange={e => setCidade(e.target.value)} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="Sua Cidade" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Estado (UF) *</label>
-                      <input required value={estado} onChange={e => setEstado(e.target.value.toUpperCase())} maxLength={2} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 text-center outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="EX: PA" />
-                    </div>
+                    <input required value={bairro} onChange={e => setBairro(e.target.value)} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C]" placeholder="Bairro" />
+                    <input required value={cep} onChange={e => setCep(mascaraCEP(e.target.value))} maxLength={9} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C]" placeholder="00000-000" />
+                    <input required value={cidade} onChange={e => setCidade(e.target.value)} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C]" placeholder="Cidade" />
+                    <input required value={estado} onChange={e => setEstado(e.target.value.toUpperCase())} maxLength={2} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 text-center outline-none focus:border-[#00577C]" placeholder="PA" />
                   </div>
                 </SectionCard>
 
                 {/* 3. PAGAMENTO */}
                 <SectionCard className="p-6 md:p-10 text-left">
                   <SectionHeader step={3} title="Método de Pagamento" icon={<Wallet size={20} />} />
-                  
-                  {/* SELETORES DE PAGAMENTO */}
                   <div className="grid grid-cols-2 gap-4 mb-8">
-                    <button type="button" onClick={() => setMetodoPagamento('pix')} className={`flex flex-col items-center justify-center gap-3 p-5 md:p-6 rounded-2xl border-2 transition-all ${metodoPagamento === 'pix' ? 'border-[#009640] bg-[#009640]/5 text-[#009640] shadow-sm' : 'border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200'}`}>
-                      <QrCode size={32} /> <span className="text-[10px] md:text-xs font-black uppercase tracking-widest">PIX Rápido</span>
+                    <button type="button" onClick={() => setMetodoPagamento('pix')} className={`flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border-2 transition-all ${metodoPagamento === 'pix' ? 'border-[#009640] bg-[#009640]/5 text-[#009640]' : 'border-slate-100 bg-slate-50 text-slate-400'}`}>
+                      <QrCode size={32} /> <span className="text-xs font-black uppercase">PIX Rápido</span>
                     </button>
-                    <button type="button" onClick={() => setMetodoPagamento('cartao')} className={`flex flex-col items-center justify-center gap-3 p-5 md:p-6 rounded-2xl border-2 transition-all ${metodoPagamento === 'cartao' ? 'border-[#00577C] bg-blue-50/50 text-[#00577C] shadow-sm' : 'border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200'}`}>
-                      <CreditCard size={32} /> <span className="text-[10px] md:text-xs font-black uppercase tracking-widest">Cartão de Crédito</span>
+                    <button type="button" onClick={() => setMetodoPagamento('cartao')} className={`flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border-2 transition-all ${metodoPagamento === 'cartao' ? 'border-[#00577C] bg-blue-50/50 text-[#00577C]' : 'border-slate-100 bg-slate-50 text-slate-400'}`}>
+                      <CreditCard size={32} /> <span className="text-xs font-black uppercase">Cartão Crédito</span>
                     </button>
                   </div>
 
-                  {/* FORMULÁRIO DE CARTÃO REDESENHADO */}
                   {metodoPagamento === 'cartao' && (
-                    <div className="space-y-5 bg-white border-2 border-[#00577C]/10 p-6 md:p-8 rounded-[2rem] shadow-inner mb-8 animate-in slide-in-from-top-4 duration-300">
-                      
-                      {/* Nome no Cartão */}
-                      <div>
-                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Nome Impresso no Cartão *</label>
-                        <div className="relative">
-                          <User className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-                          <input required value={nomeCartao} onChange={e => setNomeCartao(e.target.value.toUpperCase())} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 pl-12 pr-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white hover:border-slate-200 transition-all uppercase" placeholder="JOAO S SANTOS" />
-                        </div>
+                    <div className="space-y-5 bg-white border-2 border-[#00577C]/10 p-6 rounded-[2rem] shadow-inner mb-8">
+                      <input required value={nomeCartao} onChange={e => setNomeCartao(e.target.value.toUpperCase())} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 uppercase" placeholder="NOME IMPRESSO NO CARTÃO" />
+                      <input required value={numeroCartao} onChange={e => setNumeroCartao(mascaraCartao(e.target.value))} maxLength={19} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 tracking-widest" placeholder="0000 0000 0000 0000" />
+                      <div className="grid grid-cols-[1fr_1fr_1.5fr] gap-3">
+                        <input required value={mesCartao} maxLength={2} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 py-4 text-sm font-bold text-center" placeholder="Mês (MM)" onChange={e => setMesCartao(e.target.value.replace(/\D/g,''))} />
+                        <input required value={anoCartao} maxLength={4} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 py-4 text-sm font-bold text-center" placeholder="Ano (AAAA)" onChange={e => setAnoCartao(e.target.value.replace(/\D/g,''))} />
+                        <input required type="password" value={cvvCartao} maxLength={4} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 py-4 text-sm font-bold text-center tracking-widest" placeholder="CVV" onChange={e => setCvvCartao(e.target.value.replace(/\D/g,''))} />
                       </div>
-
-                      {/* Número do Cartão */}
-                      <div>
-                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Número do Cartão *</label>
-                        <div className="relative">
-                          <CreditCard className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-                          <input required value={numeroCartao} onChange={e => setNumeroCartao(mascaraCartao(e.target.value))} maxLength={19} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 pl-12 pr-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white hover:border-slate-200 transition-all tabular-nums tracking-widest" placeholder="0000 0000 0000 0000" />
-                        </div>
-                      </div>
-
-                      {/* Validade e CVV */}
-                      <div className="grid grid-cols-[1fr_1fr_1.5fr] gap-3 md:gap-4">
-                        <div>
-                          <label className="block text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Mês *</label>
-                          <input required value={mesCartao} maxLength={2} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-2 py-4 text-sm font-bold text-slate-800 text-center outline-none focus:border-[#00577C] focus:bg-white transition-all tabular-nums" placeholder="MM" onChange={e => setMesCartao(e.target.value.replace(/\D/g,''))} />
-                        </div>
-                        <div>
-                          <label className="block text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Ano *</label>
-                          <input required value={anoCartao} maxLength={4} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-2 py-4 text-sm font-bold text-slate-800 text-center outline-none focus:border-[#00577C] focus:bg-white transition-all tabular-nums" placeholder="AAAA" onChange={e => setAnoCartao(e.target.value.replace(/\D/g,''))} />
-                        </div>
-                        <div>
-                          <label className="block text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Cód. Segurança *</label>
-                          <div className="relative">
-                            <Lock className="absolute left-3 md:left-4 top-1/2 h-4 w-4 md:h-5 md:w-5 -translate-y-1/2 text-slate-400" />
-                            <input required type="password" value={cvvCartao} maxLength={4} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 pl-9 pr-2 md:pl-11 md:pr-4 py-4 text-sm font-bold text-slate-800 text-center outline-none focus:border-[#00577C] focus:bg-white transition-all tabular-nums tracking-widest" placeholder="CVV" onChange={e => setCvvCartao(e.target.value.replace(/\D/g,''))} />
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Parcelas */}
-                      <div>
-                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Opção de Parcelamento *</label>
-                        <select value={parcelas} onChange={e => setParcelas(Number(e.target.value))} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-all cursor-pointer appearance-none">
-                          {[...Array(12)].map((_, i) => <option key={i+1} value={i+1}>{i+1}x de {formatarMoeda(valorTotalReserva/(i+1))} {!i && ' (À Vista)'}</option>)}
-                        </select>
-                      </div>
+                      <select value={parcelas} onChange={e => setParcelas(Number(e.target.value))} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold cursor-pointer">
+                        {[...Array(12)].map((_, i) => <option key={i+1} value={i+1}>{i+1}x de {formatarMoeda(valorTotalReserva/(i+1))} {!i && ' (À Vista)'}</option>)}
+                      </select>
                     </div>
                   )}
 
-                  {/* ERRO API */}
-                  {erroApi && (
-                    <div className="mb-8 p-5 bg-red-50 text-red-700 rounded-2xl font-bold text-sm flex items-center gap-3 border border-red-100 animate-in shake duration-500 shadow-sm">
-                       <AlertCircle size={24} className="shrink-0"/> {erroApi}
-                    </div>
-                  )}
+                  {erroApi && <div className="mb-8 p-5 bg-red-50 text-red-700 rounded-2xl font-bold text-sm flex items-center gap-3 border border-red-100"><AlertCircle size={24}/> {erroApi}</div>}
                   
-                  {/* BOTÃO FINALIZAR */}
-                  <button type="submit" disabled={isSubmitting} className="w-full py-6 md:py-7 rounded-[1.5rem] font-black text-lg md:text-xl text-white shadow-xl bg-slate-900 hover:bg-black transition-all active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-70">
-                    {isSubmitting ? <><Loader2 className="animate-spin" size={24}/> Processando Pagamento...</> : <><Lock size={22}/> Confirmar Reserva Segura</>}
+                  <button type="submit" disabled={isSubmitting || loadingPreco || !acomodacaoDisponivel} className="w-full py-6 rounded-[1.5rem] font-black text-xl text-white shadow-xl bg-slate-900 hover:bg-black transition-all active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed">
+                    {isSubmitting ? <><Loader2 className="animate-spin" size={24}/> Processando...</> : loadingPreco ? 'Calculando Valor...' : !acomodacaoDisponivel ? 'Esgotado' : <><Lock size={22}/> Confirmar Reserva Segura</>}
                   </button>
-
-                  <div className="mt-6 flex flex-wrap items-center justify-center gap-4 opacity-50 grayscale">
-                     <img src="/logop.png" className="h-6" alt="SGA" />
-                     <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                     <span className="text-xs font-black uppercase tracking-widest text-slate-800">PagBank</span>
-                     <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                     <ShieldCheck size={18} className="text-slate-800" />
-                  </div>
                 </SectionCard>
               </form>
             ) : (
@@ -465,25 +406,20 @@ function CheckoutHotelContent() {
                  <div className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6"><CheckCircle2 size={48} className="text-[#009640]"/></div>
                  <h2 className={`${jakarta.className} text-3xl md:text-4xl font-black text-slate-900 mb-4`}>Pedido Criado!</h2>
                  <p className="text-slate-500 mb-10 text-lg">Conclua o pagamento via PIX para garantir sua reserva no hotel imediatamente.</p>
-                 
-                 <div className="w-64 h-64 bg-slate-50 mx-auto rounded-[3rem] p-6 border-4 border-dashed border-slate-200 mb-8 flex items-center justify-center shadow-inner relative overflow-hidden">
+                 <div className="w-64 h-64 bg-slate-50 mx-auto rounded-[3rem] p-6 border-4 border-dashed border-slate-200 mb-8 flex items-center justify-center shadow-inner relative">
                     <img src={qrCodeData.link} alt="QR Code" className="w-full h-full mix-blend-multiply relative z-10" />
-                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#009640]/5 to-transparent animate-scan z-0" />
                  </div>
-                 
-                 <button onClick={() => {navigator.clipboard.writeText(qrCodeData.texto); alert('Código PIX Copiado para a área de transferência!')}} className="w-full py-5 rounded-2xl bg-[#009640] hover:bg-[#007a33] text-white font-black text-lg flex items-center justify-center gap-3 shadow-xl active:scale-95 transition-all mb-8">
+                 <button onClick={() => {navigator.clipboard.writeText(qrCodeData.texto); alert('Código PIX Copiado!')}} className="w-full py-5 rounded-2xl bg-[#009640] hover:bg-[#007a33] text-white font-black text-lg flex items-center justify-center gap-3 shadow-xl mb-8">
                     <Copy size={20}/> Copiar Código PIX
                  </button>
-                 
                  <div className="bg-slate-50 rounded-2xl p-6 text-center">
-                    <p className="text-xs text-slate-500 font-bold flex items-center justify-center gap-2 mb-2"><Loader2 className="animate-spin" size={16}/> Aguardando o banco confirmar o pagamento...</p>
-                    <p className="text-[10px] uppercase font-black tracking-widest text-slate-400">Esta página será atualizada automaticamente</p>
+                    <p className="text-xs text-slate-500 font-bold flex items-center justify-center gap-2 mb-2"><Loader2 className="animate-spin" size={16}/> Aguardando aprovação bancária...</p>
                  </div>
               </SectionCard>
             )}
           </div>
 
-          {/* ── COLUNA DIREITA: RESUMO PROFISSIONAL (ESTÁTICO) ── */}
+          {/* COLUNA DIREITA (RESUMO COMPLETO DA API) */}
           <aside className="lg:self-start h-fit order-first lg:order-last w-full">
             <SectionCard>
               <div className="h-2 w-full bg-gradient-to-r from-[#00577C] via-[#F9C400] to-[#009640]" />
@@ -494,9 +430,7 @@ function CheckoutHotelContent() {
 
               <div className="p-6 md:p-8 space-y-6 text-left">
                  <div className="flex items-start gap-4 pb-4 border-b border-slate-100">
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
-                      <Bed size={20} className="text-[#00577C]"/>
-                    </div>
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0"><Bed size={20} className="text-[#00577C]"/></div>
                     <div className="flex-1 pt-1">
                        <p className="text-sm font-black text-slate-800 leading-none mb-1.5">{quartoTipo === 'luxo' ? hotel?.quarto_luxo_nome : hotel?.quarto_standard_nome}</p>
                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
@@ -507,21 +441,21 @@ function CheckoutHotelContent() {
                  
                  <div className="flex justify-between items-center text-sm">
                     <span className="font-bold text-slate-500">Estadia</span>
-                    <span className="font-black text-slate-800">{numNoites} Noite{numNoites > 1 ? 's' : ''}</span>
+                    <span className="font-black text-slate-800">{loadingPreco ? '...' : `${numNoites} Noite(s)`}</span>
                  </div>
                  <div className="flex justify-between items-center text-sm">
                     <span className="font-bold text-slate-500">Quartos</span>
-                    <span className="font-black text-slate-800">{quartosParam} Unidade{quartosParam > 1 ? 's' : ''}</span>
+                    <span className="font-black text-slate-800">{quartosParam} Unidade(s)</span>
                  </div>
                  <div className="flex justify-between items-center text-sm">
                     <span className="font-bold text-slate-500">Hóspedes</span>
-                    <span className="font-black text-slate-800">{adultosParam} Adulto{adultosParam > 1 ? 's' : ''}</span>
+                    <span className="font-black text-slate-800">{adultosParam} Adulto(s)</span>
                  </div>
                  
                  <div className="pt-4 border-t border-dashed border-slate-200 space-y-2 text-sm">
                     <div className="flex justify-between text-slate-600">
-                       <span>Preço Base (Noite)</span>
-                       <span className="font-bold">{formatarMoeda(precoDiaria)}</span>
+                       <span>Média por Noite</span>
+                       <span className="font-bold">{loadingPreco ? '...' : formatarMoeda(valorTotalReserva / numNoites / quartosParam)}</span>
                     </div>
                     <div className="flex justify-between text-slate-600">
                        <span>Taxas governamentais</span>
@@ -529,21 +463,20 @@ function CheckoutHotelContent() {
                     </div>
                  </div>
 
-                 {/* Divisor Preço */}
                  <div className="pt-8 border-t-2 border-slate-100 flex flex-col gap-4">
                     <div className="flex items-center justify-between">
                        <p className="text-xs font-black uppercase text-slate-400 tracking-widest">Total a Pagar</p>
-                       <div className="bg-green-50 px-3 py-1 rounded-full flex items-center gap-1.5 text-[#009640] text-[10px] font-black uppercase">
-                          <Check size={12} strokeWidth={3}/> Confirmado
-                       </div>
+                       <div className="bg-green-50 px-3 py-1 rounded-full flex items-center gap-1.5 text-[#009640] text-[10px] font-black uppercase"><Check size={12} strokeWidth={3}/> Sincronizado</div>
                     </div>
-                    <p className={`${jakarta.className} text-4xl md:text-5xl font-black text-[#00577C] tabular-nums leading-none`}>{formatarMoeda(valorTotalReserva)}</p>
+                    <p className={`${jakarta.className} text-4xl md:text-5xl font-black text-[#00577C] tabular-nums leading-none`}>
+                      {loadingPreco ? 'Calculando...' : formatarMoeda(valorTotalReserva)}
+                    </p>
                  </div>
               </div>
 
               <div className="p-6 md:p-8 bg-[#00577C] text-white flex items-center gap-4">
                  <ShieldAlert size={28} className="text-[#F9C400] shrink-0" />
-                 <p className="text-[10px] md:text-xs font-bold text-blue-100 uppercase tracking-wider leading-relaxed text-left">Reserva oficial processada pelo sistema integrado da Secretaria de Turismo de São Geraldo do Araguaia.</p>
+                 <p className="text-[10px] md:text-xs font-bold text-blue-100 uppercase tracking-wider text-left">Reserva oficial processada pelo sistema integrado da Secretaria de Turismo de São Geraldo do Araguaia.</p>
               </div>
             </SectionCard>
           </aside>
