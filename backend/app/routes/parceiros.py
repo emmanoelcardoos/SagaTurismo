@@ -3,7 +3,7 @@ from pydantic import BaseModel
 import os
 import resend
 from supabase import create_client, Client
-from datetime import datetime
+from datetime import datetime, timedelta
 
 router = APIRouter()
 
@@ -30,21 +30,65 @@ class DisponibilidadeParceiroSchema(BaseModel):
     preco: float
     disponivel: bool
 
-# ── FUNÇÃO AUXILIAR INTERNA: BUSCAR TAXAS E CALCULAR LÍQUIDO ──
+# ── FUNÇÕES AUXILIARES INTERNAS ──
 def obter_fator_liquido(tipo_item: str) -> float:
     """
     Consulta a tabela 'taxas_servicos' no Supabase para descobrir a taxa.
     Retorna o multiplicador líquido (ex: 10% de taxa retorna 0.90).
     """
     try:
-        res = supabase.table("taxas_servicos").select("porcentagem").eq("tipo_servico", tipo_item).execute()
+        # Se for um item de hotel vendido via pacote, a taxa cobrada é a do hotel
+        tipo_busca = "hotel" if "pacote" in tipo_item or "hotel" in tipo_item else tipo_item
+        res = supabase.table("taxas_servicos").select("porcentagem").eq("tipo_servico", tipo_busca).execute()
         if res.data:
             taxa_pct = float(res.data[0]["porcentagem"])
             return 1.0 - (taxa_pct / 100.0)
-        return 1.0 # Se não achar a taxa, assume repasse de 100% por segurança
+        return 1.0 
     except Exception as e:
         print(f"[ERRO AO BUSCAR TAXA DINÂMICA] {e}")
         return 1.0
+
+def calcular_recorte_hotel_pacote(hotel_id: str, tipo_quarto: str, checkin_str: str, checkout_str: str) -> float:
+    """
+    Calcula apenas a fatia de dinheiro que pertence ao hotel quando a reserva 
+    foi feita através de um pacote turístico.
+    """
+    try:
+        if not checkin_str or not checkout_str: return 0.0
+        
+        res_h = supabase.table("hoteis").select("*").eq("id", hotel_id).single().execute()
+        if not res_h.data: return 0.0
+        
+        base_preco = float(res_h.data["quarto_luxo_preco"] if tipo_quarto == 'luxo' else res_h.data["quarto_standard_preco"])
+        
+        res_custom = supabase.table("disponibilidade_hoteis") \
+            .select("*") \
+            .eq("hotel_id", hotel_id) \
+            .eq("tipo_quarto", tipo_quarto) \
+            .order("criado_em", desc=True) \
+            .execute()
+            
+        excecoes = res_custom.data or []
+        
+        d_atual = datetime.strptime(checkin_str, "%Y-%m-%d").date()
+        d_fim = datetime.strptime(checkout_str, "%Y-%m-%d").date()
+        
+        subtotal = 0.0
+        while d_atual < d_fim:
+            preco_noite = None
+            for regra in excecoes:
+                regra_inicio = datetime.strptime(str(regra["data_inicio"]).split("T")[0], "%Y-%m-%d").date()
+                regra_fim = datetime.strptime(str(regra["data_fim"]).split("T")[0], "%Y-%m-%d").date()
+                if regra_inicio <= d_atual <= regra_fim:
+                    preco_noite = float(regra["preco"])
+                    break
+            subtotal += preco_noite if preco_noite is not None else base_preco
+            d_atual += timedelta(days=1)
+            
+        return subtotal
+    except Exception as e:
+        print(f"[ERRO CALCULO RECORTE PACOTE] {e}")
+        return 0.0
 
 # ── ROTA DE AUTENTICAÇÃO DO PARCEIRO ──
 
@@ -133,21 +177,32 @@ async def registrar_interesse_parceiro(payload: InteresseParceiroSchema):
 @router.get("/api/v1/parceiros/{item_id}/reservas", tags=["Portal dos Parceiros"])
 async def listar_reservas_parceiro(item_id: str):
     try:
+        # Busca inteligente: item_id original OU a nova coluna de rastreio hotel_id
         res = supabase.table("pedidos") \
-            .select("codigo_pedido, tipo_item, nome_cliente, email_cliente, telefone_cliente, quantidade, valor_total, data_checkin, data_checkout") \
-            .eq("item_id", item_id) \
+            .select("codigo_pedido, tipo_item, nome_cliente, email_cliente, telefone_cliente, quantidade, valor_total, data_checkin, data_checkout, tipo_quarto") \
+            .or_(f"item_id.eq.{item_id},hotel_id.eq.{item_id}") \
             .eq("status_pagamento", "pago") \
             .execute()
             
         reservas_processadas = []
         for r in res.data:
             tipo = r.get("tipo_item")
-            valor_bruto = float(r.get("valor_total") or 0.0)
+            qtd = int(r.get("quantidade") or 1)
             
-            # Descobre a taxa na base de dados e aplica
-            fator = obter_fator_liquido(tipo)
+            # Se for uma reserva vinda de um pacote, o hotel só pode ver a sua parte!
+            if tipo == "pacote":
+                valor_bruto = calcular_recorte_hotel_pacote(
+                    item_id, 
+                    r.get("tipo_quarto", "standard"), 
+                    r.get("data_checkin"), 
+                    r.get("data_checkout")
+                ) * qtd
+                r["tipo_item"] = "Pacote (Sua Hospedagem)"
+            else:
+                valor_bruto = float(r.get("valor_total") or 0.0)
             
-            # Adicionamos o campo 'valor_liquido' diretamente na resposta da API
+            fator = obter_fator_liquido("hotel")
+            r["valor_total"] = round(valor_bruto, 2)
             r["valor_liquido"] = round(valor_bruto * fator, 2)
             reservas_processadas.append(r)
             
@@ -164,8 +219,8 @@ async def listar_reservas_parceiro(item_id: str):
 async def obter_metricas_dashboard(item_id: str):
     try:
         res = supabase.table("pedidos") \
-            .select("valor_total, tipo_item, quantity:quantidade, data_checkin") \
-            .eq("item_id", item_id) \
+            .select("valor_total, tipo_item, quantity:quantidade, data_checkin, data_checkout, tipo_quarto") \
+            .or_(f"item_id.eq.{item_id},hotel_id.eq.{item_id}") \
             .eq("status_pagamento", "pago") \
             .execute()
             
@@ -173,11 +228,21 @@ async def obter_metricas_dashboard(item_id: str):
         faturamento_liquido_total = 0.0
         total_itens_vendidos = sum(int(p.get("quantity", 1)) for p in pedidos)
         
-        # Calcula o faturamento já com os descontos dinâmicos da base de dados
         for p in pedidos:
             tipo = p.get("tipo_item")
-            v_bruto = float(p.get("valor_total") or 0.0)
-            fator = obter_fator_liquido(tipo)
+            qtd = int(p.get("quantity", 1))
+            
+            if tipo == "pacote":
+                v_bruto = calcular_recorte_hotel_pacote(
+                    item_id, 
+                    p.get("tipo_quarto", "standard"), 
+                    p.get("data_checkin"), 
+                    p.get("data_checkout")
+                ) * qtd
+            else:
+                v_bruto = float(p.get("valor_total") or 0.0)
+                
+            fator = obter_fator_liquido("hotel")
             faturamento_liquido_total += (v_bruto * fator)
         
         hoje = datetime.now().date()
@@ -195,7 +260,7 @@ async def obter_metricas_dashboard(item_id: str):
         return {
             "sucesso": True,
             "metricas": {
-                "faturamento_total": round(faturamento_liquido_total, 2), # Envia o líquido calculado direto do banco
+                "faturamento_total": round(faturamento_liquido_total, 2),
                 "total_vendas": len(pedidos),
                 "total_produtos_entregues": total_itens_vendidos,
                 "clientes_a_chegar": proximos_clientes
@@ -212,7 +277,6 @@ async def atualizar_disponibilidade_parceiro(item_id: str, payload: Disponibilid
     do parceiro e grava na tabela do Supabase.
     """
     try:
-        # Prepara o dicionário para inserir na nova tabela
         dados_disponibilidade = {
             "hotel_id": item_id,
             "tipo_quarto": payload.tipo_quarto,
@@ -222,7 +286,6 @@ async def atualizar_disponibilidade_parceiro(item_id: str, payload: Disponibilid
             "disponivel": payload.disponivel
         }
         
-        # Grava os dados no Supabase
         res = supabase.table("disponibilidade_hoteis").insert(dados_disponibilidade).execute()
         
         return {
@@ -250,7 +313,6 @@ async def obter_preco_hospedagem_publico(
         raise HTTPException(status_code=400, detail="Check-in and Check-out dates are required.")
         
     try:
-        # 1. Busca a tarifa base do hotel
         res_h = supabase.table("hoteis").select("*").eq("id", hotel_id).single().execute()
         if not res_h.data:
             raise HTTPException(status_code=404, detail="Hotel não encontrado.")
@@ -258,7 +320,6 @@ async def obter_preco_hospedagem_publico(
         hotel_data = res_h.data
         base_preco = float(hotel_data["quarto_luxo_preco"] if tipo_quarto == 'luxo' else hotel_data["quarto_standard_preco"])
         
-        # 2. Busca TODAS as regras deste quarto ORDENADAS PELA MAIS RECENTE
         res_custom = supabase.table("disponibilidade_hoteis") \
             .select("*") \
             .eq("hotel_id", hotel_id) \
@@ -268,17 +329,14 @@ async def obter_preco_hospedagem_publico(
             
         excecoes = res_custom.data or []
         
-        from datetime import datetime, timedelta
         d_atual = datetime.strptime(checkin, "%Y-%m-%d").date()
         d_fim = datetime.strptime(checkout, "%Y-%m-%d").date()
         
         valor_total_bruto = 0.0
         
-        # Calcula noite por noite
         while d_atual < d_fim:
             preco_noite = None
             for regra in excecoes:
-                # CORREÇÃO DEFINITIVA AQUI: Garantir que se a DB vier com TIMEZONE, o python corta e lê apenas o YYYY-MM-DD
                 regra_inicio_raw = str(regra["data_inicio"]).split("T")[0]
                 regra_fim_raw = str(regra["data_fim"]).split("T")[0]
                 

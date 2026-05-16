@@ -24,14 +24,14 @@ class EnderecoFaturacao(BaseModel):
     complement: Optional[str] = None
     locality: str
     city: str
-    region_code: str # Ex: PA, TO, SP
+    region_code: str
     country: str = "BRA"
     postal_code: str
 
 class PedidoPagamento(BaseModel):
     tipo_item: str # 'carteira', 'hotel', 'pacote' ou 'passeio'
     quantidade: Optional[int] = 1 
-    adultos: Optional[int] = 2 # ◄── Essencial para somar o valor correto das atrações no pacote
+    adultos: Optional[int] = 2 
 
     # IDs dinâmicos
     pacote_id: Optional[str] = None
@@ -55,16 +55,12 @@ class PedidoPagamento(BaseModel):
     data_nascimento: Optional[str] = None
     
     # Pagamento
-    metodo_pagamento: str 
+    metodo_pagamento: str
     encrypted_card: Optional[str] = None
     parcelas: Optional[int] = 1
 
 # ── FUNÇÃO AUXILIAR INTERNA: CALCULAR PREÇO DO HOTEL NOITE POR NOITE ──
 def calcular_preco_hotel_dinamico(hotel_id: str, tipo_quarto: str, checkin_str: str, checkout_str: str) -> float:
-    """
-    Verifica noite por noite se existem exceções de preços ou bloqueios na agenda 
-    dentro da tabela 'disponibilidade_hoteis'. Se não existirem, usa a tarifa base do hotel.
-    """
     res_h = supabase.table("hoteis").select("*").eq("id", hotel_id).single().execute()
     if not res_h.data:
         raise HTTPException(status_code=404, detail="Alojamento não encontrado.")
@@ -118,7 +114,7 @@ def calcular_preco_hotel_dinamico(hotel_id: str, tipo_quarto: str, checkin_str: 
 async def processar_pagamento(pedido: PedidoPagamento):
     try:
         valor_total = 0.0
-        recebedores_split = [] # ◄── Armazena os parceiros validados
+        recebedores_split = []
         splits_array = []
         nome_item_checkout = ""
         item_id_db = None
@@ -175,7 +171,7 @@ async def processar_pagamento(pedido: PedidoPagamento):
             v_guia_total = 0.0
             v_atracoes_total = 0.0
 
-            # 1. Repasse do Hotel
+            # 1. Split Dinâmico do Hotel
             if pedido.hotel_id:
                 v_hotel_dinamico = calcular_preco_hotel_dinamico(
                     pedido.hotel_id, pedido.tipo_quarto, pedido.data_checkin, pedido.data_checkout
@@ -196,7 +192,7 @@ async def processar_pagamento(pedido: PedidoPagamento):
             noites_calculadas = (d_co - d_ci).days
             noites_finais = noites_calculadas if noites_calculadas > 0 else 1
 
-            # 2. Repasse para o Guia
+            # 2. Split do Guia de Turismo
             if pedido.guia_id:
                 res_g = supabase.table("guias").select("pagbank_recebedor_id, preco_diaria").eq("id", pedido.guia_id).single().execute()
                 if res_g.data:
@@ -208,7 +204,7 @@ async def processar_pagamento(pedido: PedidoPagamento):
                             "amount": {"value": int((v_guia_total * fator_liquido) * 100)}
                         })
 
-            # 3. Repasse para as Atrações
+            # 3. Split das Atrações Turísticas inclusas
             res_itens = supabase.table("pacote_itens").select("atracao_id").eq("pacote_id", pedido.pacote_id).execute()
             for item in res_itens.data:
                 atr_id = item.get("atracao_id")
@@ -224,7 +220,6 @@ async def processar_pagamento(pedido: PedidoPagamento):
                                 "amount": {"value": int((v_individual_atr * fator_liquido) * 100)}
                             })
 
-            # Sincronização do valor total real
             valor_total = v_hospedagem_total + v_guia_total + v_atracoes_total
 
         # ==========================================
@@ -233,7 +228,6 @@ async def processar_pagamento(pedido: PedidoPagamento):
         soma_splits_centavos = sum(r["amount"]["value"] for r in recebedores_split)
         valor_total_centavos = int(valor_total * 100)
 
-        # O PagBank proíbe repassar 100% ou mais do valor total (a conta principal precisa reter a taxa)
         if recebedores_split and (soma_splits_centavos < valor_total_centavos):
             splits_array = [{
                 "method": "FIXED",
@@ -243,7 +237,7 @@ async def processar_pagamento(pedido: PedidoPagamento):
             splits_array = []
 
         # ==========================================
-        # FASE 3: PERSISTÊNCIA NO SUPABASE
+        # FASE 3: PERSISTÊNCIA NO SUPABASE (ATUALIZADA)
         # ==========================================
         pedido_db = {
             "codigo_pedido": codigo_pedido,
@@ -259,7 +253,11 @@ async def processar_pagamento(pedido: PedidoPagamento):
             "data_checkout": pedido.data_checkout,
             "data_nascimento": pedido.data_nascimento,
             "foto_url": pedido.foto_url,
-            "quantidade": pedido.quantidade
+            "quantidade": pedido.quantidade,
+            # ── RASTREIO EXPLÍCITO DE PARCEIROS COMPOSITOS ──
+            "hotel_id": pedido.hotel_id if pedido.hotel_id else None,
+            "guia_id": pedido.guia_id if pedido.guia_id else None,
+            "tipo_quarto": pedido.tipo_quarto if pedido.tipo_quarto else "standard"
         }
         
         if item_id_db:
