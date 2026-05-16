@@ -229,16 +229,16 @@ function CheckoutHotelContent() {
 
     try {
       if (metodoPagamento === 'cartao') {
-        if (!window.PagSeguro) throw new Error('Checkout SDK do PagBank não foi inicializado.');
+        if (!window.PagSeguro || !window.PagSeguro.encryptCard) {
+          throw new Error('Checkout SDK do PagBank não foi inicializado corretamente.');
+        }
         
         const key = process.env.NEXT_PUBLIC_PAGBANK_PUBLIC_KEY;
         if (!key) throw new Error('Chave pública do PagBank não localizada.');
 
-        // ── SOLUÇÃO DEFINITIVA: INSTÂNCIA ASSÍNCRONA OBRIGATÓRIA COM AS CHAVES CORRETAS ──
-        const pagseguroInstance = new window.PagSeguro({ publicKey: key });
-
-        // encryptCard é uma Promise e exige os nomes: expirationMonth, expirationYear, securityCode
-        const encryptedCard = await pagseguroInstance.encryptCard({
+        // ── CHAMADA DIRETA DO MÉTODO CORPORATIVO DO PAGBANK (SEM O OPERADOR NEW) ──
+        const result = await window.PagSeguro.encryptCard({
+          publicKey: key,
           holder: nomeCartao,
           number: numeroCartao.replace(/\D/g, ''),
           expirationMonth: mesCartao,
@@ -246,12 +246,12 @@ function CheckoutHotelContent() {
           securityCode: cvvCartao
         });
 
-        if (!encryptedCard) {
-          throw new Error('Chave de criptografia recusada pelo gateway do PagBank.');
+        if (result.hasErrors) {
+          throw new Error('Dados do cartão recusados pelo gateway de criptografia do PagBank.');
         }
 
         payload.metodo_pagamento = 'cartao';
-        payload.encrypted_card = encryptedCard;
+        payload.encrypted_card = result.encryptedCard;
         payload.parcelas = parcelas;
       } else {
         payload.metodo_pagamento = 'pix';
@@ -319,6 +319,7 @@ function CheckoutHotelContent() {
       </div>
 
       <div className="mx-auto max-w-7xl px-4 md:px-8 py-8 md:py-12">
+         {/* ── CORREÇÃO DA LINHA 144: TAG UNIFICADA DO COMPONENTE SEM O ESPAÇO TYPO ── */}
         <BarraTempoReserva />
 
         <div className="grid gap-8 lg:grid-cols-[1fr_400px] items-start">
