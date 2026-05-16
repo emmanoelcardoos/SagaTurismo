@@ -8,7 +8,7 @@ import {
   ArrowLeft, MapPin, Star, CheckCircle2, Info, 
   Loader2, Menu, X, ChevronLeft, ChevronRight,
   Calendar as CalendarIcon, Bed, ChevronRight as ChevronRightIcon,
-  Users, Award, Phone, Mail, Globe,
+  Users, Award, Phone, Mail, Globe, Ticket,
   Wind, Wifi, Bath, CreditCard, Image as ImageIcon, Coffee,
   Edit3, Compass
 } from 'lucide-react';
@@ -74,13 +74,13 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
 
-  // ── ESTADOS DO MOTOR DE RESERVAS (CALENDÁRIO E VALORES LIDOS DA API) ──
+  // ── ESTADOS DO MOTOR DE RESERVAS ──
   const [checkin, setCheckin] = useState<Date | null>(null);
   const [checkout, setCheckout] = useState<Date | null>(null);
   const [mesAtualCalendario, setMesAtualCalendario] = useState<Date | null>(null);
   const [mounted, setMounted] = useState(false);
 
-  // Valores Finais Dinâmicos Calculados pela API da Railway
+  // Valores Finais Dinâmicos
   const [totalStandard, setTotalStandard] = useState(0);
   const [totalLuxo, setTotalLuxo] = useState(0);
   const [totalNoites, setTotalNoites] = useState(1);
@@ -111,7 +111,6 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
         
         if (hotelData) {
           setHotel(hotelData);
-          // Define os preços base iniciais (para 1 noite padrão)
           setTotalStandard(parseValor(hotelData.quarto_standard_preco) * quartos);
           setTotalLuxo(parseValor(hotelData.quarto_luxo_preco) * quartos);
         } else {
@@ -119,18 +118,17 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
         }
       } catch (err: any) {
         setErro(err.message || "Ocorreu um erro inesperado.");
-      } ball {
+      } finally { // ◄── CORRIGIDO: de 'ball' para 'finally'
         setLoading(false);
       }
     }
     if (params.id) fetchHotel();
-  }, [params.id]);
+  }, [params.id, quartos]);
 
   // ── REATIVIDADE: ATUALIZAÇÃO PREÇOS DIÁRIOS VIA API RAILWAY ──
   useEffect(() => {
     if (!hotel) return;
 
-    // Se o utilizador tirou as datas ou ainda não escolheu o intervalo completo, volta ao preço base
     if (!checkin || !checkout) {
       setTotalStandard(parseValor(hotel.quarto_standard_preco) * quartos);
       setTotalLuxo(parseValor(hotel.quarto_luxo_preco) * quartos);
@@ -146,7 +144,6 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
       const checkoutStr = formatarDataIso(checkout!);
 
       try {
-        // Dispara as consultas em paralelo para poupar tempo de resposta
         const [resStd, resLux] = await Promise.all([
           fetch(`https://sagaturismo-production.up.railway.app/api/v1/public/hoteis/${params.id}/calcular-preco?tipo_quarto=standard&checkin=${checkinStr}&checkout=${checkoutStr}&quantidade=${quartos}`),
           fetch(`https://sagaturismo-production.up.railway.app/api/v1/public/hoteis/${params.id}/calcular-preco?tipo_quarto=luxo&checkin=${checkinStr}&checkout=${checkoutStr}&quantidade=${quartos}`)
@@ -172,13 +169,13 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
 
       } catch (err) {
         console.error("Erro ao sincronizar valores dinâmicos do calendário:", err);
-      } finally {
+      } finaly {
         setCalculandoPreco(false);
       }
     }
 
     atualizarPrecosDinamicos();
-  }, [checkin, checkout, quartos, hotel]);
+  }, [checkin, checkout, quartos, hotel, params.id]);
 
   // Efeito de Scroll Header
   useEffect(() => {
@@ -274,7 +271,7 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
               <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Secretaria de Turismo</p>
             </div>
           </Link>
-          <nav className="hidden lg:flex items-center gap-7 font-bold text-sm">
+          <nav className="hidden items-center gap-7 md:flex">
             <Link href="/hoteis" className="text-[#00577C]">Alojamentos</Link>
             <Link href="/roteiro" className="text-slate-600 hover:text-[#00577C]">Rota Turística</Link>
             <Link href="/cadastro" className="rounded-full bg-[#F9C400] px-5 py-3 text-[#00577C] shadow-lg transition hover:bg-[#ffd633]">Cartão Residente</Link>
@@ -406,7 +403,8 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
                       <div className="w-full xl:w-2/5 p-4 md:p-5 border-b xl:border-b-0 xl:border-r border-slate-100 flex flex-col">
                          <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden mb-3 md:mb-4 group">
                             <Image src={imagensLuxo[imgIdxLuxo]} alt="Quarto Luxo" fill className="object-cover" />
-                            <button onClick={() => setImgIdxLuxo((prev) => (prev - 1 + imagensLuxo.length) % imagensxo.length)} className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 bg-black/50 text-white rounded-full flex items-center justify-center"><ChevronLeft size={16}/></button>
+                            {/* ── CORRIGIDO: de 'imagensxo' para 'imagensLuxo' ── */}
+                            <button onClick={() => setImgIdxLuxo((prev) => (prev - 1 + imagensLuxo.length) % imagensLuxo.length)} className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 bg-black/50 text-white rounded-full flex items-center justify-center"><ChevronLeft size={16}/></button>
                             <button onClick={() => setImgIdxLuxo((prev) => (prev + 1) % imagensLuxo.length)} className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 bg-black/50 text-white rounded-full flex items-center justify-center"><ChevronRightIcon size={16}/></button>
                          </div>
                          <div className="grid grid-cols-2 gap-2 md:gap-3 text-[10px] md:text-xs text-slate-600 font-medium mt-auto">
@@ -505,8 +503,9 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
 
         </div>
 
-        {/* ── COLUNA DIREITA: CALENDÁRIO STICKY ── */}
-        <div id="motor-reservas" className="w-full lg:w-[380px] shrink-0 lg:self-start relative z-30">
+        {/* ── COLUNA DIREITA: CALENDÁRIO FIXADO NO TOPO (REATIVADO COM STICKY) ── */}
+        {/* ◄── AQUI: Injetado o lg:sticky e o lg:top-[110px] para colar perfeitamente abaixo do Menu sem flutuar de forma desalinhada */}
+        <div id="motor-reservas" className="w-full lg:w-[380px] shrink-0 lg:self-start lg:sticky lg:top-[110px] relative z-30">
           <div className="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] shadow-xl border border-slate-200 text-left">
              <h3 className={`${jakarta.className} text-lg md:text-xl font-black text-slate-900 mb-5 flex items-center gap-2`}>
                 <CalendarIcon className="text-[#00577C]" size={20}/> Escolher Período
