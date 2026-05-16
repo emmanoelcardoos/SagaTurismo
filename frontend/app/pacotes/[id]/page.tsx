@@ -11,7 +11,7 @@ import {
   Award, Image as ImageIcon, Smartphone, Map, UserCheck,
   ChevronLeft, ChevronRight as ChevronRightIcon, ZoomIn,
   Landmark, Check, Users, Baby, DoorOpen, Phone, Mail, Globe,
-  Wind, Wifi, Bath, Maximize, Zap, CreditCard, Coffee, Edit3
+  Wind, Wifi, Bath, Maximize, Zap, CreditCard, Coffee, Edit3, Menu
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
