@@ -3,16 +3,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation'; // ◄── AQUI: Importação adicionada
+import { useRouter } from 'next/navigation';
 import { 
   Menu, X, Lock, Mail, Building2, 
   Map as MapIcon, UserCheck, TrendingUp, ShieldCheck, Globe, 
-  Phone, ArrowRight, Loader2, CheckCircle2 
+  ArrowRight, Loader2, CheckCircle2, Bed, Compass, ClipboardList, ArrowLeft
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['600', '700', '800'] });
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
+
+type TipoPortal = 'hotel' | 'guia' | 'pacote';
 
 // ── COMPONENTE MÁGICO DE ANIMAÇÃO ──
 function ScrollReveal({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
@@ -42,16 +44,18 @@ function ScrollReveal({ children, className = "", delay = 0 }: { children: React
 }
 
 export default function ParceirosPage() {
-  const router = useRouter(); // ◄── AQUI: Variável declarada para o login funcionar
+  const router = useRouter();
 
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Estados do Login
+  // ── ESTADOS DO LOBBY & LOGIN ──
+  const [portalSelecionado, setPortalSelecionado] = useState<TipoPortal | null>(null);
   const [loginEmail, setLoginEmail] = useState('');
   const [loginSenha, setLoginSenha] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [erroLogin, setErroLogin] = useState('');
 
   // Estados do Formulário de Interesse
   const [formNome, setFormNome] = useState('');
@@ -75,6 +79,7 @@ export default function ParceirosPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoggingIn(true);
+    setErroLogin('');
     
     try {
       const response = await fetch("https://sagaturismo-production.up.railway.app/api/v1/parceiros/login", {
@@ -89,20 +94,30 @@ export default function ParceirosPage() {
       const data = await response.json();
       
       if (response.ok && data.sucesso) {
-        // Sucesso! Guarda os dados do parceiro no navegador
         localStorage.setItem("parceiro_id", data.parceiro_id);
         localStorage.setItem("nome_negocio", data.nome_negocio);
         
-        // ── REDIRECIONAMENTO COM ROUTER DO NEXT.JS ──
-        router.push("/parceiros/dashboard");
+        // Define o tipo pelo que a API devolveu, ou usa a escolha do utilizador como fallback
+        const tipoFinal = data.tipo_parceiro || portalSelecionado;
+        localStorage.setItem("tipo_parceiro", tipoFinal);
+        
+        // ── ENCAMINHAMENTO INTELIGENTE POR TIPO DE PARCEIRO ──
+        if (tipoFinal === 'hotel') {
+          router.push("/parceiros/dashboard-hotel");
+        } else if (tipoFinal === 'guia') {
+          router.push("/parceiros/dashboard-guia");
+        } else if (tipoFinal === 'pacote' || tipoFinal === 'agencia') {
+          router.push("/parceiros/dashboard-servico");
+        } else {
+          router.push("/parceiros/dashboard-hotel"); // Fallback de segurança
+        }
         
       } else {
-        // Mostra o erro exato que vem do backend ou o fallback se detail não existir
-        alert(data.detail || data.mensagem || "Erro ao fazer login. Verifique os dados.");
+        setErroLogin(data.detail || data.mensagem || "Credenciais inválidas. Tente novamente.");
       }
     } catch (error) {
       console.error("Erro na comunicação com a API:", error);
-      alert("Falha na conexão com o servidor.");
+      setErroLogin("Falha na conexão com o servidor.");
     } finally {
       setIsLoggingIn(false);
     }
@@ -148,7 +163,7 @@ export default function ParceirosPage() {
         )}
       </header>
 
-      {/* ── HERO & LOGIN SECTION ── */}
+      {/* ── HERO & LOBBY DE ACESSO ── */}
       <section className="relative w-full min-h-[100vh] lg:min-h-[85vh] bg-[#002f40] pt-[120px] md:pt-[120px] pb-12 md:pb-20 flex items-center overflow-hidden">
         <div className="absolute inset-0 z-0">
            <Image src="https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?q=80&w=2000" alt="Turismo" fill className="object-cover opacity-30 mix-blend-overlay" priority />
@@ -167,51 +182,101 @@ export default function ParceirosPage() {
                  Conecte o seu negócio ao <span className="text-[#F9C400]">mundo.</span>
                </h1>
                <p className="text-white/80 font-medium text-base md:text-lg leading-relaxed max-w-xl mb-8">
-                 O portal SagaTurismo é a vitrine oficial de São Geraldo do Araguaia. Aumente as suas reservas, gira a sua disponibilidade em tempo real e faça parte do desenvolvimento da nossa cidade.
+                 O portal SagaTurismo é a vitrine oficial de São Geraldo do Araguaia. Aumente as suas vendas e faça a gestão do seu inventário de forma unificada e livre de taxas abusivas.
                </p>
-               <div className="flex flex-wrap items-center gap-4 lg:gap-6 text-xs sm:text-sm font-bold text-white/90">
-                  <span className="flex items-center gap-2"><CheckCircle2 size={16} className="text-[#009640]"/> Zero comissões abusivas</span>
-                  <span className="flex items-center gap-2"><CheckCircle2 size={16} className="text-[#009640]"/> Suporte direto</span>
-               </div>
             </ScrollReveal>
 
-            {/* CARD DE LOGIN (Direita) */}
+            {/* ZONA DE LOBBY / LOGIN (Direita) */}
             <ScrollReveal delay={300} className="w-full max-w-md mx-auto lg:ml-auto">
-               <div className="bg-white rounded-[2rem] md:rounded-[2.5rem] shadow-2xl p-8 md:p-10 border border-slate-100 relative overflow-hidden text-left">
-                  <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-[#00577C] to-[#F9C400]" />
-                  
-                  <div className="mb-8">
-                     <h2 className={`${jakarta.className} text-2xl md:text-3xl font-black text-slate-900`}>Aceder à Conta</h2>
-                     <p className="text-sm text-slate-500 font-medium mt-2">Área exclusiva para parceiros credenciados.</p>
-                  </div>
+               <div className="relative w-full h-[450px]">
+                 
+                 {/* CARTÕES DE SELEÇÃO (LOBBY) */}
+                 <div className={`absolute inset-0 w-full transition-all duration-500 ease-in-out ${portalSelecionado ? '-translate-x-full opacity-0 pointer-events-none' : 'translate-x-0 opacity-100'}`}>
+                    <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-[2rem] p-6 shadow-2xl flex flex-col gap-4">
+                       <h3 className={`${jakarta.className} text-white text-xl font-black mb-2 text-center`}>Selecione o seu Portal</h3>
+                       
+                       <button onClick={() => setPortalSelecionado('hotel')} className="w-full bg-white rounded-2xl p-4 flex items-center gap-4 hover:ring-4 ring-blue-500/30 transition-all group shadow-md text-left">
+                          <div className="w-12 h-12 bg-blue-50 rounded-xl text-[#00577C] flex items-center justify-center group-hover:scale-110 transition-transform shrink-0"><Bed size={24}/></div>
+                          <div className="flex-1">
+                             <h4 className={`${jakarta.className} text-base font-bold text-slate-900`}>Aceder Portal Hotéis</h4>
+                             <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Quartos & Hóspedes</p>
+                          </div>
+                          <ArrowRight className="text-slate-300 group-hover:text-[#00577C] transition-colors" />
+                       </button>
 
-                  <form onSubmit={handleLogin} className="space-y-5">
-                     <div>
-                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">E-mail ou CPF</label>
-                        <div className="relative">
-                           <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20}/>
-                           <input type="text" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} required className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="seu@email.com" />
-                        </div>
-                     </div>
-                     <div>
-                        <div className="flex items-center justify-between mb-2">
-                           <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Palavra-passe</label>
-                           <a href="#" className="text-[10px] font-bold text-[#00577C] hover:underline">Esqueceu?</a>
-                        </div>
-                        <div className="relative">
-                           <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20}/>
-                           <input type="password" value={loginSenha} onChange={(e) => setLoginSenha(e.target.value)} required className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="••••••••" />
-                        </div>
-                     </div>
-                     
-                     <button type="submit" disabled={isLoggingIn} className="w-full bg-[#00577C] hover:bg-[#004a6b] text-white py-4 rounded-2xl font-black uppercase text-xs md:text-sm tracking-widest shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2 mt-4">
-                        {isLoggingIn ? (
-                           <span className="flex items-center gap-2"><Loader2 className="animate-spin" size={18}/> Autenticando...</span>
-                        ) : (
-                           <span>Entrar no Dashboard</span>
-                        )}
-                     </button>
-                  </form>
+                       <button onClick={() => setPortalSelecionado('guia')} className="w-full bg-white rounded-2xl p-4 flex items-center gap-4 hover:ring-4 ring-green-500/30 transition-all group shadow-md text-left">
+                          <div className="w-12 h-12 bg-green-50 rounded-xl text-[#009640] flex items-center justify-center group-hover:scale-110 transition-transform shrink-0"><Compass size={24}/></div>
+                          <div className="flex-1">
+                             <h4 className={`${jakarta.className} text-base font-bold text-slate-900`}>Aceder Portal Guias</h4>
+                             <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Passeios & Turistas</p>
+                          </div>
+                          <ArrowRight className="text-slate-300 group-hover:text-[#009640] transition-colors" />
+                       </button>
+
+                       <button onClick={() => setPortalSelecionado('pacote')} className="w-full bg-white rounded-2xl p-4 flex items-center gap-4 hover:ring-4 ring-purple-500/30 transition-all group shadow-md text-left">
+                          <div className="w-12 h-12 bg-purple-50 rounded-xl text-purple-700 flex items-center justify-center group-hover:scale-110 transition-transform shrink-0"><ClipboardList size={24}/></div>
+                          <div className="flex-1">
+                             <h4 className={`${jakarta.className} text-base font-bold text-slate-900`}>Aceder Portal Agências</h4>
+                             <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Gestão de Pacotes</p>
+                          </div>
+                          <ArrowRight className="text-slate-300 group-hover:text-purple-700 transition-colors" />
+                       </button>
+                    </div>
+                 </div>
+
+                 {/* FORMULÁRIO DE LOGIN ESPECÍFICO */}
+                 <div className={`absolute inset-0 w-full transition-all duration-500 ease-in-out ${!portalSelecionado ? 'translate-x-full opacity-0 pointer-events-none' : 'translate-x-0 opacity-100'}`}>
+                    <div className="bg-white rounded-[2rem] shadow-2xl p-8 border border-slate-100 h-full flex flex-col relative overflow-hidden">
+                       {/* Topo colorido por tema */}
+                       <div className={`absolute top-0 left-0 right-0 h-2 ${portalSelecionado === 'hotel' ? 'bg-[#00577C]' : portalSelecionado === 'guia' ? 'bg-[#009640]' : 'bg-purple-700'}`} />
+                       
+                       <button type="button" onClick={() => { setPortalSelecionado(null); setErroLogin(''); }} className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:text-slate-800 transition-colors mb-4 border border-slate-200 shadow-sm">
+                          <ArrowLeft size={16} />
+                       </button>
+
+                       <div className="mb-6 text-left">
+                          <div className="flex items-center gap-3 mb-2">
+                             {portalSelecionado === 'hotel' && <Bed className="text-[#00577C]" size={24}/>}
+                             {portalSelecionado === 'guia' && <Compass className="text-[#009640]" size={24}/>}
+                             {portalSelecionado === 'pacote' && <ClipboardList className="text-purple-700" size={24}/>}
+                             <h2 className={`${jakarta.className} text-xl md:text-2xl font-black text-slate-900`}>
+                               {portalSelecionado === 'hotel' && 'Portal Hoteleiro'}
+                               {portalSelecionado === 'guia' && 'Portal do Guia'}
+                               {portalSelecionado === 'pacote' && 'Portal de Agências'}
+                             </h2>
+                          </div>
+                          <p className="text-xs text-slate-500 font-medium">Insira as credenciais para aceder ao sistema.</p>
+                       </div>
+
+                       <form onSubmit={handleLogin} className="space-y-4 flex-1 flex flex-col">
+                          <div>
+                             <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2 text-left">E-mail de Registo</label>
+                             <div className="relative">
+                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18}/>
+                                <input type="text" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} required className={`w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-3 pl-11 pr-4 text-sm font-bold text-slate-800 outline-none transition-all ${portalSelecionado === 'hotel' ? 'focus:border-[#00577C]' : portalSelecionado === 'guia' ? 'focus:border-[#009640]' : 'focus:border-purple-700'}`} placeholder="seu@email.com" />
+                             </div>
+                          </div>
+                          <div>
+                             <div className="flex items-center justify-between mb-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-left">Palavra-passe</label>
+                             </div>
+                             <div className="relative">
+                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18}/>
+                                <input type="password" value={loginSenha} onChange={(e) => setLoginSenha(e.target.value)} required className={`w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-3 pl-11 pr-4 text-sm font-bold text-slate-800 outline-none transition-all ${portalSelecionado === 'hotel' ? 'focus:border-[#00577C]' : portalSelecionado === 'guia' ? 'focus:border-[#009640]' : 'focus:border-purple-700'}`} placeholder="••••••••" />
+                             </div>
+                          </div>
+                          
+                          {erroLogin && <p className="text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg border border-red-100 text-center">{erroLogin}</p>}
+                          
+                          <div className="mt-auto">
+                             <button type="submit" disabled={isLoggingIn} className={`w-full text-white py-4 rounded-xl font-black uppercase text-xs tracking-widest shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2 ${portalSelecionado === 'hotel' ? 'bg-[#00577C] hover:bg-[#004a6b]' : portalSelecionado === 'guia' ? 'bg-[#009640] hover:bg-[#007a33]' : 'bg-purple-700 hover:bg-purple-800'}`}>
+                                {isLoggingIn ? <><Loader2 className="animate-spin" size={18}/> Validando...</> : <span>Entrar na Área Privada</span>}
+                             </button>
+                          </div>
+                       </form>
+                    </div>
+                 </div>
+
                </div>
             </ScrollReveal>
 
@@ -276,7 +341,7 @@ export default function ParceirosPage() {
                   </div>
                   <div className="flex items-center gap-4 text-white">
                      <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center"><MapIcon size={24} className="text-[#F9C400]"/></div>
-                     <div><p className="font-bold">Atrações & Passeios</p><p className="text-xs text-slate-400">Parques, Barcos, Experiências</p></div>
+                     <div><p className="font-bold">Agências de Roteiros</p><p className="text-xs text-slate-400">Criação de Pacotes & Experiências</p></div>
                   </div>
                </div>
             </ScrollReveal>
