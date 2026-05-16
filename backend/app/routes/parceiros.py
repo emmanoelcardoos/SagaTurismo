@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 import os
+import resend
 from supabase import create_client, Client
 from datetime import datetime
 
@@ -10,12 +11,20 @@ SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# ── MODELO DE DADOS PARA RECEBER O LOGIN ──
+# ── MODELOS DE DADOS (SCHEMAS) ──
+
 class LoginParceiroSchema(BaseModel):
     email: str
     senha: str
 
+class InteresseParceiroSchema(BaseModel):
+    nome: str
+    empresa: str
+    tipo: str
+    telefone: str
+
 # ── ROTA DE AUTENTICAÇÃO DO PARCEIRO ──
+
 @router.post("/api/v1/parceiros/login", tags=["Portal dos Parceiros"])
 async def login_parceiro(payload: LoginParceiroSchema):
     """
@@ -37,7 +46,7 @@ async def login_parceiro(payload: LoginParceiroSchema):
             
         parceiro = res.data[0]
         
-        # 2. Validar a Senha Simples (Comparação direta conforme solicitado)
+        # 2. Validar a Senha Simples
         if parceiro.get("senha") != payload.senha:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -45,7 +54,6 @@ async def login_parceiro(payload: LoginParceiroSchema):
             )
             
         # 3. Validar a Ativação Manual da Equipa
-        # Se o status não for 'ativo', bloqueia o login mesmo com a senha correta
         if parceiro.get("status") != "ativo":
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -66,6 +74,56 @@ async def login_parceiro(payload: LoginParceiroSchema):
         print(f"[ERRO LOGIN PARCEIRO] {e}")
         raise HTTPException(status_code=500, detail="Erro interno ao processar a autenticação.")
 
+# ── ROTA PARA RECEBER O PEDIDO DE INTERESSE E ENVIAR E-MAIL ──
+
+@router.post("/api/v1/parceiros/interesse", tags=["Portal dos Parceiros"])
+async def registrar_interesse_parceiro(payload: InteresseParceiroSchema):
+    """
+    Recebe os dados do formulário 'Seja um Parceiro' do frontend e dispara 
+    um e-mail de notificação para a equipa avaliar o credenciamento.
+    """
+    try:
+        # Puxa a API Key configurada nas variáveis da Railway
+        resend.api_key = os.environ.get("RESEND_API_KEY")
+        if not resend.api_key:
+            print("[AVISO] RESEND_API_KEY não encontrada nas variáveis de ambiente.")
+            raise HTTPException(status_code=500, detail="Configuração de e-mail ausente no servidor.")
+        
+        # Estrutura visual do e-mail em HTML
+        html_content = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #E2E8F0; border-radius: 10px;">
+            <h2 style="color: #00577C; margin-bottom: 5px;">Novo Pedido de Parceria! 🎯</h2>
+            <p style="color: #64748B; font-size: 14px; margin-top: 0;">O portal SagaTurismo recebeu um novo interesse de credenciamento.</p>
+            
+            <div style="background-color: #F8FAFC; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #F9C400;">
+                <p style="margin: 5px 0;"><strong>👤 Nome do Responsável:</strong> {payload.nome}</p>
+                <p style="margin: 5px 0;"><strong>🏢 Nome do Negócio:</strong> {payload.empresa}</p>
+                <p style="margin: 5px 0;"><strong>🏷️ Categoria:</strong> {payload.tipo.upper()}</p>
+                <p style="margin: 5px 0;"><strong>📱 WhatsApp:</strong> {payload.telefone}</p>
+            </div>
+            
+            <p style="color: #0F172A; font-size: 14px; line-height: 1.5;">
+                Por favor, faça a validação dos dados. Após o contacto, crie as credenciais de acesso do parceiro na tabela <strong>parceiros</strong> do Supabase e defina o status como <strong>'ativo'</strong> para libertar o login.
+            </p>
+        </div>
+        """
+
+        # Configuração dos parâmetros de envio
+        params = {
+            "from": "SagaTurismo <sistema@sagatur.com.br>", 
+            "to": ["emmanoel.cardoso09@gmail.com"],
+            "subject": f"Novo Parceiro Pendente: {payload.empresa}",
+            "html": html_content,
+        }
+
+        # Envia através do SDK do Resend
+        resend.Emails.send(params)
+
+        return {"sucesso": True, "mensagem": "Pedido de registro recebido com sucesso!"}
+        
+    except Exception as e:
+        print(f"[ERRO ENVIO EMAIL INTERESSE] {e}")
+        raise HTTPException(status_code=500, detail="Erro interno ao processar o formulário.")
 
 # ── ROTAS DE CONSULTA DO PAINEL (MANTIDAS) ──
 
@@ -87,19 +145,18 @@ async def listar_reservas_parceiro(item_id: str):
         print(f"[ERRO PORTAL PARCEIROS] {e}")
         raise HTTPException(status_code=500, detail="Erro ao buscar lista de reservas.")
 
-
 @router.get("/api/v1/parceiros/{item_id}/dashboard", tags=["Portal dos Parceiros"])
 async def obter_metricas_dashboard(item_id: str):
     try:
         res = supabase.table("pedidos") \
-            .select("valor_total, quantidade, data_checkin") \
+            .select("valor_total, quantity:quantidade, data_checkin") \
             .eq("item_id", item_id) \
             .eq("status_pagamento", "pago") \
             .execute()
             
         pedidos = res.data
         faturamento_total = sum(float(p.get("valor_total", 0.0)) for p in pedidos)
-        total_itens_vendidos = sum(int(p.get("quantidade", 1)) for p in pedidos)
+        total_itens_vendidos = sum(int(p.get("quantity", 1)) for p in pedidos)
         
         hoje = datetime.now().date()
         proximos_clientes = 0
