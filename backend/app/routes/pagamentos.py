@@ -4,7 +4,7 @@ from typing import Optional, Dict
 import httpx
 import os
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta # ◄── Adicionado timedelta para o cálculo diário
 from supabase import create_client, Client
 
 router = APIRouter()
@@ -58,6 +58,67 @@ class PedidoPagamento(BaseModel):
     encrypted_card: Optional[str] = None
     parcelas: Optional[int] = 1
 
+# ── FUNÇÃO AUXILIAR INTERNA: CALCULAR PREÇO DO HOTEL NOITE POR NOITE ──
+def calcular_preco_hotel_dinamico(hotel_id: str, tipo_quarto: str, checkin_str: str, checkout_str: str) -> float:
+    """
+    Verifica noite por noite se existem exceções de preços ou bloqueios na agenda 
+    dentro da tabela 'disponibilidade_hoteis'. Se não existirem, usa a tarifa base do hotel.
+    """
+    # 1. Procurar as tarifas base do hotel
+    res_h = supabase.table("hoteis").select("*").eq("id", hotel_id).single().execute()
+    if not res_h.data:
+        raise HTTPException(status_code=404, detail="Alojamento não encontrado.")
+    
+    hotel_data = res_h.data
+    base_preco = float(hotel_data["quarto_luxo_preco"] if tipo_quarto == 'luxo' else hotel_data["quarto_standard_preco"])
+    
+    # 2. Procurar as regras customizadas do calendário que colidam com as datas da viagem
+    res_custom = supabase.table("disponibilidade_hoteis") \
+        .select("*") \
+        .eq("hotel_id", hotel_id) \
+        .eq("tipo_quarto", tipo_quarto) \
+        .lte("data_inicio", checkout_str) \
+        .gte("data_fim", checkin_str) \
+        .execute()
+        
+    excecoes_calendario = res_custom.data or []
+    
+    # Convertemos as strings em objetos de data para fazer matemática de dias
+    d_atual = datetime.strptime(checkin_str, "%Y-%m-%d").date()
+    d_fim = datetime.strptime(checkout_str, "%Y-%m-%d").date()
+    
+    subtotal_hospedagem = 0.0
+    
+    # Loop que avalia cada noite individualmente antes do checkout
+    while d_atual < d_fim:
+        preco_da_noite = None
+        
+        # Verifica se o dia corrente coincide com algum intervalo customizado do empresário
+        for regra in excecoes_calendario:
+            regra_inicio = datetime.strptime(regra["data_inicio"], "%Y-%m-%d").date()
+            regra_fim = datetime.strptime(regra["data_fim"], "%Y-%m-%d").date()
+            
+            if regra_inicio <= d_atual <= regra_fim:
+                # Regra de Segurança: Se estiver bloqueado (disponivel = false), barramos o checkout
+                if not regra.get("disponivel", True):
+                    raise HTTPException(
+                        status_code=400, 
+                        detail=f"Pedimos desculpa, mas a acomodação está esgotada para a data de {d_atual.strftime('%d/%m/%Y')}."
+                    )
+                preco_da_noite = float(regra["preco"])
+                break # Encontrou a regra prioritária para este dia, sai do loop interno
+        
+        # Se encontrou uma regra customizada usa-a, senão cai na tarifa padrão do hotel
+        if preco_da_noite is not None:
+            subtotal_hospedagem += preco_da_noite
+        else:
+            subtotal_hospedagem += base_preco
+            
+        d_atual += timedelta(days=1)
+        
+    return subtotal_hospedagem
+
+
 @router.post("/api/v1/pagamentos/processar")
 async def processar_pagamento(pedido: PedidoPagamento):
     try:
@@ -85,32 +146,31 @@ async def processar_pagamento(pedido: PedidoPagamento):
         fator_liquido = 1.0 - (taxa_prefeitura_pct / 100.0)
 
         # ==========================================
-        # FASE 1: LÓGICA DE PRECIFICAÇÃO E REPASSES
+        # FASE 1: LÓGICA DE PRECIFICAÇÃO E REPASSES (AGORA DINÂMICA!)
         # ==========================================
         
         if pedido.tipo_item == "carteira":
             valor_total = 10.00 * pedido.quantidade
             nome_item_checkout = f"Taxa de Emissão - Carteira Digital ({pedido.quantidade}x)"
-            # Carteira não tem split (100% prefeitura)
 
         elif pedido.tipo_item == "hotel":
-            res_hotel = supabase.table("hoteis").select("*").eq("id", pedido.hotel_id).single().execute()
-            hotel_data = res_hotel.data
-            d1 = datetime.strptime(pedido.data_checkin, "%Y-%m-%d")
-            d2 = datetime.strptime(pedido.data_checkout, "%Y-%m-%d")
-            noites = (d2 - d1).days
-            preco = float(hotel_data["quarto_luxo_preco"] if pedido.tipo_quarto == 'luxo' else hotel_data["quarto_standard_preco"])
+            # ◄── CHAMA O MOTOR DINÂMICO DA DIÁRIA NOITE POR NOITE
+            v_diarias_calculado = calcular_preco_hotel_dinamico(
+                pedido.hotel_id, pedido.tipo_quarto, pedido.data_checkin, pedido.data_checkout
+            )
             
-            valor_total = preco * noites * pedido.quantidade
-            nome_item_checkout = f"Hospedagem - {hotel_data['nome']}"
+            valor_total = v_diarias_calculado * pedido.quantidade
+            
+            res_hotel_info = supabase.table("hoteis").select("nome, pagbank_recebedor_id").eq("id", pedido.hotel_id).single().execute()
+            nome_item_checkout = f"Hospedagem - {res_hotel_info.data['nome']}"
             item_id_db = pedido.hotel_id
             
-            # Repasse Automático (Valor Total - Taxa da Prefeitura)
-            if hotel_data.get("pagbank_recebedor_id"):
+            # Repasse Automático Líquido baseado nas regras encontradas
+            if res_hotel_info.data.get("pagbank_recebedor_id"):
                 valor_parceiro_liquido = valor_total * fator_liquido
                 splits_array.append({
                     "method": "FIXED",
-                    "receivers": [{"account": {"id": hotel_data["pagbank_recebedor_id"]}, "amount": {"value": int(valor_parceiro_liquido * 100)}}]
+                    "receivers": [{"account": {"id": res_hotel_info.data["pagbank_recebedor_id"]}, "amount": {"value": int(valor_parceiro_liquido * 100)}}]
                 })
 
         elif pedido.tipo_item == "pacote":
@@ -125,20 +185,19 @@ async def processar_pagamento(pedido: PedidoPagamento):
             if pedido.pacote_id and str(pedido.pacote_id).lower() not in ["none", "null"]:
                 item_id_db = pedido.pacote_id
 
-            # 1. Repasse para o Hotel (se incluído no pacote)
+            # 1. Repasse Inteligente para o Hotel se ele estiver inserido dentro de um pacote
             if pedido.hotel_id:
-                res_h = supabase.table("hoteis").select("pagbank_recebedor_id, quarto_standard_preco, quarto_luxo_preco").eq("id", pedido.hotel_id).single().execute()
-                if res_h.data and res_h.data.get("pagbank_recebedor_id"):
-                    h_info = res_h.data
-                    p_diaria = float(h_info["quarto_luxo_preco"] if pedido.tipo_quarto == 'luxo' else h_info["quarto_standard_preco"])
-                    d1 = datetime.strptime(pedido.data_checkin, "%Y-%m-%d")
-                    d2 = datetime.strptime(pedido.data_checkout, "%Y-%m-%d")
-                    noites = (d2 - d1).days
-                    v_hotel = p_diaria * noites * pedido.quantidade
+                res_h_info = supabase.table("hoteis").select("pagbank_recebedor_id").eq("id", pedido.hotel_id).single().execute()
+                if res_h_info.data and res_h_info.data.get("pagbank_recebedor_id"):
+                    # ◄── Também calcula o repasse do hotel usando o calendário se estiver em pacote
+                    v_hotel_dinamico = calcular_preco_hotel_dinamico(
+                        pedido.hotel_id, pedido.tipo_quarto, pedido.data_checkin, pedido.data_checkout
+                    )
+                    v_hotel = v_hotel_dinamico * pedido.quantidade
                     v_hotel_liquido = v_hotel * fator_liquido
                     splits_array.append({
                         "method": "FIXED",
-                        "receivers": [{"account": {"id": h_info["pagbank_recebedor_id"]}, "amount": {"value": int(v_hotel_liquido * 100)}}]
+                        "receivers": [{"account": {"id": res_h_info.data["pagbank_recebedor_id"]}, "amount": {"value": int(v_hotel_liquido * 100)}}]
                     })
 
             # 2. Repasse para o Guia (se incluído no pacote)
@@ -258,6 +317,8 @@ async def processar_pagamento(pedido: PedidoPagamento):
             
             return base_retorno
 
+    except HTTPException as http_err:
+        raise http_err
     except Exception as e:
         print(f"Erro: {e}")
         raise HTTPException(status_code=500, detail=str(e))

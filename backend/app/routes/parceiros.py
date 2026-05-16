@@ -23,16 +23,34 @@ class InteresseParceiroSchema(BaseModel):
     tipo: str
     telefone: str
 
+class DisponibilidadeParceiroSchema(BaseModel):
+    tipo_quarto: str
+    data_inicio: str
+    data_fim: str
+    preco: float
+    disponivel: bool
+
+# ── FUNÇÃO AUXILIAR INTERNA: BUSCAR TAXAS E CALCULAR LÍQUIDO ──
+def obter_fator_liquido(tipo_item: str) -> float:
+    """
+    Consulta a tabela 'taxas_servicos' no Supabase para descobrir a taxa.
+    Retorna o multiplicador líquido (ex: 10% de taxa retorna 0.90).
+    """
+    try:
+        res = supabase.table("taxas_servicos").select("porcentagem").eq("tipo_servico", tipo_item).execute()
+        if res.data:
+            taxa_pct = float(res.data[0]["porcentagem"])
+            return 1.0 - (taxa_pct / 100.0)
+        return 1.0 # Se não achar a taxa, assume repasse de 100% por segurança
+    except Exception as e:
+        print(f"[ERRO AO BUSCAR TAXA DINÂMICA] {e}")
+        return 1.0
+
 # ── ROTA DE AUTENTICAÇÃO DO PARCEIRO ──
 
 @router.post("/api/v1/parceiros/login", tags=["Portal dos Parceiros"])
 async def login_parceiro(payload: LoginParceiroSchema):
-    """
-    Realiza a autenticação do parceiro no Supabase.
-    Apenas concede acesso se o status do parceiro for 'ativo' (validado manualmente).
-    """
     try:
-        # 1. Procurar o parceiro pelo e-mail fornecido
         res = supabase.table("parceiros") \
             .select("*") \
             .eq("email", payload.email.strip()) \
@@ -46,21 +64,18 @@ async def login_parceiro(payload: LoginParceiroSchema):
             
         parceiro = res.data[0]
         
-        # 2. Validar a Senha Simples
         if parceiro.get("senha") != payload.senha:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Credenciais inválidas. Verifique a palavra-passe."
             )
             
-        # 3. Validar a Ativação Manual da Equipa
         if parceiro.get("status") != "ativo":
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="A sua conta ainda está em fase de análise ou encontra-se suspensa pela Secretaria de Turismo."
             )
             
-        # 4. Sucesso: Retorna o ID do estabelecimento para o Frontend gerir a sessão
         return {
             "sucesso": True,
             "mensagem": "Autenticação realizada com sucesso!",
@@ -78,37 +93,27 @@ async def login_parceiro(payload: LoginParceiroSchema):
 
 @router.post("/api/v1/parceiros/interesse", tags=["Portal dos Parceiros"])
 async def registrar_interesse_parceiro(payload: InteresseParceiroSchema):
-    """
-    Recebe os dados do formulário 'Seja um Parceiro' do frontend e dispara 
-    um e-mail de notificação para a equipa avaliar o credenciamento.
-    """
     try:
-        # Puxa a API Key configurada nas variáveis da Railway
         resend.api_key = os.environ.get("RESEND_API_KEY")
         if not resend.api_key:
-            print("[AVISO] RESEND_API_KEY não encontrada nas variáveis de ambiente.")
             raise HTTPException(status_code=500, detail="Configuração de e-mail ausente no servidor.")
         
-        # Estrutura visual do e-mail em HTML
         html_content = f"""
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #E2E8F0; border-radius: 10px;">
             <h2 style="color: #00577C; margin-bottom: 5px;">Novo Pedido de Parceria! 🎯</h2>
             <p style="color: #64748B; font-size: 14px; margin-top: 0;">O portal SagaTurismo recebeu um novo interesse de credenciamento.</p>
-            
             <div style="background-color: #F8FAFC; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #F9C400;">
                 <p style="margin: 5px 0;"><strong>👤 Nome do Responsável:</strong> {payload.nome}</p>
                 <p style="margin: 5px 0;"><strong>🏢 Nome do Negócio:</strong> {payload.empresa}</p>
                 <p style="margin: 5px 0;"><strong>🏷️ Categoria:</strong> {payload.tipo.upper()}</p>
                 <p style="margin: 5px 0;"><strong>📱 WhatsApp:</strong> {payload.telefone}</p>
             </div>
-            
             <p style="color: #0F172A; font-size: 14px; line-height: 1.5;">
                 Por favor, faça a validação dos dados. Após o contacto, crie as credenciais de acesso do parceiro na tabela <strong>parceiros</strong> do Supabase e defina o status como <strong>'ativo'</strong> para libertar o login.
             </p>
         </div>
         """
 
-        # Configuração dos parâmetros de envio
         params = {
             "from": "SagaTurismo <sistema@sagatur.com.br>", 
             "to": ["emmanoel.cardoso09@gmail.com"],
@@ -116,16 +121,14 @@ async def registrar_interesse_parceiro(payload: InteresseParceiroSchema):
             "html": html_content,
         }
 
-        # Envia através do SDK do Resend
         resend.Emails.send(params)
-
         return {"sucesso": True, "mensagem": "Pedido de registro recebido com sucesso!"}
         
     except Exception as e:
         print(f"[ERRO ENVIO EMAIL INTERESSE] {e}")
         raise HTTPException(status_code=500, detail="Erro interno ao processar o formulário.")
 
-# ── ROTAS DE CONSULTA DO PAINEL (MANTIDAS) ──
+# ── ROTAS DE CONSULTA DO PAINEL (COM DESCONTO DINÂMICO DE TAXAS) ──
 
 @router.get("/api/v1/parceiros/{item_id}/reservas", tags=["Portal dos Parceiros"])
 async def listar_reservas_parceiro(item_id: str):
@@ -136,10 +139,22 @@ async def listar_reservas_parceiro(item_id: str):
             .eq("status_pagamento", "pago") \
             .execute()
             
+        reservas_processadas = []
+        for r in res.data:
+            tipo = r.get("tipo_item")
+            valor_bruto = float(r.get("valor_total") or 0.0)
+            
+            # Descobre a taxa na base de dados e aplica
+            fator = obter_fator_liquido(tipo)
+            
+            # Adicionamos o campo 'valor_liquido' diretamente na resposta da API
+            r["valor_liquido"] = round(valor_bruto * fator, 2)
+            reservas_processadas.append(r)
+            
         return {
             "sucesso": True,
-            "total_reservas": len(res.data),
-            "reservas": res.data
+            "total_reservas": len(reservas_processadas),
+            "reservas": reservas_processadas
         }
     except Exception as e:
         print(f"[ERRO PORTAL PARCEIROS] {e}")
@@ -149,14 +164,21 @@ async def listar_reservas_parceiro(item_id: str):
 async def obter_metricas_dashboard(item_id: str):
     try:
         res = supabase.table("pedidos") \
-            .select("valor_total, quantity:quantidade, data_checkin") \
+            .select("valor_total, tipo_item, quantity:quantidade, data_checkin") \
             .eq("item_id", item_id) \
             .eq("status_pagamento", "pago") \
             .execute()
             
         pedidos = res.data
-        faturamento_total = sum(float(p.get("valor_total", 0.0)) for p in pedidos)
+        faturamento_liquido_total = 0.0
         total_itens_vendidos = sum(int(p.get("quantity", 1)) for p in pedidos)
+        
+        # Calcula o faturamento já com os descontos dinâmicos da base de dados
+        for p in pedidos:
+            tipo = p.get("tipo_item")
+            v_bruto = float(p.get("valor_total") or 0.0)
+            fator = obter_fator_liquido(tipo)
+            faturamento_liquido_total += (v_bruto * fator)
         
         hoje = datetime.now().date()
         proximos_clientes = 0
@@ -173,7 +195,7 @@ async def obter_metricas_dashboard(item_id: str):
         return {
             "sucesso": True,
             "metricas": {
-                "faturamento_total": faturamento_total,
+                "faturamento_total": round(faturamento_liquido_total, 2), # Envia o líquido calculado direto do banco
                 "total_vendas": len(pedidos),
                 "total_produtos_entregues": total_itens_vendidos,
                 "clientes_a_chegar": proximos_clientes
@@ -182,3 +204,36 @@ async def obter_metricas_dashboard(item_id: str):
     except Exception as e:
         print(f"[ERRO METRICAS PARCEIROS] {e}")
         raise HTTPException(status_code=500, detail="Erro ao processar métricas.")
+    
+@router.post("/api/v1/parceiros/{item_id}/disponibilidade", tags=["Portal dos Parceiros"])
+async def atualizar_disponibilidade_parceiro(item_id: str, payload: DisponibilidadeParceiroSchema):
+    """
+    Recebe as alterações de tarifas e bloqueios de datas enviadas pelo calendário
+    do parceiro e grava na tabela do Supabase.
+    """
+    try:
+        # Prepara o dicionário para inserir na nova tabela
+        dados_disponibilidade = {
+            "hotel_id": item_id,
+            "tipo_quarto": payload.tipo_quarto,
+            "data_inicio": payload.data_inicio,
+            "data_fim": payload.data_fim,
+            "preco": payload.preco,
+            "disponivel": payload.disponivel
+        }
+        
+        # Grava os dados no Supabase
+        res = supabase.table("disponibilidade_hoteis").insert(dados_disponibilidade).execute()
+        
+        return {
+            "sucesso": True, 
+            "mensagem": "Tarifário atualizado com sucesso na base de dados!",
+            "dados": res.data
+        }
+        
+    except Exception as e:
+        print(f"[ERRO ATUALIZAR DISPONIBILIDADE] {e}")
+        raise HTTPException(
+            status_code=500, 
+            detail="Erro interno ao salvar as alterações do calendário no servidor."
+        )
