@@ -307,7 +307,7 @@ function SucessoContent() {
                 const img = isSugestaoHotel ? item.imagem_url : item.imagem_principal;
                 const titulo = isSugestaoHotel ? item.nome : item.titulo;
                 const preco = isSugestaoHotel ? item.quarto_standard_preco : item.preco;
-                const linkDestino = isSugestaoHotel ? `/hoteis/${item.id}` : `/roteiro/${item.id}`;
+                const linkDestino = isSugestaoHotel ? `/hoteis/${item.id}` : `/passeios/${item.id}`;
 
                 return (
                   <Link href={linkDestino} key={item.id} className="group bg-white rounded-3xl overflow-hidden border border-slate-100 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 block flex flex-col h-full">
@@ -339,7 +339,7 @@ function SucessoContent() {
             </div>
             
             <div className="mt-10 md:mt-14 text-center">
-               <Link href={isHotel ? '/roteiro' : '/hoteis'} className="inline-flex items-center justify-center gap-2 bg-slate-50 text-[#00577C] font-black uppercase tracking-widest text-[10px] md:text-xs px-6 py-3.5 md:px-8 md:py-4 rounded-xl md:rounded-2xl border border-slate-200 hover:bg-slate-100 hover:border-slate-300 transition-all shadow-sm active:scale-95">
+               <Link href={isHotel ? '/passeios' : '/hoteis'} className="inline-flex items-center justify-center gap-2 bg-slate-50 text-[#00577C] font-black uppercase tracking-widest text-[10px] md:text-xs px-6 py-3.5 md:px-8 md:py-4 rounded-xl md:rounded-2xl border border-slate-200 hover:bg-slate-100 hover:border-slate-300 transition-all shadow-sm active:scale-95">
                  Ver {isHotel ? 'todas as experiências' : 'todos os alojamentos'} <ArrowRight size={16}/>
                </Link>
             </div>
