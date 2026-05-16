@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { 
   Loader2, LogOut, Wallet, ShoppingBag, Users2, 
   Bed, Compass, ClipboardList, ShieldCheck, 
-  ArrowUpRight, Home, Calendar, Search, Map, Receipt,
+  ArrowUpRight, Home, Calendar, Search, Map, 
   CheckSquare, Square, Building, Landmark, UserCircle
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
@@ -29,7 +29,7 @@ type Reserva = {
   telefone_cliente?: string;
   tipo_item: 'hotel' | 'passeio' | 'pacote';
   nome_item?: string; // Nome do pacote ou do passeio vendido
-  data_checkin: string;
+  data_checkin: string; // Para guias, isto representa a data do passeio
   data_checkout?: string;
   quantidade_quartos?: number;
   quantidade_pessoas?: number;
@@ -37,11 +37,11 @@ type Reserva = {
   valor_liquido: number;
   status: string;
   
-  // Controle de Auditoria (Hotéis)
+  // Controle de Auditoria (Exclusivo Hotéis)
   checkin_realizado_em?: string | null;
   checkout_realizado_em?: string | null;
 
-  // Split Financeiro (Pacotes/Agências) - Valores Injetados pelo Backend
+  // Split Financeiro (Exclusivo Pacotes/Agências)
   repasse_hotel?: number;
   repasse_guia?: number;
   taxa_prefeitura?: number;
@@ -113,34 +113,29 @@ export default function DashboardParceiroPage() {
     carregarDadosDashboard();
   }, [parceiroId]);
 
-  // ── 3. OPERAÇÕES DE AUDITORIA DE FRONTEND (CHECK-IN / CHECK-OUT) ──
+  // ── 3. OPERAÇÕES DE AUDITORIA DE FRONTEND (HOTÉIS: CHECK-IN / CHECK-OUT) ──
   const handleToggleCheckStatus = async (reservaId: string, tipo: 'checkin' | 'checkout') => {
-    // 1. Atualização Otimista no Frontend (para o usuário ver a caixa a marcar instantaneamente)
     const agoraIso = new Date().toISOString();
     
+    // Atualização otimista na interface
     setReservas(prev => prev.map(r => {
       if (r.id === reservaId) {
         const campo = tipo === 'checkin' ? 'checkin_realizado_em' : 'checkout_realizado_em';
-        // Se já tem data, "desmarca" (null). Se não tem, marca com a data/hora atual.
         const novoValor = r[campo] ? null : agoraIso;
         return { ...r, [campo]: novoValor };
       }
       return r;
     }));
 
-    // 2. Disparo Silencioso para a Supabase (via API Railway)
+    // Disparo silencioso para a Supabase
     try {
-      await fetch(`https://sagaturismo-production.up.railway.app/api/v1/reservas/${reservaId}/status`, {
+      await fetch(`https://sagaturismo-production.up.railway.app/api/v1/pedidos/${reservaId}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          acao: tipo, // 'checkin' ou 'checkout'
-          timestamp: agoraIso
-        })
+        body: JSON.stringify({ acao: tipo, timestamp: agoraIso })
       });
     } catch (err) {
       console.error(`Falha ao sincronizar ${tipo} na base de dados.`, err);
-      // Aqui poderias reverter a UI se a chamada API falhasse em produção estrita
     }
   };
 
@@ -163,7 +158,7 @@ export default function DashboardParceiroPage() {
     return (
       r.nome_cliente?.toLowerCase().includes(termo) ||
       r.codigo_pedido?.toLowerCase().includes(termo) ||
-      r.nome_item?.toLowerCase().includes(termo) // Pesquisa pelo nome do pacote/passeio
+      r.nome_item?.toLowerCase().includes(termo)
     );
   });
 
@@ -235,7 +230,7 @@ export default function DashboardParceiroPage() {
             <div className="flex justify-between items-start mb-6">
               <div>
                 <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 md:mb-2">
-                  {tipoParceiro === 'hotel' ? 'Reservas Efetivadas' : tipoParceiro === 'guia' ? 'Passeios Confirmados' : 'Pacotes Vendidos'}
+                  {tipoParceiro === 'hotel' ? 'Reservas Efetivadas' : tipoParceiro === 'guia' ? 'Passeios Vendidos' : 'Pacotes Vendidos'}
                 </p>
                 <p className={`${jakarta.className} text-4xl md:text-5xl font-black text-[#00577C] tabular-nums leading-none`}>{(metricas?.total_vendas || 0).toString().padStart(2, '0')}</p>
               </div>
@@ -251,14 +246,14 @@ export default function DashboardParceiroPage() {
             <div className="flex justify-between items-start mb-6">
               <div>
                 <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 md:mb-2">
-                  {tipoParceiro === 'hotel' ? 'Check-ins Previstos' : 'Viajantes Previstos'}
+                  {tipoParceiro === 'hotel' ? 'Check-ins Previstos' : 'Turistas a Chegar'}
                 </p>
                 <p className={`${jakarta.className} text-4xl md:text-5xl font-black text-slate-900 tabular-nums leading-none`}>{(metricas?.clientes_a_chegar || 0).toString().padStart(2, '0')}</p>
               </div>
               <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-amber-50 text-[#d9a000] flex items-center justify-center shrink-0"><Users2 size={20} className="md:w-6 md:h-6"/></div>
             </div>
             <div className="mt-auto">
-               <div className="flex justify-between text-[9px] md:text-[10px] font-bold text-slate-500 mb-2"><span>Ocupação do Mês</span><span className="text-[#d9a000]">{percentagemChegadas}%</span></div>
+               <div className="flex justify-between text-[9px] md:text-[10px] font-bold text-slate-500 mb-2"><span>Capacidade do Período</span><span className="text-[#d9a000]">{percentagemChegadas}%</span></div>
                <div className="w-full bg-slate-100 rounded-full h-2"><div className="bg-[#F9C400] h-2 rounded-full transition-all" style={{ width: `${percentagemChegadas}%` }}></div></div>
             </div>
           </div>
@@ -275,10 +270,10 @@ export default function DashboardParceiroPage() {
                </div>
                <div>
                  <h2 className={`${jakarta.className} text-xl md:text-2xl font-black text-slate-900`}>
-                   {tipoParceiro === 'hotel' ? 'Auditoria de Hóspedes e Quartos' : tipoParceiro === 'guia' ? 'Manifesto de Passageiros' : 'Monitoramento de Roteiros e Repasses'}
+                   {tipoParceiro === 'hotel' ? 'Auditoria de Hóspedes' : tipoParceiro === 'guia' ? 'Lista de Passageiros' : 'Gestão de Vendas (Pacotes)'}
                  </h2>
                  <p className="text-xs font-bold text-slate-400 mt-1">
-                   {tipoParceiro === 'hotel' ? 'Faça a gestão dos check-ins e check-outs em tempo real.' : 'Lista completa de turistas confirmados nos seus passeios.'}
+                   {tipoParceiro === 'hotel' ? 'Faça o check-in/out dos hóspedes diretamente aqui.' : 'Acompanhe os turistas que compraram os seus roteiros.'}
                  </p>
                </div>
             </div>
@@ -287,7 +282,7 @@ export default function DashboardParceiroPage() {
               <div className="relative w-full xl:w-80 shrink-0">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                 <input 
-                  type="text" placeholder="Localizador, Turista ou Serviço..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+                  type="text" placeholder="Turista, Localizador ou Serviço..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:border-[#00577C] focus:ring-1 focus:ring-[#00577C] shadow-sm"
                 />
               </div>
@@ -297,8 +292,8 @@ export default function DashboardParceiroPage() {
           {reservas.length === 0 || filteredReservas.length === 0 ? (
             <div className="py-24 text-center flex flex-col items-center justify-center bg-white">
                <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4"><ClipboardList size={28} className="text-slate-300" /></div>
-               <p className={`${jakarta.className} text-lg font-bold text-slate-800 mb-2`}>Nenhum registo encontrado</p>
-               <p className="text-sm text-slate-500 max-w-md">As reservas aprovadas irão aparecer aqui para a sua gestão.</p>
+               <p className={`${jakarta.className} text-lg font-bold text-slate-800 mb-2`}>Nenhum registo de venda encontrado</p>
+               <p className="text-sm text-slate-500 max-w-md">As compras finalizadas pelos turistas aparecerão aqui para a sua gestão.</p>
             </div>
           ) : (
             <div className="overflow-x-auto pb-4">
@@ -310,39 +305,37 @@ export default function DashboardParceiroPage() {
                     <tr className="bg-slate-50/50 border-b border-slate-100 text-[10px] font-black uppercase text-slate-400 tracking-widest">
                       <th className="py-5 px-6">ID Localizador</th>
                       <th className="py-5 px-6">Hóspede Principal</th>
-                      <th className="py-5 px-6">Detalhes do Alojamento</th>
-                      <th className="py-5 px-6">Agendamento</th>
-                      <th className="py-5 px-6 text-center">Status de Auditoria</th>
+                      <th className="py-5 px-6">Acomodação Ocupada</th>
+                      <th className="py-5 px-6">Período Reservado</th>
+                      <th className="py-5 px-6 text-center">Auditoria Diária</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 font-bold text-slate-700 bg-white">
                     {filteredReservas.map((r) => (
                       <tr key={r.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="py-5 px-6 font-mono text-xs text-[#00577C]">{r.codigo_pedido}</td>
+                        <td className="py-5 px-6 font-mono text-xs text-[#00577C] uppercase">{r.codigo_pedido}</td>
                         <td className="py-5 px-6">
                           <p className="text-slate-900 font-black">{r.nome_cliente}</p>
                           <p className="text-[10px] text-slate-400">{r.telefone_cliente || 'S/ Contato'}</p>
                         </td>
                         <td className="py-5 px-6">
-                           <span className="bg-slate-100 text-slate-600 px-3 py-1.5 rounded-lg text-[10px] flex items-center gap-2 w-fit">
-                             <UserCircle size={14}/> {r.quantidade_pessoas || 1} Hóspedes · {r.quantidade_quartos || 1} Quartos
+                           <span className="bg-slate-100 text-slate-600 px-3 py-1.5 rounded-lg text-xs flex items-center gap-2 w-fit border border-slate-200 shadow-sm">
+                             <UserCircle size={16} className="text-[#00577C]"/> {r.quantidade_pessoas ?? 0} Hóspede(s) · {r.quantidade_quartos ?? 0} Quarto(s)
                            </span>
                         </td>
                         <td className="py-5 px-6">
-                           <div className="flex flex-col gap-1 text-[10px]">
-                             <span className="text-[#009640] flex items-center gap-1.5"><ArrowUpRight size={12}/> In: {formatarData(r.data_checkin)}</span>
-                             <span className="text-slate-400 flex items-center gap-1.5"><LogOut size={12}/> Out: {formatarData(r.data_checkout || '')}</span>
+                           <div className="flex flex-col gap-1.5 text-xs">
+                             <span className="text-[#009640] flex items-center gap-1.5"><ArrowUpRight size={14}/> In: {formatarData(r.data_checkin)}</span>
+                             <span className="text-slate-500 flex items-center gap-1.5"><LogOut size={14}/> Out: {formatarData(r.data_checkout || '')}</span>
                            </div>
                         </td>
                         <td className="py-5 px-6">
                           <div className="flex items-center justify-center gap-3">
-                            {/* Caixa Seletora de Check-in */}
-                            <button onClick={() => handleToggleCheckStatus(r.id, 'checkin')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] uppercase tracking-widest transition-all ${r.checkin_realizado_em ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-slate-50 text-slate-400 border border-slate-200 hover:bg-slate-100'}`}>
-                               {r.checkin_realizado_em ? <CheckSquare size={14}/> : <Square size={14}/>} Check-In
+                            <button onClick={() => handleToggleCheckStatus(r.id, 'checkin')} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-[10px] md:text-xs font-black uppercase tracking-widest transition-all ${r.checkin_realizado_em ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-100'}`}>
+                               {r.checkin_realizado_em ? <CheckSquare size={16}/> : <Square size={16}/>} Check-In
                             </button>
-                            {/* Caixa Seletora de Check-out */}
-                            <button onClick={() => handleToggleCheckStatus(r.id, 'checkout')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] uppercase tracking-widest transition-all ${r.checkout_realizado_em ? 'bg-slate-800 text-white border border-slate-900' : 'bg-slate-50 text-slate-400 border border-slate-200 hover:bg-slate-100'}`}>
-                               {r.checkout_realizado_em ? <CheckSquare size={14}/> : <Square size={14}/>} Check-Out
+                            <button onClick={() => handleToggleCheckStatus(r.id, 'checkout')} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-[10px] md:text-xs font-black uppercase tracking-widest transition-all ${r.checkout_realizado_em ? 'bg-slate-800 text-white border border-slate-900' : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-100'}`}>
+                               {r.checkout_realizado_em ? <CheckSquare size={16}/> : <Square size={16}/>} Check-Out
                             </button>
                           </div>
                         </td>
@@ -357,40 +350,41 @@ export default function DashboardParceiroPage() {
                 <table className="w-full text-sm text-left border-collapse whitespace-nowrap">
                   <thead>
                     <tr className="bg-slate-50/50 border-b border-slate-100 text-[10px] font-black uppercase text-slate-400 tracking-widest">
-                      <th className="py-5 px-6">Serviço/Experiência</th>
+                      <th className="py-5 px-6">Nome do Serviço (Passeio/Pacote)</th>
                       <th className="py-5 px-6">Turista Pagante</th>
-                      <th className="py-5 px-6 text-center">Data do Passeio</th>
-                      <th className="py-5 px-6 text-center">Participantes</th>
-                      <th className="py-5 px-6 text-right">Repasse Limpo (R$)</th>
+                      <th className="py-5 px-6 text-center">Data Agendada</th>
+                      <th className="py-5 px-6 text-center">Comitiva</th>
+                      <th className="py-5 px-6 text-right">Teu Repasse (R$)</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 font-bold text-slate-700 bg-white">
                     {filteredReservas.map((r) => (
                       <tr key={r.id} className="hover:bg-slate-50 transition-colors">
                         <td className="py-5 px-6">
-                           <div className="flex flex-col gap-0.5 text-left">
-                             <p className="text-slate-900 font-black flex items-center gap-2">
-                               {r.tipo_item === 'pacote' ? <Map size={14} className="text-[#00577C]"/> : <Compass size={14} className="text-[#009640]"/>}
+                           <div className="flex flex-col gap-1 text-left">
+                             <p className="text-[#009640] font-black text-sm flex items-center gap-2">
+                               {r.tipo_item === 'pacote' ? <Map size={16}/> : <Compass size={16}/>}
                                {r.nome_item || (r.tipo_item === 'pacote' ? 'Roteiro Pacote Fechado' : 'Passeio Individual')}
                              </p>
-                             <p className="text-[10px] text-slate-400 uppercase tracking-widest">Loc: {r.codigo_pedido}</p>
+                             <p className="text-[10px] text-slate-400 uppercase tracking-widest font-mono">Loc: {r.codigo_pedido}</p>
                            </div>
                         </td>
                         <td className="py-5 px-6">
-                          <p className="text-slate-800">{r.nome_cliente}</p>
+                          <p className="text-slate-900 font-black">{r.nome_cliente}</p>
+                          <p className="text-[10px] text-slate-400">{r.telefone_cliente || 'S/ Contato'}</p>
                         </td>
                         <td className="py-5 px-6 text-center">
-                           <span className="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-xs">
+                           <span className="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-black">
                              {formatarData(r.data_checkin)}
                            </span>
                         </td>
                         <td className="py-5 px-6 text-center">
-                           <span className="text-[#009640] bg-green-50 border border-green-100 px-3 py-1.5 rounded-lg text-xs inline-flex items-center gap-1.5">
-                             <Users2 size={14}/> {r.quantidade_pessoas || 1} Viajantes
+                           <span className="text-[#d9a000] bg-amber-50 border border-amber-100 px-3 py-1.5 rounded-lg text-xs inline-flex items-center gap-1.5 shadow-sm">
+                             <Users2 size={16}/> {r.quantidade_pessoas ?? 0} Pessoas
                            </span>
                         </td>
                         <td className="py-5 px-6 text-right">
-                           <p className={`${jakarta.className} text-lg text-slate-900`}>{formatarMoeda(r.valor_liquido)}</p>
+                           <p className={`${jakarta.className} text-xl text-slate-900`}>{formatarMoeda(r.valor_liquido)}</p>
                         </td>
                       </tr>
                     ))}
@@ -398,21 +392,21 @@ export default function DashboardParceiroPage() {
                 </table>
               )}
 
-              {/* ── TABELA 3: EXCLUSIVA PARA AGÊNCIAS (PACOTES/COMBOS) ── */}
+              {/* ── TABELA 3: EXCLUSIVA PARA AGÊNCIAS (PACOTES) ── */}
               {tipoParceiro === 'pacote' && (
                 <table className="w-full text-sm text-left border-collapse whitespace-nowrap">
                   <thead>
                     <tr className="bg-slate-50/50 border-b border-slate-100 text-[10px] font-black uppercase text-slate-400 tracking-widest">
-                      <th className="py-5 px-6">Pacote Vendido</th>
-                      <th className="py-5 px-6">Cliente (Comprador)</th>
-                      <th className="py-5 px-6 text-center">Período Ativo</th>
-                      <th className="py-5 px-6">Distribuição Operacional (Split)</th>
-                      <th className="py-5 px-6 text-right">Lucro Líquido Agência</th>
+                      <th className="py-5 px-6">Pacote Turístico Vendido</th>
+                      <th className="py-5 px-6">Hóspede Principal</th>
+                      <th className="py-5 px-6 text-center">Validade do Roteiro</th>
+                      <th className="py-5 px-6">Repasses & Custos Base</th>
+                      <th className="py-5 px-6 text-right">Lucro Limpo da Agência</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 font-bold text-slate-700 bg-white">
                     {filteredReservas.map((r) => {
-                      // Mock visual dos repasses caso o backend não envie (meramente ilustrativo para o UI)
+                      // Fallback de exibição financeira na falta de dados do backend
                       const repHotel = r.repasse_hotel || (r.valor_total * 0.4);
                       const repGuia = r.repasse_guia || (r.valor_total * 0.15);
                       const repPref = r.taxa_prefeitura || (r.valor_total * 0.05);
@@ -420,28 +414,35 @@ export default function DashboardParceiroPage() {
                       return (
                         <tr key={r.id} className="hover:bg-slate-50 transition-colors">
                           <td className="py-5 px-6">
-                            <p className="text-[#00577C] font-black">{r.nome_item || 'Roteiro Especial'}</p>
-                            <p className="text-[10px] text-slate-400 font-mono uppercase tracking-widest mt-0.5">{r.codigo_pedido}</p>
+                            <p className="text-[#00577C] font-black text-sm">{r.nome_item || 'Combo Promocional'}</p>
+                            <p className="text-[10px] text-slate-400 font-mono uppercase tracking-widest mt-1">Ref: {r.codigo_pedido}</p>
                           </td>
                           <td className="py-5 px-6">
-                            <p className="text-slate-900">{r.nome_cliente}</p>
+                            <p className="text-slate-900 font-black">{r.nome_cliente}</p>
+                            <p className="text-[10px] text-slate-400">{r.telefone_cliente || 'S/ Contato'}</p>
                           </td>
                           <td className="py-5 px-6 text-center">
-                            <div className="flex flex-col text-[10px] text-slate-500">
+                            <div className="flex items-center justify-center gap-2 text-xs font-black bg-slate-100 px-3 py-1.5 rounded-lg w-fit mx-auto border border-slate-200">
                               <span>{formatarData(r.data_checkin)}</span>
-                              <span className="text-slate-300">até</span>
+                              <span className="text-slate-400 text-[10px]">a</span>
                               <span>{formatarData(r.data_checkout || r.data_checkin)}</span>
                             </div>
                           </td>
                           <td className="py-5 px-6">
-                            <div className="flex flex-col gap-1.5 text-[9px] uppercase tracking-widest">
-                               <span className="flex justify-between items-center bg-blue-50/50 px-2 py-1 rounded text-blue-700 w-44"><Building size={10}/> Hotel: <span className="tabular-nums">{formatarMoeda(repHotel)}</span></span>
-                               <span className="flex justify-between items-center bg-green-50/50 px-2 py-1 rounded text-green-700 w-44"><Compass size={10}/> Guia: <span className="tabular-nums">{formatarMoeda(repGuia)}</span></span>
-                               <span className="flex justify-between items-center bg-amber-50/50 px-2 py-1 rounded text-amber-700 w-44"><Landmark size={10}/> Taxa Mun.: <span className="tabular-nums">{formatarMoeda(repPref)}</span></span>
+                            <div className="flex flex-col gap-1.5 text-[9px] uppercase tracking-widest font-black">
+                               <span className="flex justify-between items-center bg-blue-50/50 px-2.5 py-1.5 rounded-md border border-blue-100 text-[#00577C] w-48 shadow-sm">
+                                 <Building size={12}/> Hotel: <span className="tabular-nums">{formatarMoeda(repHotel)}</span>
+                               </span>
+                               <span className="flex justify-between items-center bg-green-50/50 px-2.5 py-1.5 rounded-md border border-green-100 text-[#009640] w-48 shadow-sm">
+                                 <Compass size={12}/> Guia: <span className="tabular-nums">{formatarMoeda(repGuia)}</span>
+                               </span>
+                               <span className="flex justify-between items-center bg-amber-50/50 px-2.5 py-1.5 rounded-md border border-amber-100 text-amber-700 w-48 shadow-sm">
+                                 <Landmark size={12}/> T. Mun.: <span className="tabular-nums">{formatarMoeda(repPref)}</span>
+                               </span>
                             </div>
                           </td>
                           <td className="py-5 px-6 text-right">
-                            <span className={`${jakarta.className} text-lg text-[#009640] bg-green-50 px-3 py-1.5 rounded-lg border border-green-100 shadow-sm`}>
+                            <span className={`${jakarta.className} text-xl text-[#009640] bg-green-50 px-4 py-2 rounded-xl border-2 border-green-200 shadow-sm`}>
                               {formatarMoeda(r.valor_liquido)}
                             </span>
                           </td>
