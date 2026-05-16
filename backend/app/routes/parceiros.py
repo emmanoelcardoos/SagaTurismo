@@ -246,10 +246,6 @@ async def obter_preco_hospedagem_publico(
     checkout: str = None,
     quantidade: int = 1
 ):
-    """
-    Rota pública para o Frontend consultar o preço real e dinâmico de um hotel
-    já considerando as regras do calendário de disponibilidade.
-    """
     if not checkin or not checkout:
         raise HTTPException(status_code=400, detail="Check-in and Check-out dates are required.")
         
@@ -262,13 +258,11 @@ async def obter_preco_hospedagem_publico(
         hotel_data = res_h.data
         base_preco = float(hotel_data["quarto_luxo_preco"] if tipo_quarto == 'luxo' else hotel_data["quarto_standard_preco"])
         
-        # 2. Busca as regras customizadas do calendário
+        # 2. Busca TODAS as regras deste quarto (Deixamos o filtro de datas para o Python)
         res_custom = supabase.table("disponibilidade_hoteis") \
             .select("*") \
             .eq("hotel_id", hotel_id) \
             .eq("tipo_quarto", tipo_quarto) \
-            .lte("data_inicio", checkout) \
-            .gte("data_fim", checkin) \
             .execute()
             
         excecoes = res_custom.data or []
@@ -283,8 +277,12 @@ async def obter_preco_hospedagem_publico(
         while d_atual < d_fim:
             preco_noite = None
             for regra in excecoes:
-                regra_inicio = datetime.strptime(regra["data_inicio"], "%Y-%m-%d").date()
-                regra_fim = datetime.strptime(regra["data_fim"], "%Y-%m-%d").date()
+                # CORREÇÃO DEFINITIVA AQUI: Garantir que se a DB vier com TIMEZONE, o python corta e lê apenas o YYYY-MM-DD
+                regra_inicio_raw = str(regra["data_inicio"]).split("T")[0]
+                regra_fim_raw = str(regra["data_fim"]).split("T")[0]
+                
+                regra_inicio = datetime.strptime(regra_inicio_raw, "%Y-%m-%d").date()
+                regra_fim = datetime.strptime(regra_fim_raw, "%Y-%m-%d").date()
                 
                 if regra_inicio <= d_atual <= regra_fim:
                     if not regra.get("disponivel", True):
