@@ -17,7 +17,6 @@ PAGBANK_API_URL = os.environ.get("PAGBANK_API_URL", "https://sandbox.api.pagsegu
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# Modelo para o Endereço (Requisito PagBank para Cartão/Antifraude)
 class EnderecoFaturacao(BaseModel):
     street: str
     number: str
@@ -29,37 +28,34 @@ class EnderecoFaturacao(BaseModel):
     postal_code: str
 
 class PedidoPagamento(BaseModel):
-    tipo_item: str # 'carteira', 'hotel', 'pacote' ou 'passeio'
+    tipo_item: str
     quantidade: Optional[int] = 1 
     adultos: Optional[int] = 2 
 
-    # IDs dinâmicos
     pacote_id: Optional[str] = None 
     hotel_id: Optional[str] = None
+    passeio_id: Optional[str] = None 
+    item_id: Optional[str] = None
+    
     tipo_quarto: Optional[str] = "standard"
     guia_id: Optional[str] = None
     
-    # Dados de Reserva
     data_checkin: Optional[str] = None
     data_checkout: Optional[str] = None
     
-    # Dados do Cidadão + Compliance
     nome_cliente: str
     cpf_cliente: str
     email_cliente: str
     telefone_cliente: str 
     endereco_faturacao: EnderecoFaturacao 
     
-    # Dados Específicos Adicionais
     foto_url: Optional[str] = None
     data_nascimento: Optional[str] = None
     
-    # Pagamento
     metodo_pagamento: str
     encrypted_card: Optional[str] = None
     parcelas: Optional[int] = 1
 
-# ── FUNÇÃO AUXILIAR INTERNA: CALCULAR PREÇO DO HOTEL NOITE POR NOITE COM REVENUE MANAGEMENT ──
 def calcular_preco_hotel_dinamico(hotel_id: str, tipo_quarto: str, checkin_str: str, checkout_str: str, quantidade_quartos: int = 1, quantidade_pessoas: int = 2) -> float:
     res_h = supabase.table("hoteis").select("*").eq("id", hotel_id).single().execute()
     if not res_h.data:
@@ -97,10 +93,7 @@ def calcular_preco_hotel_dinamico(hotel_id: str, tipo_quarto: str, checkin_str: 
             
             if regra_inicio <= d_atual <= regra_fim:
                 if not CircleRegra.get("disponivel", True):
-                    raise HTTPException(
-                        status_code=400, 
-                        detail=f"Pedimos desculpa, mas a acomodação está esgotada para a data de {d_atual.strftime('%d/%m/%Y')}."
-                    )
+                    raise HTTPException(status_code=400, detail=f"Pedimos desculpa, mas a acomodação está esgotada para a data de {d_atual.strftime('%d/%m/%Y')}.")
                 preco_da_noite = float(CircleRegra["preco"])
                 break
         
@@ -112,11 +105,9 @@ def calcular_preco_hotel_dinamico(hotel_id: str, tipo_quarto: str, checkin_str: 
         
     return subtotal_hospedagem
 
-
 @router.post("/api/v1/pagamentos/processar")
 async def processar_pagamento(pedido: PedidoPagamento):
     try:
-        # ── MOTOR INTERNO DE SANITIZAÇÃO DE UUIDs ──
         def limpar_uuid(valor: Optional[str]) -> Optional[str]:
             if not valor:
                 return None
@@ -125,10 +116,11 @@ async def processar_pagamento(pedido: PedidoPagamento):
                 return None
             return v_str
 
-        # Sanitização proativa de todos os identificadores opcionais recebidos
         hotel_id_sanitizado = limpar_uuid(pedido.hotel_id)
         guia_id_sanitizado = limpar_uuid(pedido.guia_id)
         pacote_id_sanitizado = limpar_uuid(pedido.pacote_id)
+        passeio_id_sanitizado = limpar_uuid(pedido.passeio_id)
+        item_id_sanitizado = limpar_uuid(pedido.item_id)
 
         valor_total = 0.0
         recebedores_split = []
@@ -153,10 +145,6 @@ async def processar_pagamento(pedido: PedidoPagamento):
         v_hospedagem_total = 0.0
         v_guia_total = 0.0
         lista_atracoes_calculadas = []
-
-        # ==========================================
-        # FASE 1: LÓGICA DE PRECIFICAÇÃO E REPASSES
-        # ==========================================
         
         if pedido.tipo_item == "carteira":
             valor_total = 10.00 * pedido.quantidade
@@ -184,7 +172,7 @@ async def processar_pagamento(pedido: PedidoPagamento):
                 })
 
         elif pedido.tipo_item == "passeio":
-            id_passeio = pacote_id_sanitizado or hotel_id_sanitizado
+            id_passeio = passeio_id_sanitizado or item_id_sanitizado or pacote_id_sanitizado or hotel_id_sanitizado
             if not id_passeio:
                 raise HTTPException(status_code=400, detail="Identificador do passeio ausente no payload.")
                 
@@ -271,9 +259,6 @@ async def processar_pagamento(pedido: PedidoPagamento):
 
             valor_total = v_hospedagem_total + v_guia_total + v_atracoes_total
 
-        # ==========================================
-        # FASE 2: VALIDAÇÃO DA REGRA DE NEGÓCIO DO SPLIT
-        # ==========================================
         soma_splits_centavos = sum(r["amount"]["value"] for r in recebedores_split)
         valor_total_centavos = int(valor_total * 100)
 
@@ -285,9 +270,6 @@ async def processar_pagamento(pedido: PedidoPagamento):
         else:
             splits_array = []
 
-        # ==========================================
-        # FASE 3: PERSISTÊNCIA NO SUPABASE (SANITIZADA)
-        # ==========================================
         pedido_db = {
             "codigo_pedido": codigo_pedido,
             "tipo_item": pedido.tipo_item,
@@ -314,7 +296,6 @@ async def processar_pagamento(pedido: PedidoPagamento):
 
         res_pedido = supabase.table("pedidos").insert(pedido_db).execute()
 
-        # ── ESCRITA DO LEDGER IMUTÁVEL DE REPASSES FINANCEIROS ──
         if res_pedido.data:
             pedido_id_gerado = res_pedido.data[0]["id"]
             repasses_db = []
@@ -382,9 +363,6 @@ async def processar_pagamento(pedido: PedidoPagamento):
             if repasses_db:
                 supabase.table("repasses_financeiros").insert(repasses_db).execute()
 
-        # ==========================================
-        # FASE 4: PAYLOAD PAGBANK
-        # ==========================================
         payload_pagbank = {
             "reference_id": codigo_pedido,
             "customer": {
@@ -431,8 +409,7 @@ async def processar_pagamento(pedido: PedidoPagamento):
                 raise HTTPException(status_code=400, detail="Erro no processamento financeiro.")
 
             dados_pb = resp.json()
-            base_retorno = {"sucesso": True, "codigo_pedido": stocking_pedido}
-            base_retorno["codigo_pedido"] = codigo_pedido
+            base_retorno = {"sucesso": True, "codigo_pedido": codigo_pedido}
             
             if pedido.metodo_pagamento == "pix":
                 qr = dados_pb["qr_codes"][0]
