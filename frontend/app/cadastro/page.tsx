@@ -266,7 +266,8 @@ export default function CadastroPage() {
       const res = await cadastrarResidente(formData as any); 
       
       if (res.status === 'sucesso' && res.token) {
-        router.push(`/carteira/${res.token}`);
+        // Redireciona DIRETAMENTE para a página de checkout para garantir o pagamento
+        router.push(`/checkout-carteira?token=${res.token}`);
       } else {
         setResult(res);
       }

@@ -270,6 +270,11 @@ function HoteisPageContent() {
     : 1;
   const totalQuartos = quartos || 1;
 
+  const diasDoMes = (ano: number, mes: number) => new Date(ano, mes + 1, 0).getDate();
+  const primeiroDiaDoMes = (ano: number, mes: number) => new Date(ano, mes, 1).getDay();
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+
   const renderMonth = () => {
     const ano = mesAtualCalendario.getFullYear();
     const mes = mesAtualCalendario.getMonth();
