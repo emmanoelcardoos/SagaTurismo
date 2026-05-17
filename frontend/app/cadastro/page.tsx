@@ -103,7 +103,6 @@ function validate(
   return errs;
 }
 
-// ── COMPONENTE HEADER COM MENU MOBILE LIGADO ──
 function Header() {
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
@@ -189,7 +188,9 @@ export default function CadastroPage() {
 
   const [errors, setErrors] = useState<FieldErrors>({});
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<CadastroResponse | null>(null);
+  
+  // Alterado para capturar qualquer recusa de forma segura
+  const [rejeicaoIA, setRejeicaoIA] = useState<{ mensagem: string } | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
 
   const currentYear = new Date().getFullYear();
@@ -232,6 +233,7 @@ export default function CadastroPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setApiError(null);
+    setRejeicaoIA(null);
 
     const errs = validate(nome, cpf, email, dataNascimento, arquivo, foto, dependentes, hasDependentes);
     if (Object.keys(errs).length) {
@@ -265,45 +267,49 @@ export default function CadastroPage() {
 
       const res = await cadastrarResidente(formData as any); 
       
-      if (res.status === 'sucesso' && res.token) {
-        // Redireciona DIRETAMENTE para a página de checkout para garantir o pagamento
+      // BLINDAGEM DE FLUXO: Se o backend devolveu um token, a IA aprovou os documentos. Vamos cobrar!
+      if (res.token) {
         router.push(`/checkout-carteira?token=${res.token}`);
       } else {
-        setResult(res);
+        // Se não há token, a IA chumbou os documentos ou houve erro lógico
+        setRejeicaoIA({
+          mensagem: res.mensagem || 'A nossa Inteligência Artificial não conseguiu aprovar a sua documentação. Verifique se as fotos estão nítidas e se comprovam a residência.'
+        });
       }
     } catch (err: any) {
       const errorMsg = err.message || '';
       if (errorMsg.includes('23505') || errorMsg.includes('already exists')) {
-        setApiError("Este CPF já possui uma solicitação ativa. Por favor, consulte o status ou utilize outro CPF.");
+        setApiError("Este CPF já possui uma solicitação em andamento. Consulte o seu email ou utilize outro CPF.");
       } else {
-        setApiError('Erro ao processar cadastro. Tente novamente mais tarde.');
+        setApiError('A conexão com o servidor falhou ou a IA demorou muito a responder. Tente novamente.');
       }
     } finally {
       setLoading(false);
     }
   };
 
-  if (result && result.status !== 'sucesso') {
+  // ── ECRÃ DE RECUSA DA IA ──
+  if (rejeicaoIA) {
     return (
       <main className={`${inter.className} min-h-screen bg-slate-50 text-slate-900`}>
         <Header />
         <section className="flex min-h-screen items-center justify-center px-4 py-28 sm:px-5">
-          <div className="w-full max-w-2xl rounded-[2rem] border border-slate-200 bg-white p-6 text-center shadow-2xl sm:p-8">
+          <div className="w-full max-w-2xl rounded-[2rem] border border-slate-200 bg-white p-6 text-center shadow-2xl sm:p-8 animate-in zoom-in-95 duration-300">
             <div className={`mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-red-50`}>
               <XCircle className="h-12 w-12 text-red-500" />
             </div>
             <span className={`mb-5 inline-flex rounded-full px-4 py-2 text-xs font-black uppercase tracking-[0.18em] bg-red-50 text-red-700`}>
-              Solicitação recusada
+              Solicitação Retida
             </span>
             <h1 className={`${jakarta.className} mb-4 text-3xl md:text-4xl font-bold text-red-700`}>
-              Não foi possível aprovar
+              Análise Não Aprovada
             </h1>
-            <p className="mx-auto mb-8 max-w-md leading-relaxed text-slate-600">
-               {result.mensagem}
+            <p className="mx-auto mb-8 max-w-md leading-relaxed text-slate-600 font-medium">
+               {rejeicaoIA.mensagem}
             </p>
             <div className="flex flex-col gap-3">
-              <button onClick={() => { setResult(null); setApiError(null); }} className="rounded-full bg-[#00577C] px-8 py-4 font-bold text-white transition hover:bg-[#004766]">
-                Tentar novamente
+              <button onClick={() => setRejeicaoIA(null)} className="rounded-full bg-[#00577C] px-8 py-4 font-bold text-white transition hover:bg-[#004766] active:scale-95 shadow-lg">
+                Corrigir e Enviar Novamente
               </button>
               <Link href="/" className="text-sm font-semibold text-slate-400 hover:text-slate-600">Voltar ao início</Link>
             </div>
@@ -327,7 +333,6 @@ export default function CadastroPage() {
             className="object-cover opacity-60"
             priority 
           />
-          {/* Em telemóvel desvanece de baixo para cima. No Desktop, da esquerda para a direita. Imagem fica mais limpa! */}
           <div className="absolute inset-0 bg-gradient-to-t from-[#002f40] via-[#002f40]/80 to-[#002f40]/20 md:bg-gradient-to-r md:from-[#002f40]/95 md:via-[#002f40]/50 md:to-transparent" />
         </div>
 
@@ -545,7 +550,7 @@ export default function CadastroPage() {
                   </div>
                 </div>
 
-                {/* BARRA INFERIOR DE SUBMISSÃO (SEM RESUMO FINANCEIRO) */}
+                {/* BARRA INFERIOR DE SUBMISSÃO */}
                 <div className="border-t border-slate-100 pt-6 md:pt-8 mt-auto text-left">
                   {apiError && (
                     <div className="mb-5 md:mb-6 flex items-center gap-3 rounded-2xl bg-red-50 p-4 md:p-5 text-sm font-bold text-red-700 border border-red-100 animate-in shake duration-500 shadow-sm">
