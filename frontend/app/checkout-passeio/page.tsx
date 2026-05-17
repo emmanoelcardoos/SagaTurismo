@@ -56,7 +56,7 @@ function SectionHeader({ step, title, icon }: { step: number; title: string; ico
       </div>
       <div className="flex items-center gap-2">
         <span className="text-[#00577C] bg-blue-50 p-2 rounded-xl hidden sm:block">{icon}</span>
-        <h2 className={`${jakarta.className} text-xl font-black text-slate-900 tracking-tight` tracking-tight` ?? title}`}>{title}</h2>
+        <h2 className={`${jakarta.className} text-xl font-black text-slate-900 tracking-tight`}>{title}</h2>
       </div>
     </div>
   );
@@ -175,7 +175,7 @@ function CheckoutPasseioContent() {
         }
       } catch (err) {
         console.error(err);
-      } finaly {
+      } finally {
         setLoadingInitial(false);
       }
     }
@@ -341,7 +341,7 @@ function CheckoutPasseioContent() {
                       <input required value={numeroCartao} onChange={e => setNumeroCartao(mascaraCartao(e.target.value))} maxLength={19} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 tracking-widest" placeholder="0000 0000 0000 0000" />
                       <div className="grid grid-cols-[1fr_1fr_1.5fr] gap-3">
                         <input required value={mesCartao} maxLength={2} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 py-4 text-sm font-bold text-center" placeholder="Mês (MM)" onChange={e => setMesCartao(e.target.value.replace(/\D/g,''))} />
-                        <input required value={anoCartao} maxLength={4} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 py-4 text-sm font-bold text-center" placeholder="Ano (AAAA)" onChange={e => set開anoCartao(e.target.value.replace(/\D/g,''))} />
+                        <input required value={anoCartao} maxLength={4} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 py-4 text-sm font-bold text-center" placeholder="Ano (AAAA)" onChange={e => setAnoCartao(e.target.value.replace(/\D/g,''))} />
                         <input required type="password" value={cvvCartao} maxLength={4} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 py-4 text-sm font-bold text-center tracking-widest" placeholder="CVV" onChange={e => setCvvCartao(e.target.value.replace(/\D/g,''))} />
                       </div>
                     </div>
@@ -391,7 +391,7 @@ function CheckoutPasseioContent() {
               </div>
 
               <div className="p-6 md:p-8 border-b border-slate-100 text-left bg-slate-50">
-                <p className="text-[10px] font-black uppercase text-[#00577C] tracking-widest mb-1">Roteiro Selecionado</p>
+                <p className="text-[10px] font-black uppercase text-[#0085FF] tracking-widest mb-1">Roteiro Selecionado</p>
                 <h3 className={`${jakarta.className} text-xl font-black text-slate-800 leading-tight`}>{passeio?.titulo || 'Carregando expedição...'}</h3>
                 <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400 mt-2">
                    <MapPin size={12} className="text-[#009640]" /> São Geraldo do Araguaia - PA
