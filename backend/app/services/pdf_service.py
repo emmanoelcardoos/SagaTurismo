@@ -129,7 +129,7 @@ def _moldura_foto(c, x, y, w, h, radius=4 * mm):
 def _label_valor(c, x, y, label, valor, tam_label=6, tam_valor=10):
     c.setFillColor(COR_TEXTO_LABEL)
     c.setFont("Helvetica-Bold", tam_label)
-    c.drawString(x, y, label)
+    c.drawString(x, y)
     c.setFillColor(COR_TEXTO_ESCURO)
     c.setFont("Helvetica-Bold", tam_valor)
     c.drawString(x, y - (tam_valor * 0.45 * mm) - 1.5 * mm, str(valor))
@@ -393,7 +393,7 @@ def gerar_pdf_voucher(pedido_db: dict, dados_extra: dict = None) -> str:
     c.drawString(largura - MARGIN_X - 8 * mm, y - 14 * mm, "O imposto de fomento ao turismo local já se encontra recolhido.")
     y -= 32 * mm
 
-    # --- INFORMAÇÕES NOMINAIS DOS INTEGRANTES DA COMITIVA ---
+    # --- INFORMAÇÕES NOMINAIS DOS INTEGRANTES DA COMITIVA (ATUALIZADO DINÂMICO) ---
     garantir_espaco(30)
     c.setFillColor(COR_PRIMARIA)
     c.setFont("Helvetica-Bold", 12)
@@ -416,18 +416,41 @@ def gerar_pdf_voucher(pedido_db: dict, dados_extra: dict = None) -> str:
     c.drawString(MARGIN_X + 150 * mm, y, "TITULAR")
     y -= 6 * mm
     
-    # Acompanhantes
-    total_pessoas = pedido_db.get("quantidade_pessoas", 1) or 1
-    if total_pessoas > 1:
-        for idx in range(1, total_pessoas):
+    # ◄── EXTRAÇÃO E LOOP DINÂMICO DO MANIFESTO REAL DE ACOMPANHANTES
+    lista_acompanhantes = pedido_db.get("hospedes_extras", [])
+    if not isinstance(lista_acompanhantes, list): 
+        lista_acompanhantes = []
+        
+    if lista_acompanhantes:
+        for hospede in lista_acompanhantes:
             garantir_espaco(8)
+            nome_extra = _safe(hospede.get("nome")).upper()
+            cpf_extra = _safe(hospede.get("cpf"), "NÃO INFORMADO")
+            data_nasc_extra = _formatar_data_br(hospede.get("data_nascimento"))
+            
+            # Monta o descritor incluindo a data de nascimento junta se existir
+            doc_exibicao = f"{cpf_extra} ({data_nasc_extra})" if data_nasc_extra != "—" else cpf_extra
+            
             c.setFillColor(COR_TEXTO_ESCURO)
             c.setFont("Helvetica-Bold", 10)
-            c.drawString(MARGIN_X, y, f"ACOMPANHANTE {idx} (REGISTADO NO SISTEMA)")
+            c.drawString(MARGIN_X, y, nome_extra)
             c.setFont("Helvetica", 10)
-            c.drawString(MARGIN_X + 95 * mm, y, "VINCULADO AO CPF TITULAR")
-            c.drawString(MARGIN_X + 150 * mm, y, f"ACOMPANHANTE")
+            c.drawString(MARGIN_X + 95 * mm, y, doc_exibicao)
+            c.drawString(MARGIN_X + 150 * mm, y, "ACOMPANHANTE")
             y -= 6 * mm
+    else:
+        # Fallback inteligente baseado no contador numérico se o array vier vazio (Pedidos Legados)
+        total_pessoas = pedido_db.get("quantidade_pessoas", 1) or 1
+        if total_pessoas > 1:
+            for idx in range(1, total_pessoas):
+                garantir_espaco(8)
+                c.setFillColor(COR_TEXTO_ESCURO)
+                c.setFont("Helvetica-Bold", 10)
+                c.drawString(MARGIN_X, y, f"ACOMPANHANTE {idx} (REGISTADO NO SISTEMA)")
+                c.setFont("Helvetica", 10)
+                c.drawString(MARGIN_X + 95 * mm, y, "VINCULADO AO CPF TITULAR")
+                c.drawString(MARGIN_X + 150 * mm, y, "ACOMPANHANTE")
+                y -= 6 * mm
             
     desenhar_linha_divisoria()
 
@@ -539,7 +562,6 @@ def gerar_pdf_voucher(pedido_db: dict, dados_extra: dict = None) -> str:
     c.line(MARGIN_X, y + 4 * mm, largura - MARGIN_X, y + 4 * mm)
     y -= 4 * mm
 
-    # Políticas Específicas do Estabelecimento da Supabase
     regras_propriedade = []
     if politicas_json:
         for chave, val in politicas_json.items():
