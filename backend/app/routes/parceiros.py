@@ -30,11 +30,8 @@ class DisponibilidadeParceiroSchema(BaseModel):
     preco: float
     disponivel: bool
 
-# ── FUNÇÕES AUXILIARES INTERNAS ──
+# ── FUNÇÕES AUXILIARES INTERNAS (MANTIDAS COMO FALLBACK PARA PEDIDOS ANTIGOS) ──
 def obter_fator_liquido(tipo_item: str) -> float:
-    """
-    Consulta a tabela 'taxas_servicos' no Supabase para descobrir a taxa.
-    """
     try:
         tipo_busca = tipo_item.lower()
         if "hotel" in tipo_busca: tipo_busca = "hotel"
@@ -50,17 +47,12 @@ def obter_fator_liquido(tipo_item: str) -> float:
         return 1.0
 
 def calcular_recorte_hotel_pacote(hotel_id: str, tipo_quarto: str, checkin_str: str, checkout_str: str, quantidade_quartos: int = 1, quantidade_pessoas: int = 2) -> float:
-    """
-    Calcula apenas a fatia de dinheiro que pertence ao hotel considerando a nova
-    regra de Revenue Management (Taxa de Acompanhantes por Quarto).
-    """
     try:
         if not checkin_str or not checkout_str: return 0.0
         res_h = supabase.table("hoteis").select("*").eq("id", hotel_id).single().execute()
         if not res_h.data: return 0.0
         
         base_preco = float(res_h.data["quarto_luxo_preco"] if tipo_quarto == 'luxo' else res_h.data["quarto_standard_preco"])
-        # ◄── LEITURA DA NOVA COLUNA DO REVENUE MANAGEMENT
         pct_acompanhante = float(res_h.data.get("porcentagem_acompanhante") or 0.0)
         
         res_custom = supabase.table("disponibilidade_hoteis") \
@@ -74,7 +66,6 @@ def calcular_recorte_hotel_pacote(hotel_id: str, tipo_quarto: str, checkin_str: 
         d_atual = datetime.strptime(checkin_str, "%Y-%m-%d").date()
         d_fim = datetime.strptime(checkout_str, "%Y-%m-%d").date()
         
-        # ◄── MATEMÁTICA DOS ACOMPANHANTES PAGANTES
         acompanhantes = quantidade_pessoas - quantidade_quartos
         if acompanhantes < 0: acompanhantes = 0
         
@@ -89,8 +80,6 @@ def calcular_recorte_hotel_pacote(hotel_id: str, tipo_quarto: str, checkin_str: 
                     break
             
             preco_quarto_noite = preco_noite if preco_noite is not None else base_preco
-            
-            # ◄── APLICAÇÃO DA FÓRMULA NOITE POR NOITE PARA PRECISÃO MÁXIMA
             valor_noite = (preco_quarto_noite * quantidade_quartos) + (preco_quarto_noite * (pct_acompanhante / 100.0) * acompanhantes)
             subtotal += valor_noite
             d_atual += timedelta(days=1)
@@ -101,16 +90,12 @@ def calcular_recorte_hotel_pacote(hotel_id: str, tipo_quarto: str, checkin_str: 
         return 0.0
 
 def calcular_recorte_guia_pacote(guia_id: str, checkin_str: str, checkout_str: str) -> float:
-    """
-    Calcula apenas a fatia de dinheiro que pertence ao Guia de Turismo (Diária x Noites Finais + 1).
-    """
     try:
         if not checkin_str or not checkout_str: return 0.0
         res_g = supabase.table("guias").select("preco_diaria").eq("id", guia_id).single().execute()
         if not res_g.data: return 0.0
         
         preco_diaria = float(res_g.data["preco_diaria"])
-        
         d_ci = datetime.strptime(checkin_str, "%Y-%m-%d")
         d_co = datetime.strptime(checkout_str, "%Y-%m-%d")
         noites = (d_co - d_ci).days
@@ -203,13 +188,14 @@ async def registrar_interesse_parceiro(payload: InteresseParceiroSchema):
         print(f"[ERRO ENVIO EMAIL INTERESSE] {e}")
         raise HTTPException(status_code=500, detail="Erro interno ao processar o formulário.")
 
-# ── ROTAS DE CONSULTA DO PAINEL (COM DESCONTO DINÂMICO DE TAXAS) ──
+# ── ROTAS DE CONSULTA DO PAINEL COM SISTEMA HÍBRIDO (LEDGER + DINÂMICO) ──
 
 @router.get("/api/v1/parceiros/{item_id}/reservas", tags=["Portal dos Parceiros"])
 async def listar_reservas_parceiro(item_id: str):
     try:
+        # Puxa os pedidos e junta com a nova tabela de repasses_financeiros!
         res = supabase.table("pedidos") \
-            .select("codigo_pedido, tipo_item, nome_cliente, email_cliente, telefone_cliente, quantidade, valor_total, data_checkin, data_checkout, tipo_quarto, hotel_id, guia_id, quantidade_pessoas, quantidade_quartos, nome_item") \
+            .select("codigo_pedido, tipo_item, nome_cliente, email_cliente, telefone_cliente, quantidade, valor_total, data_checkin, data_checkout, tipo_quarto, hotel_id, guia_id, quantidade_pessoas, quantidade_quartos, nome_item, repasses_financeiros(parceiro_id, valor_bruto, valor_liquido)") \
             .or_(f"item_id.eq.{item_id},hotel_id.eq.{item_id},guia_id.eq.{item_id}") \
             .eq("status_pagamento", "pago") \
             .execute()
@@ -217,34 +203,51 @@ async def listar_reservas_parceiro(item_id: str):
         reservas_processadas = []
         for r in res.data:
             tipo = r.get("tipo_item")
+            qtd = int(r.get("quantidade") or 1)
             
-            if tipo == "pacote":
-                if r.get("hotel_id") == item_id:
-                    # ◄── ENVIAMOS AS NOVAS COLUNAS PARA O RECORTE DINÂMICO DO HOTEL
-                    valor_bruto = calcular_recorte_hotel_pacote(
-                        item_id, 
-                        r.get("tipo_quarto", "standard"), 
-                        r.get("data_checkin"), 
-                        r.get("data_checkout"),
-                        int(r.get("quantidade_quartos") or 1),
-                        int(r.get("quantidade_pessoas") or 2)
-                    )
-                    r["tipo_item"] = "Pacote (Hospedagem)"
-                    fator = obter_fator_liquido("hotel")
-                elif r.get("guia_id") == item_id:
-                    valor_bruto = calcular_recorte_guia_pacote(item_id, r.get("data_checkin"), r.get("data_checkout"))
-                    r["tipo_item"] = "Pacote (Serviço de Guia)"
-                    fator = obter_fator_liquido("guia")
+            # 1. Procura se já existe um recibo imutável gravado no Ledger
+            lista_repasses = r.get("repasses_financeiros") or []
+            repasse_exato = next((rep for rep in lista_repasses if rep.get("parceiro_id") == item_id), None)
+            
+            if repasse_exato:
+                # Usa os dados fixos e seguros da base de dados!
+                valor_bruto = float(repasse_exato["valor_bruto"])
+                valor_liquido = float(repasse_exato["valor_liquido"])
+                
+                if tipo == "pacote":
+                    if r.get("hotel_id") == item_id: r["tipo_item"] = "Pacote (Hospedagem)"
+                    elif r.get("guia_id") == item_id: r["tipo_item"] = "Pacote (Serviço de Guia)"
+                    
+            else:
+                # 2. Se for um pedido antigo sem recibo, usa o Fallback Dinâmico
+                if tipo == "pacote":
+                    if r.get("hotel_id") == item_id:
+                        valor_bruto = calcular_recorte_hotel_pacote(
+                            item_id, r.get("tipo_quarto", "standard"), r.get("data_checkin"), r.get("data_checkout"), int(r.get("quantidade_quartos") or 1), int(r.get("quantidade_pessoas") or 2)
+                        )
+                        r["tipo_item"] = "Pacote (Hospedagem)"
+                        fator = obter_fator_liquido("hotel")
+                    elif r.get("guia_id") == item_id:
+                        valor_bruto = calcular_recorte_guia_pacote(item_id, r.get("data_checkin"), r.get("data_checkout"))
+                        r["tipo_item"] = "Pacote (Serviço de Guia)"
+                        fator = obter_fator_liquido("guia")
+                    else:
+                        valor_bruto = float(r.get("valor_total") or 0.0)
+                        fator = 1.0
                 else:
                     valor_bruto = float(r.get("valor_total") or 0.0)
-                    fator = 1.0
-            else:
-                valor_bruto = float(r.get("valor_total") or 0.0)
-                tipo_real = "hotel" if "hotel" in tipo else "guia" if "guia" in tipo else tipo
-                fator = obter_fator_liquido(tipo_real)
+                    tipo_real = "hotel" if "hotel" in tipo else "guia" if "guia" in tipo else tipo
+                    fator = obter_fator_liquido(tipo_real)
+                
+                valor_liquido = valor_bruto * fator
             
             r["valor_total"] = round(valor_bruto, 2)
-            r["valor_liquido"] = round(valor_bruto * fator, 2)
+            r["valor_liquido"] = round(valor_liquido, 2)
+            
+            # Limpa o array do ledger para não sujar a resposta JSON enviada ao frontend
+            if "repasses_financeiros" in r:
+                del r["repasses_financeiros"]
+                
             reservas_processadas.append(r)
             
         return {
@@ -260,7 +263,7 @@ async def listar_reservas_parceiro(item_id: str):
 async def obter_metricas_dashboard(item_id: str):
     try:
         res = supabase.table("pedidos") \
-            .select("valor_total, tipo_item, quantity:quantidade, data_checkin, data_checkout, tipo_quarto, hotel_id, guia_id, quantidade_pessoas, quantidade_quartos, nome_item") \
+            .select("valor_total, tipo_item, quantity:quantidade, data_checkin, data_checkout, tipo_quarto, hotel_id, guia_id, quantidade_pessoas, quantidade_quartos, nome_item, repasses_financeiros(parceiro_id, valor_bruto, valor_liquido)") \
             .or_(f"item_id.eq.{item_id},hotel_id.eq.{item_id},guia_id.eq.{item_id}") \
             .eq("status_pagamento", "pago") \
             .execute()
@@ -271,31 +274,34 @@ async def obter_metricas_dashboard(item_id: str):
         
         for p in pedidos:
             tipo = p.get("tipo_item")
+            qtd = int(p.get("quantity", 1))
             
-            if tipo == "pacote":
-                if p.get("hotel_id") == item_id:
-                    # ◄── RECORTE DINÂMICO ATUALIZADO TAMBÉM NO METRICAS/DASHBOARD
-                    v_bruto = calcular_recorte_hotel_pacote(
-                        item_id, 
-                        p.get("tipo_quarto", "standard"), 
-                        p.get("data_checkin"), 
-                        p.get("data_checkout"),
-                        int(p.get("quantidade_quartos") or 1),
-                        int(p.get("quantidade_pessoas") or 2)
-                    )
-                    fator = obter_fator_liquido("hotel")
-                elif p.get("guia_id") == item_id:
-                    v_bruto = calcular_recorte_guia_pacote(item_id, p.get("data_checkin"), p.get("data_checkout"))
-                    fator = obter_fator_liquido("guia")
+            # Procura recibo no Ledger (Novo Sistema Estável)
+            lista_repasses = p.get("repasses_financeiros") or []
+            repasse_exato = next((rep for rep in lista_repasses if rep.get("parceiro_id") == item_id), None)
+            
+            if repasse_exato:
+                faturamento_liquido_total += float(repasse_exato["valor_liquido"])
+            else:
+                # Fallback (Sistema Antigo)
+                if tipo == "pacote":
+                    if p.get("hotel_id") == item_id:
+                        v_bruto = calcular_recorte_hotel_pacote(
+                            item_id, p.get("tipo_quarto", "standard"), p.get("data_checkin"), p.get("data_checkout"), int(p.get("quantidade_quartos") or 1), int(p.get("quantidade_pessoas") or 2)
+                        )
+                        fator = obter_fator_liquido("hotel")
+                    elif p.get("guia_id") == item_id:
+                        v_bruto = calcular_recorte_guia_pacote(item_id, p.get("data_checkin"), p.get("data_checkout"))
+                        fator = obter_fator_liquido("guia")
+                    else:
+                        v_bruto = float(p.get("valor_total") or 0.0)
+                        fator = 1.0
                 else:
                     v_bruto = float(p.get("valor_total") or 0.0)
-                    fator = 1.0
-            else:
-                v_bruto = float(p.get("valor_total") or 0.0)
-                tipo_real = "hotel" if "hotel" in tipo else "guia" if "guia" in tipo else tipo
-                fator = obter_fator_liquido(tipo_real)
-                
-            faturamento_liquido_total += (v_bruto * fator)
+                    tipo_real = "hotel" if "hotel" in tipo else "guia" if "guia" in tipo else tipo
+                    fator = obter_fator_liquido(tipo_real)
+                    
+                faturamento_liquido_total += (v_bruto * fator)
         
         hoje = datetime.now().date()
         proximos_clientes = 0
@@ -353,7 +359,7 @@ async def obter_preco_hospedagem_publico(
     checkin: str = None, 
     checkout: str = None,
     quantidade: int = 1,
-    adultos: int = 2 # ◄── NOVA VARIÁVEL REQUISITADA PARA O SIMULADOR PÚBLICO
+    adultos: int = 2
 ):
     if not checkin or not checkout:
         raise HTTPException(status_code=400, detail="Check-in and Check-out dates are required.")
@@ -379,7 +385,6 @@ async def obter_preco_hospedagem_publico(
         d_atual = datetime.strptime(checkin, "%Y-%m-%d").date()
         d_fim = datetime.strptime(checkout, "%Y-%m-%d").date()
         
-        # ◄── CONTAGEM DE ACOMPANHANTES PÚBLICA
         acompanhantes = adultos - quantidade
         if acompanhantes < 0: acompanhantes = 0
         
@@ -400,16 +405,16 @@ async def obter_preco_hospedagem_publico(
                     break
             
             preco_quarto_noite = preco_noite if preco_noite is not None else base_preco
-            
-            # ◄── APLICAÇÃO DA NOVA REGRA NO SIMULADOR DE COMPRA DO FRONTEND
             valor_noite = (preco_quarto_noite * quantidade) + (preco_quarto_noite * (pct_acompanhante / 100.0) * acompanhantes)
             valor_total_bruto += valor_noite
             d_atual += timedelta(days=1)
             
+        valor_final = valor_total_bruto * quantidade
+        
         return {
             "sucesso": True,
             "disponivel": True,
-            "valor_total": valor_total_bruto,
+            "valor_total": valor_final,
             "noites": (d_fim - datetime.strptime(checkin, "%Y-%m-%d").date()).days
         }
         

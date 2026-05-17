@@ -59,14 +59,15 @@ class PedidoPagamento(BaseModel):
     encrypted_card: Optional[str] = None
     parcelas: Optional[int] = 1
 
-# ── FUNÇÃO AUXILIAR INTERNA: CALCULAR PREÇO DO HOTEL NOITE POR NOITE ──
-def calcular_preco_hotel_dinamico(hotel_id: str, tipo_quarto: str, checkin_str: str, checkout_str: str) -> float:
+# ── FUNÇÃO AUXILIAR INTERNA: CALCULAR PREÇO DO HOTEL NOITE POR NOITE COM REVENUE MANAGEMENT ──
+def calcular_preco_hotel_dinamico(hotel_id: str, tipo_quarto: str, checkin_str: str, checkout_str: str, quantidade_quartos: int = 1, quantidade_pessoas: int = 2) -> float:
     res_h = supabase.table("hoteis").select("*").eq("id", hotel_id).single().execute()
     if not res_h.data:
         raise HTTPException(status_code=404, detail="Alojamento não encontrado.")
     
     hotel_data = res_h.data
     base_preco = float(hotel_data["quarto_luxo_preco"] if tipo_quarto == 'luxo' else hotel_data["quarto_standard_preco"])
+    pct_acompanhante = float(hotel_data.get("porcentagem_acompanhante") or 0.0)
     
     res_custom = supabase.table("disponibilidade_hoteis") \
         .select("*") \
@@ -79,6 +80,10 @@ def calcular_preco_hotel_dinamico(hotel_id: str, tipo_quarto: str, checkin_str: 
     
     d_atual = datetime.strptime(checkin_str, "%Y-%m-%d").date()
     d_fim = datetime.strptime(checkout_str, "%Y-%m-%d").date()
+    
+    # Regra hoteleira de acompanhantes pagantes
+    acompanhantes = quantidade_pessoas - quantidade_quartos
+    if acompanhantes < 0: acompanhantes = 0
     
     subtotal_hospedagem = 0.0
     
@@ -100,11 +105,11 @@ def calcular_preco_hotel_dinamico(hotel_id: str, tipo_quarto: str, checkin_str: 
                 preco_da_noite = float(CircleRegra["preco"])
                 break
         
-        if preco_da_noite is not None:
-            subtotal_hospedagem += preco_da_noite
-        else:
-            subtotal_hospedagem += base_preco
-            
+        preco_quarto_noite = preco_da_noite if preco_da_noite is not None else base_preco
+        # Aplicação matemática da fórmula de Revenue Management por noite
+        valor_noite = (preco_quarto_noite * quantidade_quartos) + (preco_quarto_noite * (pct_acompanhante / 100.0) * acompanhantes)
+        subtotal_hospedagem += valor_noite
+        
         d_atual += timedelta(days=1)
         
     return subtotal_hospedagem
@@ -133,6 +138,11 @@ async def processar_pagamento(pedido: PedidoPagamento):
 
         fator_liquido = 1.0 - (taxa_prefeitura_pct / 100.0)
 
+        # Variáveis internas para armazenamento do Ledger
+        v_hospedagem_total = 0.0
+        v_guia_total = 0.0
+        lista_atracoes_calculadas = []
+
         # ==========================================
         # FASE 1: LÓGICA DE PRECIFICAÇÃO E REPASSES
         # ==========================================
@@ -142,10 +152,11 @@ async def processar_pagamento(pedido: PedidoPagamento):
             nome_item_checkout = f"Taxa de Emissão - Carteira Digital ({pedido.quantidade}x)"
 
         elif pedido.tipo_item == "hotel":
-            v_diarias_calculado = calcular_preco_hotel_dinamico(
-                pedido.hotel_id, pedido.tipo_quarto, pedido.data_checkin, pedido.data_checkout
+            valor_total = calcular_preco_hotel_dinamico(
+                pedido.hotel_id, pedido.tipo_quarto, pedido.data_checkin, pedido.data_checkout,
+                quantidade_quartos=pedido.quantidade, quantidade_pessoas=pedido.adultos
             )
-            valor_total = v_diarias_calculado * pedido.quantidade
+            v_hospedagem_total = valor_total
             
             res_hotel_info = supabase.table("hoteis").select("nome, pagbank_recebedor_id").eq("id", pedido.hotel_id).single().execute()
             nome_item_checkout = f"Hospedagem - {res_hotel_info.data['nome']}"
@@ -167,16 +178,14 @@ async def processar_pagamento(pedido: PedidoPagamento):
             if pedido.pacote_id and str(pedido.pacote_id).lower() not in ["none", "null"]:
                 item_id_db = pedido.pacote_id
 
-            v_hospedagem_total = 0.0
-            v_guia_total = 0.0
             v_atracoes_total = 0.0
 
-            # 1. Split Dinâmico do Hotel
+            # 1. Split Dinâmico do Hotel no Pacote com Revenue Management
             if pedido.hotel_id:
-                v_hotel_dinamico = calcular_preco_hotel_dinamico(
-                    pedido.hotel_id, pedido.tipo_quarto, pedido.data_checkin, pedido.data_checkout
+                v_hospedagem_total = calcular_preco_hotel_dinamico(
+                    pedido.hotel_id, pedido.tipo_quarto, pedido.data_checkin, pedido.data_checkout,
+                    quantidade_quartos=pedido.quantidade, quantidade_pessoas=pedido.adultos
                 )
-                v_hospedagem_total = v_hotel_dinamico * pedido.quantidade
                 
                 res_h_info = supabase.table("hoteis").select("pagbank_recebedor_id").eq("id", pedido.hotel_id).single().execute()
                 rec_id = res_h_info.data.get("pagbank_recebedor_id") if res_h_info.data else None
@@ -213,12 +222,14 @@ async def processar_pagamento(pedido: PedidoPagamento):
                     if res_atr.data:
                         v_individual_atr = float(res_atr.data["preco_entrada"]) * pedido.adultos
                         v_atracoes_total += v_individual_atr
+                        
                         rec_id = res_atr.data.get("pagbank_recebedor_id")
                         if rec_id and str(rec_id).startswith("ACC_"):
                             recebedores_split.append({
                                 "account": {"id": rec_id},
                                 "amount": {"value": int((v_individual_atr * fator_liquido) * 100)}
                             })
+                        lista_atracoes_calculadas.append({"id": atr_id, "valor": v_individual_atr})
 
             valor_total = v_hospedagem_total + v_guia_total + v_atracoes_total
 
@@ -254,11 +265,9 @@ async def processar_pagamento(pedido: PedidoPagamento):
             "data_nascimento": pedido.data_nascimento,
             "foto_url": pedido.foto_url,
             "quantidade": pedido.quantidade,
-            # ── RASTREIO EXPLÍCITO DE PARCEIROS COMPOSITOS ──
             "hotel_id": pedido.hotel_id if pedido.hotel_id else None,
             "guia_id": pedido.guia_id if pedido.guia_id else None,
             "tipo_quarto": pedido.tipo_quarto if pedido.tipo_quarto else "standard",
-            # ── NOVAS COLUNAS DO SMART CHECKOUT MAUPEADAS PELO FRONTEND ──
             "quantidade_pessoas": pedido.adultos if pedido.adultos else 2,
             "quantidade_quartos": pedido.quantidade if pedido.tipo_item in ["hotel", "pacote"] else 1,
             "nome_item": nome_item_checkout
@@ -267,7 +276,59 @@ async def processar_pagamento(pedido: PedidoPagamento):
         if item_id_db:
             pedido_db["item_id"] = item_id_db
 
-        supabase.table("pedidos").insert(pedido_db).execute()
+        res_pedido = supabase.table("pedidos").insert(pedido_db).execute()
+
+        # ── ESCRITA DO LEDGER IMUTÁVEL DE REPASSES FINANCEIROS ──
+        if res_pedido.data:
+            pedido_id_gerado = res_pedido.data[0]["id"]
+            repasses_db = []
+            
+            if pedido.tipo_item == "hotel" and pedido.hotel_id:
+                repasses_db.append({
+                    "pedido_id": pedido_id_gerado,
+                    "parceiro_id": pedido.hotel_id,
+                    "tipo_parceiro": "hotel",
+                    "valor_bruto": v_hospedagem_total,
+                    "taxa_plataforma": round(v_hospedagem_total * (taxa_prefeitura_pct / 100.0), 2),
+                    "valor_liquido": round(v_hospedagem_total * fator_liquido, 2),
+                    "status_repasse": "processando"
+                })
+            
+            elif pedido.tipo_item == "pacote":
+                if pedido.hotel_id and v_hospedagem_total > 0:
+                    repasses_db.append({
+                        "pedido_id": pedido_id_gerado,
+                        "parceiro_id": pedido.hotel_id,
+                        "tipo_parceiro": "hotel",
+                        "valor_bruto": v_hospedagem_total,
+                        "taxa_plataforma": round(v_hospedagem_total * (taxa_prefeitura_pct / 100.0), 2),
+                        "valor_liquido": round(v_hospedagem_total * fator_liquido, 2),
+                        "status_repasse": "processando"
+                    })
+                if pedido.guia_id and v_guia_total > 0:
+                    repasses_db.append({
+                        "pedido_id": pedido_id_gerado,
+                        "parceiro_id": pedido.guia_id,
+                        "tipo_parceiro": "guia",
+                        "valor_bruto": v_guia_total,
+                        "taxa_plataforma": round(v_guia_total * (taxa_prefeitura_pct / 100.0), 2),
+                        "valor_liquido": round(v_guia_total * fator_liquido, 2),
+                        "status_repasse": "processando"
+                    })
+                for atr in lista_atracoes_calculadas:
+                    if atr["valor"] > 0:
+                        repasses_db.append({
+                            "pedido_id": pedido_id_gerado,
+                            "parceiro_id": atr["id"],
+                            "tipo_parceiro": "atracao",
+                            "valor_bruto": atr["valor"],
+                            "taxa_plataforma": round(atr["valor"] * (taxa_prefeitura_pct / 100.0), 2),
+                            "valor_liquido": round(atr["valor"] * fator_liquido, 2),
+                            "status_repasse": "processando"
+                        })
+            
+            if repasses_db:
+                supabase.table("repasses_financeiros").insert(repasses_db).execute()
 
         # ==========================================
         # FASE 4: PAYLOAD PAGBANK
