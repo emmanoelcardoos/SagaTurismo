@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import Link from 'next/navigation';
+import Link from 'next/link'; // ◄── Corrigido aqui!
 import { 
   Loader2, MapPin, ShieldCheck, Bed, QrCode, CheckCircle2, 
   User, Mail, FileText, Copy, AlertCircle, 
@@ -15,7 +15,6 @@ import { supabase } from '@/lib/supabase';
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '700', '800'] });
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
 
-// ── TIPAGENS ──
 declare global {
   interface Window {
     PagSeguro?: any;
@@ -31,10 +30,9 @@ type Hotel = {
 type Acompanhante = {
   nome: string;
   cpf: string;
-  data_nascimento: string; // Guardado temporariamente como DD/MM/AAAA na UI
+  data_nascimento: string;
 };
 
-// ── UTILITÁRIOS SEGUROS ──
 const parseValor = (valor: any): number => {
   if (!valor) return 0;
   const num = typeof valor === 'string' ? parseFloat(valor.replace(',', '.')) : valor;
@@ -256,7 +254,6 @@ function CheckoutHotelContent() {
     if (!acomodacaoDisponivel) { setErroApi('Impossível prosseguir. Quarto esgotado.'); return; }
     if (cpf.length < 14) { setErroApi('CPF inválido.'); return; }
 
-    // Validação preventiva das datas dos acompanhantes
     for (let i = 0; i < hospedesExtras.length; i++) {
       if (hospedesExtras[i].data_nascimento.length < 10) {
         setErroApi(`Por favor, preencha a data de nascimento completa do Acompanhante #${i + 1}.`);
@@ -266,7 +263,6 @@ function CheckoutHotelContent() {
 
     setIsSubmitting(true);
 
-    // Converte assincronamente as datas dos acompanhantes para ISO (YYYY-MM-DD) esperado pelo backend
     const acompanhantesFormatados = hospedesExtras.map(h => ({
       nome: h.nome,
       cpf: h.cpf.replace(/\D/g, ''),
@@ -287,7 +283,7 @@ function CheckoutHotelContent() {
       telefone_cliente: telefone.replace(/\D/g, ''), 
       hospedes_extras: acompanhantesFormatados,
       endereco_faturacao: {
-        street: rua, number: numero, locality: bairro, city: city || cidade, 
+        street: rua, number: numero, locality: bairro, city: cidade, 
         region_code: estado.replace(/\s/g, ''), country: "BRA", postal_code: cep.replace(/\D/g, '')
       }
     };
@@ -386,7 +382,7 @@ function CheckoutHotelContent() {
       </div>
 
       <div className="mx-auto max-w-7xl px-4 md:px-8 py-8 md:py-12">
-        <BarraTempoReserva />
+        <BarraTempo Reserva />
 
         <div className="grid gap-8 lg:grid-cols-[1fr_400px] items-start">
           
@@ -438,7 +434,7 @@ function CheckoutHotelContent() {
                     </div>
                   </div>
 
-                  {/* Blocos Gerados Dinamicamente com Máscara Digital Inteligente (Sem Seletor Nativo Horrível) */}
+                  {/* Blocos Gerados Dinamicamente com Máscara Digital Inteligente */}
                   {hospedesExtras.length > 0 && (
                     <div className="mt-8 pt-8 border-t-2 border-dashed border-slate-100 space-y-8">
                       <div>
