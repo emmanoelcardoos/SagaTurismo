@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { 
   Loader2, LogOut, Wallet, Compass, 
   ClipboardList, ShieldCheck, ArrowUpRight, 
-  Search, Users2, Plus, Calendar
+  Search, Users2, Plus, Calendar, MessageCircle
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 
@@ -75,7 +75,11 @@ export default function DashboardGuiaPage() {
 
         setReservas(listaReservas);
 
-        const faturamentoGuiaCalculado = listaReservas.reduce((acc, r) => acc + (Number(r.repasse_guia) || 0), 0);
+        // FALLBACK: Se repasse_guia for 0 ou null, assume o valor_liquido da reserva
+        const faturamentoGuiaCalculado = listaReservas.reduce((acc, r) => {
+           const valorA Somar = Number(r.repasse_guia) || Number(r.valor_liquido) || 0;
+           return acc + valorA Somar;
+        }, 0);
 
         setMetricas({
           faturamento: dataMetricas?.metricas?.faturamento_total ?? faturamentoGuiaCalculado,
@@ -103,6 +107,15 @@ export default function DashboardGuiaPage() {
     const parts = dataStr.split('-');
     if (parts.length !== 3) return dataStr;
     return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  };
+
+  // Lógica para higienizar o número e criar o link do WhatsApp
+  const gerarLinkWhatsApp = (telefone?: string) => {
+    if (!telefone) return '#';
+    let numeros = telefone.replace(/\D/g, ''); // Remove tudo que não for número
+    if (numeros.length < 10) return '#';
+    if (!numeros.startsWith('55')) numeros = `55${numeros}`; // Adiciona o código do Brasil se faltar
+    return `https://wa.me/${numeros}`;
   };
 
   const filteredReservas = reservas.filter((r) => {
@@ -172,7 +185,7 @@ export default function DashboardGuiaPage() {
                 <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 flex items-center justify-center shadow-sm shrink-0"><ClipboardList className="text-[#009640]" size={20} /></div>
                 <div>
                    <h2 className={`${jakarta.className} text-xl font-black text-slate-900`}>Manifesto de Passageiros & Grupos</h2>
-                   <p className="text-xs font-bold text-slate-400 mt-1">Lista unificada de clientes com repasses individuais calculados.</p>
+                   <p className="text-xs font-bold text-slate-400 mt-1">Lista unificada de clientes com repasses e contacto direto.</p>
                 </div>
              </div>
              <div className="relative w-full sm:w-80 shrink-0"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} /><input type="text" placeholder="Procurar turista..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-[#009640] shadow-sm" /></div>
@@ -191,7 +204,7 @@ export default function DashboardGuiaPage() {
                   <tr className="bg-slate-50/50 border-b border-slate-100 text-[10px] font-black uppercase text-slate-400 tracking-widest">
                     <th className="py-5 px-6">ID Localizador</th>
                     <th className="py-5 px-6">Nome do Serviço (Passeio / Pacote)</th>
-                    <th className="py-5 px-6">Turista Principal</th>
+                    <th className="py-5 px-6">Turista & Contacto</th>
                     <th className="py-5 px-6 text-center">Dia do Passeio</th>
                     <th className="py-5 px-6 text-center">Tamanho do Grupo</th>
                     <th className="py-5 px-6 text-right">Teu Repasse Limpo</th>
@@ -200,9 +213,11 @@ export default function DashboardGuiaPage() {
                 <tbody className="divide-y divide-slate-100 font-bold text-slate-700 bg-white">
                   {filteredReservas.map((r) => {
                     const totalComitiva = r.quantidade_pessoas || r.quantidade || 0;
-                    
-                    // ◄── NOVO: Sanitização robusta da string para evitar falhas de quebra de badge
                     const esPacote = r.tipo_item?.toLowerCase().trim() === 'pacote';
+                    const linkZap = gerarLinkWhatsApp(r.telefone_cliente);
+                    
+                    // Cálculo inteligente para não mostrar 0 se o backend falhar no repasse
+                    const valorReceber = Number(r.repasse_guia) || Number(r.valor_liquido) || 0;
 
                     return (
                       <tr key={r.codigo_pedido} className="hover:bg-slate-50 transition-colors">
@@ -217,10 +232,22 @@ export default function DashboardGuiaPage() {
                              </p>
                            </div>
                         </td>
+                        
+                        {/* ── COLUNA DO TURISTA COM BOTÃO WHATSAPP ── */}
                         <td className="py-5 px-6">
                           <p className="text-slate-900 font-black">{r.nome_cliente}</p>
-                          <p className="text-[10px] text-slate-400 font-medium mt-0.5">{r.telefone_cliente || 'Sem contato'}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                             <p className="text-[10px] text-slate-400 font-medium">{r.telefone_cliente || 'Sem contato'}</p>
+                             {linkZap !== '#' && (
+                               <a href={linkZap} target="_blank" rel="noopener noreferrer" 
+                                  className="bg-[#25D366] text-white p-1 rounded-md hover:bg-[#20bd5a] transition-all shadow-sm flex items-center gap-1 px-1.5 text-[9px] font-black uppercase tracking-wider" 
+                                  title="Chamar no WhatsApp">
+                                 <MessageCircle size={10} /> Chamar
+                               </a>
+                             )}
+                          </div>
                         </td>
+
                         <td className="py-5 px-6 text-center text-[#009640] font-black text-xs">
                            <div className="flex items-center justify-center gap-1.5 bg-green-50/50 border border-green-100 px-2.5 py-1.5 rounded-lg w-fit mx-auto">
                              <Calendar size={14} className="text-[#009640]"/>
@@ -235,7 +262,7 @@ export default function DashboardGuiaPage() {
                         </td>
                         <td className="py-5 px-6 text-right">
                           <span className={`${jakarta.className} text-sm font-black text-[#009640] bg-green-50 px-3 py-1.5 rounded-lg border border-green-100 shadow-sm inline-block tabular-nums`}>
-                            {formatarMoeda(r.repasse_guia || 0)}
+                            {formatarMoeda(valorReceber)}
                           </span>
                         </td>
                       </tr>
