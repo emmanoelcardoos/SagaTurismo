@@ -733,3 +733,12 @@ if __name__ == "__main__":
 
     caminho = gerar_pdf_voucher_premium(pedido_demo, hotel_demo)
     print(f"PDF gerado: {caminho}")
+
+# Alias para manter compatibilidade com código antigo
+def gerar_pdf_voucher(pedido_db: dict, dados_extra: dict = None) -> str:
+    return gerar_pdf_voucher_premium(pedido_db, dados_extra)
+
+
+def gerar_pdf_carteira(*args, **kwargs):
+    # evita crash até implementar depois
+    raise NotImplementedError("gerar_pdf_carteira ainda não foi implementado")
