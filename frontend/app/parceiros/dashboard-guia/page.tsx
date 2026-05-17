@@ -75,9 +75,9 @@ export default function DashboardGuiaPage() {
 
         setReservas(listaReservas);
 
-        // FALLBACK: Se repasse_guia for 0 ou null, assume o valor_liquido da reserva
+        // CÁLCULO ESTRITO: Apenas lê a coluna oficial 'repasse_guia' da API
         const faturamentoGuiaCalculado = listaReservas.reduce((acc, r) => {
-           const valorASomar = Number(r.repasse_guia) || Number(r.valor_liquido) || 0;
+           const valorASomar = Number(r.repasse_guia) || 0;
            return acc + valorASomar;
         }, 0);
 
@@ -109,7 +109,6 @@ export default function DashboardGuiaPage() {
     return `${parts[2]}/${parts[1]}/${parts[0]}`;
   };
 
-  // Lógica para higienizar o número e criar o link do WhatsApp
   const gerarLinkWhatsApp = (telefone?: string) => {
     if (!telefone) return '#';
     let numeros = telefone.replace(/\D/g, ''); 
@@ -216,7 +215,8 @@ export default function DashboardGuiaPage() {
                     const esPacote = r.tipo_item?.toLowerCase().trim() === 'pacote';
                     const linkZap = gerarLinkWhatsApp(r.telefone_cliente);
                     
-                    const valorReceber = Number(r.repasse_guia) || Number(r.valor_liquido) || 0;
+                    // CÁLCULO ESTRITO: Apenas a coluna oficial do guia
+                    const valorReceber = Number(r.repasse_guia) || 0;
 
                     return (
                       <tr key={r.codigo_pedido} className="hover:bg-slate-50 transition-colors">
@@ -232,7 +232,6 @@ export default function DashboardGuiaPage() {
                            </div>
                         </td>
                         
-                        {/* ── COLUNA DO TURISTA COM BOTÃO WHATSAPP ── */}
                         <td className="py-5 px-6">
                           <p className="text-slate-900 font-black">{r.nome_cliente}</p>
                           <div className="flex items-center gap-2 mt-0.5">
