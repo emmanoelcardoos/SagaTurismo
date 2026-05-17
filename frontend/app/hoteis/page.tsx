@@ -79,6 +79,7 @@ function HoteisPageContent() {
   const [criancas, setCriancas] = useState(0);
   const [quartos, setQuartos] = useState(1);
   const [showHospedesPopup, setShowHospedesPopup] = useState(false);
+  const [isSearching, setIsSearching] = useState(false); // ◄── ESTADO PARA O BOTÃO DE LOADING
 
   // Calendário Customizado
   const [showCalendarPopup, setShowCalendarPopup] = useState(false);
@@ -206,13 +207,19 @@ function HoteisPageContent() {
     return () => { document.body.style.overflow = 'auto'; };
   }, [isMobileFiltersOpen, isMobileMenuOpen]);
 
-  // Lógica de Formatação para URL imune a fusos horários
+  const diasDoMes = (ano: number, mes: number) => new Date(ano, mes + 1, 0).getDate();
+  const primeiroDiaDoMes = (ano: number, mes: number) => new Date(ano, mes, 1).getDay();
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+
   const formatarDataIso = (data: Date) => {
     return `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`;
   };
 
-  // ── DISPARO DO BOTÃO BUSCAR REAL (MUTAÇÃO DO ESTADO DA URL) ──
+  // ── DISPARO DO BOTÃO BUSCAR COM LOADING ANIMADO ──
   const handleBuscar = () => {
+    setIsSearching(true); // Inicia a animação de loading
+    
     const checkinStr = checkin ? formatarDataIso(checkin) : '';
     const checkoutStr = checkout ? formatarDataIso(checkout) : '';
     
@@ -220,6 +227,9 @@ function HoteisPageContent() {
     
     setShowCalendarPopup(false);
     setShowHospedesPopup(false);
+
+    // Remove o loading após um curto período para permitir que os cartões atualizem visualmente
+    setTimeout(() => setIsSearching(false), 800);
   };
 
   const handleDateClick = (data: Date) => {
@@ -269,11 +279,6 @@ function HoteisPageContent() {
     ? Math.ceil((checkout.getTime() - checkin.getTime()) / (1000 * 3600 * 24)) 
     : 1;
   const totalQuartos = quartos || 1;
-
-  const diasDoMes = (ano: number, mes: number) => new Date(ano, mes + 1, 0).getDate();
-  const primeiroDiaDoMes = (ano: number, mes: number) => new Date(ano, mes, 1).getDay();
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
 
   const renderMonth = () => {
     const ano = mesAtualCalendario.getFullYear();
@@ -492,8 +497,17 @@ function HoteisPageContent() {
                )}
             </div>
 
-            <button onClick={handleBuscar} className="bg-slate-900 text-white px-8 md:px-10 py-4 md:py-0 rounded-[1.5rem] font-black text-xs md:text-sm uppercase tracking-widest hover:bg-black transition-all shadow-md shrink-0">
-              Buscar
+            {/* ◄── BOTÃO COM LOADING ANIMADO ── */}
+            <button 
+              onClick={handleBuscar} 
+              disabled={isSearching}
+              className="bg-slate-900 text-white px-8 md:px-10 py-4 md:py-0 rounded-[1.5rem] font-black text-xs md:text-sm uppercase tracking-widest hover:bg-black transition-all shadow-md shrink-0 flex items-center justify-center gap-2"
+            >
+              {isSearching ? (
+                <><Loader2 size={16} className="animate-spin" /> Pesquisando...</>
+              ) : (
+                'Buscar'
+              )}
             </button>
           </div>
         </div>
@@ -686,10 +700,11 @@ function HoteisPageContent() {
           </div>
         </div>
       </footer>
-    </main>
+    </div>
   );
 }
 
+// ── EXPORT ENVOLTO EM SUSPENSE PARA PREVENIR ERROS DE BUILD NO NEXT.JS ──
 export default function HoteisPage() {
   return (
     <Suspense fallback={
