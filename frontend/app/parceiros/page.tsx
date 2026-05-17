@@ -107,7 +107,7 @@ export default function ParceirosPage() {
         } else if (tipoFinal === 'guia') {
           router.push("/parceiros/dashboard-guia");
         } else if (tipoFinal === 'pacote' || tipoFinal === 'agencia') {
-          router.push("/parceiros/dashboard-servico");
+          router.push("/parceiros/dashboard-agencia");
         } else {
           router.push("/parceiros/dashboard-hotel"); // Fallback de segurança
         }
