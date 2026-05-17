@@ -11,7 +11,7 @@ import {
   Award, Image as ImageIcon, Smartphone, Map, UserCheck,
   ChevronLeft, ChevronRight as ChevronRightIcon, ZoomIn,
   Landmark, Check, Users, Baby, DoorOpen, Phone, Mail, Globe,
-  Wind, Wifi, Bath, Maximize, Zap, CreditCard, Coffee, Edit3, Menu, ArrowRight
+  Wind, Wifi, Bath, Maximize, Zap, CreditCard, Coffee, Edit3, Menu, ArrowRight, AlertCircle
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -182,7 +182,7 @@ function PacoteDetalheContent() {
     if (id) fetchData();
   }, [id, router, searchParams]);
 
-  // 3. CONSULTAR API DA RAILWAY PARA PREÇO DINÂMICO DO HOTEL
+  // 3. CONSULTAR API DA RAILWAY PARA PREÇO DINÂMICO DO HOTEL (ATUALIZADA)
   useEffect(() => {
     if (!hotelSelecionado) return;
 
@@ -200,7 +200,8 @@ function PacoteDetalheContent() {
       const checkoutStr = `${checkout!.getFullYear()}-${String(checkout!.getMonth() + 1).padStart(2, '0')}-${String(checkout!.getDate()).padStart(2, '0')}`;
 
       try {
-        const response = await fetch(`https://sagaturismo-production.up.railway.app/api/v1/public/hoteis/${hotelSelecionado!.id}/calcular-preco?tipo_quarto=${tipoQuarto}&checkin=${checkinStr}&checkout=${checkoutStr}&quantidade=${quartos}`);
+        // ◄── CORREÇÃO: &adultos=${adultos} adicionado ao fetch dinâmico do pacote
+        const response = await fetch(`https://sagaturismo-production.up.railway.app/api/v1/public/hoteis/${hotelSelecionado!.id}/calcular-preco?tipo_quarto=${tipoQuarto}&checkin=${checkinStr}&checkout=${checkoutStr}&quantidade=${quartos}&adultos=${adultos}`);
         const data = await response.json();
 
         if (data.sucesso) {
@@ -218,7 +219,7 @@ function PacoteDetalheContent() {
     }
 
     atualizarPrecosDinamicos();
-  }, [checkin, checkout, quartos, tipoQuarto, hotelSelecionado]);
+  }, [checkin, checkout, quartos, adultos, tipoQuarto, hotelSelecionado]); // ◄── Dependência de 'adultos' inserida!
 
 
   // ── LÓGICA DO CALENDÁRIO ──
@@ -359,7 +360,7 @@ function PacoteDetalheContent() {
                <div className="bg-green-50 p-2 rounded-lg text-[#009640]"><Users size={18}/></div>
                <div className="text-left leading-none">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Hóspedes</p>
-                  <p className="text-xs font-bold text-slate-800 mt-1">{adultos} Adultos · {quartos} Quarto</p>
+                  <p className="text-xs font-bold text-slate-800 mt-1">{adultos} Adultos · {quartos} Quarto(s)</p>
                </div>
             </div>
             <button 
@@ -390,7 +391,7 @@ function PacoteDetalheContent() {
             </div>
           </section>
 
-          {/* ── 1. ACOMODAÇÃO E QUARTOS (DESIGN OTA) ── */}
+          {/* ── 1. ACOMODAÇÃO E QUARTOS ── */}
           <section className="bg-white rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-10 shadow-sm border border-slate-200 text-left overflow-hidden relative">
             <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none"><Bed size={150}/></div>
             <h3 className={`${jakarta.className} text-xl md:text-2xl font-black text-slate-900 mb-8 flex items-center gap-3 relative z-10`}>
@@ -558,7 +559,7 @@ function PacoteDetalheContent() {
              <h3 className={`${jakarta.className} text-xl md:text-2xl font-black text-slate-900 mb-6 md:mb-8`}>Políticas do Pacote Oficial</h3>
              <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-x-8 gap-y-5 text-sm">
                 <div className="font-black text-slate-800">Cancelamento</div>
-                <div className="text-slate-600 font-medium">Reembolso integral se cancelado até 48 horas antes da data de check-in programada.</div>
+                <div className="text-slate-600 font-medium">Reembolso integral se cancelado até 48 hours antes da data de check-in programada.</div>
                 <div className="md:col-span-2 h-px bg-slate-100 my-1 md:my-2"></div>
                 <div className="font-black text-slate-800">Inclusões</div>
                 <div className="text-slate-600 font-medium">O pacote inclui os custos do guia diário, do quarto de hotel selecionado e as entradas nos parques.</div>
@@ -587,7 +588,7 @@ function PacoteDetalheContent() {
               </div>
 
               {/* CALENDÁRIO INLINE */}
-              <div className="mb-6 md:mb-8">
+              <div className="mb-6">
                 <p className="text-[10px] font-black uppercase tracking-widest text-[#0085FF] mb-3 md:mb-4">Selecione as Datas</p>
                 <div className="bg-slate-50 border border-slate-200 rounded-2xl md:rounded-[2rem] p-4 md:p-5 shadow-inner">
                   <div className="flex items-center justify-between mb-3 md:mb-4">
@@ -628,6 +629,27 @@ function PacoteDetalheContent() {
                 </div>
               </div>
 
+              {/* ── NOVA SEÇÃO: CONFIGURAÇÃO DE HÓSPEDES E QUARTOS (RESOLVE O MISTÉRIO 2) ── */}
+              <div className="space-y-3 py-4 border-t border-b border-slate-100 mb-6">
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#0085FF] mb-1">Configuração do Grupo</p>
+                <div className="flex items-center justify-between">
+                   <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Hóspedes (Adultos)</span>
+                   <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg p-1">
+                      <button type="button" onClick={() => setAdultos(Math.max(1, adultos - 1))} className="w-6 h-6 flex justify-center items-center text-[#0085FF] font-black">-</button>
+                      <span className="font-bold text-xs w-4 text-center">{adultos}</span>
+                      <button type="button" onClick={() => setAdultos(adultos + 1)} className="w-6 h-6 flex justify-center items-center text-[#0085FF] font-black">+</button>
+                   </div>
+                </div>
+                <div className="flex items-center justify-between">
+                   <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Quartos Requeridos</span>
+                   <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg p-1">
+                      <button type="button" onClick={() => setQuartos(Math.max(1, quartos - 1))} className="w-6 h-6 flex justify-center items-center text-[#0085FF] font-black">-</button>
+                      <span className="font-bold text-xs w-4 text-center">{quartos}</span>
+                      <button type="button" onClick={() => setQuartos(quartos + 1)} className="w-6 h-6 flex justify-center items-center text-[#0085FF] font-black">+</button>
+                   </div>
+                </div>
+              </div>
+
               {/* AVISO DE LOTAÇÃO */}
               {checkin && checkout && !hotelDisponivel && !calculandoPreco && (
                 <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-2xl flex items-start gap-3 border border-red-100">
@@ -637,7 +659,7 @@ function PacoteDetalheContent() {
               )}
 
               {/* RESUMO DOS VALORES */}
-              <div className="space-y-2.5 md:space-y-3 mb-6 md:mb-8 text-xs md:text-sm font-semibold border-t border-slate-100 pt-5 md:pt-6">
+              <div className="space-y-2.5 md:space-y-3 mb-6 md:mb-8 text-xs md:text-sm font-semibold pt-2">
                 <div className="flex justify-between items-center text-slate-600">
                   <span className="flex items-center gap-2"><Bed size={14} className="text-[#0085FF] shrink-0" /> Hospedagem ({totalNoites} nts)</span>
                   <span className="text-slate-800 tabular-nums">{calculandoPreco ? '...' : formatarMoeda(totalHospedagem)}</span>
@@ -655,12 +677,12 @@ function PacoteDetalheContent() {
               <button
                 disabled={!hotelDisponivel || calculandoPreco}
                 onClick={handleReserva}
-                className={`${jakarta.className} hidden lg:flex items-center justify-center gap-3 w-full py-4 md:py-5 rounded-xl md:rounded-2xl font-black text-base md:text-lg transition-transform shadow-xl ${!hotelDisponivel ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none' : 'bg-[#0085FF] hover:bg-[#004a6b] text-white hover:-translate-y-1'}`}
+                className={`${jakarta.className} flex items-center justify-center gap-3 w-full py-4 md:py-5 rounded-xl md:rounded-2xl font-black text-base md:text-lg transition-transform shadow-xl ${!hotelDisponivel ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none' : 'bg-[#0085FF] hover:bg-[#004a6b] text-white hover:-translate-y-1'}`}
               >
                 {calculandoPreco ? 'A calcular...' : !hotelDisponivel ? 'Esgotado' : <><>Prosseguir para Checkout</> <ChevronRightIcon size={18} className="md:w-5 md:h-5" /></>}
               </button>
 
-              <p className="hidden lg:flex mt-4 text-center text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest items-center justify-center gap-1.5">
+              <p className="flex mt-4 text-center text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest items-center justify-center gap-1.5">
                 <ShieldCheck size={12} className="text-[#0085FF] md:w-3.5 md:h-3.5" /> Plataforma Oficial SagaTurismo
               </p>
             </div>
@@ -748,7 +770,7 @@ function PacoteDetalheContent() {
 }
 
 // ── EXPORT COM SUSPENSE ──
-export default function PacoteDetalhePage() {
+export default function PacoteDetailPage() {
   return (
     <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-white"><Loader2 className="animate-spin text-[#0085FF]" size={48} /></div>}>
       <PacoteDetalheContent />
