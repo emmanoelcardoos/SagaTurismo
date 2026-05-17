@@ -77,8 +77,8 @@ export default function DashboardGuiaPage() {
 
         // FALLBACK: Se repasse_guia for 0 ou null, assume o valor_liquido da reserva
         const faturamentoGuiaCalculado = listaReservas.reduce((acc, r) => {
-           const valorA Somar = Number(r.repasse_guia) || Number(r.valor_liquido) || 0;
-           return acc + valorA Somar;
+           const valorASomar = Number(r.repasse_guia) || Number(r.valor_liquido) || 0;
+           return acc + valorASomar;
         }, 0);
 
         setMetricas({
@@ -112,9 +112,9 @@ export default function DashboardGuiaPage() {
   // Lógica para higienizar o número e criar o link do WhatsApp
   const gerarLinkWhatsApp = (telefone?: string) => {
     if (!telefone) return '#';
-    let numeros = telefone.replace(/\D/g, ''); // Remove tudo que não for número
+    let numeros = telefone.replace(/\D/g, ''); 
     if (numeros.length < 10) return '#';
-    if (!numeros.startsWith('55')) numeros = `55${numeros}`; // Adiciona o código do Brasil se faltar
+    if (!numeros.startsWith('55')) numeros = `55${numeros}`; 
     return `https://wa.me/${numeros}`;
   };
 
@@ -216,7 +216,6 @@ export default function DashboardGuiaPage() {
                     const esPacote = r.tipo_item?.toLowerCase().trim() === 'pacote';
                     const linkZap = gerarLinkWhatsApp(r.telefone_cliente);
                     
-                    // Cálculo inteligente para não mostrar 0 se o backend falhar no repasse
                     const valorReceber = Number(r.repasse_guia) || Number(r.valor_liquido) || 0;
 
                     return (
