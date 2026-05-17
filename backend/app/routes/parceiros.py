@@ -207,7 +207,7 @@ async def listar_reservas_parceiro(item_id: str):
             
             # 1. Procura se já existe um recibo imutável gravado no Ledger
             lista_repasses = r.get("repasses_financeiros") or []
-            repasse_exato = next((rep for rep in lista_repasses if rep.get("parceiro_id") == item_id), None)
+            repasse_exato = next((rep for rep in lista_repasses if str(rep.get("parceiro_id")) == str(item_id)), None)
             
             if repasse_exato:
                 # Usa os dados fixos e seguros da base de dados!
@@ -278,7 +278,7 @@ async def obter_metricas_dashboard(item_id: str):
             
             # Procura recibo no Ledger (Novo Sistema Estável)
             lista_repasses = p.get("repasses_financeiros") or []
-            repasse_exato = next((rep for rep in lista_repasses if rep.get("parceiro_id") == item_id), None)
+            repasse_exato = next((rep for rep in lista_repasses if str(rep.get("parceiro_id")) == str(item_id)), None)
             
             if repasse_exato:
                 faturamento_liquido_total += float(repasse_exato["valor_liquido"])
