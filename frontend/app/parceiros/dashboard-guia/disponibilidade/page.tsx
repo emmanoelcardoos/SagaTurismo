@@ -46,7 +46,7 @@ export default function DisponibilidadeGuiaPage() {
   const [coordenadas, setCoordenadas] = useState('');
   const [valorTotal, setValorTotal] = useState('');
   const [vagasTotais, setVagasTotais] = useState('15');
-  const [dataPasseioStr, setDataPasseioStr] = useState(''); // Usando string para o input nativo HTML5
+  const [dataPasseioStr, setDataPasseioStr] = useState('');
 
   // ── ESTADOS DE ARQUIVOS ──
   const [arquivoCapa, setArquivoCapa] = useState<File | null>(null);
@@ -157,7 +157,7 @@ export default function DisponibilidadeGuiaPage() {
           descricao_completa: descricaoCompleta || null,
           imagem_principal: urlCapaPublica.publicUrl,
           imagens_galeria: urlsGaleria,
-          data_passeio: dataPasseioStr, // Vem direto do input type="date"
+          data_passeio: dataPasseioStr,
           horario_saida: horarioSaida || null,
           ponto_encontro: pontoEncontro || null,
           coordenadas_google_maps: coordenadas || null,
@@ -207,12 +207,17 @@ export default function DisponibilidadeGuiaPage() {
     }
   };
 
-  // ── LÓGICA DO MINI-CALENDÁRIO DA AGENDA ──
+  // ── LÓGICA DO MINI-CALENDÁRIO DA AGENDA (CORRIGIDA) ──
   const formatarDataIso = (data: Date) => `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`;
+  const diasDoMes = (ano: number, mes: number) => new Date(ano, mes + 1, 0).getDate();
+  const primeiroDiaDoMes = (ano: number, mes: number) => new Date(ano, mes, 1).getDay();
+
   const anoCorrente = mesAtual.getFullYear();
   const mesCorrente = mesAtual.getMonth();
   const diasMes = diasDoMes(anoCorrente, mesCorrente);
   const primeiroDia = primeiroDiaDoMes(anoCorrente, mesCorrente);
+  const hoje = new Date();
+  hoje.setHours(0,0,0,0);
 
   return (
     <div className={`${inter.className} min-h-screen bg-[#F8FAFC] text-slate-900 flex flex-col`}>
