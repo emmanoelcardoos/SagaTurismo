@@ -189,8 +189,10 @@ export default function CadastroPage() {
   const [errors, setErrors] = useState<FieldErrors>({});
   const [loading, setLoading] = useState(false);
   
-  const [rejeicaoIA, setRejeicaoIA] = useState<{ mensagem: string } | null>(null);
+  // Três estados distintos: Erro na API, Recusa da IA, ou Aprovado mas sem Token do Backend
   const [apiError, setApiError] = useState<string | null>(null);
+  const [rejeicaoIA, setRejeicaoIA] = useState<{ mensagem: string } | null>(null);
+  const [sucessoSemToken, setSucessoSemToken] = useState<{ mensagem: string } | null>(null);
 
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 110 }, (_, i) => currentYear - i);
@@ -233,6 +235,7 @@ export default function CadastroPage() {
     e.preventDefault();
     setApiError(null);
     setRejeicaoIA(null);
+    setSucessoSemToken(null);
 
     const errs = validate(nome, cpf, email, dataNascimento, arquivo, foto, dependentes, hasDependentes);
     if (Object.keys(errs).length) {
@@ -266,17 +269,29 @@ export default function CadastroPage() {
 
       const res = await cadastrarResidente(formData as any); 
       
-      // BLINDAGEM DE FLUXO E LEITURA DE JSON GENÉRICA
-      // Verificamos se a API indicou sucesso de alguma das formas comuns, mesmo que o token esteja numa sub-propriedade
-      const isAprovado = res?.status === 'sucesso' || res?.sucesso === true || !!res?.token;
+      const textoMensagem = (res?.mensagem || '').toLowerCase();
+      const isAprovadoBackend = 
+        res?.status === 'sucesso' || 
+        res?.sucesso === true || 
+        !!res?.token || 
+        textoMensagem.includes('validado') || 
+        textoMensagem.includes('aprovado') ||
+        textoMensagem.includes('redirecionando');
 
-      if (isAprovado) {
-        // Tenta capturar o token caso a API o tenha colocado dentro de "dados", "data" ou na raiz
-        const tokenFinal = res?.token || res?.dados?.token || res?.data?.token || '';
+      if (isAprovadoBackend) {
+        // Tenta encontrar o token de qualquer maneira
+        const tokenFinal = res?.token || res?.dados?.token || res?.data?.token || res?.codigo_pedido || '';
         
-        router.push(`/checkout-carteira?token=${tokenFinal}`);
+        if (tokenFinal) {
+           router.push(`/checkout-carteira?token=${tokenFinal}`);
+        } else {
+           // O BACKEND APROVOU, MAS NÃO ENVIOU O TOKEN. CAI AQUI PARA EVITAR A TELA VERMELHA ERRADA.
+           setSucessoSemToken({
+             mensagem: res?.mensagem || "O seu registo foi aprovado, mas o servidor não nos enviou o link para o pagamento."
+           });
+        }
       } else {
-        // Se realmente a IA chumbou os documentos
+        // A IA REALMENTE REJEITOU
         setRejeicaoIA({
           mensagem: res?.mensagem || 'A nossa Inteligência Artificial não conseguiu aprovar a sua documentação. Verifique se as fotos estão nítidas e se comprovam a residência.'
         });
@@ -293,7 +308,43 @@ export default function CadastroPage() {
     }
   };
 
-  // ── ECRÃ DE RECUSA DA IA ──
+  // ── ECRÃ VERDE: APROVADO, MAS SEM TOKEN DO BACKEND ──
+  if (sucessoSemToken) {
+    return (
+      <main className={`${inter.className} min-h-screen bg-slate-50 text-slate-900`}>
+        <Header />
+        <section className="flex min-h-screen items-center justify-center px-4 py-28 sm:px-5">
+          <div className="w-full max-w-2xl rounded-[2rem] border border-slate-200 bg-white p-6 text-center shadow-2xl sm:p-8 animate-in zoom-in-95 duration-300">
+            <div className={`mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-green-50`}>
+              <CheckCircle2 className="h-12 w-12 text-green-500" />
+            </div>
+            <span className={`mb-5 inline-flex rounded-full px-4 py-2 text-xs font-black uppercase tracking-[0.18em] bg-green-50 text-green-700`}>
+              Aprovado pela IA
+            </span>
+            <h1 className={`${jakarta.className} mb-4 text-3xl md:text-4xl font-bold text-green-700`}>
+              Cadastro Validado com Sucesso!
+            </h1>
+            <p className="mx-auto mb-4 max-w-md leading-relaxed text-slate-600 font-medium">
+               A tua documentação foi validada de forma irrepreensível, e o backend respondeu:
+            </p>
+            <div className="bg-slate-100 p-4 rounded-xl text-sm font-mono text-slate-700 mb-8 mx-auto max-w-md border border-slate-200">
+               "{sucessoSemToken.mensagem}"
+            </div>
+            <div className="p-4 bg-amber-50 text-amber-800 rounded-xl text-xs font-bold border border-amber-200 max-w-md mx-auto mb-6 text-left">
+               ⚠ <strong>Aviso Técnico:</strong> O backend não enviou a variável `token` no JSON de resposta. Sem o token, não é possível saltar para a página de checkout. Pede ao teu desenvolvedor para incluir o `token` ou `codigo_pedido` na resposta da API `/cadastrar`.
+            </div>
+            <div className="flex flex-col gap-3">
+              <button onClick={() => setSucessoSemToken(null)} className="rounded-full bg-slate-900 px-8 py-4 font-bold text-white transition hover:bg-black active:scale-95 shadow-lg">
+                Voltar
+              </button>
+            </div>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  // ── ECRÃ VERMELHO: RECUSA REAL DA IA ──
   if (rejeicaoIA) {
     return (
       <main className={`${inter.className} min-h-screen bg-slate-50 text-slate-900`}>
