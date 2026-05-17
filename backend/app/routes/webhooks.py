@@ -4,6 +4,10 @@ import uuid
 from datetime import datetime
 from supabase import create_client, Client
 
+# Importação dos serviços customizados (Necessários para gerar e enviar após o pagamento)
+from app.services.pdf_service import gerar_pdf_carteira
+from app.services.email_service import enviar_carteiras_por_email
+
 router = APIRouter()
 
 # 1. Configurações de Ambiente
@@ -11,14 +15,10 @@ SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-def gerar_token_carteirinha() -> str:
-    """Gera um token alfanumérico único e elegante em maiúsculas"""
-    return uuid.uuid4().hex.upper()
-
 @router.post("/api/v1/webhooks/pagbank")
 async def webhook_pagbank(request: Request):
     try:
-        # 1. Receber e Logar o Payload (Essencial para depurar no Railway)
+        # 1. Receber e Logar o Payload
         payload = await request.json()
         print(f"--- [WEBHOOK RECEBIDO] ---")
         
@@ -64,38 +64,68 @@ async def webhook_pagbank(request: Request):
         status_sucesso = ["PAID", "AUTHORIZED", "COMPLETED", "APPROVED"]
         
         if status_normalizado in status_sucesso:
-            # A. CORREÇÃO: Removido o 'pago_em' que causava erro PGRST204 por não existir na tabela
+            # A. Atualiza o status geral do pedido para "pago"
             supabase.table("pedidos").update({
                 "status_pagamento": "pago"
             }).eq("codigo_pedido", reference_id).execute()
             
             print(f"[WEBHOOK] SUCESSO: O pagamento de {reference_id} foi confirmado.")
 
-            # B. Ações por Tipo de Item
+            # B. Lógica Híbrida: Disparos de negócio baseados no tipo de item
             tipo = pedido.get("tipo_item")
             
             if tipo == "carteira":
-                qtd = pedido.get("quantidade", 1)
-                for _ in range(qtd):
-                    token = gerar_token_carteirinha()
-                    supabase.table("cidadaos").insert({
-                        "token": token,
-                        "nome_completo": pedido.get("nome_cliente"),
-                        "cpf": pedido.get("cpf_cliente"),
-                        "data_nascimento": pedido.get("data_nascimento"),
-                        "telefone": pedido.get("telefone_cliente"),
-                        "status": "aprovado",
-                        "pagamento_status": "pago",
-                        "pedido_id": pedido.get("id")
-                    }).execute()
-                print(f"[WEBHOOK] {qtd} carteira(s) residente(s) gerada(s).")
+                email_cliente = pedido.get("email_cliente")
+                
+                # ◄── BUSCAR A FAMÍLIA PENDENTE: Procura quem está aguardando pagamento
+                res_residentes = supabase.table("rd_residentes").select("*").eq("email", email_cliente).eq("status", "aguardando_pagamento").execute()
+                residentes_pendentes = res_residentes.data
+
+                # Fallback: Se por acaso o email da compra for diferente do registo, tenta pelo CPF
+                if not residentes_pendentes:
+                    cpf_cliente = pedido.get("cpf_cliente")
+                    res_residentes = supabase.table("rd_residentes").select("*").eq("cpf", cpf_cliente).eq("status", "aguardando_pagamento").execute()
+                    residentes_pendentes = res_residentes.data
+
+                if residentes_pendentes:
+                    caminhos_pdfs = []
+                    
+                    for res in residentes_pendentes:
+                        # 1. Ativar o residente na base de dados (Luz Verde da Prefeitura)
+                        supabase.table("rd_residentes").update({"status": "ativo"}).eq("id", res["id"]).execute()
+                        
+                        # 2. Gerar o PDF individual com a foto e os dados
+                        try:
+                            dados_pdf = {
+                                "nome": res["nome_completo"],
+                                "cpf": res["cpf"],
+                                "data_nascimento": res["data_nascimento"],
+                                "foto_url": res["foto_url"]
+                            }
+                            caminho_pdf = gerar_pdf_carteira(dados_pdf, res["qrcode_token"])
+                            if caminho_pdf:
+                                caminhos_pdfs.append(caminho_pdf)
+                        except Exception as e_pdf:
+                            print(f"[WEBHOOK] Erro ao gerar PDF da carteira para {res['nome_completo']}: {e_pdf}")
+                    
+                    # 3. Disparar o Email 
+                    # ◄── CORREÇÃO DE SINTAXE: Enviando EXATAMENTE 3 argumentos para a função de e-mail (Email, Nome, PDFs)
+                    try:
+                        nome_titular = pedido.get("nome_cliente")
+                        enviar_carteiras_por_email(email_cliente, nome_titular, caminhos_pdfs)
+                        print(f"[WEBHOOK] MAGIA: E-mail com {len(caminhos_pdfs)} carteira(s) enviado com sucesso para {email_cliente}")
+                    except Exception as e_email:
+                        print(f"[WEBHOOK] Erro Crítico ao enviar o e-mail das carteiras: {e_email}")
+                else:
+                    print(f"[WEBHOOK] Carteira Paga, mas nenhum registo 'aguardando_pagamento' encontrado para {email_cliente}")
 
             elif tipo == "hotel":
                 print(f"[WEBHOOK] Reserva de Hotel confirmada para {pedido.get('nome_cliente')}.")
-                # Espaço reservado para envio de e-mail com voucher PDF
+                # Opcional no futuro: enviar_voucher_hotel_por_email(...)
 
             elif tipo == "pacote":
                 print(f"[WEBHOOK] Pacote turístico confirmado para {pedido.get('nome_cliente')}.")
+                # Opcional no futuro: enviar_voucher_pacote_por_email(...)
 
         elif status_normalizado in ["DECLINED", "CANCELED", "REFUNDED"]:
             supabase.table("pedidos").update({"status_pagamento": "recusado"}).eq("codigo_pedido", reference_id).execute()
@@ -105,5 +135,5 @@ async def webhook_pagbank(request: Request):
 
     except Exception as e:
         print(f"[WEBHOOK ERRO] Falha crítica: {str(e)}")
-        # Retornamos 200 para o PagBank não ficar em loop infinito de tentativas se houver bug no código
+        # Retornamos 200 para o PagBank não ficar em loop infinito de tentativas se houver bug de código nosso
         return {"status": "ok", "error": "Internal process handled"}

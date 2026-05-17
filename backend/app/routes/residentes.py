@@ -6,10 +6,10 @@ from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from supabase import create_client, Client
 from dotenv import load_dotenv
 
-# Importação dos serviços customizados (com o 's' adicionado no email)
+# Importação dos serviços customizados
 from app.services.ai_service import validar_endereco_com_ia
-from app.services.pdf_service import gerar_pdf_carteira
-from app.services.email_service import enviar_carteiras_por_email
+
+# ◄── REMOVIDAS as importações de PDF e E-mail daqui. O Webhook é que vai assumir esse trabalho!
 
 load_dotenv()
 
@@ -36,7 +36,6 @@ async def cadastrar_residente(
         
         # Extrair a lista de nomes para mandar para a IA
         lista_nomes = [m["nome"] for m in membros]
-        nome_titular = membros[0]["nome"]
         email_titular = membros[0]["email"]
 
         # 2. Leitura e Upload do Comprovante (Único para todos)
@@ -58,7 +57,6 @@ async def cadastrar_residente(
 
         # 4. Processar e Salvar cada pessoa no Supabase
         titular_id = None
-        caminhos_pdfs = []
 
         for index, membro in enumerate(membros):
             # Ler e fazer Upload da foto desta pessoa específica
@@ -78,7 +76,7 @@ async def cadastrar_residente(
                 "data_nascimento": membro["data_nascimento"],
                 "url_comprovante": url_comprovante,
                 "foto_url": url_foto,
-                "status": "ativo",
+                "status": "aguardando_pagamento", # ◄── SEGURANÇA: Alterado de 'ativo' para aguardar o Webhook
                 "qrcode_token": qrcode_token
             }
 
@@ -93,29 +91,14 @@ async def cadastrar_residente(
             if index == 0:
                 titular_id = resposta_bd.data[0]['id']
 
-            # 5. Gerar PDF individual
-            try:
-                dados_pdf = {
-                    "nome": membro["nome"],
-                    "cpf": membro["cpf"],
-                    "data_nascimento": membro["data_nascimento"],
-                    "foto_url": url_foto
-                }
-                caminho_pdf = gerar_pdf_carteira(dados_pdf, qrcode_token)
-                caminhos_pdfs.append(caminho_pdf)
-            except Exception as e_pdf:
-                print(f"[AVISO] Erro ao gerar PDF para {membro['nome']}: {e_pdf}")
-
-        # 6. Enviar UM único email para o titular com TODOS os PDFs anexados
-        try:
-            enviar_carteiras_por_email(email_titular, nome_titular, lista_nomes, caminhos_pdfs)
-        except Exception as e_email:
-            print(f"[AVISO] Erro ao enviar e-mail: {e_email}")
+        # ◄── AS ETAPAS 5 (Gerar PDF) e 6 (Enviar E-mail) FORAM APAGADAS DAQUI
 
         return {
             "status": "sucesso", 
-            "mensagem": f"Cadastro validado! {len(membros)} carteira(s) gerada(s) e enviada(s) para o e-mail.", 
-            "valido_ia": True
+            "mensagem": "Cadastro validado pela IA! Redirecionando para o pagamento da emissão...", 
+            "valido_ia": True,
+            "titular_id": titular_id, # ◄── O Frontend vai precisar disto para associar o pagamento à família
+            "quantidade": len(membros)
         }
 
     except Exception as e:
