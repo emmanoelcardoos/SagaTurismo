@@ -95,7 +95,6 @@ def _label_valor(c, x, y, label, valor, tam_label=6, tam_valor=10):
     c.drawString(x, y - (tam_valor * 0.45 * mm) - 1.5 * mm, str(valor))
 
 def gerar_qr_code_em_memoria(conteudo: str) -> BytesIO:
-    """Gera um QR Code em memória e devolve o buffer para o ReportLab"""
     qr = qrcode.QRCode(box_size=10, border=1, error_correction=qrcode.constants.ERROR_CORRECT_M)
     qr.add_data(conteudo)
     qr.make(fit=True)
@@ -113,21 +112,30 @@ def formatar_moeda(valor):
     except:
         return "R$ 0,00"
 
+def _obter_caminho_logo():
+    """Procura a logo em diversos caminhos possíveis no Railway/Local"""
+    possiveis_caminhos = [
+        os.path.join(os.getcwd(), "frontend", "public", "logop.png"),
+        os.path.join(os.getcwd(), "public", "logop.png"),
+        os.path.join(os.getcwd(), "app", "public", "logop.png")
+    ]
+    for p in possiveis_caminhos:
+        if os.path.exists(p):
+            return p
+    return None
+
 def _desenhar_cabecalho_premium(c, largura, altura, tipo_item, codigo_pedido):
-    """Desenha um banner superior moderno e limpo digno de uma grande OTA"""
+    """Desenha um banner superior moderno com a Logo Oficial"""
     c.setFillColor(COR_AZUL_PREFEITURA)
     c.rect(0, altura - 32 * mm, largura, 32 * mm, fill=1, stroke=0)
     
     c.setFillColor(COR_AMARELO_DESTAQUE)
     c.rect(0, altura - 33 * mm, largura, 1 * mm, fill=1, stroke=0)
     
-    path_logo = os.path.join(os.getcwd(), "frontend", "public", "logop.png")
-    if os.path.exists(path_logo):
-        c.drawImage(path_logo, 20 * mm, altura - 24 * mm, width=40 * mm, height=16 * mm, mask='auto', preserveAspectRatio=True)
-    else:
-        c.setFillColor(COR_BRANCO)
-        c.setFont("Helvetica-Bold", 20)
-        c.drawString(20 * mm, altura - 22 * mm, "SagaTurismo")
+    path_logo = _obter_caminho_logo()
+    if path_logo:
+        # Logo sem o texto "SagaTurismo" associado para ficar limpo
+        c.drawImage(path_logo, 20 * mm, altura - 26 * mm, width=45 * mm, height=20 * mm, mask='auto', preserveAspectRatio=True)
         
     c.setFillColor(COR_BRANCO)
     c.setFont("Helvetica-Bold", 11)
@@ -142,7 +150,7 @@ def _desenhar_cabecalho_premium(c, largura, altura, tipo_item, codigo_pedido):
     c.drawRightString(largura - 20 * mm, altura - 27 * mm, "Secretaria Municipal de Turismo  ·  São Geraldo do Araguaia - PA")
 
 def _desenhar_card_detalhes(c, x, y, w, h, titulo, dados, cor_accent=COR_AZUL_PREFEITURA):
-    """Desenha blocos de informação estruturados com design clean"""
+    """Desenha blocos de informação estruturados"""
     c.setFillColor(COR_FUNDO_MODERNO)
     c.setStrokeColor(COR_LINHA_DIVISORIA)
     c.setLineWidth(0.8)
@@ -168,7 +176,13 @@ def _desenhar_card_detalhes(c, x, y, w, h, titulo, dados, cor_accent=COR_AZUL_PR
         
         c.setFillColor(COR_TEXTO_PRINCIPAL)
         c.setFont("Helvetica", 9)
-        c.drawString(x + 40 * mm, current_y, str(valor or "—"))
+        
+        # Trunca o texto se for demasiado grande para a box
+        texto_limpo = str(valor or "—")
+        if c.stringWidth(texto_limpo, "Helvetica", 9) > (w - 45 * mm):
+            texto_limpo = texto_limpo[:45] + "..."
+            
+        c.drawString(x + 40 * mm, current_y, texto_limpo)
         current_y -= 5.5 * mm
 
 # ─── 1. GERAÇÃO DA CARTEIRA DIGITAL DE RESIDENTE ────────────────────────────
@@ -193,8 +207,8 @@ def gerar_pdf_carteira(residente_data: dict, token: str) -> str:
     _gradiente_header(c, largura, altura)
     _linha_cor(c, 0, altura - 24 * mm, largura, altura - 24 * mm, espessura=1.5, cor=COR_AMARELO)
 
-    path_logo = os.path.join(os.getcwd(), "frontend", "public", "logop.png")
-    if os.path.exists(path_logo):
+    path_logo = _obter_caminho_logo()
+    if path_logo:
         c.drawImage(path_logo, 9 * mm, altura - 20 * mm, width=14 * mm, height=14 * mm, mask='auto', preserveAspectRatio=True)
     else:
         c.setFillColor(COR_BRANCO)
@@ -271,7 +285,6 @@ def gerar_pdf_carteira(residente_data: dict, token: str) -> str:
 
     _badge_desconto(c, largura - 14 * mm, 50 * mm, raio=9 * mm)
 
-    # Geração Dinâmica do QR Code para Validação
     qr_io = gerar_qr_code_em_memoria(f"https://sagat-sga.vercel.app/fiscal/validar/{token}")
     qr_size = 25 * mm
     qr_x    = largura - qr_size - 6 * mm
@@ -298,10 +311,10 @@ def gerar_pdf_carteira(residente_data: dict, token: str) -> str:
     c.save()
     return caminho_pdf
 
-# ─── 2. GERAÇÃO DO VOUCHER DE HOTEL REMASTERIZADO ──────────────────────────
+# ─── 2. GERAÇÃO DO VOUCHER DE HOTEL ────────────────────────────────────────
 
 def gerar_pdf_voucher(pedido_db: dict, dados_extra: dict = None) -> str:
-    """Gera um Voucher PDF de padrão internacional para reservas hoteleiras"""
+    """Gera um Voucher PDF de padrão internacional para reservas hoteleiras baseado na BD real"""
     os.makedirs("tmp_pdfs", exist_ok=True)
     codigo_pedido = pedido_db.get("codigo_pedido", "SAGA-000")
     
@@ -312,50 +325,64 @@ def gerar_pdf_voucher(pedido_db: dict, dados_extra: dict = None) -> str:
     MARGIN_X = 20 * mm
     LARGURA_UTIL = largura - (2 * MARGIN_X)
     
-    # 1. Desenhar o topo institucional e comercial
+    # 1. Desenhar o Cabeçalho Principal (Logo)
     _desenhar_cabecalho_premium(c, largura, altura, "hotel", codigo_pedido)
     
-    # 2. Badge de Status de Liquidação (Verde Oficial)
+    # 2. Status Confirmação
     y_cursor = altura - 42 * mm
     c.setFillColor(COR_VERDE_SUCESSO)
     c.setFont("Helvetica-Bold", 12)
     c.drawString(MARGIN_X, y_cursor, "✓ RESERVA TOTALMENTE PAGA E CONFIRMADA VIA SAGATURISMO")
     
-    # 3. Informações da Propriedade (Dados dinâmicos da Supabase via dados_extra)
+    # 3. Informações Dinâmicas da Propriedade (Tabela 'hoteis')
     y_cursor -= 6 * mm
-    hotel_nome = dados_extra.get("nome", "Hotel Parceiro Autorizado") if dados_extra else "Hotel Parceiro Autorizado"
-    hotel_endereco = dados_extra.get("endereco", "São Geraldo do Araguaia - PA") if dados_extra else "São Geraldo do Araguaia - PA"
-    hotel_telefone = dados_extra.get("telefone", "(94) 99999-9999") if dados_extra else "Não Informado"
-    hotel_email = dados_extra.get("email", "contato@hotel.com.br") if dados_extra else "Não Informado"
+    
+    # Extração de Contactos Jsonb
+    contatos_json = dados_extra.get("contatos", {}) if dados_extra else {}
+    if not isinstance(contatos_json, dict): contatos_json = {}
+    
+    hotel_nome = dados_extra.get("nome", "Hotel Parceiro Oficial") if dados_extra else "Hotel Parceiro Oficial"
+    hotel_endereco = dados_extra.get("endereco") or "Endereço indisponível"
+    hotel_whatsapp = dados_extra.get("whatsapp") or contatos_json.get("telefone", "Sem telefone registado")
+    hotel_email = contatos_json.get("email", "Sem e-mail registado")
     
     bloco_hotel = [
         ("Estabelecimento", hotel_nome),
         ("Localização", hotel_endereco),
-        ("Contacto Telefónico", hotel_telefone),
+        ("Contacto Principal", hotel_whatsapp),
         ("E-mail do Hotel", hotel_email)
     ]
     _desenhar_card_detalhes(c, MARGIN_X, y_cursor, LARGURA_UTIL, 36 * mm, "Acomodação & Vínculo Local", bloco_hotel)
     
-    # 4. Detalhes Estritos da Estadia (Período, Noites e Quartos)
+    # 4. Detalhes Estritos da Estadia (Tabelas 'pedidos' e 'hoteis')
     y_cursor -= 42 * mm
-    checkin_hora = dados_extra.get("horario_checkin", "14:00h") if dados_extra else "14:00h"
-    checkout_hora = dados_extra.get("horario_checkout", "12:00h") if dados_extra else "12:00h"
+    
+    # Resolver o nome real do quarto
+    tipo_q = str(pedido_db.get("tipo_quarto", "standard")).lower()
+    nome_quarto_real = dados_extra.get(f"quarto_{tipo_q}_nome", f"Quarto {tipo_q.capitalize()}") if dados_extra else "Quarto Standard"
+    
+    # Horários (Pode ser que existam nas políticas JSON ou hardcoded default)
+    politicas_json = dados_extra.get("politicas", {}) if dados_extra else {}
+    if not isinstance(politicas_json, dict): politicas_json = {}
+    
+    checkin_hora = politicas_json.get("horario_checkin", "14:00h")
+    checkout_hora = politicas_json.get("horario_checkout", "12:00h")
     
     bloco_estadia = [
-        ("Data de Check-in", f"{pedido_db.get('data_checkin')} (A partir das {checkin_hora})"),
-        ("Data de Check-out", f"{pedido_db.get('data_checkout')} (Até às {checkout_hora})"),
-        ("Tipo de Acomodação", pedido_db.get("quarto_tipo", "Quarto Standard").upper()),
-        ("Quantidade Reservada", f"{pedido_db.get('quantidade', 1)} Unidade(s)")
+        ("Data de Check-in", f"{pedido_db.get('data_checkin', '---')} (A partir das {checkin_hora})"),
+        ("Data de Check-out", f"{pedido_db.get('data_checkout', '---')} (Até às {checkout_hora})"),
+        ("Tipo de Acomodação", nome_quarto_real.upper()),
+        ("Quantidade Reservada", f"{pedido_db.get('quantidade_quartos', pedido_db.get('quantidade', 1))} Unidade(s)")
     ]
     _desenhar_card_detalhes(c, MARGIN_X, y_cursor, LARGURA_UTIL, 36 * mm, "Especificações da Estadia", bloco_estadia, COR_AMARELO_DESTAQUE)
     
-    # 5. Lista Nominal de Hóspedes (Titular + Dependentes integrados da Supabase)
+    # 5. Lista Nominal de Hóspedes e Contactos (Tabela 'pedidos')
     y_cursor -= 42 * mm
     c.setFillColor(COR_AZUL_PREFEITURA)
     c.setFont("Helvetica-Bold", 10)
-    c.drawString(MARGIN_X, y_cursor, "HÓSPEDES VINCULADOS A ESTA EMISSÃO")
+    c.drawString(MARGIN_X, y_cursor, "DETALHES DO HÓSPEDE PRINCIPAL / TITULAR")
     
-    # Tabela Nominal com Cabeçalho Elegante
+    # Tabela Nominal
     y_cursor -= 5 * mm
     c.setFillColor(COR_AZUL_PREFEITURA)
     c.rect(MARGIN_X, y_cursor - 6 * mm, LARGURA_UTIL, 6 * mm, fill=1, stroke=0)
@@ -363,66 +390,71 @@ def gerar_pdf_voucher(pedido_db: dict, dados_extra: dict = None) -> str:
     c.setFillColor(COR_BRANCO)
     c.setFont("Helvetica-Bold", 8)
     c.drawString(MARGIN_X + 4 * mm, y_cursor - 4.5 * mm, "NOME COMPLETO")
-    c.drawString(MARGIN_X + 80 * mm, y_cursor - 4.5 * mm, "DOCUMENTO (CPF)")
-    c.drawString(MARGIN_X + 120 * mm, y_cursor - 4.5 * mm, "TIPO")
+    c.drawString(MARGIN_X + 55 * mm, y_cursor - 4.5 * mm, "DOCUMENTO (CPF)")
+    c.drawString(MARGIN_X + 105 * mm, y_cursor - 4.5 * mm, "E-MAIL")
+    c.drawString(MARGIN_X + 160 * mm, y_cursor - 4.5 * mm, "TELEFONE")
     
     y_cursor -= 6 * mm
     
-    # Extração de comitiva dinâmica vinda da transação da Supabase
-    hospedes = []
-    hospedes.append({
-        "nome": pedido_db.get("nome_cliente", "Não Informado"),
-        "cpf": pedido_db.get("cpf_cliente", "Não Informado"),
-        "tipo": "Titular"
-    })
+    # Hóspede Principal
+    c.setFillColor(COR_FUNDO_MODERNO)
+    c.rect(MARGIN_X, y_cursor - 6 * mm, LARGURA_UTIL, 6 * mm, fill=1, stroke=0)
     
-    if dados_extra and dados_extra.get("dependentes"):
-        for dep in dados_extra.get("dependentes"):
-            hospedes.append({
-                "nome": dep.get("nome", "Dependente"),
-                "cpf": dep.get("cpf", "---"),
-                "tipo": "Acompanhante"
-            })
-            
-    # Renderização em Linhas (Zebra Striping suave para legibilidade)
-    cont_linha = 0
-    for h in hospedes:
-        if cont_linha % 2 == 0:
-            c.setFillColor(COR_FUNDO_MODERNO)
-            c.rect(MARGIN_X, y_cursor - 6 * mm, LARGURA_UTIL, 6 * mm, fill=1, stroke=0)
-            
-        c.setFillColor(COR_TEXTO_PRINCIPAL)
-        c.setFont("Helvetica", 8.5)
-        c.drawString(MARGIN_X + 4 * mm, y_cursor - 4.2 * mm, str(h["nome"]).upper())
-        c.drawString(MARGIN_X + 80 * mm, y_cursor - 4.2 * mm, str(h["cpf"]))
-        
-        c.setFillColor(COR_AZUL_PREFEITURA if h["tipo"] == "Titular" else COR_TEXTO_MUTED)
-        c.setFont("Helvetica-Bold", 8)
-        c.drawString(MARGIN_X + 120 * mm, y_cursor - 4.2 * mm, str(h["tipo"]).upper())
-        
+    c.setFillColor(COR_TEXTO_PRINCIPAL)
+    c.setFont("Helvetica", 8.5)
+    
+    nome_cli = str(pedido_db.get("nome_cliente", "Não Informado")).upper()
+    if c.stringWidth(nome_cli, "Helvetica", 8.5) > 48 * mm: nome_cli = nome_cli[:20] + "..."
+    
+    email_cli = str(pedido_db.get("email_cliente", "---"))
+    if c.stringWidth(email_cli, "Helvetica", 8.5) > 50 * mm: email_cli = email_cli[:25] + "..."
+    
+    c.drawString(MARGIN_X + 4 * mm, y_cursor - 4.2 * mm, nome_cli)
+    c.drawString(MARGIN_X + 55 * mm, y_cursor - 4.2 * mm, str(pedido_db.get("cpf_cliente", "---")))
+    c.drawString(MARGIN_X + 105 * mm, y_cursor - 4.2 * mm, email_cli)
+    c.drawString(MARGIN_X + 160 * mm, y_cursor - 4.2 * mm, str(pedido_db.get("telefone_cliente", "---")))
+    
+    y_cursor -= 6 * mm
+    
+    # Informação Acompanhantes
+    qtd_pessoas = pedido_db.get("quantidade_pessoas", 1) or 1
+    if qtd_pessoas > 1:
+        c.setFillColor(COR_BRANCO)
+        c.rect(MARGIN_X, y_cursor - 6 * mm, LARGURA_UTIL, 6 * mm, fill=1, stroke=0)
+        c.setFillColor(COR_TEXTO_MUTED)
+        c.setFont("Helvetica-Oblique", 8)
+        c.drawString(MARGIN_X + 4 * mm, y_cursor - 4.2 * mm, f"+ {qtd_pessoas - 1} Acompanhante(s) incluído(s) na reserva.")
         y_cursor -= 6 * mm
-        cont_linha += 1
 
-    # 6. Políticas da Propriedade & Termos Legais (Regras da Supabase)
+    # 6. Políticas da Propriedade (Lidas da JSONB)
     y_cursor -= 8 * mm
     c.setFillColor(COR_AZUL_PREFEITURA)
     c.setFont("Helvetica-Bold", 10)
     c.drawString(MARGIN_X, y_cursor, "POLÍTICAS DA PROPRIEDADE & REGRAS DE CANCELAMENTO")
     
     y_cursor -= 4 * mm
-    politicas_texto = dados_extra.get("politicas", [
-        "· Cancelamento gratuito disponível até 24h antes do check-in contratado.",
-        "· Obrigatória a apresentação de documento de identificação original com foto de todos os integrantes no ato do check-in.",
-        "· Animais de estimação: Consultar diretamente o estabelecimento sobre taxas e restrições adicionais.",
-        "· Consumos extras no frigobar ou serviços extras do hotel não estão inclusos nesta tarifa governamental e devem ser liquidados no local."
-    ]) if dados_extra else [
-        "· Cancelamento gratuito disponível até 24h antes do check-in contratado.",
-        "· Obrigatória a apresentação de documento de identificação original com foto de todos os integrantes no ato do check-in."
-    ]
+    
+    # Parser seguro para a coluna JSONB politicas
+    politicas_texto = []
+    if isinstance(politicas_json, dict) and politicas_json:
+        for chave, val in politicas_json.items():
+            # Ignora horários porque já foram postos lá em cima
+            if "horario" not in chave.lower():
+                texto_linha = f"· {str(chave).capitalize().replace('_', ' ')}: {val}"
+                politicas_texto.append(texto_linha[:120]) # Limita tamanho da linha
+    elif isinstance(politicas_json, list):
+        politicas_texto = [f"· {str(p)[:120]}" for p in politicas_json]
+        
+    if not politicas_texto:
+        politicas_texto = [
+            "· Cancelamento sob consulta direta com o estabelecimento.",
+            "· Apresentação obrigatória de documento original com foto no check-in.",
+            "· Taxas de frigobar, consumo extra ou room service não inclusas no valor pago."
+        ]
     
     c.setFillColor(COR_TEXTO_MUTED)
     c.setFont("Helvetica", 8.5)
-    for linha in politicas_texto:
+    for linha in politicas_texto[:5]: # Mostra máx 5 regras para não quebrar a página
         c.drawString(MARGIN_X + 2 * mm, y_cursor, linha)
         y_cursor -= 4.5 * mm
 
@@ -440,7 +472,7 @@ def gerar_pdf_voucher(pedido_db: dict, dados_extra: dict = None) -> str:
     c.setFont("Helvetica-Bold", 16)
     c.drawString(MARGIN_X, y_cursor - 3 * mm, formatar_moeda(pedido_db.get('valor_total', 0.0)))
     
-    # Mensagem de Isenção Governamental Autenticada
+    # Isenção
     c.setFillColor(COR_FUNDO_MODERNO)
     c.setStrokeColor(COR_VERDE_SUCESSO)
     c.setLineWidth(0.5)
@@ -450,7 +482,7 @@ def gerar_pdf_voucher(pedido_db: dict, dados_extra: dict = None) -> str:
     c.setFont("Helvetica-Bold", 7.5)
     c.drawCentredString(largura - MARGIN_X - 42.5 * mm, y_cursor - 1.5 * mm, "ISENTO DE TAXAS TURÍSTICAS MUNICIPAIS (LEI DE INCENTIVO)")
 
-    # 8. Rodapé Fixo Homologado
+    # 8. Rodapé Fixo
     c.setStrokeColor(COR_LINHA_DIVISORIA)
     c.setLineWidth(0.6)
     c.line(MARGIN_X, 16 * mm, largura - MARGIN_X, 16 * mm)
