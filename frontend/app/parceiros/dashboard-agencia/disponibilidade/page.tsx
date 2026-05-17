@@ -8,7 +8,7 @@ import {
   Loader2, Home, LogOut, Bed, Compass, Save, Sparkles, 
   AlertCircle, CheckCircle2, Type, FileText, DollarSign, 
   Upload, ChevronLeft, ChevronRight, Check, ShieldCheck, Tag,
-  Calendar as CalendarIcon
+  Calendar as CalendarIcon, MapPin
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -149,7 +149,7 @@ export default function CriarPacotePage() {
         const guiasOcupadosIds = (conflitosGuias || []).map(c => c.guia_id).filter(Boolean);
 
         const { data: todosGuias } = await supabase
-          .from('guia_id' === 'id' ? 'guias' : 'guias') // Sanidade de string estrita
+          .from('guias')
           .select('id, nome, especialidade, imagem_url, preco_diaria');
 
         if (todosGuias) {
