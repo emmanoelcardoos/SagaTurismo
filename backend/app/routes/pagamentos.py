@@ -34,7 +34,7 @@ class PedidoPagamento(BaseModel):
     adultos: Optional[int] = 2 
 
     # IDs dinâmicos
-    pacote_id: Optional[str] = None # Serve de mapeamento para id do passeio avulso também
+    pacote_id: Optional[str] = None 
     hotel_id: Optional[str] = None
     tipo_quarto: Optional[str] = "standard"
     guia_id: Optional[str] = None
@@ -116,6 +116,20 @@ def calcular_preco_hotel_dinamico(hotel_id: str, tipo_quarto: str, checkin_str: 
 @router.post("/api/v1/pagamentos/processar")
 async def processar_pagamento(pedido: PedidoPagamento):
     try:
+        # ── MOTOR INTERNO DE SANITIZAÇÃO DE UUIDs ──
+        def limpar_uuid(valor: Optional[str]) -> Optional[str]:
+            if not valor:
+                return None
+            v_str = str(valor).strip()
+            if v_str.lower() in ["none", "null", "", "undefined", "false"]:
+                return None
+            return v_str
+
+        # Sanitização proativa de todos os identificadores opcionais recebidos
+        hotel_id_sanitizado = limpar_uuid(pedido.hotel_id)
+        guia_id_sanitizado = limpar_uuid(pedido.guia_id)
+        pacote_id_sanitizado = limpar_uuid(pedido.pacote_id)
+
         valor_total = 0.0
         recebedores_split = []
         splits_array = []
@@ -136,7 +150,6 @@ async def processar_pagamento(pedido: PedidoPagamento):
 
         fator_liquido = 1.0 - (taxa_prefeitura_pct / 100.0)
 
-        # Variáveis internas para armazenamento do Ledger
         v_hospedagem_total = 0.0
         v_guia_total = 0.0
         lista_atracoes_calculadas = []
@@ -150,15 +163,18 @@ async def processar_pagamento(pedido: PedidoPagamento):
             nome_item_checkout = f"Taxa de Emissão - Carteira Digital ({pedido.quantidade}x)"
 
         elif pedido.tipo_item == "hotel":
+            if not hotel_id_sanitizado:
+                raise HTTPException(status_code=400, detail="Identificador do hotel ausente ou inválido.")
+                
             valor_total = calcular_preco_hotel_dinamico(
-                pedido.hotel_id, pedido.tipo_quarto, pedido.data_checkin, pedido.data_checkout,
+                hotel_id_sanitizado, pedido.tipo_quarto, pedido.data_checkin, pedido.data_checkout,
                 quantidade_quartos=pedido.quantidade, quantidade_pessoas=pedido.adultos
             )
             v_hospedagem_total = valor_total
             
-            res_hotel_info = supabase.table("hoteis").select("nome, pagbank_recebedor_id").eq("id", pedido.hotel_id).single().execute()
+            res_hotel_info = supabase.table("hoteis").select("nome, pagbank_recebedor_id").eq("id", hotel_id_sanitizado).single().execute()
             nome_item_checkout = f"Hospedagem - {res_hotel_info.data['nome']}"
-            item_id_db = pedido.hotel_id
+            item_id_db = hotel_id_sanitizado
             
             rec_id = res_hotel_info.data.get("pagbank_recebedor_id")
             if rec_id and str(rec_id).startswith("ACC_"):
@@ -167,9 +183,11 @@ async def processar_pagamento(pedido: PedidoPagamento):
                     "amount": {"value": int((valor_total * fator_liquido) * 100)}
                 })
 
-        # ◄── BLINDAGEM ADICIONADA: AGORA PROCESSA CORRETAMENTE OS PASSEIOS AVULSOS
         elif pedido.tipo_item == "passeio":
-            id_passeio = pedido.pacote_id or pedido.hotel_id # Captura de segurança do ID do roteiro
+            id_passeio = pacote_id_sanitizado or hotel_id_sanitizado
+            if not id_passeio:
+                raise HTTPException(status_code=400, detail="Identificador do passeio ausente no payload.")
+                
             res_passeio = supabase.table("passeios").select("*").eq("id", id_passeio).single().execute()
             if not res_passeio.data:
                 raise HTTPException(status_code=404, detail="Passeio turístico não encontrado no catálogo.")
@@ -180,8 +198,7 @@ async def processar_pagamento(pedido: PedidoPagamento):
             nome_item_checkout = f"Passeio: {dados_p.get('titulo')}"
             item_id_db = id_passeio
 
-            # Localiza o ID do recebedor PagBank do Guia associado
-            guia_proprietario_id = dados_p.get("guia_id")
+            guia_proprietario_id = limpar_uuid(dados_p.get("guia_id"))
             if guia_proprietario_id:
                 res_g = supabase.table("parceiros").select("pagbank_recebedor_id").eq("id", guia_proprietario_id).single().execute()
                 if res_g.data:
@@ -193,24 +210,25 @@ async def processar_pagamento(pedido: PedidoPagamento):
                         })
 
         elif pedido.tipo_item == "pacote":
-            res_pacote = supabase.table("pacotes").select("*").eq("id", pedido.pacote_id).single().execute()
+            if not pacote_id_sanitizado:
+                raise HTTPException(status_code=400, detail="Identificador do pacote ausente no payload.")
+                
+            res_pacote = supabase.table("pacotes").select("*").eq("id", pacote_id_sanitizado).single().execute()
             if not res_pacote.data: 
                 raise HTTPException(status_code=404, detail="Pacote não encontrado")
             
             nome_item_checkout = f"Pacote: {res_pacote.data.get('titulo', 'Turístico')}"
-            if pedido.pacote_id and str(pedido.pacote_id).lower() not in ["none", "null"]:
-                item_id_db = pedido.pacote_id
+            item_id_db = pacote_id_sanitizado
 
             v_atracoes_total = 0.0
 
-            # 1. Split Dinâmico do Hotel no Pacote com Revenue Management
-            if pedido.hotel_id:
+            if hotel_id_sanitizado:
                 v_hospedagem_total = calcular_preco_hotel_dinamico(
-                    pedido.hotel_id, pedido.tipo_quarto, pedido.data_checkin, pedido.data_checkout,
+                    hotel_id_sanitizado, pedido.tipo_quarto, pedido.data_checkin, pedido.data_checkout,
                     quantidade_quartos=pedido.quantidade, quantidade_pessoas=pedido.adultos
                 )
                 
-                res_h_info = supabase.table("hoteis").select("pagbank_recebedor_id").eq("id", pedido.hotel_id).single().execute()
+                res_h_info = supabase.table("hoteis").select("pagbank_recebedor_id").eq("id", hotel_id_sanitizado).single().execute()
                 rec_id = res_h_info.data.get("pagbank_recebedor_id") if res_h_info.data else None
                 if rec_id and str(rec_id).startswith("ACC_"):
                     recebedores_split.append({
@@ -218,15 +236,13 @@ async def processar_pagamento(pedido: PedidoPagamento):
                         "amount": {"value": int((v_hospedagem_total * fator_liquido) * 100)}
                     })
 
-            # Cálculo do número de noites exato para o Guia
             d_ci = datetime.strptime(pedido.data_checkin, "%Y-%m-%d")
             d_co = datetime.strptime(pedido.data_checkout, "%Y-%m-%d")
             noites_calculadas = (d_co - d_ci).days
             noites_finais = noites_calculadas if noites_calculadas > 0 else 1
 
-            # 2. Split do Guia de Turismo
-            if pedido.guia_id:
-                res_g = supabase.table("guias").select("pagbank_recebedor_id, preco_diaria").eq("id", pedido.guia_id).single().execute()
+            if guia_id_sanitizado:
+                res_g = supabase.table("guias").select("pagbank_recebedor_id, preco_diaria").eq("id", guia_id_sanitizado).single().execute()
                 if res_g.data:
                     v_guia_total = float(res_g.data["preco_diaria"]) * (noites_finais + 1)
                     rec_id = res_g.data.get("pagbank_recebedor_id")
@@ -236,10 +252,9 @@ async def processar_pagamento(pedido: PedidoPagamento):
                             "amount": {"value": int((v_guia_total * fator_liquido) * 100)}
                         })
 
-            # 3. Split das Atrações Turísticas inclusas
-            res_itens = supabase.table("pacote_itens").select("atracao_id").eq("pacote_id", pedido.pacote_id).execute()
+            res_itens = supabase.table("pacote_itens").select("atracao_id").eq("pacote_id", pacote_id_sanitizado).execute()
             for item in res_itens.data:
-                atr_id = item.get("atracao_id")
+                atr_id = limpar_uuid(item.get("atracao_id"))
                 if atr_id:
                     res_atr = supabase.table("atracoes").select("pagbank_recebedor_id, preco_entrada").eq("id", atr_id).single().execute()
                     if res_atr.data:
@@ -271,7 +286,7 @@ async def processar_pagamento(pedido: PedidoPagamento):
             splits_array = []
 
         # ==========================================
-        # FASE 3: PERSISTÊNCIA NO SUPABASE
+        # FASE 3: PERSISTÊNCIA NO SUPABASE (SANITIZADA)
         # ==========================================
         pedido_db = {
             "codigo_pedido": codigo_pedido,
@@ -288,16 +303,14 @@ async def processar_pagamento(pedido: PedidoPagamento):
             "data_nascimento": pedido.data_nascimento,
             "foto_url": pedido.foto_url,
             "quantidade": pedido.quantidade,
-            "hotel_id": pedido.hotel_id if pedido.hotel_id else None,
-            "guia_id": pedido.guia_id if pedido.guia_id else None,
+            "hotel_id": hotel_id_sanitizado,
+            "guia_id": guia_id_sanitizado,
             "tipo_quarto": pedido.tipo_quarto if pedido.tipo_quarto else "standard",
             "quantidade_pessoas": pedido.adultos if pedido.adultos else 2,
             "quantidade_quartos": pedido.quantidade if pedido.tipo_item in ["hotel", "pacote"] else 1,
-            "nome_item": nome_item_checkout
+            "nome_item": nome_item_checkout,
+            "item_id": limpar_uuid(item_id_db)
         }
-        
-        if item_id_db:
-            pedido_db["item_id"] = item_id_db
 
         res_pedido = supabase.table("pedidos").insert(pedido_db).execute()
 
@@ -306,10 +319,10 @@ async def processar_pagamento(pedido: PedidoPagamento):
             pedido_id_gerado = res_pedido.data[0]["id"]
             repasses_db = []
             
-            if pedido.tipo_item == "hotel" and pedido.hotel_id:
+            if pedido.tipo_item == "hotel" and hotel_id_sanitizado:
                 repasses_db.append({
                     "pedido_id": pedido_id_gerado,
-                    "parceiro_id": pedido.hotel_id,
+                    "parceiro_id": hotel_id_sanitizado,
                     "tipo_parceiro": "hotel",
                     "valor_bruto": v_hospedagem_total,
                     "taxa_plataforma": round(v_hospedagem_total * (taxa_prefeitura_pct / 100.0), 2),
@@ -317,37 +330,36 @@ async def processar_pagamento(pedido: PedidoPagamento):
                     "status_repasse": "processando"
                 })
             
-            # Repasse do Guia de passeio avulso salvaguardado no Ledger
-            elif pedido.tipo_item == "passeio" and item_id_db:
-                # Localiza qual parceiro é o detentor do roteiro
-                res_pass_g = supabase.table("passeios").select("guia_id").eq("id", item_id_db).single().execute()
-                g_id = res_pass_g.data.get("guia_id") if res_pass_g.data else pedido.guia_id
+            elif pedido.tipo_item == "passeio" and pedido_db["item_id"]:
+                res_pass_g = supabase.table("passeios").select("guia_id").eq("id", pedido_db["item_id"]).single().execute()
+                g_id = limpar_uuid(res_pass_g.data.get("guia_id")) if res_pass_g.data else guia_id_sanitizado
                 
-                repasses_db.append({
-                    "pedido_id": pedido_id_gerado,
-                    "parceiro_id": g_id,
-                    "tipo_parceiro": "guia",
-                    "valor_bruto": v_guia_total,
-                    "taxa_plataforma": round(v_guia_total * (taxa_prefeitura_pct / 100.0), 2),
-                    "valor_liquido": round(v_guia_total * fator_liquido, 2),
-                    "status_repasse": "processando"
-                })
-            
-            elif pedido.tipo_item == "pacote":
-                if pedido.hotel_id and v_hospedagem_total > 0:
+                if g_id:
                     repasses_db.append({
                         "pedido_id": pedido_id_gerado,
-                        "parceiro_id": pedido.hotel_id,
+                        "parceiro_id": g_id,
+                        "tipo_parceiro": "guia",
+                        "valor_bruto": v_guia_total,
+                        "taxa_plataforma": round(v_guia_total * (taxa_prefeitura_pct / 100.0), 2),
+                        "valor_liquido": round(v_guia_total * fator_liquido, 2),
+                        "status_repasse": "processando"
+                    })
+            
+            elif pedido.tipo_item == "pacote":
+                if hotel_id_sanitizado and v_hospedagem_total > 0:
+                    repasses_db.append({
+                        "pedido_id": pedido_id_gerado,
+                        "parceiro_id": hotel_id_sanitizado,
                         "tipo_parceiro": "hotel",
                         "valor_bruto": v_hospedagem_total,
                         "taxa_plataforma": round(v_hospedagem_total * (taxa_prefeitura_pct / 100.0), 2),
                         "valor_liquido": round(v_hospedagem_total * fator_liquido, 2),
                         "status_repasse": "processando"
                     })
-                if pedido.guia_id and v_guia_total > 0:
+                if guia_id_sanitizado and v_guia_total > 0:
                     repasses_db.append({
                         "pedido_id": pedido_id_gerado,
-                        "parceiro_id": pedido.guia_id,
+                        "parceiro_id": guia_id_sanitizado,
                         "tipo_parceiro": "guia",
                         "valor_bruto": v_guia_total,
                         "taxa_plataforma": round(v_guia_total * (taxa_prefeitura_pct / 100.0), 2),
@@ -355,10 +367,11 @@ async def processar_pagamento(pedido: PedidoPagamento):
                         "status_repasse": "processando"
                     })
                 for atr in lista_atracoes_calculadas:
-                    if atr["valor"] > 0:
+                    atr_id_limpo = limpar_uuid(atr["id"])
+                    if atr_id_limpo and atr["valor"] > 0:
                         repasses_db.append({
                             "pedido_id": pedido_id_gerado,
-                            "parceiro_id": atr["id"],
+                            "parceiro_id": atr_id_limpo,
                             "tipo_parceiro": "atracao",
                             "valor_bruto": atr["valor"],
                             "taxa_plataforma": round(atr["valor"] * (taxa_prefeitura_pct / 100.0), 2),
@@ -418,7 +431,8 @@ async def processar_pagamento(pedido: PedidoPagamento):
                 raise HTTPException(status_code=400, detail="Erro no processamento financeiro.")
 
             dados_pb = resp.json()
-            base_retorno = {"sucesso": True, "codigo_pedido": codigo_pedido}
+            base_retorno = {"sucesso": True, "codigo_pedido": stocking_pedido}
+            base_retorno["codigo_pedido"] = codigo_pedido
             
             if pedido.metodo_pagamento == "pix":
                 qr = dados_pb["qr_codes"][0]
