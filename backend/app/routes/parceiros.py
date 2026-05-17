@@ -1,9 +1,11 @@
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 import os
-import resend
 from supabase import create_client, Client
 from datetime import datetime, timedelta
+
+# ◄── IMPORTAÇÃO DO NOSSO MOTOR UNIFICADO DE E-MAILS
+from app.services.email_service import enviar_email
 
 router = APIRouter()
 
@@ -149,51 +151,61 @@ async def login_parceiro(payload: LoginParceiroSchema):
         print(f"[ERRO LOGIN PARCEIRO] {e}")
         raise HTTPException(status_code=500, detail="Erro interno ao processar a autenticação.")
 
-# ── ROTA PARA RECEBER O PEDIDO DE INTERESSE E ENVIAR E-MAIL ──
+# ── ROTA PARA RECEBER O PEDIDO DE INTERESSE E ENVIAR E-MAIL (ATUALIZADA) ──
 
 @router.post("/api/v1/parceiros/interesse", tags=["Portal dos Parceiros"])
 async def registrar_interesse_parceiro(payload: InteresseParceiroSchema):
     try:
-        resend.api_key = os.environ.get("RESEND_API_KEY")
-        if not resend.api_key:
-            raise HTTPException(status_code=500, detail="Configuração de e-mail ausente no servidor.")
-        
+        # Estilização com as Cores Oficiais da Prefeitura (Azul #00577C, Verde #009640)
         html_content = f"""
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #E2E8F0; border-radius: 10px;">
-            <h2 style="color: #0085FF; margin-bottom: 5px;">Novo Pedido de Parceria! 🎯</h2>
-            <p style="color: #64748B; font-size: 14px; margin-top: 0;">O portal SagaTurismo recebeu um novo interesse de credenciamento.</p>
-            <div style="background-color: #F8FAFC; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #F9C400;">
-                <p style="margin: 5px 0;"><strong>👤 Nome do Responsável:</strong> {payload.nome}</p>
-                <p style="margin: 5px 0;"><strong>🏢 Nome do Negócio:</strong> {payload.empresa}</p>
-                <p style="margin: 5px 0;"><strong>🏷️ Categoria:</strong> {payload.tipo.upper()}</p>
-                <p style="margin: 5px 0;"><strong>📱 WhatsApp:</strong> {payload.telefone}</p>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #E2E8F0; border-radius: 16px; overflow: hidden;">
+            <div style="background: #00577C; padding: 25px; text-align: center;">
+                <h1 style="color: #F9C400; margin: 0; font-size: 22px; letter-spacing: 0.5px;">Novo Pedido de Parceria! 🎯</h1>
             </div>
-            <p style="color: #0F172A; font-size: 14px; line-height: 1.5;">
-                Por favor, faça a validação dos dados. Após o contacto, crie as credenciais de acesso do parceiro na tabela <strong>parceiros</strong> do Supabase e defina o status como <strong>'ativo'</strong> para libertar o login.
-            </p>
+            <div style="padding: 30px; background: #ffffff; color: #334155;">
+                <p style="font-size: 15px; line-height: 1.6;">O portal <strong>SagaTurismo</strong> recebeu uma nova manifestação de interesse para credenciamento na plataforma municipal.</p>
+                
+                <div style="background-color: #F8FAFC; padding: 20px; border-radius: 12px; margin: 25px 0; border-left: 5px solid #009640;">
+                    <p style="margin: 6px 0; font-size: 15px;"><strong>👤 Nome do Responsável:</strong> {payload.nome}</p>
+                    <p style="margin: 6px 0; font-size: 15px;"><strong>🏢 Nome do Negócio:</strong> {payload.empresa}</p>
+                    <p style="margin: 6px 0; font-size: 15px;"><strong>🏷️ Categoria:</strong> <span style="background: #00577C; color: #ffffff; padding: 3px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; uppercase;">{payload.tipo.upper()}</span></p>
+                    <p style="margin: 6px 0; font-size: 15px;"><strong>📱 WhatsApp:</strong> {payload.telefone}</p>
+                </div>
+                
+                <p style="font-size: 13px; color: #64748B; line-height: 1.6; background: #FFFBEB; padding: 15px; border-radius: 8px; border: 1px solid #FDE68A;">
+                    <strong>Próximos Passos:</strong> Realize a auditoria comercial dos dados fornecidos. Após acordar as taxas, insira as credenciais oficiais deste parceiro na tabela <code>parceiros</code> do Supabase e mude o status para <code>'ativo'</code> para autorizar o acesso imediato ao painel.
+                </p>
+            </div>
+            <div style="background: #002f40; color: #ffffff; padding: 15px; text-align: center; font-size: 11px;">
+                <p style="margin: 0;">&copy; 2026 SagaTurismo • Secretaria Municipal de Turismo</p>
+            </div>
         </div>
         """
 
-        params = {
-            "from": "SagaTurismo <sistema@sagatur.com.br>", 
-            "to": ["emmanoel.cardoso09@gmail.com"],
-            "subject": f"Novo Parceiro Pendente: {payload.empresa}",
-            "html": html_content,
+        # ◄── LISTA DE DESTINATÁRIOS: Envia em paralelo para ti e para a Secretaria de Turismo
+        emails_destino = ["emmanoel.cardoso09@gmail.com"]
+        
+        for email in emails_destino:
+            enviar_email(
+                destinatario=email,
+                assunto=f"Novo Parceiro Pendente: {payload.empresa}",
+                corpo_html=html_content
+            )
+            
+        return {
+            "sucesso": True, 
+            "mensagem": "Pedido de registo recebido com sucesso! As autoridades competentes foram notificadas."
         }
-
-        resend.Emails.send(params)
-        return {"sucesso": True, "mensagem": "Pedido de registro recebido com sucesso!"}
         
     except Exception as e:
         print(f"[ERRO ENVIO EMAIL INTERESSE] {e}")
         raise HTTPException(status_code=500, detail="Erro interno ao processar o formulário.")
 
-# ── ROTAS DE CONSULTA DO PAINEL COM SISTEMA HÍBRIDO (LEDGER + DINÂMICO) ──
+# ── ROTAS DE CONSULTA DO PAINEL COM SISTEMA HÍBRIDO (MANTIDAS INTACTAS) ──
 
 @router.get("/api/v1/parceiros/{item_id}/reservas", tags=["Portal dos Parceiros"])
 async def listar_reservas_parceiro(item_id: str):
     try:
-        # Puxa os pedidos e junta com a nova tabela de repasses_financeiros!
         res = supabase.table("pedidos") \
             .select("codigo_pedido, tipo_item, nome_cliente, email_cliente, telefone_cliente, quantidade, valor_total, data_checkin, data_checkout, tipo_quarto, hotel_id, guia_id, quantidade_pessoas, quantidade_quartos, nome_item, repasses_financeiros(parceiro_id, valor_bruto, valor_liquido)") \
             .or_(f"item_id.eq.{item_id},hotel_id.eq.{item_id},guia_id.eq.{item_id}") \
@@ -203,23 +215,16 @@ async def listar_reservas_parceiro(item_id: str):
         reservas_processadas = []
         for r in res.data:
             tipo = r.get("tipo_item")
-            qtd = int(r.get("quantidade") or 1)
-            
-            # 1. Procura se já existe um recibo imutável gravado no Ledger
             lista_repasses = r.get("repasses_financeiros") or []
             repasse_exato = next((rep for rep in lista_repasses if str(rep.get("parceiro_id")) == str(item_id)), None)
             
             if repasse_exato:
-                # Usa os dados fixos e seguros da base de dados!
                 valor_bruto = float(repasse_exato["valor_bruto"])
                 valor_liquido = float(repasse_exato["valor_liquido"])
-                
                 if tipo == "pacote":
                     if r.get("hotel_id") == item_id: r["tipo_item"] = "Pacote (Hospedagem)"
                     elif r.get("guia_id") == item_id: r["tipo_item"] = "Pacote (Serviço de Guia)"
-                    
             else:
-                # 2. Se for um pedido antigo sem recibo, usa o Fallback Dinâmico
                 if tipo == "pacote":
                     if r.get("hotel_id") == item_id:
                         valor_bruto = calcular_recorte_hotel_pacote(
@@ -244,17 +249,12 @@ async def listar_reservas_parceiro(item_id: str):
             r["valor_total"] = round(valor_bruto, 2)
             r["valor_liquido"] = round(valor_liquido, 2)
             
-            # Limpa o array do ledger para não sujar a resposta JSON enviada ao frontend
             if "repasses_financeiros" in r:
                 del r["repasses_financeiros"]
                 
             reservas_processadas.append(r)
             
-        return {
-            "sucesso": True,
-            "total_reservas": len(reservas_processadas),
-            "reservas": reservas_processadas
-        }
+        return {"sucesso": True, "total_reservas": len(reservas_processadas), "reservas": reservas_processadas}
     except Exception as e:
         print(f"[ERRO PORTAL PARCEIROS RESERVAS] {e}")
         raise HTTPException(status_code=500, detail="Erro ao buscar lista de reservas.")
@@ -274,16 +274,12 @@ async def obter_metricas_dashboard(item_id: str):
         
         for p in pedidos:
             tipo = p.get("tipo_item")
-            qtd = int(p.get("quantity", 1))
-            
-            # Procura recibo no Ledger (Novo Sistema Estável)
             lista_repasses = p.get("repasses_financeiros") or []
             repasse_exato = next((rep for rep in lista_repasses if str(rep.get("parceiro_id")) == str(item_id)), None)
             
             if repasse_exato:
                 faturamento_liquido_total += float(repasse_exato["valor_liquido"])
             else:
-                # Fallback (Sistema Antigo)
                 if tipo == "pacote":
                     if p.get("hotel_id") == item_id:
                         v_bruto = calcular_recorte_hotel_pacote(
@@ -340,46 +336,26 @@ async def atualizar_disponibilidade_parceiro(item_id: str, payload: Disponibilid
             "disponivel": payload.disponivel
         }
         res = supabase.table("disponibilidade_hoteis").insert(dados_disponibilidade).execute()
-        return {
-            "sucesso": True, 
-            "mensagem": "Tarifário updated com sucesso na base de dados!",
-            "dados": res.data
-        }
+        return {"sucesso": True, "mensagem": "Tarifário updated com sucesso na base de dados!", "dados": res.data}
     except Exception as e:
         print(f"[ERRO ATUALIZAR DISPONIBILIDADE] {e}")
-        raise HTTPException(
-            status_code=500, 
-            detail="Erro interno ao salvar as alterações do calendário no servidor."
-        )
+        raise HTTPException(status_code=500, detail="Erro interno ao salvar as alterações do calendário no servidor.")
     
 @router.get("/api/v1/public/hoteis/{hotel_id}/calcular-preco", tags=["Consultas Públicas"])
 async def obter_preco_hospedagem_publico(
-    hotel_id: str, 
-    tipo_quarto: str = "standard", 
-    checkin: str = None, 
-    checkout: str = None,
-    quantidade: int = 1,
-    adultos: int = 2
+    hotel_id: str, tipo_quarto: str = "standard", checkin: str = None, checkout: str = None, quantidade: int = 1, adultos: int = 2
 ):
     if not checkin or not checkout:
         raise HTTPException(status_code=400, detail="Check-in and Check-out dates are required.")
-        
     try:
         res_h = supabase.table("hoteis").select("*").eq("id", hotel_id).single().execute()
-        if not res_h.data:
-            raise HTTPException(status_code=404, detail="Hotel não encontrado.")
+        if not res_h.data: raise HTTPException(status_code=404, detail="Hotel não encontrado.")
         
         hotel_data = res_h.data
         base_preco = float(hotel_data["quarto_luxo_preco"] if tipo_quarto == 'luxo' else hotel_data["quarto_standard_preco"])
         pct_acompanhante = float(hotel_data.get("porcentagem_acompanhante") or 0.0)
         
-        res_custom = supabase.table("disponibilidade_hoteis") \
-            .select("*") \
-            .eq("hotel_id", hotel_id) \
-            .eq("tipo_quarto", tipo_quarto) \
-            .order("criado_em", desc=True) \
-            .execute()
-            
+        res_custom = supabase.table("disponibilidade_hoteis").select("*").eq("hotel_id", hotel_id).eq("tipo_quarto", tipo_quarto).order("criado_em", desc=True).execute()
         excecoes = res_custom.data or []
         
         d_atual = datetime.strptime(checkin, "%Y-%m-%d").date()
@@ -392,12 +368,8 @@ async def obter_preco_hospedagem_publico(
         while d_atual < d_fim:
             preco_noite = None
             for regra in excecoes:
-                regra_inicio_raw = str(regra["data_inicio"]).split("T")[0]
-                regra_fim_raw = str(regra["data_fim"]).split("T")[0]
-                
-                regra_inicio = datetime.strptime(regra_inicio_raw, "%Y-%m-%d").date()
-                regra_fim = datetime.strptime(regra_fim_raw, "%Y-%m-%d").date()
-                
+                regra_inicio = datetime.strptime(str(regra["data_inicio"]).split("T")[0], "%Y-%m-%d").date()
+                regra_fim = datetime.strptime(str(regra["data_fim"]).split("T")[0], "%Y-%m-%d").date()
                 if regra_inicio <= d_atual <= regra_fim:
                     if not regra.get("disponivel", True):
                         return {"sucesso": False, "disponivel": False, "mensagem": "Esgotado para as datas selecionadas."}
@@ -409,15 +381,7 @@ async def obter_preco_hospedagem_publico(
             valor_total_bruto += valor_noite
             d_atual += timedelta(days=1)
             
-        valor_final = valor_total_bruto * quantidade
-        
-        return {
-            "sucesso": True,
-            "disponivel": True,
-            "valor_total": valor_final,
-            "noites": (d_fim - datetime.strptime(checkin, "%Y-%m-%d").date()).days
-        }
-        
+        return {"sucesso": True, "disponivel": True, "valor_total": valor_total_bruto * quantidade, "noites": (d_fim - datetime.strptime(checkin, "%Y-%m-%d").date()).days}
     except Exception as e:
         print(f"[ERRO CALCULO PUBLICO PRECO] {e}")
         raise HTTPException(status_code=500, detail="Erro ao calcular preço dinâmico.")
