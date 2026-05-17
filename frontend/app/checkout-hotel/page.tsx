@@ -7,7 +7,7 @@ import {
   Loader2, MapPin, ShieldCheck, Bed, QrCode, CheckCircle2, 
   User, Mail, FileText, Copy, AlertCircle, 
   CreditCard, Lock, ShieldAlert, Home, Clock, Check, ChevronRight,
-  Wallet
+  Wallet, Users, Calendar
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -28,7 +28,13 @@ type Hotel = {
   quarto_luxo_nome: string; quarto_luxo_preco: any; 
 };
 
-// ── UTILITÁRIOS SEGUROS (SEM USAR 'new' em funções de sistema para evitar conflitos) ──
+type Acompanhante = {
+  nome: string;
+  cpf: string;
+  data_nascimento: string;
+};
+
+// ── UTILITÁRIOS SEGUROS ──
 const parseValor = (valor: any): number => {
   if (!valor) return 0;
   const num = typeof valor === 'string' ? parseFloat(valor.replace(',', '.')) : valor;
@@ -123,7 +129,7 @@ function CheckoutHotelContent() {
   const [loadingPreco, setLoadingPreco] = useState<boolean>(false);
   const [acomodacaoDisponivel, setAcomodacaoDisponivel] = useState<boolean>(true);
 
-  // Estados Form
+  // Estados Form - Titular
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [cpf, setCpf] = useState('');
@@ -134,6 +140,33 @@ function CheckoutHotelContent() {
   const [cep, setCep] = useState('');
   const [cidade, setCidade] = useState('');
   const [estado, setEstado] = useState('');
+  
+  // ── ESTADO DINÂMICO PARA ACOMPANHANTES (JSONB BACKEND) ──
+  const [hospedesExtras, setHospedesExtras] = useState<Acompanhante[]>([]);
+
+  // Sincroniza os blocos dinâmicos com a quantidade de acompanhantes (adultos - 1)
+  useEffect(() => {
+    const numAcompanhantes = Math.max(0, adultosParam - 1);
+    setHospedesExtras(prev => {
+      const copy = [...prev];
+      if (copy.length === numAcompanhantes) return prev;
+      if (copy.length > numAcompanhantes) return copy.slice(0, numAcompanhantes);
+      while (copy.length < numAcompanhantes) {
+        copy.push({ nome: '', cpf: '', data_nascimento: '' });
+      }
+      return copy;
+    });
+  }, [adultosParam]);
+
+  const handleAcompanhanteChange = (index: number, campo: keyof Acompanhante, valor: string) => {
+    setHospedesExtras(prev => {
+      const novos = [...prev];
+      novos[index] = { ...novos[index], [campo]: valor };
+      return novos;
+    });
+  };
+
+  // Estados de Faturamento & Gateway
   const [metodoPagamento, setMetodoPagamento] = useState<'pix' | 'cartao'>('cartao');
   const [nomeCartao, setNomeCartao] = useState('');
   const [numeroCartao, setNumeroCartao] = useState('');
@@ -145,7 +178,7 @@ function CheckoutHotelContent() {
   const [erroApi, setErroApi] = useState('');
   const [qrCodeData, setQrCodeData] = useState<{ link: string; texto: string; id_pedido: string } | null>(null);
 
-  // ── INJEÇÃO SILENCIOSA DO PAGBANK SDK ──
+  // Injeção silenciada do SDK do PagSeguro
   useEffect(() => {
     if (typeof window !== 'undefined' && !window.PagSeguro) {
       const script = document.createElement('script');
@@ -187,7 +220,7 @@ function CheckoutHotelContent() {
       setLoadingPreco(true);
       try {
         const response = await fetch(
-          `https://sagaturismo-production.up.railway.app/api/v1/public/hoteis/${hotelId}/calcular-preco?tipo_quarto=${quartoTipo}&checkin=${checkinData}&checkout=${checkoutData}&quantidade=${quartosParam}`
+          `https://sagaturismo-production.up.railway.app/api/v1/public/hoteis/${hotelId}/calcular-preco?tipo_quarto=${quartoTipo}&checkin=${checkinData}&checkout=${checkoutData}&quantidade=${quartosParam}&adultos=${adultosParam}`
         );
         const data = await response.json();
         
@@ -209,7 +242,7 @@ function CheckoutHotelContent() {
     }
 
     obterPrecoOficialAPI();
-  }, [hotelId, quartoTipo, checkinData, checkoutData, quartosParam]);
+  }, [hotelId, quartoTipo, checkinData, checkoutData, quartosParam, adultosParam]);
 
   const handlePagamento = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -230,6 +263,8 @@ function CheckoutHotelContent() {
       cpf_cliente: cpf.replace(/\D/g, ''), 
       email_cliente: email,
       telefone_cliente: telefone.replace(/\D/g, ''), 
+      // ── MAPEA E ENVIA O ARRAY NOMINAL ESTRUTURADO EXIGIDO ──
+      hospedes_extras: hospedesExtras,
       endereco_faturacao: {
         street: rua, number: numero, locality: bairro, city: cidade, 
         region_code: estado.replace(/\s/g, ''), country: "BRA", postal_code: cep.replace(/\D/g, '')
@@ -291,13 +326,10 @@ function CheckoutHotelContent() {
     }
   };
 
-  // ── LÓGICA DE REVENUE MANAGEMENT (AJUSTE UI/UX) ──
   const precoBaseDiaria = quartoTipo === 'luxo' ? parseValor(hotel?.quarto_luxo_preco) : parseValor(hotel?.quarto_standard_preco);
   const valorBaseMatematico = precoBaseDiaria * numNoites * quartosParam;
-  
-  // Se a API devolveu um valor maior, foi cobrada a taxa de hóspede adicional
   const taxaHospedeAdicional = valorTotalReserva > valorBaseMatematico ? valorTotalReserva - valorBaseMatematico : 0;
-  const exibirTaxaExtra = taxaHospedeAdicional > 0.05; // Pequena margem de segurança para erros de ponto flutuante
+  const exibirTaxaExtra = taxaHospedeAdicional > 0.05;
 
   if (loadingInitial) return <div className="min-h-screen bg-[#F5F7FA] flex items-center justify-center"><Loader2 className="animate-spin text-[#0085FF] w-12 h-12" /></div>;
 
@@ -357,28 +389,69 @@ function CheckoutHotelContent() {
 
             {!qrCodeData ? (
               <form onSubmit={handlePagamento} className="space-y-6 md:space-y-8">
+                
+                {/* 1. DADOS DOS HÓSPEDES (TITULAR + DINÂMICO ACOMPANHANTES) */}
                 <SectionCard className="p-6 md:p-10 text-left">
-                  <SectionHeader step={1} title="Hóspede Principal" icon={<User size={20} />} />
-                  <div className="grid gap-5 md:gap-6 sm:grid-cols-2">
-                    <div className="sm:col-span-2">
-                      <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Nome Completo *</label>
-                      <input required value={nome} onChange={e => setNome(e.target.value)} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF] focus:bg-white" placeholder="Nome completo do hóspede" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">CPF *</label>
-                      <input required value={cpf} onChange={e => setCpf(mascaraCPF(e.target.value))} maxLength={14} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF] focus:bg-white" placeholder="000.000.000-00" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">WhatsApp *</label>
-                      <input required value={telefone} onChange={e => setTelefone(mascaraTelefone(e.target.value))} maxLength={15} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF] focus:bg-white" placeholder="(99) 99999-9999" />
-                    </div>
-                    <div className="sm:col-span-2">
-                      <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">E-mail *</label>
-                      <input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF] focus:bg-white" placeholder="seu@email.com" />
+                  <SectionHeader step={1} title="Dados de Identificação" icon={<Users size={20} />} />
+                  
+                  {/* Titular */}
+                  <div className="space-y-4">
+                    <p className="text-xs font-black text-[#0085FF] uppercase tracking-wider mb-2">Hóspede Principal (Titular)</p>
+                    <div className="grid gap-5 md:gap-6 sm:grid-cols-2">
+                      <div className="sm:col-span-2">
+                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Nome Completo *</label>
+                        <input required value={nome} onChange={e => setNome(e.target.value)} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF] focus:bg-white" placeholder="Nome completo do titular" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">CPF *</label>
+                        <input required value={cpf} onChange={e => setCpf(mascaraCPF(e.target.value))} maxLength={14} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF] focus:bg-white" placeholder="000.000.000-00" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">WhatsApp *</label>
+                        <input required value={telefone} onChange={e => setTelefone(mascaraTelefone(e.target.value))} maxLength={15} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF] focus:bg-white" placeholder="(99) 99999-9999" />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">E-mail *</label>
+                        <input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF] focus:bg-white" placeholder="seu@email.com" />
+                      </div>
                     </div>
                   </div>
+
+                  {/* Blocos Gerados Dinamicamente baseados na URL (Adultos - 1) */}
+                  {hospedesExtras.length > 0 && (
+                    <div className="mt-8 pt-8 border-t-2 border-dashed border-slate-100 space-y-8">
+                      <div>
+                        <p className="text-xs font-black text-slate-800 uppercase tracking-wider">Acompanhantes Adicionais</p>
+                        <p className="text-[11px] font-bold text-slate-400 mt-1 uppercase">Obrigatório para homologação nominal da estadia junto aos parceiros.</p>
+                      </div>
+
+                      {hospedesExtras.map((h, i) => (
+                        <div key={i} className="p-5 border border-slate-100 rounded-2xl bg-slate-50/50 space-y-4 animate-in fade-in duration-300">
+                          <span className="inline-flex bg-[#0085FF] text-white text-[9px] font-black uppercase px-2.5 py-1 rounded-md tracking-wider">
+                            Acompanhante #{i + 1}
+                          </span>
+                          
+                          <div className="grid gap-4 sm:grid-cols-2">
+                            <div className="sm:col-span-2">
+                              <label className="block text-[9px] font-black uppercase text-slate-400 mb-1.5 ml-1">Nome Completo *</label>
+                              <input required value={h.nome} onChange={e => handleAcompanhanteChange(i, 'nome', e.target.value.toUpperCase())} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF]" placeholder="Nome do acompanhante" />
+                            </div>
+                            <div>
+                              <label className="block text-[9px] font-black uppercase text-slate-400 mb-1.5 ml-1">CPF *</label>
+                              <input required value={h.cpf} onChange={e => handleAcompanhanteChange(i, 'cpf', mascaraCPF(e.target.value))} maxLength={14} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF]" placeholder="000.000.000-00" />
+                            </div>
+                            <div>
+                              <label className="block text-[9px] font-black uppercase text-slate-400 mb-1.5 ml-1">Data de Nascimento *</label>
+                              <input required type="date" value={h.data_nascimento} onChange={e => handleAcompanhanteChange(i, 'data_nascimento', e.target.value)} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF]" />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </SectionCard>
 
+                {/* 2. FATURAÇÃO */}
                 <SectionCard className="p-6 md:p-10 text-left">
                   <SectionHeader step={2} title="Endereço de Faturação" icon={<Home size={20} />} />
                   <div className="grid gap-5 md:gap-6 sm:grid-cols-2">
@@ -393,6 +466,7 @@ function CheckoutHotelContent() {
                   </div>
                 </SectionCard>
 
+                {/* 3. PAGAMENTO */}
                 <SectionCard className="p-6 md:p-10 text-left">
                   <SectionHeader step={3} title="Método de Pagamento" icon={<Wallet size={20} />} />
                   <div className="grid grid-cols-2 gap-4 mb-8">
@@ -441,7 +515,7 @@ function CheckoutHotelContent() {
             )}
           </div>
 
-          {/* ── COLUNA DIREITA (ESTÁTICA) ── */}
+          {/* ── COLUNA DIREITA ── */}
           <aside className="w-full h-fit lg:self-start order-first lg:order-last relative">
             <SectionCard>
               <div className="h-2 w-full bg-gradient-to-r from-[#0085FF] via-[#F9C400] to-[#009640]" />
