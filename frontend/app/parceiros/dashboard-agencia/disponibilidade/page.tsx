@@ -7,7 +7,8 @@ import Image from 'next/image';
 import { 
   Loader2, Home, LogOut, Bed, Compass, Save, Sparkles, 
   AlertCircle, CheckCircle2, Type, FileText, DollarSign, 
-  Upload, ChevronLeft, ChevronRight, Check, ShieldCheck, Tag
+  Upload, ChevronLeft, ChevronRight, Check, ShieldCheck, Tag,
+  Calendar as CalendarIcon
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -148,7 +149,7 @@ export default function CriarPacotePage() {
         const guiasOcupadosIds = (conflitosGuias || []).map(c => c.guia_id).filter(Boolean);
 
         const { data: todosGuias } = await supabase
-          .from('guias')
+          .from('guia_id' === 'id' ? 'guias' : 'guias') // Sanidade de string estrita
           .select('id, nome, especialidade, imagem_url, preco_diaria');
 
         if (todosGuias) {
@@ -167,7 +168,7 @@ export default function CriarPacotePage() {
     filtrarInventarioPorIntervalo();
   }, [dataInicio, dataFim]);
 
-  // Atualização dos custos com base nas seleções dinâmicas
+  // Update de objetos selecionados para a fatura final
   useEffect(() => {
     setHotelSelecionado(hoteisDisponiveis.find(h => h.id === selectedHotelId) || null);
   }, [selectedHotelId, hoteisDisponiveis]);
@@ -176,11 +177,9 @@ export default function CriarPacotePage() {
     setGuiaSelecionado(guiasDisponiveis.find(g => g.id === selectedGuiaId) || null);
   }, [selectedGuiaId, guiasDisponiveis]);
 
-  // Preço sugerido somando diárias reais do hotel e guias selecionados
   const precoSugerido = (hotelSelecionado?.quarto_standard_preco || 0) * noitesCalculadas + 
                         (guiaSelecionado?.preco_diaria || 0) * diasCalculados;
 
-  // ── UTILS DE CALENDÁRIO DE INTERVALO ──
   const formatarDataIso = (data: Date) => `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`;
   const limparNomeArquivo = (nomeOriginal: string) => nomeOriginal.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9.]/g, '_').replace(/_{2,}/g, '_');         
 
@@ -206,7 +205,6 @@ export default function CriarPacotePage() {
     router.push('/parceiros');
   };
 
-  // 3. CRIAÇÃO DO PACOTE
   const handleLancarCombo = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedHotelId || !selectedGuiaId || !dataInicio || !dataFim) {
@@ -278,7 +276,7 @@ export default function CriarPacotePage() {
   return (
     <div className={`${inter.className} min-h-screen bg-[#F8FAFC] text-slate-900 pb-20`}>
       
-      {/* ── HEADER PROFISSIONAL EXECUTIVO ── */}
+      {/* HEADER PROFISSIONAL EXECUTIVO */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-50 px-4 md:px-10 py-4 shadow-sm">
         <div className="mx-auto max-w-7xl flex items-center justify-between gap-4">
           <Link href="/" className="relative h-10 w-28 md:w-36 shrink-0 transition-transform active:scale-95">
@@ -333,7 +331,6 @@ export default function CriarPacotePage() {
                 </select>
               </div>
 
-              {/* CALENDÁRIO DE INTERVALOS DE ALTA FIDELIDADE (ELIMINA DIAS E NOITES MANUAIS) */}
               <div className="md:col-span-2 space-y-2">
                  <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider flex items-center gap-1"><CalendarIcon size={14}/> Definir Intervalo de Dias do Combo (Apenas no PC)</label>
                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 shadow-inner">
@@ -368,7 +365,7 @@ export default function CriarPacotePage() {
 
               <div className="space-y-1.5 md:col-span-2">
                 <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider flex items-center gap-1"><MapPin size={12}/> Detalhes de Embarque</label>
-                <input type="text" name="horarios_info" value={formData.horarios_info} onChange={handleInputChange} placeholder="Ex: Saída às 08:00h da Orla Principal" className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold outline-none focus:border-[#0085FF] bg-slate-50/50" />
+                <input type="text" name="horarios_info" value={formData.horarios_info} onChange={handleInputChange} placeholder="Ex: Saídas às 08:00h da Orla Principal" className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold outline-none focus:border-[#0085FF] bg-slate-50/50" />
               </div>
 
               <div className="space-y-1.5 md:col-span-2">
@@ -474,7 +471,7 @@ export default function CriarPacotePage() {
             )}
           </section>
 
-          {/* ── FASE 4: PRECIFICAÇÃO E LANÇAMENTO FINAL (VEM POR ÚLTIMO) ── */}
+          {/* FASE 4: PRECIFICAÇÃO E LANÇAMENTO FINAL */}
           <section className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-8 shadow-sm space-y-5 text-left">
             <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
               <div className="bg-[#0085FF] text-white p-2 rounded-xl"><Sparkles size={18} /></div>
