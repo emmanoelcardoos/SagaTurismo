@@ -143,9 +143,10 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
       const checkoutStr = formatarDataIso(checkout!);
 
       try {
+        // ◄── AQUI ESTÁ A MAGIA DO REVENUE MANAGEMENT: &adultos=${adultos} injetado nas rotas!
         const [resStd, resLux] = await Promise.all([
-          fetch(`https://sagaturismo-production.up.railway.app/api/v1/public/hoteis/${params.id}/calcular-preco?tipo_quarto=standard&checkin=${checkinStr}&checkout=${checkoutStr}&quantidade=${quartos}`),
-          fetch(`https://sagaturismo-production.up.railway.app/api/v1/public/hoteis/${params.id}/calcular-preco?tipo_quarto=luxo&checkin=${checkinStr}&checkout=${checkoutStr}&quantidade=${quartos}`)
+          fetch(`https://sagaturismo-production.up.railway.app/api/v1/public/hoteis/${params.id}/calcular-preco?tipo_quarto=standard&checkin=${checkinStr}&checkout=${checkoutStr}&quantidade=${quartos}&adultos=${adultos}`),
+          fetch(`https://sagaturismo-production.up.railway.app/api/v1/public/hoteis/${params.id}/calcular-preco?tipo_quarto=luxo&checkin=${checkinStr}&checkout=${checkoutStr}&quantidade=${quartos}&adultos=${adultos}`)
         ]);
 
         const dataStd = await resStd.json();
@@ -174,7 +175,7 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
     }
 
     atualizarPrecosDinamicos();
-  }, [checkin, checkout, quartos, hotel, params.id]);
+  }, [checkin, checkout, quartos, adultos, hotel, params.id]); // ◄── 'adultos' adicionado como dependência para recálculo em tempo real!
 
   // Efeito de Scroll Header
   useEffect(() => {
@@ -505,7 +506,6 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
         </div>
 
         {/* ── COLUNA DIREITA: CALENDÁRIO COM CLASSES NATIVAS ── */}
-        {/* Removeu-se o lg:sticky e lg:top-28. Adicionou-se o h-fit para alinhar perfeitamente */}
         <div id="motor-reservas" className="w-full lg:w-[380px] shrink-0 h-fit lg:self-start relative z-30">
           <div className="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] shadow-xl border border-slate-200 text-left">
              <h3 className={`${jakarta.className} text-lg md:text-xl font-black text-slate-900 mb-5 flex items-center gap-2`}>
