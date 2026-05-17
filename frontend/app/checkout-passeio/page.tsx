@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { 
   Loader2, MapPin, ShieldCheck, QrCode, CheckCircle2, 
   User, Mail, Copy, AlertCircle, CreditCard, Lock, 
-  ShieldAlert, Home, Clock, Check, ChevronRight, Wallet,
+  ShieldAlert, Clock, Check, ChevronRight, Wallet,
   Smartphone, Users, Calendar, Compass
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
@@ -51,12 +51,12 @@ function SectionCard({ children, className = "" }: { children: React.ReactNode; 
 function SectionHeader({ step, title, icon }: { step: number; title: string; icon: React.ReactNode }) {
   return (
     <div className="flex items-center gap-4 mb-6 text-left">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#0085FF] text-white text-sm font-black shadow-md">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#00577C] text-white text-sm font-black shadow-md">
         {step}
       </div>
       <div className="flex items-center gap-2">
-        <span className="text-[#0085FF] bg-blue-50 p-2 rounded-xl hidden sm:block">{icon}</span>
-        <h2 className={`${jakarta.className} text-xl font-black text-slate-900 tracking-tight`}>{title}</h2>
+        <span className="text-[#00577C] bg-blue-50 p-2 rounded-xl hidden sm:block">{icon}</span>
+        <h2 className={`${jakarta.className} text-xl font-black text-slate-900 tracking-tight` tracking-tight` ?? title}`}>{title}</h2>
       </div>
     </div>
   );
@@ -131,7 +131,7 @@ function CheckoutPasseioContent() {
   const [pixExpirado, setPixExpirado] = useState(false);
   const [copiado, setCopiado] = useState(false);
 
-  // Custo Direto da Supabase
+  // Custos Operacionais Computados
   const custoBasePasseio = (passeio?.valor_total || 0) * pessoasParam;
   const custoTaxaPrefeitura = (passeio?.taxa_prefeitura || 0) * pessoasParam;
   const valorTotalFinal = custoBasePasseio + custoTaxaPrefeitura;
@@ -175,7 +175,7 @@ function CheckoutPasseioContent() {
         }
       } catch (err) {
         console.error(err);
-      } finally {
+      } finaly {
         setLoadingInitial(false);
       }
     }
@@ -198,7 +198,6 @@ function CheckoutPasseioContent() {
       email_cliente: email,
       telefone_cliente: telefone.replace(/\D/g, ''), 
       valor_total: valorTotalFinal,
-      // Passa a data do passeio como checkin para salvar de forma limpa na tabela pedidos
       data_checkin: passeio?.data_passeio
     };
 
@@ -209,7 +208,7 @@ function CheckoutPasseioContent() {
         }
         
         const key = process.env.NEXT_PUBLIC_PAGBANK_PUBLIC_KEY;
-        if (!key) throw new Error('Credenciais criptográficas de faturamento ausentes.');
+        if (!key) throw new Error('Chave de encriptação financeira em falta.');
 
         const cardData = window.PagSeguro.encryptCard({
           publicKey: key,
@@ -272,7 +271,7 @@ function CheckoutPasseioContent() {
           <Link href="/" className="flex items-center gap-3">
             <div className="relative h-10 w-28 md:h-12 md:w-36 lg:h-16 lg:w-56 shrink-0"><img src="/logop.png" alt="SagaTurismo" className="h-full w-full object-contain object-left" /></div>
             <div className="hidden border-l border-slate-200 pl-4 lg:block">
-              <p className={`${jakarta.className} text-2xl font-bold leading-none text-[#0085FF]`}>SagaTurismo</p>
+              <p className={`${jakarta.className} text-2xl font-bold leading-none text-[#00577C]`}>SagaTurismo</p>
               <p className="mt-1 text-[11px] font-bold uppercase tracking-widest text-slate-500">Agência Oficial</p>
             </div>
           </Link>
@@ -289,7 +288,7 @@ function CheckoutPasseioContent() {
           <div className="flex items-center justify-center md:justify-start gap-2 md:gap-4 text-[9px] md:text-[10px] uppercase tracking-[0.2em] font-black text-slate-400">
             <span className="hidden sm:inline-block">Passeio</span> <ChevronRight size={14} className="hidden sm:inline-block"/> 
             <span>Reserva</span> <ChevronRight size={14}/> 
-            <span className="text-[#0085FF] bg-blue-50 px-3 py-1.5 rounded-full flex items-center gap-2"><Lock size={12}/> Liquidação</span> <ChevronRight size={14}/> 
+            <span className="text-[#00577C] bg-blue-50 px-3 py-1.5 rounded-full flex items-center gap-2"><Lock size={12}/> Liquidação</span> <ChevronRight size={14}/> 
             <span>Voucher Emitido</span>
           </div>
         </div>
@@ -298,13 +297,12 @@ function CheckoutPasseioContent() {
       <div className="mx-auto max-w-7xl px-4 md:px-8 py-8 md:py-12">
         <div className="grid gap-8 lg:grid-cols-[1fr_400px] items-start">
           
-          {/* COLUNA ESQUERDA: DADOS E MÉTODO DE PAGAMENTO (MOBILE FIRST) */}
+          {/* COLUNA ESQUERDA */}
           <div className="space-y-6 md:space-y-8">
             {!qrCodeData ? (
               <form onSubmit={handleProcessarTransacao} className="space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 
-                {/* ETAPA 1: DADOS COMPRADOR */}
-                <SectionCard className="p-6 md:p-10 text-left border-t-4 border-t-[#0085FF]">
+                <SectionCard className="p-6 md:p-10 text-left border-t-4 border-t-[#00577C]">
                   <SectionHeader step={1} title="Dados do Passageiro Principal" icon={<User size={20} />} />
                   <div className="grid gap-5 md:gap-6 sm:grid-cols-2">
                     <div className="sm:col-span-2">
@@ -326,25 +324,24 @@ function CheckoutPasseioContent() {
                   </div>
                 </SectionCard>
 
-                {/* ETAPA 2: PAGAMENTO */}
                 <SectionCard className="p-6 md:p-10 text-left">
                   <SectionHeader step={2} title="Escolha a Forma de Pagamento" icon={<Wallet size={20} />} />
                   <div className="grid grid-cols-2 gap-4 mb-8">
                     <button type="button" onClick={() => setMetodoPagamento('pix')} className={`flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border-2 transition-all cursor-pointer ${metodoPagamento === 'pix' ? 'border-[#009640] bg-[#009640]/5 text-[#009640]' : 'border-slate-100 bg-slate-50 text-slate-400'}`}>
                       <QrCode size={32} /> <span className="text-xs font-black uppercase">PIX à Vista</span>
                     </button>
-                    <button type="button" onClick={() => setMetodoPagamento('cartao')} className={`flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border-2 transition-all cursor-pointer ${metodoPagamento === 'cartao' ? 'border-[#0085FF] bg-blue-50/50 text-[#0085FF]' : 'border-slate-100 bg-slate-50 text-slate-400'}`}>
+                    <button type="button" onClick={() => setMetodoPagamento('cartao')} className={`flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border-2 transition-all cursor-pointer ${metodoPagamento === 'cartao' ? 'border-[#00577C] bg-[#00577C]/5 text-[#00577C]' : 'border-slate-100 bg-slate-50 text-slate-400'}`}>
                       <CreditCard size={32} /> <span className="text-xs font-black uppercase">Cartão de Crédito</span>
                     </button>
                   </div>
 
                   {metodoPagamento === 'cartao' && (
-                    <div className="space-y-5 bg-white border-2 border-[#0085FF]/10 p-6 rounded-[2rem] shadow-inner mb-8 animate-in fade-in duration-300">
+                    <div className="space-y-5 bg-white border-2 border-[#00577C]/10 p-6 rounded-[2rem] shadow-inner mb-8 animate-in fade-in duration-300">
                       <input required value={nomeCartao} onChange={e => setNomeCartao(e.target.value.toUpperCase())} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 uppercase" placeholder="NOME IMPRESSO NO CARTÃO" />
                       <input required value={numeroCartao} onChange={e => setNumeroCartao(mascaraCartao(e.target.value))} maxLength={19} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 tracking-widest" placeholder="0000 0000 0000 0000" />
                       <div className="grid grid-cols-[1fr_1fr_1.5fr] gap-3">
                         <input required value={mesCartao} maxLength={2} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 py-4 text-sm font-bold text-center" placeholder="Mês (MM)" onChange={e => setMesCartao(e.target.value.replace(/\D/g,''))} />
-                        <input required value={anoCartao} maxLength={4} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 py-4 text-sm font-bold text-center" placeholder="Ano (AAAA)" onChange={e => setAnoCartao(e.target.value.replace(/\D/g,''))} />
+                        <input required value={anoCartao} maxLength={4} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 py-4 text-sm font-bold text-center" placeholder="Ano (AAAA)" onChange={e => set開anoCartao(e.target.value.replace(/\D/g,''))} />
                         <input required type="password" value={cvvCartao} maxLength={4} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 py-4 text-sm font-bold text-center tracking-widest" placeholder="CVV" onChange={e => setCvvCartao(e.target.value.replace(/\D/g,''))} />
                       </div>
                     </div>
@@ -381,21 +378,20 @@ function CheckoutPasseioContent() {
             )}
           </div>
 
-          {/* ── COLUNA DIREITA: RESUMO TOTALMENTE FIXA E ESTÁTICA (REMOVIDO STICKY DO MOBILE) ── */}
+          {/* ── COLUNA DIREITA (COMPLETAMENTE ESTÁTICA) ── */}
           <aside className="w-full h-fit order-first lg:order-last relative space-y-6">
             <SectionCard>
-              <div className="h-2 w-full bg-gradient-to-r from-[#0085FF] via-[#F9C400] to-[#009640]" />
+              <div className="h-2 w-full bg-gradient-to-r from-[#00577C] via-[#F9C400] to-[#009640]" />
               
-              {/* Thumbnail da Atração */}
               <div className="relative h-48 w-full bg-slate-100 overflow-hidden">
                  <img src={passeio?.imagem_principal || "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?q=80&w=1721"} alt={passeio?.titulo} className="w-full h-full object-cover" />
-                 <span className="absolute top-3 left-3 bg-white/95 backdrop-blur text-[#0085FF] text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-1">
+                 <span className="absolute top-3 left-3 bg-white/95 backdrop-blur text-[#00577C] text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-1">
                     <Compass size={12}/> {passeio?.categoria || 'Aventura'}
                  </span>
               </div>
 
               <div className="p-6 md:p-8 border-b border-slate-100 text-left bg-slate-50">
-                <p className="text-[10px] font-black uppercase text-[#0085FF] tracking-widest mb-1">Roteiro Selecionado</p>
+                <p className="text-[10px] font-black uppercase text-[#00577C] tracking-widest mb-1">Roteiro Selecionado</p>
                 <h3 className={`${jakarta.className} text-xl font-black text-slate-800 leading-tight`}>{passeio?.titulo || 'Carregando expedição...'}</h3>
                 <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400 mt-2">
                    <MapPin size={12} className="text-[#009640]" /> São Geraldo do Araguaia - PA
@@ -436,7 +432,7 @@ function CheckoutPasseioContent() {
                        <p className="text-xs font-black uppercase text-slate-400 tracking-widest">Total a Liquidar</p>
                        <div className="bg-green-50 px-2.5 py-1 rounded-full flex items-center gap-1 text-[#009640] text-[9px] font-black uppercase border border-green-100"><Check size={10} strokeWidth={4}/> Garantido</div>
                     </div>
-                    <p className={`${jakarta.className} text-4xl font-black text-[#0085FF] tabular-nums leading-none`}>
+                    <p className={`${jakarta.className} text-4xl font-black text-[#00577C] tabular-nums leading-none`}>
                       {formatarMoeda(valorTotalFinal)}
                     </p>
                  </div>
@@ -455,13 +451,13 @@ function CheckoutPasseioContent() {
 
         </div>
       </div>
-    </div>
+    </main>
   );
 }
 
 export default function CheckoutPasseioPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#F5F7FA]"><Loader2 className="animate-spin text-[#0085FF] w-12 h-12" /></div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#F5F7FA]"><Loader2 className="animate-spin text-[#00577C] w-12 h-12" /></div>}>
       <CheckoutPasseioContent />
     </Suspense>
   );
