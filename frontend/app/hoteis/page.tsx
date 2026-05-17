@@ -44,7 +44,7 @@ const parseValor = (valor: any): number => {
 const formatarMoeda = (valor: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor || 0);
 
-// ◄── CORREÇÃO 1: Usando imagem local para evitar erro 404 do Unsplash no Next.js
+// Imagem local para não dar erro 404 de domínios externos no Next.js
 const FALLBACK_IMAGE = "/logop.png";
 
 const getArraySeguro = (item: any): string[] => {
@@ -87,7 +87,7 @@ function HoteisPageContent() {
   const [mesAtualCalendario, setMesAtualCalendario] = useState(new Date());
   const [hoverDate, setHoverDate] = useState<Date | null>(null);
 
-  // ── ESTADOS DOS PREÇOS REAIS ──
+  // ── DICIONÁRIO DE PREÇOS REAIS CALCULAADOS VIA RAILWAY ──
   const [precosDinamicos, setPrecosDinamicos] = useState<Record<string, { valor_total: number; noites: number; disponivel: boolean }>>({});
   const [carregandoPrecos, setCarregandoPrecos] = useState(false);
 
@@ -97,6 +97,7 @@ function HoteisPageContent() {
 
   const searchBarRef = useRef<HTMLDivElement>(null);
 
+  // 1. CARREGAMENTO INICIAL DOS HOTÉIS DA BASE DE DADOS
   useEffect(() => {
     async function fetchHoteis() {
       const { data } = await supabase.from('hoteis').select('*').order('nome');
@@ -106,7 +107,7 @@ function HoteisPageContent() {
     fetchHoteis();
   }, []);
 
-  // ◄── SINCRONIZAÇÃO INTELIGENTE: Lê as datas e hóspedes da URL ao carregar
+  // 2. SINCRONIZAÇÃO DA URL PARA OS ESTADOS (MEMÓRIA DE PESQUISA)
   useEffect(() => {
     const ci = searchParams.get('checkin');
     const co = searchParams.get('checkout');
@@ -125,7 +126,7 @@ function HoteisPageContent() {
     if (qu) setQuartos(Number(qu));
   }, [searchParams]);
 
-  // ◄── MOTOR DE PREÇOS: Busca as tarifas reais na API da Railway quando os filtros mudam
+  // 3. CONSULTAR PREÇO REAL EM LOTE DE ACORDO COM OS PARÂMETROS DA URL
   useEffect(() => {
     if (hoteis.length === 0) return;
 
@@ -167,6 +168,7 @@ function HoteisPageContent() {
       } catch (e) {
         console.error("Erro no lote de verificação financeira:", e);
       } finally {
+        setPrecosDinamicos(novosPrecos);
         setCarregandoPrecos(false);
       }
     }
@@ -191,11 +193,8 @@ function HoteisPageContent() {
         setShowHospedesPopup(false);
       }
     };
-
     document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   useEffect(() => {
@@ -207,17 +206,12 @@ function HoteisPageContent() {
     return () => { document.body.style.overflow = 'auto'; };
   }, [isMobileFiltersOpen, isMobileMenuOpen]);
 
-  const diasDoMes = (ano: number, mes: number) => new Date(ano, mes + 1, 0).getDate();
-  const primeiroDiaDoMes = (ano: number, mes: number) => new Date(ano, mes, 1).getDay();
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
-
-  // Formatação robusta para não sofrer problemas de fuso horário
+  // Lógica de Formatação para URL imune a fusos horários
   const formatarDataIso = (data: Date) => {
     return `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`;
   };
 
-  // ◄── LÓGICA DO BOTÃO BUSCAR: Injeta os dados na URL para disparar o motor
+  // ── DISPARO DO BOTÃO BUSCAR REAL (MUTAÇÃO DO ESTADO DA URL) ──
   const handleBuscar = () => {
     const checkinStr = checkin ? formatarDataIso(checkin) : '';
     const checkoutStr = checkout ? formatarDataIso(checkout) : '';
@@ -262,7 +256,6 @@ function HoteisPageContent() {
   const hoteisFiltrados = useMemo(() => {
     return hoteis.filter(hotel => {
       if (estrelasSelecionadas.length > 0 && !estrelasSelecionadas.includes(hotel.estrelas)) return false;
-      
       if (comodidadesSelecionadas.length > 0) {
         const comodidadesHotel = getArraySeguro(hotel.comodidades);
         const temTodas = comodidadesSelecionadas.every(c => comodidadesHotel.includes(c));
@@ -270,7 +263,6 @@ function HoteisPageContent() {
       }
       return true;
     });
-    // ◄── CORREÇÃO 2: Removido o erro do 'stars='
   }, [hoteis, estrelasSelecionadas, comodidadesSelecionadas]);
 
   const noites = (checkin && checkout && checkout > checkin) 
@@ -375,7 +367,6 @@ function HoteisPageContent() {
 
   return (
     <main className={`${inter.className} min-h-screen bg-[#F5F7FA] text-slate-900 pb-20 md:pb-32`}>
-
       {/* HEADER */}
       <header className={`fixed left-0 top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl transition-transform duration-300 ${showHeader ? 'translate-y-0' : '-translate-y-full'}`}>
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-5">
@@ -455,7 +446,7 @@ function HoteisPageContent() {
                <div className="text-left flex-1 overflow-hidden">
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 truncate">Hóspedes e Quartos</p>
                   <p className="font-bold text-slate-800 text-xs md:text-sm truncate">
-                    {adultos} Adultos · {criancas} Crianças · {quartos} Quarto
+                    {adultos} Adultos · {criancas} Crianças · {quartos} Quarto(s)
                   </p>
                </div>
 
@@ -496,7 +487,6 @@ function HoteisPageContent() {
                )}
             </div>
 
-            {/* ◄── AÇÃO DO BOTÃO: Chama a função handleBuscar para acionar o motor */}
             <button onClick={handleBuscar} className="bg-slate-900 text-white px-8 md:px-10 py-4 md:py-0 rounded-[1.5rem] font-black text-xs md:text-sm uppercase tracking-widest hover:bg-black transition-all shadow-md shrink-0">
               Buscar
             </button>
@@ -564,7 +554,6 @@ function HoteisPageContent() {
               hoteisFiltrados.map((hotel) => {
                 const precoBase = parseValor(hotel.quarto_standard_preco || hotel.preco_medio);
                 
-                // ◄── EXIBIÇÃO: Lê do dicionário dinâmico se tiver feito a busca, senão mostra o cálculo padrão
                 const dadosDinamicos = precosDinamicos[hotel.id];
                 const precoTotal = dadosDinamicos ? dadosDinamicos.valor_total : precoBase * noites * totalQuartos;
                 const precoDiariaExibida = dadosDinamicos ? (dadosDinamicos.valor_total / (dadosDinamicos.noites * totalQuartos)) : precoBase;
@@ -589,7 +578,6 @@ function HoteisPageContent() {
                             {Array.from({ length: hotel.estrelas || 3 }).map((_, i) => <Star key={i} size={14} fill="currentColor"/>)}
                           </div>
                           <h3 className={`${jakarta.className} text-2xl md:text-3xl font-black text-[#00577C] leading-tight hover:underline cursor-pointer`}>
-                            {/* Injeta parâmetros de busca para levar as configurações ao clicar no nome do hotel */}
                             <Link href={`/hoteis/${hotel.id}?checkin=${checkinIsoStr}&checkout=${checkoutIsoStr}&adultos=${adultos}&quartos=${quartos}`}>{hotel.nome}</Link>
                           </h3>
                         </div>
@@ -630,7 +618,6 @@ function HoteisPageContent() {
                            <p className={`${jakarta.className} text-3xl md:text-4xl font-black text-[#00577C] tabular-nums mb-3 md:mb-4 leading-none`}>
                              {carregandoPrecos ? '...' : formatarMoeda(precoDiariaExibida)}
                            </p>
-                           {/* ◄── Injeta os parâmetros de busca para carregar as datas no detalhe do hotel */}
                            <Link href={`/hoteis/${hotel.id}?checkin=${checkinIsoStr}&checkout=${checkoutIsoStr}&adultos=${adultos}&quartos=${quartos}`} className="w-full sm:w-auto bg-[#00577C] text-white px-8 md:px-10 py-3.5 md:py-4 rounded-xl md:rounded-[1.5rem] font-black text-xs md:text-sm uppercase tracking-widest hover:bg-[#004a6b] transition-all shadow-xl hover:shadow-[#00577C]/20 flex items-center justify-center gap-3 hover:translate-x-1">
                              Ver Disponibilidade <ChevronRight size={18} className="md:w-5 md:h-5"/>
                            </Link>
@@ -694,11 +681,10 @@ function HoteisPageContent() {
           </div>
         </div>
       </footer>
-    </div>
+    </main>
   );
 }
 
-// ◄── CORREÇÃO 3: Envolto em Suspense para evitar quebras do Next.js com o useSearchParams
 export default function HoteisPage() {
   return (
     <Suspense fallback={
