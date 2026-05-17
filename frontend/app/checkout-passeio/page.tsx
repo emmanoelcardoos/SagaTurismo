@@ -189,6 +189,7 @@ function CheckoutPasseioContent() {
     if (telefone.length < 14) { setErroApi('WhatsApp obrigatório para avisos de saída.'); return; }
     setIsSubmitting(true);
 
+    // Payload blindado com morada padrão oculta para satisfazer o Pydantic do FastAPI
     const payload: any = {
       tipo_item: "passeio", 
       item_id: passeioId,
@@ -198,7 +199,17 @@ function CheckoutPasseioContent() {
       email_cliente: email,
       telefone_cliente: telefone.replace(/\D/g, ''), 
       valor_total: valorTotalFinal,
-      data_checkin: passeio?.data_passeio
+      metodo_pagamento: metodoPagamento, // ◄── Injetado na raiz
+      data_checkin: passeio?.data_passeio,
+      endereco_faturacao: { // ◄── Dados padrão para evitar o Erro 422 sem poluir o ecrã do cliente
+        street: "Centro Municipal",
+        number: "S/N",
+        locality: "Centro",
+        city: "São Geraldo do Araguaia",
+        region_code: "PA",
+        country: "BRA",
+        postal_code: "68570000"
+      }
     };
 
     try {
@@ -221,16 +232,14 @@ function CheckoutPasseioContent() {
 
         if (cardData.hasErrors) throw new Error('Cartão recusado pela operadora ou gateway.');
 
-        payload.metodo_pagamento = 'cartao';
         payload.encrypted_card = cardData.encryptedCard;
         payload.parcelas = 1;
-      } else {
-        payload.metodo_pagamento = 'pix';
       }
 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://sagaturismo-production.up.railway.app';
       const res = await fetch(`${apiUrl}/api/v1/pagamentos/processar`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
       const data = await res.json();
@@ -243,6 +252,7 @@ function CheckoutPasseioContent() {
             id_pedido: data.codigo_pedido 
           });
         } else {
+          // Redireciona para a página de sucesso global com o localizador gerado
           router.push(`/sucesso?pedido=${data.codigo_pedido}`);
         }
       } else {
