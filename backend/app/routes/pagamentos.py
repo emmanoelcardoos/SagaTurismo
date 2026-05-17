@@ -34,7 +34,7 @@ class PedidoPagamento(BaseModel):
     adultos: Optional[int] = 2 
 
     # IDs dinâmicos
-    pacote_id: Optional[str] = None
+    pacote_id: Optional[str] = None # Serve de mapeamento para id do passeio avulso também
     hotel_id: Optional[str] = None
     tipo_quarto: Optional[str] = "standard"
     guia_id: Optional[str] = None
@@ -81,7 +81,6 @@ def calcular_preco_hotel_dinamico(hotel_id: str, tipo_quarto: str, checkin_str: 
     d_atual = datetime.strptime(checkin_str, "%Y-%m-%d").date()
     d_fim = datetime.strptime(checkout_str, "%Y-%m-%d").date()
     
-    # Regra hoteleira de acompanhantes pagantes
     acompanhantes = quantidade_pessoas - quantidade_quartos
     if acompanhantes < 0: acompanhantes = 0
     
@@ -106,7 +105,6 @@ def calcular_preco_hotel_dinamico(hotel_id: str, tipo_quarto: str, checkin_str: 
                 break
         
         preco_quarto_noite = preco_da_noite if preco_da_noite is not None else base_preco
-        # Aplicação matemática da fórmula de Revenue Management por noite
         valor_noite = (preco_quarto_noite * quantidade_quartos) + (preco_quarto_noite * (pct_acompanhante / 100.0) * acompanhantes)
         subtotal_hospedagem += valor_noite
         
@@ -168,6 +166,31 @@ async def processar_pagamento(pedido: PedidoPagamento):
                     "account": {"id": rec_id},
                     "amount": {"value": int((valor_total * fator_liquido) * 100)}
                 })
+
+        # ◄── BLINDAGEM ADICIONADA: AGORA PROCESSA CORRETAMENTE OS PASSEIOS AVULSOS
+        elif pedido.tipo_item == "passeio":
+            id_passeio = pedido.pacote_id or pedido.hotel_id # Captura de segurança do ID do roteiro
+            res_passeio = supabase.table("passeios").select("*").eq("id", id_passeio).single().execute()
+            if not res_passeio.data:
+                raise HTTPException(status_code=404, detail="Passeio turístico não encontrado no catálogo.")
+            
+            dados_p = res_passeio.data
+            valor_total = float(dados_p.get("valor_total", 0.0)) * (pedido.quantidade or 1)
+            v_guia_total = valor_total
+            nome_item_checkout = f"Passeio: {dados_p.get('titulo')}"
+            item_id_db = id_passeio
+
+            # Localiza o ID do recebedor PagBank do Guia associado
+            guia_proprietario_id = dados_p.get("guia_id")
+            if guia_proprietario_id:
+                res_g = supabase.table("parceiros").select("pagbank_recebedor_id").eq("id", guia_proprietario_id).single().execute()
+                if res_g.data:
+                    rec_id = res_g.data.get("pagbank_recebedor_id")
+                    if rec_id and str(rec_id).startswith("ACC_"):
+                        recebedores_split.append({
+                            "account": {"id": rec_id},
+                            "amount": {"value": int((valor_total * fator_liquido) * 100)}
+                        })
 
         elif pedido.tipo_item == "pacote":
             res_pacote = supabase.table("pacotes").select("*").eq("id", pedido.pacote_id).single().execute()
@@ -248,7 +271,7 @@ async def processar_pagamento(pedido: PedidoPagamento):
             splits_array = []
 
         # ==========================================
-        # FASE 3: PERSISTÊNCIA NO SUPABASE (ATUALIZADA)
+        # FASE 3: PERSISTÊNCIA NO SUPABASE
         # ==========================================
         pedido_db = {
             "codigo_pedido": codigo_pedido,
@@ -291,6 +314,22 @@ async def processar_pagamento(pedido: PedidoPagamento):
                     "valor_bruto": v_hospedagem_total,
                     "taxa_plataforma": round(v_hospedagem_total * (taxa_prefeitura_pct / 100.0), 2),
                     "valor_liquido": round(v_hospedagem_total * fator_liquido, 2),
+                    "status_repasse": "processando"
+                })
+            
+            # Repasse do Guia de passeio avulso salvaguardado no Ledger
+            elif pedido.tipo_item == "passeio" and item_id_db:
+                # Localiza qual parceiro é o detentor do roteiro
+                res_pass_g = supabase.table("passeios").select("guia_id").eq("id", item_id_db).single().execute()
+                g_id = res_pass_g.data.get("guia_id") if res_pass_g.data else pedido.guia_id
+                
+                repasses_db.append({
+                    "pedido_id": pedido_id_gerado,
+                    "parceiro_id": g_id,
+                    "tipo_parceiro": "guia",
+                    "valor_bruto": v_guia_total,
+                    "taxa_plataforma": round(v_guia_total * (taxa_prefeitura_pct / 100.0), 2),
+                    "valor_liquido": round(v_guia_total * fator_liquido, 2),
                     "status_repasse": "processando"
                 })
             
