@@ -93,11 +93,13 @@ async def cadastrar_residente(
 
         # ◄── AS ETAPAS 5 (Gerar PDF) e 6 (Enviar E-mail) FORAM APAGADAS DAQUI
 
+        # ◄── RETORNO ATUALIZADO COM O TOKEN REQUISITADO PELO FRONTEND
         return {
             "status": "sucesso", 
             "mensagem": "Cadastro validado pela IA! Redirecionando para o pagamento da emissão...", 
             "valido_ia": True,
-            "titular_id": titular_id, # ◄── O Frontend vai precisar disto para associar o pagamento à família
+            "token": str(titular_id), # ◄── Mapeado explicitamente para o redirecionamento do Next.js
+            "titular_id": titular_id, 
             "quantidade": len(membros)
         }
 
