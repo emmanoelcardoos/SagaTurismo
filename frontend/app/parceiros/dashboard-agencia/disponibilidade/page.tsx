@@ -246,7 +246,6 @@ export default function CriarPacotePage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[340px] overflow-y-auto pr-2 custom-scrollbar">
               {guias.map(guia => {
-                const isSelected = selectedGuiaId === guideId; // Correção interna de referência de variável abaixo
                 const isGuiaSelected = selectedGuiaId === guia.id;
                 return (
                   <div 
