@@ -27,7 +27,6 @@ class EnderecoFaturacao(BaseModel):
     country: str = "BRA"
     postal_code: str
 
-# ◄── NOVO: Modelo de validação para cada acompanhante individual
 class AcompanhanteSchema(BaseModel):
     nome: str
     cpf: Optional[str] = None
@@ -43,6 +42,8 @@ class PedidoPagamento(BaseModel):
     passeio_id: Optional[str] = None 
     item_id: Optional[str] = None
     
+    # ◄── NOVO: Identificador dinâmico do quarto na base de dados
+    quarto_tipo_id: Optional[str] = None 
     tipo_quarto: Optional[str] = "standard"
     guia_id: Optional[str] = None
     
@@ -62,22 +63,28 @@ class PedidoPagamento(BaseModel):
     encrypted_card: Optional[str] = None
     parcelas: Optional[int] = 1
 
-    # ◄── NOVO: Campo estruturado que recebe a lista de todos os acompanhantes
     hospedes_extras: Optional[List[AcompanhanteSchema]] = []
 
-def calcular_preco_hotel_dinamico(hotel_id: str, tipo_quarto: str, checkin_str: str, checkout_str: str, quantidade_quartos: int = 1, quantidade_pessoas: int = 2) -> float:
+# ◄── MODIFICADO: Função agora calcula o preço base consultando a tabela de quartos dinâmicos
+def calcular_preco_hotel_dinamico(hotel_id: str, quarto_tipo_id: str, checkin_str: str, checkout_str: str, quantidade_quartos: int = 1, quantidade_pessoas: int = 2) -> float:
     res_h = supabase.table("hoteis").select("*").eq("id", hotel_id).single().execute()
     if not res_h.data:
         raise HTTPException(status_code=404, detail="Alojamento não encontrado.")
+        
+    res_q = supabase.table("tipos_quartos").select("*").eq("id", quarto_tipo_id).single().execute()
+    if not res_q.data:
+        raise HTTPException(status_code=404, detail="Tipo de quarto não configurado para este hotel.")
     
     hotel_data = res_h.data
-    base_preco = float(hotel_data["quarto_luxo_preco"] if tipo_quarto == 'luxo' else hotel_data["quarto_standard_preco"])
+    quarto_data = res_q.data
+    
+    base_preco = float(quarto_data["preco_base"])
     pct_acompanhante = float(hotel_data.get("porcentagem_acompanhante") or 0.0)
     
     res_custom = supabase.table("disponibilidade_hoteis") \
         .select("*") \
         .eq("hotel_id", hotel_id) \
-        .eq("tipo_quarto", tipo_quarto) \
+        .eq("quarto_tipo_id", quarto_tipo_id) \
         .order("criado_em", desc=True) \
         .execute()
         
@@ -130,12 +137,14 @@ async def processar_pagamento(pedido: PedidoPagamento):
         pacote_id_sanitizado = limpar_uuid(pedido.pacote_id)
         passeio_id_sanitizado = limpar_uuid(pedido.passeio_id)
         item_id_sanitizado = limpar_uuid(pedido.item_id)
+        quarto_tipo_id_sanitizado = limpar_uuid(pedido.quarto_tipo_id)
 
         valor_total = 0.0
         recebedores_split = []
         splits_array = []
         nome_item_checkout = ""
         item_id_db = None
+        nome_quarto_real_texto = pedido.tipo_quarto
         
         codigo_pedido = f"SAGA-{uuid.uuid4().hex[:8].upper()}"
 
@@ -162,9 +171,11 @@ async def processar_pagamento(pedido: PedidoPagamento):
         elif pedido.tipo_item == "hotel":
             if not hotel_id_sanitizado:
                 raise HTTPException(status_code=400, detail="Identificador do hotel ausente ou inválido.")
+            if not quarto_tipo_id_sanitizado:
+                raise HTTPException(status_code=400, detail="Identificador do tipo de quarto ausente para a hospedagem.")
                 
             valor_total = calcular_preco_hotel_dinamico(
-                hotel_id_sanitizado, pedido.tipo_quarto, pedido.data_checkin, pedido.data_checkout,
+                hotel_id_sanitizado, quarto_tipo_id_sanitizado, pedido.data_checkin, pedido.data_checkout,
                 quantidade_quartos=pedido.quantidade, quantidade_pessoas=pedido.adultos
             )
             v_hospedagem_total = valor_total
@@ -172,6 +183,10 @@ async def processar_pagamento(pedido: PedidoPagamento):
             res_hotel_info = supabase.table("hoteis").select("nome, pagbank_recebedor_id").eq("id", hotel_id_sanitizado).single().execute()
             nome_item_checkout = f"Hospedagem - {res_hotel_info.data['nome']}"
             item_id_db = hotel_id_sanitizado
+
+            res_q_info = supabase.table("tipos_quartos").select("nome").eq("id", quarto_tipo_id_sanitizado).single().execute()
+            if res_q_info.data:
+                nome_quarto_real_texto = res_q_info.data["nome"]
             
             rec_id = res_hotel_info.data.get("pagbank_recebedor_id")
             if rec_id and str(rec_id).startswith("ACC_"):
@@ -187,7 +202,7 @@ async def processar_pagamento(pedido: PedidoPagamento):
                 
             res_passeio = supabase.table("passeios").select("*").eq("id", id_passeio).single().execute()
             if not res_passeio.data:
-                raise HTTPException(status_code=404, detail="Paimel ou passeio turístico não encontrado no catálogo.")
+                raise HTTPException(status_code=404, detail="Passeio turístico não encontrado no catálogo.")
             
             dados_p = res_passeio.data
             valor_total = float(dados_p.get("valor_total", 0.0)) * (pedido.quantidade or 1)
@@ -220,11 +235,17 @@ async def processar_pagamento(pedido: PedidoPagamento):
             v_atracoes_total = 0.0
 
             if hotel_id_sanitizado:
+                if not quarto_tipo_id_sanitizado:
+                    raise HTTPException(status_code=400, detail="Identificador do tipo de quarto ausente para o hotel do pacote.")
                 v_hospedagem_total = calcular_preco_hotel_dinamico(
-                    hotel_id_sanitizado, pedido.tipo_quarto, pedido.data_checkin, pedido.data_checkout,
+                    hotel_id_sanitizado, quarto_tipo_id_sanitizado, pedido.data_checkin, pedido.data_checkout,
                     quantidade_quartos=pedido.quantidade, quantidade_pessoas=pedido.adultos
                 )
                 
+                res_q_info = supabase.table("tipos_quartos").select("nome").eq("id", quarto_tipo_id_sanitizado).single().execute()
+                if res_q_info.data:
+                    nome_quarto_real_texto = res_q_info.data["nome"]
+
                 res_h_info = supabase.table("hoteis").select("pagbank_recebedor_id").eq("id", hotel_id_sanitizado).single().execute()
                 rec_id = res_h_info.data.get("pagbank_recebedor_id") if res_h_info.data else None
                 if rec_id and str(rec_id).startswith("ACC_"):
@@ -280,7 +301,7 @@ async def processar_pagamento(pedido: PedidoPagamento):
             splits_array = []
 
         # ==========================================
-        # FASE 3: PERSISTÊNCIA NO SUPABASE (MÓDULO DE ACOMPANHANTES ATIVO)
+        # FASE 3: PERSISTÊNCIA NO SUPABASE
         # ==========================================
         pedido_db = {
             "codigo_pedido": codigo_pedido,
@@ -299,13 +320,12 @@ async def processar_pagamento(pedido: PedidoPagamento):
             "quantidade": pedido.quantidade,
             "hotel_id": hotel_id_sanitizado,
             "guia_id": guia_id_sanitizado,
-            "tipo_quarto": pedido.tipo_quarto if pedido.tipo_quarto else "standard",
+            "tipo_quarto": nome_quarto_real_texto, # Salva o nome real do quarto para o PDF
+            "quarto_tipo_id": quarto_tipo_id_sanitizado, # Guarda a nova relação estruturada
             "quantidade_pessoas": pedido.adultos if pedido.adultos else 2,
             "quantidade_quartos": pedido.quantidade if pedido.tipo_item in ["hotel", "pacote"] else 1,
             "nome_item": nome_item_checkout,
             "item_id": limpar_uuid(item_id_db),
-            
-            # ◄── MAPEA OS OBJETOS DO PYDANTIC DIRETAMENTE PARA O FORMATO DICIONÁRIO DO SUPABASE (JSONB)
             "hospedes_extras": [h.dict() for h in pedido.hospedes_extras] if pedido.hospedes_extras else []
         }
 
@@ -378,6 +398,9 @@ async def processar_pagamento(pedido: PedidoPagamento):
             if repasses_db:
                 supabase.table("repasses_financeiros").insert(repasses_db).execute()
 
+        # ==========================================
+        # FASE 4: PAYLOAD PAGBANK
+        # ==========================================
         payload_pagbank = {
             "reference_id": codigo_pedido,
             "customer": {
