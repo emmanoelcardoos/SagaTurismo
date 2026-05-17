@@ -90,15 +90,13 @@ export default function DisponibilidadeGuiaPage() {
     async function carregarDadosIniciais() {
       const { data, error } = await supabase
         .from('passeios')
-        .select('id, titulo, data_passeio, valor_total, vagas_totais, vagas_disponiveis, categoria')
+        .select('id, titulo, data_passeio, valor_total, vagas_totais, vagas_disponiveis, categoria, guia_id')
         .order('data_passeio', { ascending: true });
 
       if (!error && data) {
-        // Filtrar passeios específicos deste guia para a lista
         const meusPasseios = data.filter(p => p.guia_id === parceiroId);
         setPasseiosExistentes(meusPasseios as any);
 
-        // Extrair categorias únicas de TODOS os passeios da base de dados
         const catsUnicas = Array.from(new Set(data.map(p => p.categoria).filter(Boolean)));
         if (catsUnicas.length > 0) {
           setCategoriasDb(catsUnicas as string[]);
@@ -115,7 +113,6 @@ export default function DisponibilidadeGuiaPage() {
       if (pontoEncontro.length > 3 && !coordenadas) {
         setBuscandoEndereco(true);
         try {
-          // Restringe a busca a São Geraldo do Araguaia / Pará para maior precisão
           const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(pontoEncontro + ', São Geraldo do Araguaia, Pará')}&limit=4`);
           const data = await res.json();
           setSugestoesEndereco(data);
@@ -127,20 +124,18 @@ export default function DisponibilidadeGuiaPage() {
       } else {
         setSugestoesEndereco([]);
       }
-    }, 800); // Aguarda 800ms após o guia parar de digitar
+    }, 800);
 
     return () => clearTimeout(delayDebounceFn);
   }, [pontoEncontro, coordenadas]);
 
   const selecionarEndereco = (end: EnderecoBusca) => {
-    // Extrai a parte mais relevante do nome de exibição
     const nomeCurto = end.display_name.split(',').slice(0, 2).join(', ');
     setPontoEncontro(nomeCurto);
-    setCoordenadas(`${end.lat}, ${end.lon}`); // Preenche coordenadas automaticamente!
+    setCoordenadas(`${end.lat}, ${end.lon}`);
     setSugestoesEndereco([]);
   };
 
-  // ── UTILS DE CALENDÁRIO ──
   const formatarDataIso = (data: Date | null) => {
     if (!data) return '';
     return `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`;
@@ -151,7 +146,6 @@ export default function DisponibilidadeGuiaPage() {
       setDataPasseio(null);
       return;
     }
-    // Ao usar input type="date", criamos o objeto Data com timezone corrigido para não errar o dia
     const [ano, mes, dia] = e.target.value.split('-');
     setDataPasseio(new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia)));
   };
@@ -239,10 +233,17 @@ export default function DisponibilidadeGuiaPage() {
       if (errInsert) throw errInsert;
 
       try {
+        // ◄── ENRIQUECIMENTO DO PAYLOAD: Agora envia todos os dados necessários para o e-mail do Emmanoel!
         await fetch(`https://sagaturismo-production.up.railway.app/api/v1/notificacoes/novo-passeio`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ guia_nome: nomeNegocio, passeio_titulo: titulo, data_evento: formatarDataIso(dataPasseio) })
+          body: JSON.stringify({ 
+            guia_nome: nomeNegocio, 
+            titulo: titulo, 
+            preco: vTotal,
+            descricao: descricaoCurta,
+            data_evento: formatarDataIso(dataPasseio) 
+          })
         });
       } catch (errEmail) {}
 
@@ -291,9 +292,8 @@ export default function DisponibilidadeGuiaPage() {
 
       <div className="mx-auto w-full max-w-7xl px-4 py-6 md:py-10 flex flex-col lg:flex-row gap-8 items-start">
         
-        {/* ── COLUNA ESQUERDA: FORMULÁRIO DE CRIAÇÃO ── */}
+        {/* FORMULÁRIO DE CRIAÇÃO */}
         <div className="w-full lg:flex-1 space-y-6">
-          
           <div className="flex items-center gap-4 mb-2">
             <div className="w-12 h-12 rounded-full bg-[#009640] flex items-center justify-center text-white shadow-md shrink-0"><Plus size={24} /></div>
             <div>
@@ -311,8 +311,6 @@ export default function DisponibilidadeGuiaPage() {
              )}
 
              <form onSubmit={handleCriarPasseio} className="space-y-7">
-                
-                {/* O Que Vamos Fazer? */}
                 <div className="space-y-4">
                    <h3 className={`${jakarta.className} text-lg font-black text-[#009640] flex items-center gap-2 border-b border-slate-100 pb-2`}><Compass size={18}/> A Aventura</h3>
                    
@@ -322,17 +320,11 @@ export default function DisponibilidadeGuiaPage() {
                    </div>
                    
                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                     
-                     {/* CALENDÁRIO HÍBRIDO */}
                      <div>
                         <label className="text-xs font-bold text-slate-700 block mb-2">Quando vai ser?</label>
-                        
-                        {/* 1. VISÃO MOBILE: Input Nativo Seguro */}
                         <div className="block md:hidden relative">
                            <input required type="date" value={formatarDataIso(dataPasseio)} onChange={handleDataNativaChange} className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 px-4 text-sm font-medium outline-none focus:border-[#009640] text-slate-700" />
                         </div>
-
-                        {/* 2. VISÃO DESKTOP: Painel Visual Bonito */}
                         <div className="hidden md:block relative group">
                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><CalendarIcon size={18}/></div>
                            <input readOnly value={dataPasseio ? dataPasseio.toLocaleDateString('pt-BR') : ''} className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 pl-10 pr-4 text-sm font-medium outline-none cursor-pointer text-slate-700 hover:bg-slate-100 transition-all" placeholder="Selecione no calendário abaixo" />
@@ -343,13 +335,11 @@ export default function DisponibilidadeGuiaPage() {
                         <label className="text-xs font-bold text-slate-700 block mb-2">Que tipo é?</label>
                         <select value={categoria} onChange={e => setCategoria(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 px-4 text-sm font-medium outline-none focus:border-[#009640] cursor-pointer text-slate-700 capitalize">
                            {categoriasDb.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                           {/* Permite que ele crie algo novo caso precise */}
                            <option value="Outros">Outro...</option>
                         </select>
                      </div>
                    </div>
 
-                   {/* Renderização do Calendário Customizado (Apenas Desktop) */}
                    <div className="hidden md:block bg-slate-50 border border-slate-200 rounded-2xl p-4 shadow-inner mt-2">
                       <div className="flex items-center justify-between mb-3">
                          <button type="button" onClick={() => setMesAtual(new Date(anoCorrente, mesCorrente - 1))} className="p-1 hover:bg-slate-200 rounded-full"><ChevronLeft size={16}/></button>
@@ -378,10 +368,8 @@ export default function DisponibilidadeGuiaPage() {
                    </div>
                 </div>
 
-                {/* Logística com Autocompletar */}
                 <div className="space-y-4">
                    <h3 className={`${jakarta.className} text-lg font-black text-[#009640] flex items-center gap-2 border-b border-slate-100 pb-2`}><MapPin size={18}/> Logística</h3>
-                   
                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      <div>
                         <label className="text-xs font-bold text-slate-700 block mb-2">A que horas saímos?</label>
@@ -393,8 +381,6 @@ export default function DisponibilidadeGuiaPage() {
                           <input type="text" required value={pontoEncontro} onChange={e => { setPontoEncontro(e.target.value); setCoordenadas(''); }} className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 px-4 text-sm font-medium outline-none focus:border-[#009640]" placeholder="Escreva para buscar..." />
                           {buscandoEndereco && <Loader2 size={16} className="absolute right-4 top-1/2 -translate-y-1/2 animate-spin text-slate-400" />}
                         </div>
-                        
-                        {/* Menu Suspenso de Sugestões */}
                         {sugestoesEndereco.length > 0 && (
                           <div className="absolute z-20 top-[105%] left-0 w-full bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden">
                             {sugestoesEndereco.map((end, idx) => (
@@ -426,14 +412,11 @@ export default function DisponibilidadeGuiaPage() {
                    </div>
                 </div>
 
-                {/* Imagens */}
                 <div className="space-y-4">
                    <h3 className={`${jakarta.className} text-lg font-black text-[#009640] flex items-center gap-2 border-b border-slate-100 pb-2`}><Images size={18}/> Fotos Lindas</h3>
-                   
                    <label className="w-full bg-slate-50 border-2 border-dashed border-slate-300 rounded-2xl p-5 flex flex-col items-center gap-2 cursor-pointer hover:bg-green-50 hover:border-green-300 transition-colors">
                       <Upload size={24} className="text-[#009640]"/>
                       <span className="text-sm font-bold text-slate-700 text-center">{arquivoCapa ? arquivoCapa.name : 'Toque para escolher a Foto Principal'}</span>
-                      <span className="text-[10px] text-slate-400">Esta é a foto que os turistas vão ver primeiro.</span>
                       <input type="file" accept="image/*" className="hidden" onChange={e => e.target.files && setArquivoCapa(e.target.files[0])} />
                    </label>
 
@@ -442,7 +425,6 @@ export default function DisponibilidadeGuiaPage() {
                         <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm shrink-0"><Images size={18} className="text-slate-500"/></div>
                         <div>
                            <p className="text-sm font-bold text-slate-700">Adicionar mais fotos (até 6)</p>
-                           <p className="text-[10px] text-slate-400">Mostre os detalhes e as paisagens da rota.</p>
                         </div>
                       </div>
                       <span className="text-[10px] sm:text-xs font-black text-white bg-slate-800 px-3 py-1.5 rounded-full shrink-0">{arquivosGaleria.length} Selecionadas</span>
@@ -450,7 +432,7 @@ export default function DisponibilidadeGuiaPage() {
                    </label>
                 </div>
 
-                <div className="bg-amber-50 rounded-2xl p-4 flex gap-3 border border-amber-100">
+                <div className="bg-amber-50 rounded-2xl p-4 flex gap-3 border border-amber-100 text-left">
                    <MailWarning size={20} className="text-amber-500 shrink-0" />
                    <p className="text-[11px] text-amber-800 font-medium leading-relaxed">
                      Assim que clicares em enviar, a prefeitura vai ver a tua proposta. Se estiver tudo certinho, o teu passeio vai para o ar para o mundo todo ver!
@@ -464,32 +446,25 @@ export default function DisponibilidadeGuiaPage() {
           </div>
         </div>
 
-        {/* ── COLUNA DIREITA: A AGENDA "SOCIAL" ── */}
+        {/* COLUNA DIREITA: A AGENDA */}
         <div className="w-full lg:w-80 shrink-0 space-y-6">
-           
            <h3 className={`${jakarta.className} text-xl font-black text-slate-900 pl-2`}>A Minha Agenda</h3>
-           
-           {/* MINI-CALENDÁRIO INTELIGENTE */}
            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-5">
               <div className="flex items-center justify-between mb-4">
                  <button onClick={() => setMesAtual(new Date(anoCorrente, mesCorrente - 1))} className="p-1.5 text-slate-400 hover:text-slate-800"><ChevronLeft size={18}/></button>
                  <p className="font-black text-slate-800 capitalize text-sm">{mesAtual.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}</p>
                  <button onClick={() => setMesAtual(new Date(anoCorrente, mesCorrente + 1))} className="p-1.5 text-slate-400 hover:text-slate-800"><ChevronRight size={18}/></button>
               </div>
-              
               <div className="grid grid-cols-7 gap-y-2 text-center">
                  {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((d, i) => (
                    <span key={i} className="text-[10px] font-black text-slate-300">{d}</span>
                  ))}
-                 
                  {Array.from({ length: primeiroDia }).map((_, i) => <div key={`empty-${i}`} />)}
-                 
                  {Array.from({ length: diasMes }).map((_, i) => {
                     const dDia = new Date(anoCorrente, mesCorrente, i + 1);
                     const dataIsoStr = formatarDataIso(dDia);
                     const temPasseio = passeiosExistentes.some(p => p.data_passeio === dataIsoStr);
                     const isHoje = formatarDataIso(hoje) === dataIsoStr;
-
                     return (
                       <div key={i} className="relative aspect-square flex items-center justify-center">
                          <span className={`text-xs z-10 w-7 h-7 flex items-center justify-center rounded-full ${isHoje ? 'bg-slate-900 text-white font-black' : temPasseio ? 'font-black text-slate-900' : 'text-slate-500 font-medium'}`}>
@@ -502,7 +477,6 @@ export default function DisponibilidadeGuiaPage() {
               </div>
            </div>
 
-           {/* LISTA DE ATIVIDADES / PASSEIOS */}
            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
               <div className="p-5 border-b border-slate-100 bg-slate-50/50">
                  <p className="font-black text-slate-800 text-sm">Próximas Saídas</p>
@@ -529,7 +503,6 @@ export default function DisponibilidadeGuiaPage() {
                  )}
               </div>
            </div>
-
         </div>
 
       </div>
