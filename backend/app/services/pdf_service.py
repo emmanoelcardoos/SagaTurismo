@@ -1,6 +1,4 @@
 import os
-import re
-import json
 import requests
 from io import BytesIO
 from datetime import datetime, timedelta
@@ -11,21 +9,21 @@ from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
 from reportlab.lib.utils import ImageReader
 
-# --- CONFIGURAÇÕES VISUAIS INSTITUCIONAIS MUNICIPAIS ---
-COR_PRIMARIA = colors.HexColor("#00577C")       # Azul Petróleo Oficial (Prefeitura)
-COR_SECUNDARIA = colors.HexColor("#009640")     # Verde Oficial (Confirmações)
-COR_DESTAQUE = colors.HexColor("#F9C400")       # Amarelo Prefeitura (Realces)
-COR_TEXTO_ESCURO = colors.HexColor("#0f172a")   # Slate 900 (Texto principal)
-COR_TEXTO_MEDIO = colors.HexColor("#334155")    # Slate 700 (Labels e sub-detalhes)
-COR_TEXTO_SUAVE = colors.HexColor("#64748b")    # Slate 500 (Legendas de rodapé)
-COR_LINHA = colors.HexColor("#e2e8f0")          # Slate 200 (Divisórias leves)
-COR_FUNDO_BOX = colors.HexColor("#f8fafc")      # Slate 50 (Fundo dos cards)
-COR_FUNDO_DESTAQUE = colors.HexColor("#f0fdf4") # Green 50 (Fundo da caixa de confirmação)
+# ─── CONFIGURAÇÕES VISUAIS INSTITUCIONAIS MUNICIPAIS ────────────────────────
+COR_PRIMARIA = colors.HexColor("#00577C")       # Azul Petróleo Oficial
+COR_SECUNDARIA = colors.HexColor("#009640")     # Verde Oficial
+COR_DESTAQUE = colors.HexColor("#F9C400")       # Amarelo Prefeitura
+COR_TEXTO_ESCURO = colors.HexColor("#0f172a")   # Slate 900
+COR_TEXTO_MEDIO = colors.HexColor("#334155")    # Slate 700
+COR_TEXTO_SUAVE = colors.HexColor("#64748b")    # Slate 500
+COR_LINHA = colors.HexColor("#e2e8f0")          # Slate 200
+COR_FUNDO_BOX = colors.HexColor("#f8fafc")      # Slate 50
+COR_FUNDO_DESTAQUE = colors.HexColor("#f0fdf4") # Green 50
 
 LOGO_URL = "https://saga-turismo.vercel.app/logop.png"
 MARGIN_X = 20 * mm
 
-# --- ALIASES PARA A CARTEIRA DE RESIDENTE ---
+# Aliases de retrocompatibilidade para a Carteira de Residente
 COR_AZUL = COR_PRIMARIA
 COR_VERDE = COR_SECUNDARIA
 COR_AMARELO = COR_DESTAQUE
@@ -34,9 +32,8 @@ COR_CINZA_BORDA = COR_LINHA
 COR_TEXTO_LABEL = COR_TEXTO_SUAVE
 COR_BRANCO = colors.white
 
-# =========================================================================
-# FUNÇÕES AUXILIARES
-# =========================================================================
+
+# ─── FUNÇÕES AUXILIARES GERAIS E DESIGN ─────────────────────────────────────
 
 def _safe(value, fallback: str = "—") -> str:
     if value is None: return fallback
@@ -59,15 +56,13 @@ def formatar_moeda(valor):
         return "R$ 0,00"
 
 def _obter_logo_institucional():
-    """Baixa a logo do site oficial em produção para injetar na memória"""
+    """Baixa a logo oficial da prefeitura para a memória"""
     try:
         response = requests.get(LOGO_URL, timeout=4)
         if response.status_code == 200:
             return ImageReader(BytesIO(response.content))
     except Exception:
         pass
-    
-    # Fallback local
     possiveis_caminhos = [
         os.path.join(os.getcwd(), "frontend", "public", "logop.png"),
         os.path.join(os.getcwd(), "public", "logop.png"),
@@ -187,9 +182,8 @@ def _desenhar_footer_voucher(c: canvas.Canvas, largura: float, pagina: int):
     c.drawRightString(largura - MARGIN_X, 10 * mm, f"Página {pagina} de 2")
 
 
-# =========================================================================
-# 1. GERAÇÃO DA CARTEIRA DIGITAL DE RESIDENTE
-# =========================================================================
+# ─── 1. GERAÇÃO DA CARTEIRA DIGITAL DE RESIDENTE ────────────────────────────
+
 def gerar_pdf_carteira(residente_data: dict, token: str) -> str:
     os.makedirs("tmp_pdfs", exist_ok=True)
     nome_pessoa_limpo = residente_data.get('nome', 'Residente').replace(' ', '_')
@@ -317,11 +311,10 @@ def gerar_pdf_carteira(residente_data: dict, token: str) -> str:
     c.save()
     return caminho_pdf
 
-# =========================================================================
-# 2. GERAÇÃO DO VOUCHER DE HOSPEDAGEM (HOTÉIS, PASSEIOS ETC)
-# =========================================================================
+# ─── 2. GERAÇÃO DO VOUCHER DE HOSPEDAGEM (HOTÉIS / PASSEIOS) ───────────────
+
 def gerar_pdf_voucher(pedido_db: dict, dados_extra: dict = None) -> str:
-    """Gera o PDF com o nome e as estruturas esperadas pelo webhook"""
+    """Gera o PDF com o nome e a estrutura esperados pelo webhook, usando dados do Supabase"""
     output_dir = "tmp_pdfs"
     os.makedirs(output_dir, exist_ok=True)
     
@@ -334,7 +327,7 @@ def gerar_pdf_voucher(pedido_db: dict, dados_extra: dict = None) -> str:
     largura, altura = A4
 
     def nova_pagina(num_pag):
-        _desenhar_footer(c, largura, num_pag)
+        _desenhar_footer_voucher(c, largura, num_pag)
         c.showPage()
         c.setFillColor(colors.white)
         c.rect(0, 0, largura, altura, fill=1, stroke=0)
@@ -358,7 +351,7 @@ def gerar_pdf_voucher(pedido_db: dict, dados_extra: dict = None) -> str:
         c.line(MARGIN_X, y, largura - MARGIN_X, y)
         y -= 8 * mm
 
-    # --- STATUS ---
+    # --- STATUS E IDENTIFICAÇÃO DO PARCEIRO ---
     hotel_nome = _safe(dados_extra.get("nome") or pedido_db.get("nome_item"), "Acomodação Parceira")
     hotel_endereco = _safe(dados_extra.get("endereco") or pedido_db.get("endereco_completo"), "São Geraldo do Araguaia - PA")
 
@@ -380,7 +373,7 @@ def gerar_pdf_voucher(pedido_db: dict, dados_extra: dict = None) -> str:
     y -= 2 * mm
     desenhar_linha_divisoria()
 
-    # --- CARD DE CONFIRMAÇÃO ---
+    # --- CARD DE CONFIRMAÇÃO DO CONTROLO MUNICIPAL ---
     garantir_espaco(35)
     c.setFillColor(COR_FUNDO_DESTAQUE)
     c.setStrokeColor(COR_SECUNDARIA)
@@ -389,7 +382,7 @@ def gerar_pdf_voucher(pedido_db: dict, dados_extra: dict = None) -> str:
     
     c.setFillColor(COR_PRIMARIA)
     c.setFont("Helvetica-Bold", 10)
-    c.drawString(MARGIN_X + 8 * mm, y - 8 * mm, "LOCALIZADOR INTEGRADO DO ESTABELECIMENTO:")
+    c.drawString(MARGIN_X + 8 * mm, y - 8 * mm, "LOCALIZADOR INTEGRADO DO ESTABELECIMENTO (CHECK-IN):")
     c.setFillColor(COR_PRIMARIA)
     c.setFont("Helvetica-Bold", 22)
     c.drawString(MARGIN_X + 8 * mm, y - 17 * mm, codigo_pedido)
@@ -400,7 +393,7 @@ def gerar_pdf_voucher(pedido_db: dict, dados_extra: dict = None) -> str:
     c.drawString(largura - MARGIN_X - 8 * mm, y - 14 * mm, "O imposto de fomento ao turismo local já se encontra recolhido.")
     y -= 32 * mm
 
-    # --- INFORMAÇÕES DOS HÓSPEDES ---
+    # --- INFORMAÇÕES NOMINAIS DOS INTEGRANTES DA COMITIVA ---
     garantir_espaco(30)
     c.setFillColor(COR_PRIMARIA)
     c.setFont("Helvetica-Bold", 12)
@@ -414,7 +407,7 @@ def gerar_pdf_voucher(pedido_db: dict, dados_extra: dict = None) -> str:
     c.drawString(MARGIN_X + 150 * mm, y, "VÍNCULO")
     y -= 5 * mm
     
-    # Titular
+    # Titular da Transação
     c.setFillColor(COR_TEXTO_ESCURO)
     c.setFont("Helvetica-Bold", 10)
     c.drawString(MARGIN_X, y, _safe(pedido_db.get("nome_cliente")).upper())
@@ -423,7 +416,7 @@ def gerar_pdf_voucher(pedido_db: dict, dados_extra: dict = None) -> str:
     c.drawString(MARGIN_X + 150 * mm, y, "TITULAR")
     y -= 6 * mm
     
-    # Acompanhantes baseados na vaga agregada
+    # Acompanhantes
     total_pessoas = pedido_db.get("quantidade_pessoas", 1) or 1
     if total_pessoas > 1:
         for idx in range(1, total_pessoas):
@@ -438,7 +431,7 @@ def gerar_pdf_voucher(pedido_db: dict, dados_extra: dict = None) -> str:
             
     desenhar_linha_divisoria()
 
-    # --- ESTADIA ---
+    # --- DETALHES DE ALOCAÇÃO DO QUARTO E ESTADIA ---
     garantir_espaco(50)
     c.setFillColor(COR_PRIMARIA)
     c.setFont("Helvetica-Bold", 12)
@@ -472,12 +465,14 @@ def gerar_pdf_voucher(pedido_db: dict, dados_extra: dict = None) -> str:
     
     y -= 14 * mm
     
+    # Coluna Entrada
     c.setFillColor(COR_PRIMARIA); c.setFont("Helvetica-Bold", 14); c.drawString(MARGIN_X + 16 * mm, y, checkin_hora)
     c.setFillColor(COR_TEXTO_ESCURO); c.setFont("Helvetica-Bold", 10); c.drawString(MARGIN_X + 32 * mm, y, "CHECK-IN")
     c.setFillColor(COR_TEXTO_MEDIO); c.setFont("Helvetica", 8); c.drawString(MARGIN_X + 16 * mm, y - 4 * mm, _formatar_data_br(pedido_db.get("data_checkin")))
 
     c.setFillColor(COR_TEXTO_SUAVE); c.setFont("Helvetica", 14); c.drawString(largura / 2 - 5 * mm, y, "➔")
 
+    # Coluna Saída
     X_SAIDA = largura / 2 + 25 * mm
     c.setFillColor(COR_PRIMARIA); c.setFont("Helvetica-Bold", 14); c.drawString(X_SAIDA, y, checkout_hora)
     c.setFillColor(COR_TEXTO_ESCURO); c.setFont("Helvetica-Bold", 10); c.drawString(X_SAIDA + 18 * mm, y, "CHECK-OUT")
@@ -486,7 +481,7 @@ def gerar_pdf_voucher(pedido_db: dict, dados_extra: dict = None) -> str:
     y -= 18 * mm
     desenhar_linha_divisoria()
 
-    # --- FINANCEIRO ---
+    # --- RESUMO FINANCEIRO INTEGRADO DO PAGBANK ---
     garantir_espaco(30)
     c.setFillColor(COR_PRIMARIA)
     c.setFont("Helvetica-Bold", 12)
@@ -507,9 +502,11 @@ def gerar_pdf_voucher(pedido_db: dict, dados_extra: dict = None) -> str:
     c.setFont("Helvetica-Bold", 16)
     c.drawRightString(largura - MARGIN_X, y - 1 * mm, formatar_moeda(pedido_db.get("valor_total")))
 
-    _desenhar_footer(c, largura, 1)
+    _desenhar_footer_voucher(c, largura, 1)
 
-    # --- PÁGINA 2: CLÁUSULAS ---
+    # =========================================================================
+    # PÁGINA 2: CLÁUSULAS REGULAMENTARES E POLÍTICAS REAIS DA HOSPEDAGEM
+    # =========================================================================
     y = nova_pagina(2)
 
     def bloco_texto(titulo, paragrafos):
@@ -534,7 +531,7 @@ def gerar_pdf_voucher(pedido_db: dict, dados_extra: dict = None) -> str:
     y -= 6 * mm
     c.setFillColor(COR_TEXTO_SUAVE)
     c.setFont("Helvetica", 9)
-    c.drawString(MARGIN_X, y, "Este documento é regulamentado pela Secretaria de Turismo e possui fé pública.")
+    c.drawString(MARGIN_X, y, "Este documento é regulamentado pela Secretaria de Turismo e possui fé pública para ingresso na propriedade.")
     y -= 8 * mm
     
     c.setStrokeColor(COR_PRIMARIA)
@@ -542,6 +539,7 @@ def gerar_pdf_voucher(pedido_db: dict, dados_extra: dict = None) -> str:
     c.line(MARGIN_X, y + 4 * mm, largura - MARGIN_X, y + 4 * mm)
     y -= 4 * mm
 
+    # Políticas Específicas do Estabelecimento da Supabase
     regras_propriedade = []
     if politicas_json:
         for chave, val in politicas_json.items():
@@ -551,23 +549,23 @@ def gerar_pdf_voucher(pedido_db: dict, dados_extra: dict = None) -> str:
                 
     if not regras_propriedade:
         regras_propriedade = [
-            "· Apresentação obrigatória de documento com foto no check-in.",
-            "· Despesas extras com pagamento direto ao hotel.",
-            "· Cancelamentos via painel do parceiro."
+            "· Apresentação obrigatória de documento de identificação com foto no balcão da recepção.",
+            "· Despesas de consumo interno e frigobar não inclusas, com pagamento direto ao hotel.",
+            "· Cancelamentos ou modificações devem ser submetidos diretamente no painel do parceiro."
         ]
         
     bloco_texto("1. Políticas Específicas do Estabelecimento", regras_propriedade[:5])
 
-    bloco_texto("2. Regulação Governamental de Turismo", [
-        "O estabelecimento parceiro é homologado sob as diretrizes fiscais municipais de São Geraldo",
-        "do Araguaia. O valor repassado cobre estritamente a hotelaria, sendo vedada qualquer cobrança",
-        "de taxas ocultas ao turista que já realizou a liquidação oficial."
+    bloco_texto("2. Regulação Governamental de Turismo Coletivo", [
+        "O estabelecimento parceiro está devidamente cadastrado no Cadastur e homologado sob as diretrizes fiscais",
+        "municipais de São Geraldo do Araguaia - PA. O valor repassado cobre estritamente os serviços de hotelaria,",
+        "sendo vedada qualquer cobrança de taxas ocultas ao turista que já realizou a liquidação na plataforma oficial."
     ])
 
-    bloco_texto("3. Regras Ambientais Locais", [
-        "O turista compromete-se a respeitar as normativas de proteção da biosfera dos ecossistemas",
-        "do Rio Araguaia e áreas de conservação biológica. O descarte inadequado de resíduos ou",
-        "danos ao patrimônio natural acarretará sanções administrativas."
+    bloco_texto("3. Regras de Conduta e Preservação Ambiental Local", [
+        "Como visitante de São Geraldo do Araguaia, o turista compromete-se a respeitar as normativas de proteção",
+        "da biosfera dos ecossistemas do Rio Araguaia e áreas de conservação biológica. O descarte inadequado de",
+        "resíduos ou danos ao patrimônio natural circundante acarretará sanções administrativas municipais diretas."
     ])
 
     contatos_json = dados_extra.get("contatos", {}) if dados_extra else {}
@@ -583,14 +581,14 @@ def gerar_pdf_voucher(pedido_db: dict, dados_extra: dict = None) -> str:
     
     c.setFillColor(COR_PRIMARIA)
     c.setFont("Helvetica-Bold", 10)
-    c.drawString(MARGIN_X + 5 * mm, y - 6 * mm, "Central de Atendimento ao Turista - Ouvidoria Pública")
+    c.drawString(MARGIN_X + 5 * mm, y - 6 * mm, "Central de Atendimento ao Turista - Secretaria de Turismo")
     
     c.setFillColor(COR_TEXTO_MEDIO)
     c.setFont("Helvetica", 9)
-    c.drawString(MARGIN_X + 5 * mm, y - 12 * mm, f"Suporte do Estabelecimento: {hotel_email_suporte}")
+    c.drawString(MARGIN_X + 5 * mm, y - 12 * mm, f"Suporte Operacional do Estabelecimento: {hotel_email_suporte} | Ouvidoria Pública")
     c.setFont("Helvetica-Bold", 9)
     c.drawString(MARGIN_X + 5 * mm, y - 16 * mm, "Portal SagaTurismo Oficial  ·  Prefeitura Municipal de São Geraldo do Araguaia")
 
-    _desenhar_footer(c, largura, 2)
+    _desenhar_footer_voucher(c, largura, 2)
     c.save()
     return caminho_pdf

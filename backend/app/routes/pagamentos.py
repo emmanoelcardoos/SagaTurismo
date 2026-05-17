@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 import httpx
 import os
 import uuid
@@ -26,6 +26,12 @@ class EnderecoFaturacao(BaseModel):
     region_code: str
     country: str = "BRA"
     postal_code: str
+
+# ◄── NOVO: Modelo de validação para cada acompanhante individual
+class AcompanhanteSchema(BaseModel):
+    nome: str
+    cpf: Optional[str] = None
+    data_nascimento: Optional[str] = None
 
 class PedidoPagamento(BaseModel):
     tipo_item: str
@@ -55,6 +61,9 @@ class PedidoPagamento(BaseModel):
     metodo_pagamento: str
     encrypted_card: Optional[str] = None
     parcelas: Optional[int] = 1
+
+    # ◄── NOVO: Campo estruturado que recebe a lista de todos os acompanhantes
+    hospedes_extras: Optional[List[AcompanhanteSchema]] = []
 
 def calcular_preco_hotel_dinamico(hotel_id: str, tipo_quarto: str, checkin_str: str, checkout_str: str, quantidade_quartos: int = 1, quantidade_pessoas: int = 2) -> float:
     res_h = supabase.table("hoteis").select("*").eq("id", hotel_id).single().execute()
@@ -178,7 +187,7 @@ async def processar_pagamento(pedido: PedidoPagamento):
                 
             res_passeio = supabase.table("passeios").select("*").eq("id", id_passeio).single().execute()
             if not res_passeio.data:
-                raise HTTPException(status_code=404, detail="Passeio turístico não encontrado no catálogo.")
+                raise HTTPException(status_code=404, detail="Paimel ou passeio turístico não encontrado no catálogo.")
             
             dados_p = res_passeio.data
             valor_total = float(dados_p.get("valor_total", 0.0)) * (pedido.quantidade or 1)
@@ -270,6 +279,9 @@ async def processar_pagamento(pedido: PedidoPagamento):
         else:
             splits_array = []
 
+        # ==========================================
+        # FASE 3: PERSISTÊNCIA NO SUPABASE (MÓDULO DE ACOMPANHANTES ATIVO)
+        # ==========================================
         pedido_db = {
             "codigo_pedido": codigo_pedido,
             "tipo_item": pedido.tipo_item,
@@ -291,7 +303,10 @@ async def processar_pagamento(pedido: PedidoPagamento):
             "quantidade_pessoas": pedido.adultos if pedido.adultos else 2,
             "quantidade_quartos": pedido.quantidade if pedido.tipo_item in ["hotel", "pacote"] else 1,
             "nome_item": nome_item_checkout,
-            "item_id": limpar_uuid(item_id_db)
+            "item_id": limpar_uuid(item_id_db),
+            
+            # ◄── MAPEA OS OBJETOS DO PYDANTIC DIRETAMENTE PARA O FORMATO DICIONÁRIO DO SUPABASE (JSONB)
+            "hospedes_extras": [h.dict() for h in pedido.hospedes_extras] if pedido.hospedes_extras else []
         }
 
         res_pedido = supabase.table("pedidos").insert(pedido_db).execute()
