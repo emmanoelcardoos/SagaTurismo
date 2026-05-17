@@ -4,9 +4,14 @@ import uuid
 from datetime import datetime
 from supabase import create_client, Client
 
-# Importação dos serviços customizados (Necessários para gerar e enviar após o pagamento)
+# ◄── IMPORTAÇÃO DE TODAS AS FUNÇÕES DO MOTOR DE E-MAILS TRANSACIONAIS
 from app.services.pdf_service import gerar_pdf_carteira
-from app.services.email_service import enviar_carteiras_por_email
+from app.services.email_service import (
+    enviar_carteiras_por_email,
+    enviar_voucher_hotel,
+    enviar_voucher_pacote,
+    enviar_voucher_passeio
+)
 
 router = APIRouter()
 
@@ -71,30 +76,26 @@ async def webhook_pagbank(request: Request):
             
             print(f"[WEBHOOK] SUCESSO: O pagamento de {reference_id} foi confirmado.")
 
-            # B. Lógica Híbrida: Disparos de negócio baseados no tipo de item
+            # B. Lógica de Disparos de Negócio baseados no Tipo de Item
             tipo = pedido.get("tipo_item")
+            email_cliente = pedido.get("email_cliente")
+            nome_cliente = pedido.get("nome_cliente")
             
+            # ────────────────────────────────────────────────────────
+            # CASO A: CARTEIRA DIGITAL DE RESIDENTE
+            # ────────────────────────────────────────────────────────
             if tipo == "carteira":
-                email_cliente = pedido.get("email_cliente")
-                
-                # ◄── BUSCAR A FAMÍLIA PENDENTE: Procura quem está aguardando pagamento
                 res_residentes = supabase.table("rd_residentes").select("*").eq("email", email_cliente).eq("status", "aguardando_pagamento").execute()
                 residentes_pendentes = res_residentes.data
 
-                # Fallback: Se por acaso o email da compra for diferente do registo, tenta pelo CPF
                 if not residentes_pendentes:
-                    cpf_cliente = pedido.get("cpf_cliente")
-                    res_residentes = supabase.table("rd_residentes").select("*").eq("cpf", cpf_cliente).eq("status", "aguardando_pagamento").execute()
+                    res_residentes = supabase.table("rd_residentes").select("*").eq("cpf", pedido.get("cpf_cliente")).eq("status", "aguardando_pagamento").execute()
                     residentes_pendentes = res_residentes.data
 
                 if residentes_pendentes:
                     caminhos_pdfs = []
-                    
                     for res in residentes_pendentes:
-                        # 1. Ativar o residente na base de dados (Luz Verde da Prefeitura)
                         supabase.table("rd_residentes").update({"status": "ativo"}).eq("id", res["id"]).execute()
-                        
-                        # 2. Gerar o PDF individual com a foto e os dados
                         try:
                             dados_pdf = {
                                 "nome": res["nome_completo"],
@@ -106,26 +107,124 @@ async def webhook_pagbank(request: Request):
                             if caminho_pdf:
                                 caminhos_pdfs.append(caminho_pdf)
                         except Exception as e_pdf:
-                            print(f"[WEBHOOK] Erro ao gerar PDF da carteira para {res['nome_completo']}: {e_pdf}")
+                            print(f"[WEBHOOK] Erro ao gerar PDF da carteira: {e_pdf}")
                     
-                    # 3. Disparar o Email 
-                    # ◄── CORREÇÃO DE SINTAXE: Enviando EXATAMENTE 3 argumentos para a função de e-mail (Email, Nome, PDFs)
                     try:
-                        nome_titular = pedido.get("nome_cliente")
-                        enviar_carteiras_por_email(email_cliente, nome_titular, caminhos_pdfs)
-                        print(f"[WEBHOOK] MAGIA: E-mail com {len(caminhos_pdfs)} carteira(s) enviado com sucesso para {email_cliente}")
+                        enviar_carteiras_por_email(email_cliente, nome_cliente, caminhos_pdfs)
                     except Exception as e_email:
-                        print(f"[WEBHOOK] Erro Crítico ao enviar o e-mail das carteiras: {e_email}")
+                        print(f"[WEBHOOK] Erro ao enviar e-mail das carteiras: {e_email}")
                 else:
                     print(f"[WEBHOOK] Carteira Paga, mas nenhum registo 'aguardando_pagamento' encontrado para {email_cliente}")
 
+            # ────────────────────────────────────────────────────────
+            # CASO B: RESERVA AVULSA DE HOTEL (AÇÃO 1)
+            # ────────────────────────────────────────────────────────
             elif tipo == "hotel":
-                print(f"[WEBHOOK] Reserva de Hotel confirmada para {pedido.get('nome_cliente')}.")
-                # Opcional no futuro: enviar_voucher_hotel_por_email(...)
+                hotel_id = pedido.get("hotel_id") or pedido.get("item_id")
+                politicas_texto = "Apresente o seu documento de identificação original com foto no balcão de check-in."
+                nome_hotel = "Hotel Parceiro"
+                
+                try:
+                    res_h = supabase.table("hoteis").select("nome, politicas").eq("id", hotel_id).single().execute()
+                    if res_h.data:
+                        nome_hotel = res_h.data.get("nome", "Hotel Parceiro")
+                        p_raw = res_h.data.get("politicas")
+                        if p_raw:
+                            politicas_texto = p_raw.get("checkin_checkout") if isinstance(p_raw, dict) else str(p_raw)
+                except Exception as e_db:
+                    print(f"[WEBHOOK HOTEL] Falha ao extrair metadados do alojamento: {e_db}")
 
+                dados_reserva = {
+                    "nome_hotel": nome_hotel,
+                    "checkin": pedido.get("data_checkin"),
+                    "checkout": pedido.get("data_checkout"),
+                    "tipo_quarto": pedido.get("tipo_quarto", "standard"),
+                    "quantidade_pessoas": pedido.get("quantidade_pessoas", 2),
+                    "politicas": politicas_texto
+                }
+                
+                try:
+                    enviar_voucher_hotel(email_cliente, nome_cliente, dados_reserva)
+                    print(f"[WEBHOOK] Voucher de Hotel enviado com sucesso para {email_cliente}")
+                except Exception as e_mail:
+                    print(f"[WEBHOOK] Erro ao disparar voucher do hotel: {e_email}")
+
+            # ────────────────────────────────────────────────────────
+            # CASO C: COMPRA DE PACOTE TURÍSTICO COMPÓSITO (AÇÃO 2)
+            # ────────────────────────────────────────────────────────
             elif tipo == "pacote":
-                print(f"[WEBHOOK] Pacote turístico confirmado para {pedido.get('nome_cliente')}.")
-                # Opcional no futuro: enviar_voucher_pacote_por_email(...)
+                pacote_id = pedido.get("item_id")
+                nome_pacote = "Pacote de Expedição SagaTurismo"
+                nome_hotel = "Alojamento Oficial Incluso"
+                nome_guia = "Guia Credenciado Atribuído"
+                ponto_encontro = "Centro de Atendimento ao Turista (CAT) de São Geraldo do Araguaia."
+
+                try:
+                    res_p = supabase.table("pacotes").select("titulo, roteiro_detalhado").eq("id", pacote_id).single().execute()
+                    if res_p.data:
+                        nome_pacote = res_p.data.get("titulo", nome_pacote)
+
+                    if pedido.get("hotel_id"):
+                        res_h = supabase.table("hoteis").select("nome").eq("id", pedido.get("hotel_id")).single().execute()
+                        if res_h.data: nome_hotel = res_h.data.get("nome")
+
+                    if pedido.get("guia_id"):
+                        res_g = supabase.table("guias").select("nome").eq("id", pedido.get("guia_id")).single().execute()
+                        if res_g.data: nome_guia = res_g.data.get("nome")
+                except Exception as e_db:
+                    print(f"[WEBHOOK PACOTE] Erro ao minerar dados relacionais: {e_db}")
+
+                dados_pacote = {
+                    "nome_pacote": nome_pacote,
+                    "checkin": pedido.get("data_checkin"),
+                    "checkout": pedido.get("data_checkout"),
+                    "nome_hotel": nome_hotel,
+                    "nome_guia": nome_guia,
+                    "ponto_encontro": ponto_encontro
+                }
+
+                try:
+                    enviar_voucher_pacote(email_cliente, nome_cliente, dados_pacote)
+                    print(f"[WEBHOOK] Voucher do Pacote Oficial enviado para {email_cliente}")
+                except Exception as e_mail:
+                    print(f"[WEBHOOK] Erro ao disparar voucher do pacote: {e_email}")
+
+            # ────────────────────────────────────────────────────────
+            # CASO D: COMPRA DE PASSEIO AVULSO (AÇÃO 3)
+            # ────────────────────────────────────────────────────────
+            elif tipo == "passeio":
+                passeio_id = pedido.get("item_id")
+                nome_passeio = "Passeio Ecológico Oficial"
+                nome_guia = "Guia de Turismo Credenciado"
+                contato_guia = "Disponível via Central SagaTurismo"
+
+                try:
+                    res_pass = supabase.table("passeios").select("nome, guia_id").eq("id", passeio_id).single().execute()
+                    if res_pass.data:
+                        nome_passeio = res_pass.data.get("nome", nome_passeio)
+                        g_id = res_pass.data.get("guia_id") or pedido.get("guia_id")
+                        
+                        if g_id:
+                            res_g = supabase.table("guias").select("nome, telefone").eq("id", g_id).single().execute()
+                            if res_g.data:
+                                nome_guia = res_g.data.get("nome", nome_guia)
+                                contato_guia = res_g.data.get("telefone", contato_guia)
+                except Exception as e_db:
+                    print(f"[WEBHOOK PASSEIO] Falha ao ler a tabela de passeios/guias: {e_db}")
+
+                dados_passeio = {
+                    "nome_passeio": nome_passeio,
+                    "data_hora": pedido.get("data_checkin") or "Agendado (Consultar painel)",
+                    "endereco": "Orla de São Geraldo do Araguaia - Ponto de Embarque Oficial",
+                    "nome_guia": nome_guia,
+                    "contato_guia": contato_guia
+                }
+
+                try:
+                    enviar_voucher_passeio(email_cliente, nome_cliente, dados_passeio)
+                    print(f"[WEBHOOK] Voucher de Passeio enviado com sucesso para {email_cliente}")
+                except Exception as e_mail:
+                    print(f"[WEBHOOK] Erro ao disparar voucher do passeio: {e_email}")
 
         elif status_normalizado in ["DECLINED", "CANCELED", "REFUNDED"]:
             supabase.table("pedidos").update({"status_pagamento": "recusado"}).eq("codigo_pedido", reference_id).execute()
@@ -135,5 +234,4 @@ async def webhook_pagbank(request: Request):
 
     except Exception as e:
         print(f"[WEBHOOK ERRO] Falha crítica: {str(e)}")
-        # Retornamos 200 para o PagBank não ficar em loop infinito de tentativas se houver bug de código nosso
         return {"status": "ok", "error": "Internal process handled"}
