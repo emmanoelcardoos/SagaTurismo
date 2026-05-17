@@ -50,6 +50,24 @@ const getArraySeguro = (item: any): string[] => {
   return [];
 };
 
+// ── FUNÇÃO MÁGICA PARA O MAPA ──
+const gerarUrlMapa = (coordenadasStr: string) => {
+  if (!coordenadasStr) return '';
+  // Se for um link embed (http), usa diretamente
+  if (coordenadasStr.startsWith('http')) return coordenadasStr;
+
+  // Se for formato de coordenadas "lat, lon", converte para Google Maps Embed dinâmico
+  if (coordenadasStr.includes(',')) {
+    const [lat, lon] = coordenadasStr.split(',').map(s => s.trim());
+    if (!isNaN(Number(lat)) && !isNaN(Number(lon))) {
+      return `https://maps.google.com/maps?q=${lat},${lon}&hl=pt-BR&z=15&output=embed`;
+    }
+  }
+
+  // Se o guia escrever apenas texto solto, procura como endereço
+  return `https://maps.google.com/maps?q=${encodeURIComponent(coordenadasStr)}&hl=pt-BR&z=15&output=embed`;
+};
+
 // ── TIPAGEM DO PASSEIO ──
 type Passeio = {
   id: string;
@@ -324,7 +342,7 @@ export default function PasseioDetalhePage() {
               </p>
             </div>
 
-            {/* MAPA */}
+            {/* MAPA CORRIGIDO E BLINDADO */}
             {passeio.coordenadas_google_maps && (
               <div className="bg-white p-5 rounded-[2.5rem] shadow-xl border border-slate-200 overflow-hidden text-center">
                 <div className="flex justify-between items-center mb-4 px-2">
@@ -338,7 +356,7 @@ export default function PasseioDetalhePage() {
                   {passeio.coordenadas_google_maps.startsWith('<iframe') ? (
                     <div dangerouslySetInnerHTML={{ __html: passeio.coordenadas_google_maps.replace('width="600"', 'width="100%"').replace('height="450"', 'height="100%"') }} className="w-full h-full" />
                   ) : (
-                    <iframe width="100%" height="100%" style={{ border: 0 }} loading="lazy" allowFullScreen src={passeio.coordenadas_google_maps} />
+                    <iframe width="100%" height="100%" style={{ border: 0 }} loading="lazy" allowFullScreen src={gerarUrlMapa(passeio.coordenadas_google_maps)} />
                   )}
                 </div>
               </div>
