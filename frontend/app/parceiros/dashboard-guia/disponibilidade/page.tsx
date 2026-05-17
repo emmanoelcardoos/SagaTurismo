@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { 
   Loader2, ArrowLeft, CheckCircle2, Save, Compass, 
   ChevronLeft, ChevronRight, DollarSign, Users, 
-  MapPin, Trash2, Upload, Images, MailWarning, Calendar as CalendarIcon
+  MapPin, Trash2, Upload, Images, MailWarning, Calendar as CalendarIcon, Plus 
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -207,7 +207,7 @@ export default function DisponibilidadeGuiaPage() {
     }
   };
 
-  // ── LÓGICA DO MINI-CALENDÁRIO DA AGENDA (CORRIGIDA) ──
+  // ── LÓGICA DO MINI-CALENDÁRIO DA AGENDA ──
   const formatarDataIso = (data: Date) => `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`;
   const diasDoMes = (ano: number, mes: number) => new Date(ano, mes + 1, 0).getDate();
   const primeiroDiaDoMes = (ano: number, mes: number) => new Date(ano, mes, 1).getDay();
