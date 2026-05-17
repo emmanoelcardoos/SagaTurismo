@@ -33,15 +33,28 @@ type Passeio = {
   categoria?: string;
 };
 
+type Acompanhante = {
+  nome: string;
+  cpf: string;
+  data_nascimento: string;
+};
+
 const formatarMoeda = (valor: number) => (valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const mascaraCPF = (v: string) => v.replace(/\D/g, '').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})/, '$1-$2').slice(0, 14);
 const mascaraCartao = (v: string) => v.replace(/\D/g, '').replace(/(\d{4})(?=\d)/g, '$1 ').slice(0, 19);
 const mascaraTelefone = (v: string) => v.replace(/\D/g, '').replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d{4})/, '$1-$2').slice(0, 15);
+const mascaraData = (v: string) => v.replace(/\D/g, '').replace(/(\d{2})(\d)/, '$1/$2').replace(/(\d{2})(\d)/, '$1/$2').slice(0, 10);
 
 const formatarData = (dataStr: string) => {
   if (!dataStr) return '';
   const [ano, mes, dia] = dataStr.split('-');
   return `${dia}/${mes}/${ano}`;
+};
+
+const formatarParaBackend = (dataBr: string): string => {
+  if (!dataBr || dataBr.length < 10) return '';
+  const [dia, mes, ano] = dataBr.split('/');
+  return `${ano}-${mes}-${dia}`;
 };
 
 function SectionCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
@@ -117,6 +130,30 @@ function CheckoutPasseioContent() {
   const [cpf, setCpf] = useState('');
   const [telefone, setTelefone] = useState('');
   
+  // Estado Dinâmico para Acompanhantes Extras
+  const [hospedesExtras, setHospedesExtras] = useState<Acompanhante[]>([]);
+
+  useEffect(() => {
+    const numAcompanhantes = Math.max(0, pessoasParam - 1);
+    setHospedesExtras(prev => {
+      const copy = [...prev];
+      if (copy.length === numAcompanhantes) return prev;
+      if (copy.length > numAcompanhantes) return copy.slice(0, numAcompanhantes);
+      while (copy.length < numAcompanhantes) {
+        copy.push({ nome: '', cpf: '', data_nascimento: '' });
+      }
+      return copy;
+    });
+  }, [pessoasParam]);
+
+  const handleAcompanhanteChange = (index: number, campo: keyof Acompanhante, valor: string) => {
+    setHospedesExtras(prev => {
+      const novos = [...prev];
+      novos[index] = { ...novos[index], [campo]: valor };
+      return novos;
+    });
+  };
+
   // Payment Metodos
   const [metodoPagamento, setMetodoPagamento] = useState<'pix' | 'cartao'>('pix');
   const [nomeCartao, setNomeCartao] = useState('');
@@ -187,9 +224,23 @@ function CheckoutPasseioContent() {
     setErroApi('');
     if (cpf.length < 14) { setErroApi('CPF inválido para emissão do voucher.'); return; }
     if (telefone.length < 14) { setErroApi('WhatsApp obrigatório para avisos de saída.'); return; }
+
+    // Validação preventiva das máscaras dinâmicas antes do POST
+    for (let i = 0; i < hospedesExtras.length; i++) {
+      if (hospedesExtras[i].data_nascimento.length < 10) {
+        setErroApi(`Por favor, preencha a data de nascimento completa do Acompanhante #${i + 1}.`);
+        return;
+      }
+    }
+
     setIsSubmitting(true);
 
-    // Payload blindado com morada padrão oculta para satisfazer o Pydantic do FastAPI
+    const acompanhantesFormatados = hospedesExtras.map(h => ({
+      nome: h.nome,
+      cpf: h.cpf.replace(/\D/g, ''),
+      data_nascimento: formatarParaBackend(h.data_nascimento)
+    }));
+
     const payload: any = {
       tipo_item: "passeio", 
       item_id: passeioId,
@@ -199,9 +250,10 @@ function CheckoutPasseioContent() {
       email_cliente: email,
       telefone_cliente: telefone.replace(/\D/g, ''), 
       valor_total: valorTotalFinal,
-      metodo_pagamento: metodoPagamento, // ◄── Injetado na raiz
+      metodo_pagamento: metodoPagamento,
       data_checkin: passeio?.data_passeio,
-      endereco_faturacao: { // ◄── Dados padrão para evitar o Erro 422 sem poluir o ecrã do cliente
+      hospedes_extras: acompanhantesFormatados,
+      endereco_faturacao: {
         street: "Centro Municipal",
         number: "S/N",
         locality: "Centro",
@@ -252,7 +304,6 @@ function CheckoutPasseioContent() {
             id_pedido: data.codigo_pedido 
           });
         } else {
-          // Redireciona para a página de sucesso global com o localizador gerado
           router.push(`/sucesso?pedido=${data.codigo_pedido}`);
         }
       } else {
@@ -313,25 +364,74 @@ function CheckoutPasseioContent() {
               <form onSubmit={handleProcessarTransacao} className="space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 
                 <SectionCard className="p-6 md:p-10 text-left border-t-4 border-t-[#00577C]">
-                  <SectionHeader step={1} title="Dados do Passageiro Principal" icon={<User size={20} />} />
-                  <div className="grid gap-5 md:gap-6 sm:grid-cols-2">
-                    <div className="sm:col-span-2">
-                      <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Nome Completo *</label>
-                      <input required value={nome} onChange={e => setNome(e.target.value)} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF] focus:bg-white" placeholder="Nome completo para o manifesto de embarque" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">CPF *</label>
-                      <input required value={cpf} onChange={e => setCpf(mascaraCPF(e.target.value))} maxLength={14} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF] focus:bg-white" placeholder="000.000.000-00" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">WhatsApp de Contato *</label>
-                      <input required value={telefone} onChange={e => setTelefone(mascaraTelefone(e.target.value))} maxLength={15} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF] focus:bg-white" placeholder="(99) 99999-9999" />
-                    </div>
-                    <div className="sm:col-span-2">
-                      <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">E-mail para Receção do Voucher *</label>
-                      <input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF] focus:bg-white" placeholder="seu@email.com" />
+                  <SectionHeader step={1} title="Dados de Identificação" icon={<Users size={20} />} />
+                  
+                  {/* Titular */}
+                  <div className="space-y-4">
+                    <p className="text-xs font-black text-[#0085FF] uppercase tracking-wider mb-2">Passageiro Principal (Titular)</p>
+                    <div className="grid gap-5 md:gap-6 sm:grid-cols-2">
+                      <div className="sm:col-span-2">
+                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Nome Completo *</label>
+                        <input required value={nome} onChange={e => setNome(e.target.value)} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF] focus:bg-white" placeholder="Nome completo para o manifesto de embarque" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">CPF *</label>
+                        <input required value={cpf} onChange={e => setCpf(mascaraCPF(e.target.value))} maxLength={14} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF] focus:bg-white" placeholder="000.000.000-00" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">WhatsApp de Contato *</label>
+                        <input required value={telefone} onChange={e => setTelefone(mascaraTelefone(e.target.value))} maxLength={15} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF] focus:bg-white" placeholder="(99) 99999-9999" />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">E-mail para Receção do Voucher *</label>
+                        <input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF] focus:bg-white" placeholder="seu@email.com" />
+                      </div>
                     </div>
                   </div>
+
+                  {/* Blocos de Acompanhantes Dinâmicos Mobile-First */}
+                  {hospedesExtras.length > 0 && (
+                    <div className="mt-8 pt-8 border-t-2 border-dashed border-slate-100 space-y-8">
+                      <div>
+                        <p className="text-xs font-black text-slate-800 uppercase tracking-wider">Co-Passageiros Adicionais</p>
+                        <p className="text-[11px] font-bold text-slate-400 mt-1 uppercase">Obrigatório pela capitania e órgãos de fiscalização do ecossistema local.</p>
+                      </div>
+
+                      {hospedesExtras.map((h, i) => (
+                        <div key={i} className="p-5 border border-slate-100 rounded-2xl bg-slate-50/50 space-y-4 animate-in fade-in duration-300">
+                          <span className="inline-flex bg-[#0085FF] text-white text-[9px] font-black uppercase px-2.5 py-1 rounded-md tracking-wider">
+                            Acompanhante #{i + 1}
+                          </span>
+                          
+                          <div className="grid gap-4 sm:grid-cols-2">
+                            <div className="sm:col-span-2">
+                              <label className="block text-[9px] font-black uppercase text-slate-400 mb-1.5 ml-1">Nome Completo *</label>
+                              <input required value={h.nome} onChange={e => handleAcompanhanteChange(i, 'nome', e.target.value.toUpperCase())} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF]" placeholder="Nome do co-passageiro" />
+                            </div>
+                            <div>
+                              <label className="block text-[9px] font-black uppercase text-slate-400 mb-1.5 ml-1">CPF *</label>
+                              <input required value={h.cpf} onChange={e => handleAcompanhanteChange(i, 'cpf', mascaraCPF(e.target.value))} maxLength={14} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF]" placeholder="000.000.000-00" />
+                            </div>
+                            <div className="relative">
+                              <label className="block text-[9px] font-black uppercase text-slate-400 mb-1.5 ml-1">Data de Nascimento *</label>
+                              <div className="relative flex items-center">
+                                <input 
+                                  required 
+                                  type="text"
+                                  inputMode="numeric"
+                                  value={h.data_nascimento} 
+                                  onChange={e => handleAcompanhanteChange(i, 'data_nascimento', mascaraData(e.target.value))} 
+                                  className="w-full rounded-xl border border-slate-200 bg-white pl-4 pr-10 py-3 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF]" 
+                                  placeholder="DD/MM/AAAA" 
+                                />
+                                <Calendar size={16} className="absolute right-3.5 text-slate-400 pointer-events-none" />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </SectionCard>
 
                 <SectionCard className="p-6 md:p-10 text-left">
@@ -388,7 +488,7 @@ function CheckoutPasseioContent() {
             )}
           </div>
 
-          {/* ── COLUNA DIREITA (COMPLETAMENTE ESTÁTICA) ── */}
+          {/* ── COLUNA DIREITA ── */}
           <aside className="w-full h-fit order-first lg:order-last relative space-y-6">
             <SectionCard>
               <div className="h-2 w-full bg-gradient-to-r from-[#00577C] via-[#F9C400] to-[#009640]" />
