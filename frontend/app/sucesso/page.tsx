@@ -96,7 +96,7 @@ function SucessoContent() {
           if (iData) setDetalhesItem(iData);
         }
 
-        // Cross-Selling Estratégico: Recomenda hotéis para passeios/pacotes e vice-versa
+        // Cross-Selling Estratégico: Recomenda hotéis para passeios e vice-versa
         const tabelaOposta = pData.tipo_item === 'hotel' ? 'passeios' : 'hoteis';
         const { data: sugData } = await supabase
           .from(tabelaOposta)
@@ -176,7 +176,7 @@ function SucessoContent() {
              Pedido Confirmado
            </h1>
            <p className="text-sm md:text-lg text-slate-600 max-w-2xl mx-auto font-medium leading-relaxed px-2">
-             Olá <span className="text-[#00577C] font-bold">{nomeExibicao}</span>, o seu pagamento foi confirmado! O seu número de pedido é <span className="font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">{pedido?.codigo_pedido || '---'}</span>.<br/>
+             Olá <span className="text-[#00577C] font-bold">{nomeExibicao}</span>, o seu pagamento foi confirmed! O seu número de pedido é <span className="font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">{pedido?.codigo_pedido || '---'}</span>.<br/>
              A sua reserva no <span className="text-[#00577C] font-bold">{tituloReserva || 'serviço'}</span> foi efetuada com sucesso.
            </p>
         </div>
@@ -305,7 +305,8 @@ function SucessoContent() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
               {sugestoes.map((item) => {
-                const isSugestaoHotel = tabelaOposta === 'hoteis'; 
+                # ◄── CORREÇÃO DE ESCOPO: Avalia com base no estado 'pedido' mapeado na renderização externa
+                const isSugestaoHotel = pedido?.tipo_item !== 'hotel'; 
                 const img = isSugestaoHotel ? item.imagem_url : item.imagem_principal;
                 const titulo = isSugestaoHotel ? item.nome : item.titulo;
                 const preco = isSugestaoHotel ? item.quarto_standard_preco : (item.valor_total || item.preco);
