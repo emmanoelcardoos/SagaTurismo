@@ -64,6 +64,7 @@ export default function ParceirosPage() {
   const [formTelefone, setFormTelefone] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formSucesso, setFormSucesso] = useState(false);
+  const [erroForm, setErroForm] = useState(''); // ◄── NOVO: Feedback de erro para submissão de interesse
 
   // Lógica de Scroll do Header
   useEffect(() => {
@@ -97,11 +98,9 @@ export default function ParceirosPage() {
         localStorage.setItem("parceiro_id", data.parceiro_id);
         localStorage.setItem("nome_negocio", data.nome_negocio);
         
-        // Define o tipo pelo que a API devolveu, ou usa a escolha do utilizador como fallback
         const tipoFinal = data.tipo_parceiro || portalSelecionado;
         localStorage.setItem("tipo_parceiro", tipoFinal);
         
-        // ── ENCAMINHAMENTO INTELIGENTE POR TIPO DE PARCEIRO ──
         if (tipoFinal === 'hotel') {
           router.push("/parceiros/dashboard-hotel");
         } else if (tipoFinal === 'guia') {
@@ -109,7 +108,7 @@ export default function ParceirosPage() {
         } else if (tipoFinal === 'pacote' || tipoFinal === 'agencia') {
           router.push("/parceiros/dashboard-agencia");
         } else {
-          router.push("/parceiros/dashboard-hotel"); // Fallback de segurança
+          router.push("/parceiros/dashboard-hotel");
         }
         
       } else {
@@ -123,13 +122,41 @@ export default function ParceirosPage() {
     }
   };
 
-  const handleInteresse = (e: React.FormEvent) => {
+  // ◄── FUNÇÃO ATUALIZADA COM FETCH REAL PARA O BACKEND FASTAPI
+  const handleInteresse = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setTimeout(() => {
+    setErroForm('');
+    
+    try {
+      const response = await fetch("https://sagaturismo-production.up.railway.app/api/v1/parceiros/interesse", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nome: formNome,
+          empresa: formEmpresa,
+          tipo: formTipo,
+          telefone: formTelefone
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.sucesso) {
+        setFormSucesso(true);
+        // Limpa os campos após o sucesso para segurança do utilizador
+        setFormNome('');
+        setFormEmpresa('');
+        setFormTelefone('');
+      } else {
+        setErroForm(data.detail || data.mensagem || "Não foi possível processar o seu pedido. Tente mais tarde.");
+      }
+    } catch (error) {
+      console.error("Erro ao enviar formulário de interesse:", error);
+      setErroForm("Falha ao conectar com o servidor da prefeitura.");
+    } finally {
       setIsSubmitting(false);
-      setFormSucesso(true);
-    }, 1500);
+    }
   };
 
   return (
@@ -173,7 +200,7 @@ export default function ParceirosPage() {
         <div className="mx-auto w-full max-w-7xl px-5 relative z-10">
           <div className="grid lg:grid-cols-2 gap-10 lg:gap-20 items-center">
             
-            {/* TEXTO HERO (Esquerda) */}
+            {/* TEXTO HERO */}
             <ScrollReveal delay={100} className="text-left mt-6 lg:mt-0">
                <div className="inline-flex items-center gap-2 bg-[#F9C400] text-[#00577C] px-3 md:px-4 py-1.5 md:py-2 rounded-lg text-[10px] md:text-xs font-black uppercase tracking-widest shadow-md mb-6">
                  <ShieldCheck size={16} /> Sistema Oficial
@@ -186,11 +213,11 @@ export default function ParceirosPage() {
                </p>
             </ScrollReveal>
 
-            {/* ZONA DE LOBBY / LOGIN (Direita) */}
+            {/* ZONA DE LOBBY / LOGIN */}
             <ScrollReveal delay={300} className="w-full max-w-md mx-auto lg:ml-auto">
                <div className="relative w-full h-[450px]">
                  
-                 {/* CARTÕES DE SELEÇÃO (LOBBY) */}
+                 {/* CARTÕES DE SELEÇÃO */}
                  <div className={`absolute inset-0 w-full transition-all duration-500 ease-in-out ${portalSelecionado ? '-translate-x-full opacity-0 pointer-events-none' : 'translate-x-0 opacity-100'}`}>
                     <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-[2rem] p-6 shadow-2xl flex flex-col gap-4">
                        <h3 className={`${jakarta.className} text-white text-xl font-black mb-2 text-center`}>Selecione o seu Portal</h3>
@@ -227,7 +254,6 @@ export default function ParceirosPage() {
                  {/* FORMULÁRIO DE LOGIN ESPECÍFICO */}
                  <div className={`absolute inset-0 w-full transition-all duration-500 ease-in-out ${!portalSelecionado ? 'translate-x-full opacity-0 pointer-events-none' : 'translate-x-0 opacity-100'}`}>
                     <div className="bg-white rounded-[2rem] shadow-2xl p-8 border border-slate-100 h-full flex flex-col relative overflow-hidden">
-                       {/* Topo colorido por tema */}
                        <div className={`absolute top-0 left-0 right-0 h-2 ${portalSelecionado === 'hotel' ? 'bg-[#00577C]' : portalSelecionado === 'guia' ? 'bg-[#009640]' : 'bg-purple-700'}`} />
                        
                        <button type="button" onClick={() => { setPortalSelecionado(null); setErroLogin(''); }} className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:text-slate-800 transition-colors mb-4 border border-slate-200 shadow-sm">
@@ -284,7 +310,7 @@ export default function ParceirosPage() {
         </div>
       </section>
 
-      {/* ── PORQUE SER PARCEIRO (BENEFÍCIOS) ── */}
+      {/* ── PORQUE SER PARCEIRO ── */}
       <section className="py-16 md:py-32 px-5 bg-white text-center overflow-hidden">
          <div className="max-w-7xl mx-auto">
             <ScrollReveal>
@@ -381,6 +407,9 @@ export default function ParceirosPage() {
                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-1.5 md:mb-2">WhatsApp para contato</label>
                         <input type="tel" required value={formTelefone} onChange={(e) => setFormTelefone(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-3.5 px-4 text-sm font-bold outline-none focus:border-[#00577C]" placeholder="(94) 90000-0000" />
                      </div>
+
+                     {/* ◄── INTERCALADO FEEDBACK DE ERRO VISUAL NO FORMULÁRIO DE CAPTAÇÃO */}
+                     {erroForm && <p className="text-xs font-bold text-red-600 bg-red-50 p-3 rounded-xl border border-red-100 text-center animate-in fade-in duration-300">{erroForm}</p>}
 
                      <button type="submit" disabled={isSubmitting} className="w-full bg-[#009640] hover:bg-[#007a33] text-white py-4 rounded-xl font-black uppercase text-xs tracking-widest shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2 mt-2 md:mt-4">
                         {isSubmitting ? (

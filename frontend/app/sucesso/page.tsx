@@ -15,7 +15,6 @@ import { supabase } from '@/lib/supabase';
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '700', '800'] });
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
 
-// ── UTILITÁRIOS BLINDADOS ──
 const formatarMoeda = (valor: any) => {
   if (!valor) return 'Sob consulta';
   const strVal = typeof valor === 'string' ? valor.replace(',', '.') : valor;
@@ -87,14 +86,18 @@ function SucessoContent() {
         
         setPedido(pData);
 
-        const tabela = pData.tipo_item === 'hotel' ? 'hoteis' : 'pacotes';
+        // Resolução dinâmica de tabela baseada no Schema real
+        let tabela = 'pacotes';
+        if (pData.tipo_item === 'hotel') tabela = 'hoteis';
+        if (pData.tipo_item === 'passeio') tabela = 'passeios';
+
         if (pData.item_id) {
           const { data: iData } = await supabase.from(tabela).select('*').eq('id', pData.item_id).maybeSingle();
           if (iData) setDetalhesItem(iData);
         }
 
-        // 3. MAGIA DO CROSS-SELLING: Busca sugestões
-        const tabelaOposta = pData.tipo_item === 'hotel' ? 'pacotes' : 'hoteis';
+        // Cross-Selling Estratégico: Recomenda hotéis para passeios/pacotes e vice-versa
+        const tabelaOposta = pData.tipo_item === 'hotel' ? 'passeios' : 'hoteis';
         const { data: sugData } = await supabase
           .from(tabelaOposta)
           .select('*')
@@ -133,6 +136,8 @@ function SucessoContent() {
   );
 
   const isHotel = pedido?.tipo_item === 'hotel';
+  const isPasseio = pedido?.tipo_item === 'passeio';
+
   const tituloReserva = isHotel ? detalhesItem?.nome : detalhesItem?.titulo;
   const imagemReserva = isHotel ? detalhesItem?.imagem_url : detalhesItem?.imagem_principal;
   const nomeExibicao = pedido?.nome_cliente ? String(pedido.nome_cliente).split(' ')[0] : 'Viajante';
@@ -143,7 +148,7 @@ function SucessoContent() {
       {/* HEADER OFICIAL */}
       <header className={`fixed left-0 top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl transition-transform duration-300 ${showHeader ? 'translate-y-0' : '-translate-y-full'}`}>
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-5">
-          <Link href="/" className="flex min-w-0 items-center gap-3 sm:gap-4">
+          <Link href="/" className="flex min-w-0 items-center gap-3 sm:gap-4 text-left">
             <div className="relative h-10 w-28 shrink-0 sm:h-16 sm:w-56">
               <Image src="/logop.png" alt="Prefeitura" fill priority className="object-contain object-left" />
             </div>
@@ -207,7 +212,7 @@ function SucessoContent() {
                  
                  <div className="flex-1 text-center md:text-left">
                     <div className="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg mb-3 text-[#00577C] font-black uppercase text-[9px] md:text-[10px] tracking-widest">
-                       {isHotel ? <Bed size={14}/> : <Compass size={14}/>} {isHotel ? 'Alojamento Oficial' : 'Pacote Turístico'}
+                       {isHotel ? <Bed size={14}/> : <Compass size={14}/>} {isHotel ? 'Alojamento Oficial' : isPasseio ? 'Expedição / Passeio' : 'Pacote Turístico'}
                     </div>
                     <h2 className={`${jakarta.className} text-2xl md:text-4xl font-black text-slate-900 leading-tight mb-2`}>{tituloReserva || 'Reserva Oficial'}</h2>
                     <p className="text-slate-500 font-bold text-xs md:text-sm flex items-center justify-center md:justify-start gap-1.5"><MapPin size={14} className="text-[#009640]"/> São Geraldo do Araguaia - PA</p>
@@ -216,7 +221,7 @@ function SucessoContent() {
 
               <div className="grid md:grid-cols-[1.2fr_1fr] gap-8 md:gap-12 items-center">
                  <div className="space-y-6 md:space-y-8">
-                    {isHotel && (
+                    {isHotel ? (
                        <div className="grid grid-cols-2 gap-4 bg-slate-50 rounded-2xl md:rounded-3xl p-5 md:p-6 border border-slate-100">
                           <div>
                             <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5 flex items-center gap-1.5"><Calendar size={14}/> Check-in</p>
@@ -227,14 +232,12 @@ function SucessoContent() {
                             <p className="font-black text-slate-800 text-base md:text-lg">{formatarData(pedido?.data_checkout)}</p>
                           </div>
                        </div>
-                    )}
-                    
-                    {!isHotel && (
+                    ) : (
                        <div className="bg-slate-50 rounded-2xl md:rounded-3xl p-5 md:p-6 border border-slate-100 flex items-center gap-4 text-left">
                           <div className="w-10 h-10 md:w-12 md:h-12 bg-white rounded-xl flex items-center justify-center text-[#F9C400] shadow-sm shrink-0"><Calendar size={20} className="md:w-6 md:h-6"/></div>
                           <div>
                              <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Data Agendada</p>
-                             <p className="font-black text-slate-800 text-lg md:text-xl">{formatarData(pedido?.data_checkin)}</p>
+                             <p className="font-black text-slate-800 text-base md:text-lg">{formatarData(pedido?.data_checkin)}</p>
                           </div>
                        </div>
                     )}
@@ -251,7 +254,7 @@ function SucessoContent() {
                  </div>
 
                  {/* Resumo de Pagamento Elegante */}
-                 <div className="bg-white border-2 border-slate-100 rounded-3xl md:rounded-[2.5rem] p-6 md:p-8 space-y-4 md:space-y-6 relative overflow-hidden">
+                 <div className="bg-white border-2 border-slate-100 rounded-3xl md:rounded-[2.5rem] p-6 md:p-8 space-y-4 md:space-y-6 relative overflow-hidden text-left">
                     <div className="flex justify-between items-center text-xs md:text-sm font-bold text-slate-500 uppercase tracking-widest">
                        <span>Total Pago</span>
                        <span className="bg-green-100 text-[#009640] px-2 md:px-3 py-1 rounded-full text-[9px] md:text-[10px] flex items-center gap-1.5 shrink-0">
@@ -270,7 +273,7 @@ function SucessoContent() {
                  <Link href="/" className="text-slate-500 hover:text-[#00577C] font-bold text-xs md:text-sm flex items-center gap-2 transition-colors">
                     <ArrowLeft size={16}/> Voltar ao Início
                  </Link>
-                 <button onClick={() => window.print()} className="w-full sm:w-auto bg-slate-50 border border-slate-200 text-slate-700 px-6 py-3.5 md:px-8 md:py-4 rounded-xl md:rounded-2xl font-black text-xs md:text-sm flex items-center justify-center gap-2 hover:bg-white transition-all active:scale-95 shadow-sm">
+                 <button onClick={() => window.print()} className="w-full sm:w-auto bg-slate-50 border border-slate-200 text-slate-700 px-6 py-3.5 md:px-8 md:py-4 rounded-xl md:rounded-2xl font-black text-xs md:text-sm flex items-center justify-center gap-2 hover:bg-white transition-all active:scale-95 shadow-sm cursor-pointer">
                     <Printer size={16} className="md:w-[18px] md:h-[18px]"/> Imprimir Recibo
                  </button>
               </div>
@@ -278,12 +281,12 @@ function SucessoContent() {
         </div>
       </div>
 
-      {/* ── SECÇÃO CROSS-SELLING (COERENTE E AMIGÁVEL) ── */}
+      {/* ── SECÇÃO CROSS-SELLING ── */}
       {sugestoes.length > 0 && (
         <section className="w-full bg-white py-16 md:py-24 px-5 border-t border-slate-200">
           <div className="max-w-7xl mx-auto text-left">
             <div className="mb-10 md:mb-12 text-center md:text-left flex flex-col items-center md:items-start">
-              <span className="inline-flex items-center gap-1.5 bg-[#00577C]/10 text-[#00577C] px-3 md:px-4 py-1.5 md:py-2 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-sm">
+              <span className="inline-flex items-center gap-1.5 bg-slate-100 text-[#00577C] px-3 md:px-4 py-1.5 md:py-2 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-sm">
                  <Star size={12} className="fill-[#00577C]" /> Recomendação Especial para Si
               </span>
               
@@ -300,18 +303,17 @@ function SucessoContent() {
               </p>
             </div>
 
-            {/* Grelha Mobile First (1 coluna no mobile, 2 no tablet, 3 no desktop) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
               {sugestoes.map((item) => {
-                const isSugestaoHotel = !isHotel; 
+                const isSugestaoHotel = tabelaOposta === 'hoteis'; 
                 const img = isSugestaoHotel ? item.imagem_url : item.imagem_principal;
                 const titulo = isSugestaoHotel ? item.nome : item.titulo;
-                const preco = isSugestaoHotel ? item.quarto_standard_preco : item.preco;
+                const preco = isSugestaoHotel ? item.quarto_standard_preco : (item.valor_total || item.preco);
                 const linkDestino = isSugestaoHotel ? `/hoteis/${item.id}` : `/passeios/${item.id}`;
 
                 return (
                   <Link href={linkDestino} key={item.id} className="group bg-white rounded-3xl overflow-hidden border border-slate-100 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 block flex flex-col h-full">
-                    <div className="relative h-48 md:h-52 w-full overflow-hidden shrink-0">
+                    <div className="relative h-48 md:h-52 w-full overflow-hidden shrink-0 bg-slate-100">
                       <img src={img || 'https://images.unsplash.com/photo-1542314831-c53cd6b7608b?q=80&w=1740'} alt={titulo} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                       <div className="absolute top-4 right-4 bg-white/90 backdrop-blur text-slate-900 px-3 py-1.5 rounded-full text-[9px] md:text-[10px] font-black flex items-center gap-1.5 shadow-sm">
                          {isSugestaoHotel ? <><Bed size={12} className="text-[#00577C]"/> Alojamento</> : <><Compass size={12} className="text-[#009640]"/> Experiência</>}
@@ -328,7 +330,7 @@ function SucessoContent() {
                            <p className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-wider">A partir de</p>
                            <p className="text-[#00577C] font-black text-lg md:text-xl">{formatarMoeda(preco)}</p>
                          </div>
-                         <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-slate-50 flex items-center justify-center text-[#00577C] border border-slate-100 group-hover:bg-[#00577C] group-hover:text-white transition-all shadow-sm">
+                         <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center text-[#00577C] group-hover:bg-[#00577C] group-hover:text-white transition-all shadow-sm">
                            <ArrowRight size={18} className="md:w-5 md:h-5"/>
                          </div>
                       </div>
