@@ -245,7 +245,6 @@ function CheckoutHotelContent() {
         const key = process.env.NEXT_PUBLIC_PAGBANK_PUBLIC_KEY;
         if (!key) throw new Error('Chave pública do PagBank não localizada.');
 
-        // O método correto e síncrono da API do PagBank
         const cardData = window.PagSeguro.encryptCard({
           publicKey: key,
           holder: nomeCartao,
@@ -291,6 +290,14 @@ function CheckoutHotelContent() {
       setIsSubmitting(false); 
     }
   };
+
+  // ── LÓGICA DE REVENUE MANAGEMENT (AJUSTE UI/UX) ──
+  const precoBaseDiaria = quartoTipo === 'luxo' ? parseValor(hotel?.quarto_luxo_preco) : parseValor(hotel?.quarto_standard_preco);
+  const valorBaseMatematico = precoBaseDiaria * numNoites * quartosParam;
+  
+  // Se a API devolveu um valor maior, foi cobrada a taxa de hóspede adicional
+  const taxaHospedeAdicional = valorTotalReserva > valorBaseMatematico ? valorTotalReserva - valorBaseMatematico : 0;
+  const exibirTaxaExtra = taxaHospedeAdicional > 0.05; // Pequena margem de segurança para erros de ponto flutuante
 
   if (loadingInitial) return <div className="min-h-screen bg-[#F5F7FA] flex items-center justify-center"><Loader2 className="animate-spin text-[#0085FF] w-12 h-12" /></div>;
 
@@ -468,14 +475,29 @@ function CheckoutHotelContent() {
                  </div>
                  
                  <div className="pt-4 border-t border-dashed border-slate-200 space-y-2 text-sm">
-                    <div className="flex justify-between text-slate-600">
-                       <span>Média por Noite</span>
-                       <span className="font-bold">{loadingPreco ? '...' : formatarMoeda(valorTotalReserva / numNoites / quartosParam)}</span>
-                    </div>
-                    <div className="flex justify-between text-slate-600">
-                       <span>Taxas governamentais</span>
-                       <span className="font-bold text-[#009640]">Isento</span>
-                    </div>
+                    {exibirTaxaExtra ? (
+                      <>
+                        <div className="flex justify-between text-slate-600">
+                           <span>Valor Base da Hospedagem</span>
+                           <span className="font-bold">{loadingPreco ? '...' : formatarMoeda(valorBaseMatematico)}</span>
+                        </div>
+                        <div className="flex justify-between text-slate-600">
+                           <span>Taxa de Hóspede(s) Adicional(is)</span>
+                           <span className="font-bold text-amber-600">{loadingPreco ? '...' : formatarMoeda(taxaHospedeAdicional)}</span>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex justify-between text-slate-600">
+                           <span>Média por Noite</span>
+                           <span className="font-bold">{loadingPreco ? '...' : formatarMoeda(valorTotalReserva / Math.max(1, numNoites) / Math.max(1, quartosParam))}</span>
+                        </div>
+                        <div className="flex justify-between text-slate-600">
+                           <span>Taxas governamentais</span>
+                           <span className="font-bold text-[#009640]">Isento</span>
+                        </div>
+                      </>
+                    )}
                  </div>
 
                  <div className="pt-8 border-t-2 border-slate-100 flex flex-col gap-4">
