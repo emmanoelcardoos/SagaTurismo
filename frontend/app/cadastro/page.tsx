@@ -189,7 +189,6 @@ export default function CadastroPage() {
   const [errors, setErrors] = useState<FieldErrors>({});
   const [loading, setLoading] = useState(false);
   
-  // Alterado para capturar qualquer recusa de forma segura
   const [rejeicaoIA, setRejeicaoIA] = useState<{ mensagem: string } | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
 
@@ -267,13 +266,19 @@ export default function CadastroPage() {
 
       const res = await cadastrarResidente(formData as any); 
       
-      // BLINDAGEM DE FLUXO: Se o backend devolveu um token, a IA aprovou os documentos. Vamos cobrar!
-      if (res.token) {
-        router.push(`/checkout-carteira?token=${res.token}`);
+      // BLINDAGEM DE FLUXO E LEITURA DE JSON GENÉRICA
+      // Verificamos se a API indicou sucesso de alguma das formas comuns, mesmo que o token esteja numa sub-propriedade
+      const isAprovado = res?.status === 'sucesso' || res?.sucesso === true || !!res?.token;
+
+      if (isAprovado) {
+        // Tenta capturar o token caso a API o tenha colocado dentro de "dados", "data" ou na raiz
+        const tokenFinal = res?.token || res?.dados?.token || res?.data?.token || '';
+        
+        router.push(`/checkout-carteira?token=${tokenFinal}`);
       } else {
-        // Se não há token, a IA chumbou os documentos ou houve erro lógico
+        // Se realmente a IA chumbou os documentos
         setRejeicaoIA({
-          mensagem: res.mensagem || 'A nossa Inteligência Artificial não conseguiu aprovar a sua documentação. Verifique se as fotos estão nítidas e se comprovam a residência.'
+          mensagem: res?.mensagem || 'A nossa Inteligência Artificial não conseguiu aprovar a sua documentação. Verifique se as fotos estão nítidas e se comprovam a residência.'
         });
       }
     } catch (err: any) {
