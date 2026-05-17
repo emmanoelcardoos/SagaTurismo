@@ -339,7 +339,7 @@ def gerar_pdf_voucher(pedido_db: dict, dados_extra: dict = None) -> str:
     _desenhar_header_voucher(c, largura, altura, codigo_pedido)
     y = altura - 40 * mm
 
-    def garantizar_espaco(espaco):
+    def garantir_espaco(espaco):
         nonlocal y
         if y - espaco < 25 * mm: y = nova_pagina(1)
 
@@ -416,7 +416,7 @@ def gerar_pdf_voucher(pedido_db: dict, dados_extra: dict = None) -> str:
     c.drawString(MARGIN_X + 150 * mm, y, "TITULAR")
     y -= 6 * mm
     
-    # ◄── FIX CORREÇÃO DE ESCOPO: total_pessoas declarada no início para evitar UnboundLocalError
+    # ◄── FIX CORREÇÃO DE ESCOPO: total_pessoas declarada antes das condições (Resolvido!)
     total_pessoas = pedido_db.get("quantidade_pessoas", 1) or 1
     lista_acompanhantes = pedido_db.get("hospedes_extras", [])
     if not isinstance(lista_acompanhantes, list): 
