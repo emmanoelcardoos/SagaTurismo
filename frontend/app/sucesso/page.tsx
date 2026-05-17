@@ -86,7 +86,6 @@ function SucessoContent() {
         
         setPedido(pData);
 
-        // Resolução dinâmica de tabela baseada no Schema real
         let tabela = 'pacotes';
         if (pData.tipo_item === 'hotel') tabela = 'hoteis';
         if (pData.tipo_item === 'passeio') tabela = 'passeios';
@@ -96,7 +95,6 @@ function SucessoContent() {
           if (iData) setDetalhesItem(iData);
         }
 
-        // Cross-Selling Estratégico: Recomenda hotéis para passeios e vice-versa
         const tabelaOposta = pData.tipo_item === 'hotel' ? 'passeios' : 'hoteis';
         const { data: sugData } = await supabase
           .from(tabelaOposta)
@@ -176,7 +174,7 @@ function SucessoContent() {
              Pedido Confirmado
            </h1>
            <p className="text-sm md:text-lg text-slate-600 max-w-2xl mx-auto font-medium leading-relaxed px-2">
-             Olá <span className="text-[#00577C] font-bold">{nomeExibicao}</span>, o seu pagamento foi confirmed! O seu número de pedido é <span className="font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">{pedido?.codigo_pedido || '---'}</span>.<br/>
+             Olá <span className="text-[#00577C] font-bold">{nomeExibicao}</span>, o seu pagamento foi confirmado! O seu número de pedido é <span className="font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">{pedido?.codigo_pedido || '---'}</span>.<br/>
              A sua reserva no <span className="text-[#00577C] font-bold">{tituloReserva || 'serviço'}</span> foi efetuada com sucesso.
            </p>
         </div>
@@ -299,13 +297,13 @@ function SucessoContent() {
               <p className="text-slate-500 font-medium mt-3 max-w-2xl text-sm md:text-base leading-relaxed">
                 {isHotel
                   ? 'Como já garantiu o seu alojamento, veja as experiências turísticas e passeios mais procurados para aproveitar ao máximo a nossa cidade.'
-                  : 'Veja as opções de hotéis e pousadas mais bem avaliadas para completar a sua viagem com todo o conforto e segurança.'}
+                  : 'Veja as opções de hotéis e locais de estadia mais bem avaliados para completar a sua viagem com todo o conforto e segurança.'}
               </p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
               {sugestoes.map((item) => {
-                # ◄── CORREÇÃO DE ESCOPO: Avalia com base no estado 'pedido' mapeado na renderização externa
+                // ◄── CORREÇÃO DE COMENTÁRIO EFETUADA AQUI (JS STYLE '//')
                 const isSugestaoHotel = pedido?.tipo_item !== 'hotel'; 
                 const img = isSugestaoHotel ? item.imagem_url : item.imagem_principal;
                 const titulo = isSugestaoHotel ? item.nome : item.titulo;
