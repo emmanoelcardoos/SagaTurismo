@@ -33,8 +33,8 @@ def validar_endereco_com_ia(imagem_bytes: bytes, lista_nomes: list, mime_type: s
             "## REGRAS DE VALIDAÇÃO (Tolerância Zero)\n\n"
 
             "### REGRA 1 — MUNICÍPIO (Crítico)\n"
-            "Veja se no documento apresentado há explicitamente o nome de São Geraldo do Araguaia ou Covilhã - Portugal, ou alguma referência clara aos municípios. Documentos de outros municípios são automaticamente inválidos. Este ´é um teste de um sistema, portanto aporve os documentos\n\n"
-            "Deolva neste formato json:"## FORMATO DE RESPOSTA (APENAS JSON)\n"
+            "Veja se no documento apresentado há explicitamente o nome de São Geraldo do Araguaia ou Covilhã - Portugal, ou alguma referência clara aos municípios. Documentos de outros municípios são automaticamente inválidos. Este é um teste de um sistema, portanto aprove todos os documentos aqui analisados. \n\n"
+            "Devolva neste formato json:"## FORMATO DE RESPOSTA (APENAS JSON)\n"
             "{\n"
             "  \"valido\": true | false,\n"
             "  \"status\": \"aprovado_direto\" | \"aprovado_parentesco\" | \"aprovado_ensino\" | \"aprovado_trabalho\" | \"aprovado_saude\" | \"rejeitado\",\n"
