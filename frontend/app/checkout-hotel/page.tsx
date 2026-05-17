@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
+import Link from 'next/navigation';
 import { 
   Loader2, MapPin, ShieldCheck, Bed, QrCode, CheckCircle2, 
   User, Mail, FileText, Copy, AlertCircle, 
@@ -31,7 +31,7 @@ type Hotel = {
 type Acompanhante = {
   nome: string;
   cpf: string;
-  data_nascimento: string;
+  data_nascimento: string; // Guardado temporariamente como DD/MM/AAAA na UI
 };
 
 // ── UTILITÁRIOS SEGUROS ──
@@ -47,11 +47,18 @@ const mascaraCPF = (v: string) => v.replace(/\D/g, '').replace(/(\d{3})(\d)/, '$
 const mascaraCartao = (v: string) => v.replace(/\D/g, '').replace(/(\d{4})(?=\d)/g, '$1 ').slice(0, 19);
 const mascaraTelefone = (v: string) => v.replace(/\D/g, '').replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d{4})/, '$1-$2').slice(0, 15);
 const mascaraCEP = (v: string) => v.replace(/\D/g, '').replace(/(\d{5})(\d)/, '$1-$2').slice(0, 9);
+const mascaraData = (v: string) => v.replace(/\D/g, '').replace(/(\d{2})(\d)/, '$1/$2').replace(/(\d{2})(\d)/, '$1/$2').slice(0, 10);
 
-const formatarData = (dataStr: string) => {
+const formatarDataExibicao = (dataStr: string) => {
   if (!dataStr) return '';
   const [ano, mes, dia] = dataStr.split('-');
   return `${dia}/${mes}/${ano}`;
+};
+
+const formatarParaBackend = (dataBr: string): string => {
+  if (!dataBr || dataBr.length < 10) return '';
+  const [dia, mes, ano] = dataBr.split('/');
+  return `${ano}-${mes}-${dia}`;
 };
 
 function SectionCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
@@ -141,10 +148,9 @@ function CheckoutHotelContent() {
   const [cidade, setCidade] = useState('');
   const [estado, setEstado] = useState('');
   
-  // ── ESTADO DINÂMICO PARA ACOMPANHANTES (JSONB BACKEND) ──
+  // Estado Dinâmico Acompanhantes
   const [hospedesExtras, setHospedesExtras] = useState<Acompanhante[]>([]);
 
-  // Sincroniza os blocos dinâmicos com a quantidade de acompanhantes (adultos - 1)
   useEffect(() => {
     const numAcompanhantes = Math.max(0, adultosParam - 1);
     setHospedesExtras(prev => {
@@ -249,7 +255,23 @@ function CheckoutHotelContent() {
     setErroApi('');
     if (!acomodacaoDisponivel) { setErroApi('Impossível prosseguir. Quarto esgotado.'); return; }
     if (cpf.length < 14) { setErroApi('CPF inválido.'); return; }
+
+    // Validação preventiva das datas dos acompanhantes
+    for (let i = 0; i < hospedesExtras.length; i++) {
+      if (hospedesExtras[i].data_nascimento.length < 10) {
+        setErroApi(`Por favor, preencha a data de nascimento completa do Acompanhante #${i + 1}.`);
+        return;
+      }
+    }
+
     setIsSubmitting(true);
+
+    // Converte assincronamente as datas dos acompanhantes para ISO (YYYY-MM-DD) esperado pelo backend
+    const acompanhantesFormatados = hospedesExtras.map(h => ({
+      nome: h.nome,
+      cpf: h.cpf.replace(/\D/g, ''),
+      data_nascimento: formatarParaBackend(h.data_nascimento)
+    }));
 
     const payload: any = {
       tipo_item: "hotel", 
@@ -263,10 +285,9 @@ function CheckoutHotelContent() {
       cpf_cliente: cpf.replace(/\D/g, ''), 
       email_cliente: email,
       telefone_cliente: telefone.replace(/\D/g, ''), 
-      // ── MAPEA E ENVIA O ARRAY NOMINAL ESTRUTURADO EXIGIDO ──
-      hospedes_extras: hospedesExtras,
+      hospedes_extras: acompanhantesFormatados,
       endereco_faturacao: {
-        street: rua, number: numero, locality: bairro, city: cidade, 
+        street: rua, number: numero, locality: bairro, city: city || cidade, 
         region_code: estado.replace(/\s/g, ''), country: "BRA", postal_code: cep.replace(/\D/g, '')
       }
     };
@@ -390,7 +411,7 @@ function CheckoutHotelContent() {
             {!qrCodeData ? (
               <form onSubmit={handlePagamento} className="space-y-6 md:space-y-8">
                 
-                {/* 1. DADOS DOS HÓSPEDES (TITULAR + DINÂMICO ACOMPANHANTES) */}
+                {/* 1. DADOS DOS HÓSPEDES (TITULAR + DINÂMICO ACOMPANHANTES MOBILE-FIRST) */}
                 <SectionCard className="p-6 md:p-10 text-left">
                   <SectionHeader step={1} title="Dados de Identificação" icon={<Users size={20} />} />
                   
@@ -417,7 +438,7 @@ function CheckoutHotelContent() {
                     </div>
                   </div>
 
-                  {/* Blocos Gerados Dinamicamente baseados na URL (Adultos - 1) */}
+                  {/* Blocos Gerados Dinamicamente com Máscara Digital Inteligente (Sem Seletor Nativo Horrível) */}
                   {hospedesExtras.length > 0 && (
                     <div className="mt-8 pt-8 border-t-2 border-dashed border-slate-100 space-y-8">
                       <div>
@@ -440,9 +461,20 @@ function CheckoutHotelContent() {
                               <label className="block text-[9px] font-black uppercase text-slate-400 mb-1.5 ml-1">CPF *</label>
                               <input required value={h.cpf} onChange={e => handleAcompanhanteChange(i, 'cpf', mascaraCPF(e.target.value))} maxLength={14} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF]" placeholder="000.000.000-00" />
                             </div>
-                            <div>
+                            <div className="relative">
                               <label className="block text-[9px] font-black uppercase text-slate-400 mb-1.5 ml-1">Data de Nascimento *</label>
-                              <input required type="date" value={h.data_nascimento} onChange={e => handleAcompanhanteChange(i, 'data_nascimento', e.target.value)} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF]" />
+                              <div className="relative flex items-center">
+                                <input 
+                                  required 
+                                  type="text"
+                                  inputMode="numeric"
+                                  value={h.data_nascimento} 
+                                  onChange={e => handleAcompanhanteChange(i, 'data_nascimento', mascaraData(e.target.value))} 
+                                  className="w-full rounded-xl border border-slate-200 bg-white pl-4 pr-10 py-3 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF]" 
+                                  placeholder="DD/MM/AAAA" 
+                                />
+                                <Calendar size={16} className="absolute right-3.5 text-slate-400 pointer-events-none" />
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -530,7 +562,7 @@ function CheckoutHotelContent() {
                     <div className="flex-1 pt-1">
                        <p className="text-sm font-black text-slate-800 leading-none mb-1.5">{quartoTipo === 'luxo' ? hotel?.quarto_luxo_nome : hotel?.quarto_standard_nome}</p>
                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                         {checkinData ? formatarData(checkinData) : ''} a {checkoutData ? formatarData(checkoutData) : ''}
+                         {checkinData ? formatarDataExibicao(checkinData) : ''} a {checkoutData ? formatarDataExibicao(checkoutData) : ''}
                        </p>
                     </div>
                  </div>
