@@ -21,10 +21,7 @@ declare global {
 }
 
 const formatarMoeda = (valor: number) => (valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-const mascaraCPF = (v: string) => v.replace(/\D/g, '').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})/, '$1-$2').slice(0, 14);
 const mascaraCartao = (v: string) => v.replace(/\D/g, '').replace(/(\d{4})(?=\d)/g, '$1 ').slice(0, 19);
-const mascaraTelefone = (v: string) => v.replace(/\D/g, '').replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d{4})/, '$1-$2').slice(0, 15);
-const mascaraCEP = (v: string) => v.replace(/\D/g, '').replace(/(\d{5})(\d)/, '$1-$2').slice(0, 9);
 
 function SectionCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return <div className={`rounded-[2rem] border-2 border-slate-100 bg-white shadow-sm overflow-hidden ${className}`}>{children}</div>;
@@ -95,18 +92,6 @@ function CheckoutCarteiraContent() {
   const PRECO_UNITARIO = 20;
   const [quantidade, setQuantidade] = useState(1);
   const valorTotalReserva = quantidade * PRECO_UNITARIO;
-
-  // Estados Form
-  const [nome, setNome] = useState('');
-  const [email, setEmail] = useState('');
-  const [cpf, setCpf] = useState('');
-  const [telefone, setTelefone] = useState('');
-  const [rua, setRua] = useState('');
-  const [numero, setNumero] = useState('');
-  const [bairro, setBairro] = useState('');
-  const [cep, setCep] = useState('');
-  const [cidade, setCidade] = useState('');
-  const [estado, setEstado] = useState('');
   
   // Pagamento
   const [metodoPagamento, setMetodoPagamento] = useState<'pix' | 'cartao'>('pix');
@@ -115,6 +100,7 @@ function CheckoutCarteiraContent() {
   const [mesCartao, setMesCartao] = useState('');
   const [anoCartao, setAnoCartao] = useState('');
   const [cvvCartao, setCvvCartao] = useState('');
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [erroApi, setErroApi] = useState('');
   const [qrCodeData, setQrCodeData] = useState<{ link: string; texto: string; id_pedido: string } | null>(null);
@@ -141,7 +127,7 @@ function CheckoutCarteiraContent() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
-  // ── VALIDAÇÃO DO TOKEN E DADOS ──
+  // ── VALIDAÇÃO DO TOKEN E EXTRAÇÃO DIRETA DOS DADOS (SEM REPETIÇÃO) ──
   useEffect(() => {
     if (!token) { router.push('/cadastro'); return; }
     
@@ -156,26 +142,22 @@ function CheckoutCarteiraContent() {
           return;
         }
 
-        // Se respondeu algo, paramos o loading
+        // Se respondeu algo, extraímos as informações para não chatear o user
         if (data) {
           setDadosCidadão(data);
-          // Preenche os dados automaticamente se vierem da API
-          if (data.nome && !nome) setNome(data.nome);
-          if (data.email && !email) setEmail(data.email);
-          // Atualiza a quantidade se a API trouxer o total de dependentes + titular
+          
           if (data.quantidade_pessoas) setQuantidade(data.quantidade_pessoas);
           else if (data.quantidade) setQuantidade(data.quantidade);
 
           setLoadingInitial(false);
         }
       } catch (err) { 
-        console.error(err); 
-        setLoadingInitial(false); // Para não ficar em loop infinito em caso de erro
+        console.error("Falha ao puxar dados do titular", err); 
+        setLoadingInitial(false); 
       }
     };
 
     checkStatus();
-    // Continua a verificar se o PIX foi pago noutra aba
     const interval = setInterval(checkStatus, 8000); 
     return () => clearInterval(interval);
   }, [token, router]);
@@ -183,33 +165,26 @@ function CheckoutCarteiraContent() {
   const handlePagamento = async (e: React.FormEvent) => {
     e.preventDefault();
     setErroApi('');
-    if (cpf.length < 14) { setErroApi('CPF inválido.'); return; }
-    if (telefone.length < 14) { setErroApi('WhatsApp inválido.'); return; }
     setIsSubmitting(true);
 
     const payload: any = {
       tipo_item: "carteira", 
       token_id: token,
       quantidade: quantidade,
-      nome_cliente: nome, 
-      cpf_cliente: cpf.replace(/\D/g, ''), 
-      email_cliente: email,
-      telefone_cliente: telefone.replace(/\D/g, ''), 
-      valor_total: valorTotalReserva,
-      endereco_faturacao: {
-        street: rua, number: numero, locality: bairro, city: cidade, 
-        region_code: estado.replace(/\s/g, ''), country: "BRA", postal_code: cep.replace(/\D/g, '')
-      }
+      nome_cliente: dadosCidadão?.nome || 'Titular', 
+      cpf_cliente: dadosCidadão?.cpf_mascarado?.replace(/\D/g, '') || '', 
+      email_cliente: dadosCidadão?.email || 'contato@sagaturismo.com.br',
+      valor_total: valorTotalReserva
     };
 
     try {
       if (metodoPagamento === 'cartao') {
         if (!window.PagSeguro || typeof window.PagSeguro.encryptCard !== 'function') {
-          throw new Error('O sistema de segurança do cartão ainda está a carregar. Aguarde 2 segundos e tente de novo.');
+          throw new Error('Sistema de segurança a carregar. Tente novamente em segundos.');
         }
         
         const key = process.env.NEXT_PUBLIC_PAGBANK_PUBLIC_KEY;
-        if (!key) throw new Error('Chave pública do PagBank não configurada.');
+        if (!key) throw new Error('Chave de encriptação financeira em falta.');
 
         const cardData = window.PagSeguro.encryptCard({
           publicKey: key,
@@ -220,11 +195,11 @@ function CheckoutCarteiraContent() {
           securityCode: cvvCartao
         });
 
-        if (cardData.hasErrors) throw new Error('Dados do cartão recusados pelo gateway de segurança do PagBank.');
+        if (cardData.hasErrors) throw new Error('O banco emissor ou a gateway rejeitou os dados do cartão.');
 
         payload.metodo_pagamento = 'cartao';
         payload.encrypted_card = cardData.encryptedCard;
-        payload.parcelas = 1; // Carteira não tem parcelamento
+        payload.parcelas = 1; 
       } else {
         payload.metodo_pagamento = 'pix';
       }
@@ -244,14 +219,13 @@ function CheckoutCarteiraContent() {
             id_pedido: data.codigo_pedido 
           });
         } else {
-          // Se foi cartão, o pagamento cai na hora, vai para a carteira gerada
           router.push(`/carteira/${token}`);
         }
       } else {
-        setErroApi(data.detail || data.mensagem || 'Ocorreu um erro no processamento financeiro.');
+        setErroApi(data.detail || data.mensagem || 'Falha na comunicação com o banco.');
       }
     } catch (err: any) { 
-      setErroApi(err.message || 'Erro inesperado na comunicação com o banco.'); 
+      setErroApi(err.message || 'Erro inesperado.'); 
     } finally { 
       setIsSubmitting(false); 
     }
@@ -260,12 +234,13 @@ function CheckoutCarteiraContent() {
   if (loadingInitial) return (
     <div className="min-h-screen bg-[#F5F7FA] flex flex-col items-center justify-center">
       <Loader2 className="animate-spin text-[#00577C] w-12 h-12 mb-4" />
-      <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Preparando Checkout Seguro...</p>
+      <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">A carregar a sua autorização...</p>
     </div>
   );
 
   return (
     <main className={`${inter.className} min-h-screen bg-[#F5F7FA] text-slate-900 pb-20`}>
+      
       {/* HEADER TIPO PREFEITURA */}
       <header className={`fixed left-0 top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl transition-transform duration-300 ${showHeader ? 'translate-y-0' : '-translate-y-full'}`}>
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-5 text-left">
@@ -301,55 +276,9 @@ function CheckoutCarteiraContent() {
             {!qrCodeData ? (
               <form onSubmit={handlePagamento} className="space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 
-                {/* 1. IDENTIFICAÇÃO BÁSICA */}
+                {/* 1. MÉTODOS DE PAGAMENTO (Foco Direto) */}
                 <SectionCard className="p-6 md:p-10 text-left border-t-4 border-t-[#00577C]">
-                  <SectionHeader step={1} title="Confirmação de Identidade" icon={<User size={20} />} />
-                  <div className="grid gap-5 md:gap-6 sm:grid-cols-2">
-                    <div className="sm:col-span-2 bg-blue-50/50 border border-blue-100 p-5 rounded-2xl flex items-center gap-4 mb-2">
-                      <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-[#00577C] shadow-sm"><IdCard size={24}/></div>
-                      <div>
-                         <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Titular da Solicitação</p>
-                         <p className="text-sm font-bold text-slate-800">{nome || 'Nome em preenchimento...'}</p>
-                      </div>
-                    </div>
-
-                    <div className="sm:col-span-2">
-                      <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Nome Completo *</label>
-                      <input required value={nome} onChange={e => setNome(e.target.value)} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white" placeholder="Nome completo do titular" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">CPF *</label>
-                      <input required value={cpf} onChange={e => setCpf(mascaraCPF(e.target.value))} maxLength={14} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white" placeholder="000.000.000-00" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">WhatsApp *</label>
-                      <input required value={telefone} onChange={e => setTelefone(mascaraTelefone(e.target.value))} maxLength={15} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white" placeholder="(99) 99999-9999" />
-                    </div>
-                    <div className="sm:col-span-2">
-                      <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">E-mail para receção dos cartões *</label>
-                      <input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white" placeholder="seu@email.com" />
-                    </div>
-                  </div>
-                </SectionCard>
-
-                {/* 2. ENDEREÇO */}
-                <SectionCard className="p-6 md:p-10 text-left">
-                  <SectionHeader step={2} title="Endereço de Faturação" icon={<Home size={20} />} />
-                  <div className="grid gap-5 md:gap-6 sm:grid-cols-2">
-                    <div className="sm:col-span-2 grid grid-cols-[1fr_100px] gap-4">
-                      <input required value={rua} onChange={e => setRua(e.target.value)} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C]" placeholder="Rua / Avenida" />
-                      <input required value={numero} onChange={e => setNumero(e.target.value)} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 text-center outline-none focus:border-[#00577C]" placeholder="Nº" />
-                    </div>
-                    <input required value={bairro} onChange={e => setBairro(e.target.value)} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C]" placeholder="Bairro" />
-                    <input required value={cep} onChange={e => setCep(mascaraCEP(e.target.value))} maxLength={9} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C]" placeholder="CEP (00000-000)" />
-                    <input required value={cidade} onChange={e => setCidade(e.target.value)} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C]" placeholder="Cidade" />
-                    <input required value={estado} onChange={e => setEstado(e.target.value.toUpperCase())} maxLength={2} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 text-center outline-none focus:border-[#00577C]" placeholder="UF (Ex: PA)" />
-                  </div>
-                </SectionCard>
-
-                {/* 3. PAGAMENTO */}
-                <SectionCard className="p-6 md:p-10 text-left">
-                  <SectionHeader step={3} title="Método de Pagamento" icon={<Wallet size={20} />} />
+                  <SectionHeader step={1} title="Método de Pagamento" icon={<Wallet size={20} />} />
                   <div className="grid grid-cols-2 gap-4 mb-8">
                     <button type="button" onClick={() => setMetodoPagamento('pix')} className={`flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border-2 transition-all ${metodoPagamento === 'pix' ? 'border-[#009640] bg-[#009640]/5 text-[#009640]' : 'border-slate-100 bg-slate-50 text-slate-400'}`}>
                       <QrCode size={32} /> <span className="text-xs font-black uppercase">PIX Rápido</span>
@@ -402,7 +331,7 @@ function CheckoutCarteiraContent() {
             )}
           </div>
 
-          {/* ── COLUNA DIREITA: RESUMO DA COMPRA ── */}
+          {/* ── COLUNA DIREITA: RESUMO DA COMPRA COM STICKY ACTIVO ── */}
           <aside className="w-full h-fit lg:sticky lg:top-32 order-first lg:order-last relative space-y-6">
             <SectionCard>
               <div className="h-2 w-full bg-gradient-to-r from-[#00577C] via-[#F9C400] to-[#009640]" />
@@ -415,17 +344,15 @@ function CheckoutCarteiraContent() {
                  
                  <div className="space-y-4 pb-6 border-b border-slate-100">
                     <div>
-                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1"><User size={12}/> Titular da Conta</p>
-                       <p className="font-bold text-slate-800 text-sm">{nome || dadosCidadão?.nome || 'Pendente...'}</p>
+                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1"><User size={12}/> Titular da Conta Aprovado</p>
+                       <p className="font-bold text-slate-800 text-sm">{dadosCidadão?.nome || 'Validando dados...'}</p>
                     </div>
-                    <div>
-                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1"><Mail size={12}/> Envio dos Vouchers</p>
-                       <p className="font-bold text-slate-800 text-sm">{email || 'Pendente...'}</p>
-                    </div>
-                    <div>
-                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1"><Smartphone size={12}/> WhatsApp de Contato</p>
-                       <p className="font-bold text-slate-800 text-sm">{telefone || 'Pendente...'}</p>
-                    </div>
+                    {dadosCidadão?.email && (
+                      <div>
+                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1"><Mail size={12}/> Envio dos Vouchers</p>
+                         <p className="font-bold text-slate-800 text-sm">{dadosCidadão.email}</p>
+                      </div>
+                    )}
                  </div>
 
                  <div className="flex justify-between items-center text-sm">
