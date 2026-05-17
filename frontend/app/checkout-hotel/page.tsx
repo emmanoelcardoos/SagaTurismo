@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import Link from 'next/link'; // ◄── Corrigido aqui!
+import Link from 'next/link';
 import { 
   Loader2, MapPin, ShieldCheck, Bed, QrCode, CheckCircle2, 
   User, Mail, FileText, Copy, AlertCircle, 
@@ -382,7 +382,7 @@ function CheckoutHotelContent() {
       </div>
 
       <div className="mx-auto max-w-7xl px-4 md:px-8 py-8 md:py-12">
-        <BarraTempo Reserva />
+        <BarraTempoReserva />
 
         <div className="grid gap-8 lg:grid-cols-[1fr_400px] items-start">
           
