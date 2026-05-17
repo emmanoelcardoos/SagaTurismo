@@ -42,7 +42,6 @@ class PedidoPagamento(BaseModel):
     passeio_id: Optional[str] = None 
     item_id: Optional[str] = None
     
-    # ◄── NOVO: Identificador dinâmico do quarto na base de dados
     quarto_tipo_id: Optional[str] = None 
     tipo_quarto: Optional[str] = "standard"
     guia_id: Optional[str] = None
@@ -65,20 +64,21 @@ class PedidoPagamento(BaseModel):
 
     hospedes_extras: Optional[List[AcompanhanteSchema]] = []
 
-# ◄── MODIFICADO: Função agora calcula o preço base consultando a tabela de quartos dinâmicos
 def calcular_preco_hotel_dinamico(hotel_id: str, quarto_tipo_id: str, checkin_str: str, checkout_str: str, quantidade_quartos: int = 1, quantidade_pessoas: int = 2) -> float:
     res_h = supabase.table("hoteis").select("*").eq("id", hotel_id).single().execute()
     if not res_h.data:
         raise HTTPException(status_code=404, detail="Alojamento não encontrado.")
         
-    res_q = supabase.table("tipos_quartos").select("*").eq("id", quarto_tipo_id).single().execute()
+    # ◄── MAPEADO: Ajustado para consultar a tabela tipos_quarto existente
+    res_q = supabase.table("tipos_quarto").select("*").eq("id", quarto_tipo_id).single().execute()
     if not res_q.data:
         raise HTTPException(status_code=404, detail="Tipo de quarto não configurado para este hotel.")
     
     hotel_data = res_h.data
     quarto_data = res_q.data
     
-    base_preco = float(quarto_data["preco_base"])
+    # ◄── MAPEADO: Alinhado com a coluna preco_quarto da tua base de dados
+    base_preco = float(quarto_data["preco_quarto"])
     pct_acompanhante = float(hotel_data.get("porcentagem_acompanhante") or 0.0)
     
     res_custom = supabase.table("disponibilidade_hoteis") \
@@ -184,9 +184,10 @@ async def processar_pagamento(pedido: PedidoPagamento):
             nome_item_checkout = f"Hospedagem - {res_hotel_info.data['nome']}"
             item_id_db = hotel_id_sanitizado
 
-            res_q_info = supabase.table("tipos_quartos").select("nome").eq("id", quarto_tipo_id_sanitizado).single().execute()
+            # ◄── MAPEADO: Alinhado com a coluna nome_quarto da tua tabela existente
+            res_q_info = supabase.table("tipos_quarto").select("nome_quarto").eq("id", quarto_tipo_id_sanitizado).single().execute()
             if res_q_info.data:
-                nome_quarto_real_texto = res_q_info.data["nome"]
+                nome_quarto_real_texto = res_q_info.data["nome_quarto"]
             
             rec_id = res_hotel_info.data.get("pagbank_recebedor_id")
             if rec_id and str(rec_id).startswith("ACC_"):
@@ -242,9 +243,10 @@ async def processar_pagamento(pedido: PedidoPagamento):
                     quantidade_quartos=pedido.quantidade, quantidade_pessoas=pedido.adultos
                 )
                 
-                res_q_info = supabase.table("tipos_quartos").select("nome").eq("id", quarto_tipo_id_sanitizado).single().execute()
+                # ◄── MAPEADO: Alinhado com a coluna nome_quarto da tua tabela existente
+                res_q_info = supabase.table("tipos_quarto").select("nome_quarto").eq("id", quarto_tipo_id_sanitizado).single().execute()
                 if res_q_info.data:
-                    nome_quarto_real_texto = res_q_info.data["nome"]
+                    nome_quarto_real_texto = res_q_info.data["nome_quarto"]
 
                 res_h_info = supabase.table("hoteis").select("pagbank_recebedor_id").eq("id", hotel_id_sanitizado).single().execute()
                 rec_id = res_h_info.data.get("pagbank_recebedor_id") if res_h_info.data else None
@@ -300,9 +302,6 @@ async def processar_pagamento(pedido: PedidoPagamento):
         else:
             splits_array = []
 
-        # ==========================================
-        # FASE 3: PERSISTÊNCIA NO SUPABASE
-        # ==========================================
         pedido_db = {
             "codigo_pedido": codigo_pedido,
             "tipo_item": pedido.tipo_item,
@@ -320,8 +319,8 @@ async def processar_pagamento(pedido: PedidoPagamento):
             "quantidade": pedido.quantidade,
             "hotel_id": hotel_id_sanitizado,
             "guia_id": guia_id_sanitizado,
-            "tipo_quarto": nome_quarto_real_texto, # Salva o nome real do quarto para o PDF
-            "quarto_tipo_id": quarto_tipo_id_sanitizado, # Guarda a nova relação estruturada
+            "tipo_quarto": nome_quarto_real_texto, 
+            "quarto_tipo_id": quarto_tipo_id_sanitizado, 
             "quantidade_pessoas": pedido.adultos if pedido.adultos else 2,
             "quantidade_quartos": pedido.quantidade if pedido.tipo_item in ["hotel", "pacote"] else 1,
             "nome_item": nome_item_checkout,
@@ -398,9 +397,6 @@ async def processar_pagamento(pedido: PedidoPagamento):
             if repasses_db:
                 supabase.table("repasses_financeiros").insert(repasses_db).execute()
 
-        # ==========================================
-        # FASE 4: PAYLOAD PAGBANK
-        # ==========================================
         payload_pagbank = {
             "reference_id": codigo_pedido,
             "customer": {
