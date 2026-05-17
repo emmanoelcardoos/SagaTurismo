@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { 
   Loader2, ArrowLeft, CheckCircle2, Save, Compass, 
   ChevronLeft, ChevronRight, DollarSign, Users, 
-  MapPin, Trash2, Upload, Images, MailWarning, Calendar as CalendarIcon, Plus 
+  MapPin, Trash2, Upload, Images, MailWarning, Calendar as CalendarIcon, Plus, Target
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -25,6 +25,12 @@ type PasseioCadastrado = {
   categoria: string;
 };
 
+type EnderecoBusca = {
+  display_name: string;
+  lat: string;
+  lon: string;
+};
+
 export default function DisponibilidadeGuiaPage() {
   const router = useRouter();
   const [parceiroId, setParceiroId] = useState<string | null>(null);
@@ -36,9 +42,10 @@ export default function DisponibilidadeGuiaPage() {
   const [statusMensagem, setStatusMensagem] = useState<{ tipo: 'sucesso' | 'erro', texto: string } | null>(null);
   const [mesAtual, setMesAtual] = useState<Date>(new Date());
 
-  // ── ESTADOS DO FORMULÁRIO (SIMPLIFICADO) ──
+  // ── ESTADOS DO FORMULÁRIO ──
   const [titulo, setTitulo] = useState('');
-  const [categoria, setCategoria] = useState('Trilha');
+  const [categoria, setCategoria] = useState('');
+  const [categoriasDb, setCategoriasDb] = useState<string[]>(['Trilha', 'Praia', 'Camping', 'Cachoeira']); // Fallback inicial
   const [descricaoCurta, setDescricaoCurta] = useState('');
   const [descricaoCompleta, setDescricaoCompleta] = useState('');
   const [horarioSaida, setHorarioSaida] = useState('');
@@ -46,16 +53,22 @@ export default function DisponibilidadeGuiaPage() {
   const [coordenadas, setCoordenadas] = useState('');
   const [valorTotal, setValorTotal] = useState('');
   const [vagasTotais, setVagasTotais] = useState('15');
-  const [dataPasseioStr, setDataPasseioStr] = useState('');
+  
+  // Calendário Híbrido
+  const [dataPasseio, setDataPasseio] = useState<Date | null>(null);
 
-  // ── ESTADOS DE ARQUIVOS ──
+  // Estados de Arquivos
   const [arquivoCapa, setArquivoCapa] = useState<File | null>(null);
   const [arquivosGaleria, setArquivosGaleria] = useState<File[]>([]);
 
-  // ── LISTA DE PASSEIOS JÁ CRIADOS ──
+  // Estados de Busca de Endereço (OpenStreetMap)
+  const [sugestoesEndereco, setSugestoesEndereco] = useState<EnderecoBusca[]>([]);
+  const [buscandoEndereco, setBuscandoEndereco] = useState(false);
+
+  // Lista de Passeios Existentes
   const [passeiosExistentes, setPasseiosExistentes] = useState<PasseioCadastrado[]>([]);
 
-  // 1. VALIDAÇÃO DE SESSÃO ISOLADA
+  // 1. VALIDAÇÃO DE SESSÃO
   useEffect(() => {
     const id = localStorage.getItem("parceiro_id");
     const nome = localStorage.getItem("nome_negocio");
@@ -70,30 +83,81 @@ export default function DisponibilidadeGuiaPage() {
     }
   }, [router]);
 
-  // 2. CARREGAR HISTÓRICO DE PASSEIOS DO GUIA
+  // 2. CARREGAR DADOS INICIAIS (PASSEIOS E CATEGORIAS DINÂMICAS)
   useEffect(() => {
     if (!parceiroId) return;
 
-    async function carregarPasseios() {
+    async function carregarDadosIniciais() {
       const { data, error } = await supabase
         .from('passeios')
         .select('id, titulo, data_passeio, valor_total, vagas_totais, vagas_disponiveis, categoria')
-        .eq('guia_id', parceiroId)
         .order('data_passeio', { ascending: true });
 
-      if (!error && data) setPasseiosExistentes(data);
+      if (!error && data) {
+        // Filtrar passeios específicos deste guia para a lista
+        const meusPasseios = data.filter(p => p.guia_id === parceiroId);
+        setPasseiosExistentes(meusPasseios as any);
+
+        // Extrair categorias únicas de TODOS os passeios da base de dados
+        const catsUnicas = Array.from(new Set(data.map(p => p.categoria).filter(Boolean)));
+        if (catsUnicas.length > 0) {
+          setCategoriasDb(catsUnicas as string[]);
+          setCategoria(catsUnicas[0] as string);
+        }
+      }
     }
-    carregarPasseios();
+    carregarDadosIniciais();
   }, [parceiroId, isSubmitting]);
 
-  // ── FUNÇÃO DE SANITIZAÇÃO DE NOMES ──
+  // ── BUSCA INTELIGENTE DE ENDEREÇO (Nominatim) ──
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(async () => {
+      if (pontoEncontro.length > 3 && !coordenadas) {
+        setBuscandoEndereco(true);
+        try {
+          // Restringe a busca a São Geraldo do Araguaia / Pará para maior precisão
+          const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(pontoEncontro + ', São Geraldo do Araguaia, Pará')}&limit=4`);
+          const data = await res.json();
+          setSugestoesEndereco(data);
+        } catch (error) {
+          console.error("Erro ao buscar endereço", error);
+        } finally {
+          setBuscandoEndereco(false);
+        }
+      } else {
+        setSugestoesEndereco([]);
+      }
+    }, 800); // Aguarda 800ms após o guia parar de digitar
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [pontoEncontro, coordenadas]);
+
+  const selecionarEndereco = (end: EnderecoBusca) => {
+    // Extrai a parte mais relevante do nome de exibição
+    const nomeCurto = end.display_name.split(',').slice(0, 2).join(', ');
+    setPontoEncontro(nomeCurto);
+    setCoordenadas(`${end.lat}, ${end.lon}`); // Preenche coordenadas automaticamente!
+    setSugestoesEndereco([]);
+  };
+
+  // ── UTILS DE CALENDÁRIO ──
+  const formatarDataIso = (data: Date | null) => {
+    if (!data) return '';
+    return `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`;
+  };
+  
+  const handleDataNativaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.value) {
+      setDataPasseio(null);
+      return;
+    }
+    // Ao usar input type="date", criamos o objeto Data com timezone corrigido para não errar o dia
+    const [ano, mes, dia] = e.target.value.split('-');
+    setDataPasseio(new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia)));
+  };
+
   const limparNomeArquivo = (nomeOriginal: string) => {
-    return nomeOriginal
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '') 
-      .replace(/[^a-z0-9.]/g, '_')     
-      .replace(/_{2,}/g, '_');         
+    return nomeOriginal.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9.]/g, '_').replace(/_{2,}/g, '_');         
   };
 
   const handleGaleriaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -113,7 +177,7 @@ export default function DisponibilidadeGuiaPage() {
     e.preventDefault();
     if (!parceiroId) return;
 
-    if (!dataPasseioStr) {
+    if (!dataPasseio) {
       setStatusMensagem({ tipo: 'erro', texto: 'Por favor, diga-nos a data da expedição.' });
       return;
     }
@@ -157,7 +221,7 @@ export default function DisponibilidadeGuiaPage() {
           descricao_completa: descricaoCompleta || null,
           imagem_principal: urlCapaPublica.publicUrl,
           imagens_galeria: urlsGaleria,
-          data_passeio: dataPasseioStr,
+          data_passeio: formatarDataIso(dataPasseio),
           horario_saida: horarioSaida || null,
           ponto_encontro: pontoEncontro || null,
           coordenadas_google_maps: coordenadas || null,
@@ -167,18 +231,18 @@ export default function DisponibilidadeGuiaPage() {
           taxa_prefeitura: taxaPref,
           vagas_totais: parseInt(vagasTotais),
           vagas_disponiveis: parseInt(vagasTotais),
+          categoria,
           ativo: false, 
           destaque: false 
         }]);
 
       if (errInsert) throw errInsert;
 
-      // ALERTA RESEND VIA BACKEND
       try {
         await fetch(`https://sagaturismo-production.up.railway.app/api/v1/notificacoes/novo-passeio`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ guia_nome: nomeNegocio, passeio_titulo: titulo, data_evento: dataPasseioStr })
+          body: JSON.stringify({ guia_nome: nomeNegocio, passeio_titulo: titulo, data_evento: formatarDataIso(dataPasseio) })
         });
       } catch (errEmail) {}
 
@@ -186,7 +250,7 @@ export default function DisponibilidadeGuiaPage() {
       
       setTitulo(''); setDescricaoCurta(''); setDescricaoCompleta('');
       setHorarioSaida(''); setPontoEncontro(''); setCoordenadas(''); setValorTotal('');
-      setDataPasseioStr(''); setArquivoCapa(null); setArquivosGaleria([]);
+      setDataPasseio(null); setArquivoCapa(null); setArquivosGaleria([]);
 
     } catch (err: any) {
       setStatusMensagem({ tipo: 'erro', texto: err.message || 'Erro interno de processamento.' });
@@ -207,15 +271,10 @@ export default function DisponibilidadeGuiaPage() {
     }
   };
 
-  // ── LÓGICA DO MINI-CALENDÁRIO DA AGENDA ──
-  const formatarDataIso = (data: Date) => `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`;
-  const diasDoMes = (ano: number, mes: number) => new Date(ano, mes + 1, 0).getDate();
-  const primeiroDiaDoMes = (ano: number, mes: number) => new Date(ano, mes, 1).getDay();
-
   const anoCorrente = mesAtual.getFullYear();
   const mesCorrente = mesAtual.getMonth();
-  const diasMes = diasDoMes(anoCorrente, mesCorrente);
-  const primeiroDia = primeiroDiaDoMes(anoCorrente, mesCorrente);
+  const diasMes = new Date(anoCorrente, mesCorrente + 1, 0).getDate();
+  const primeiroDia = new Date(anoCorrente, mesCorrente, 1).getDay();
   const hoje = new Date();
   hoje.setHours(0,0,0,0);
 
@@ -225,12 +284,11 @@ export default function DisponibilidadeGuiaPage() {
         <div className="mx-auto max-w-7xl flex items-center justify-between gap-4">
           <Link href="/" className="relative h-10 w-28 md:w-36 shrink-0"><Image src="/logop.png" alt="SGA" fill priority className="object-contain object-left" /></Link>
           <Link href="/parceiros/dashboard-guia" className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#009640] bg-green-50 border border-green-100 px-4 py-2.5 rounded-full shadow-sm transition-all active:scale-95">
-            <ArrowLeft size={14} /> <span>Painel</span>
+            <ArrowLeft size={14} /> <span className="hidden sm:inline">Painel</span>
           </Link>
         </div>
       </header>
 
-      {/* LAYOUT TIPO APP: ESQUERDA (CRIAR), DIREITA (AGENDA) */}
       <div className="mx-auto w-full max-w-7xl px-4 py-6 md:py-10 flex flex-col lg:flex-row gap-8 items-start">
         
         {/* ── COLUNA ESQUERDA: FORMULÁRIO DE CRIAÇÃO ── */}
@@ -244,7 +302,7 @@ export default function DisponibilidadeGuiaPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 md:p-8">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-5 sm:p-8">
              {statusMensagem && (
                 <div className={`p-4 rounded-2xl mb-8 flex items-start gap-3 border ${statusMensagem.tipo === 'sucesso' ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'}`}>
                    <CheckCircle2 size={20} className="shrink-0 mt-0.5" />
@@ -260,26 +318,58 @@ export default function DisponibilidadeGuiaPage() {
                    
                    <div>
                       <label className="text-xs font-bold text-slate-700 block mb-2">Qual o nome da aventura?</label>
-                      <input required type="text" value={titulo} onChange={e => setTitulo(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 px-4 text-base font-medium outline-none focus:border-[#009640] focus:ring-4 ring-green-500/10 transition-all" placeholder="Ex: Trilha da Serra Mágica" />
+                      <input required type="text" value={titulo} onChange={e => setTitulo(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 px-4 text-sm sm:text-base font-medium outline-none focus:border-[#009640] focus:ring-4 ring-green-500/10 transition-all" placeholder="Ex: Trilha da Serra Mágica" />
                    </div>
                    
-                   <div className="grid grid-cols-2 gap-4">
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                     
+                     {/* CALENDÁRIO HÍBRIDO */}
                      <div>
                         <label className="text-xs font-bold text-slate-700 block mb-2">Quando vai ser?</label>
-                        <div className="relative">
-                           <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18}/>
-                           <input required type="date" value={dataPasseioStr} onChange={e => setDataPasseioStr(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 pl-10 pr-4 text-sm font-medium outline-none focus:border-[#009640] focus:ring-4 ring-green-500/10 transition-all text-slate-700" />
+                        
+                        {/* 1. VISÃO MOBILE: Input Nativo Seguro */}
+                        <div className="block md:hidden relative">
+                           <input required type="date" value={formatarDataIso(dataPasseio)} onChange={handleDataNativaChange} className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 px-4 text-sm font-medium outline-none focus:border-[#009640] text-slate-700" />
+                        </div>
+
+                        {/* 2. VISÃO DESKTOP: Painel Visual Bonito */}
+                        <div className="hidden md:block relative group">
+                           <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><CalendarIcon size={18}/></div>
+                           <input readOnly value={dataPasseio ? dataPasseio.toLocaleDateString('pt-BR') : ''} className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 pl-10 pr-4 text-sm font-medium outline-none cursor-pointer text-slate-700 hover:bg-slate-100 transition-all" placeholder="Selecione no calendário abaixo" />
                         </div>
                      </div>
+
                      <div>
                         <label className="text-xs font-bold text-slate-700 block mb-2">Que tipo é?</label>
-                        <select value={categoria} onChange={e => setCategoria(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 px-4 text-sm font-medium outline-none focus:border-[#009640] cursor-pointer text-slate-700">
-                           <option value="Trilha">Trilha no Mato</option>
-                           <option value="Praia">Praia ou Rio</option>
-                           <option value="Camping">Acampamento</option>
-                           <option value="Cachoeira">Cachoeira</option>
+                        <select value={categoria} onChange={e => setCategoria(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 px-4 text-sm font-medium outline-none focus:border-[#009640] cursor-pointer text-slate-700 capitalize">
+                           {categoriasDb.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                           {/* Permite que ele crie algo novo caso precise */}
+                           <option value="Outros">Outro...</option>
                         </select>
                      </div>
+                   </div>
+
+                   {/* Renderização do Calendário Customizado (Apenas Desktop) */}
+                   <div className="hidden md:block bg-slate-50 border border-slate-200 rounded-2xl p-4 shadow-inner mt-2">
+                      <div className="flex items-center justify-between mb-3">
+                         <button type="button" onClick={() => setMesAtual(new Date(anoCorrente, mesCorrente - 1))} className="p-1 hover:bg-slate-200 rounded-full"><ChevronLeft size={16}/></button>
+                         <p className="font-bold text-slate-800 capitalize text-xs">{mesAtual.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}</p>
+                         <button type="button" onClick={() => setMesAtual(new Date(anoCorrente, mesCorrente + 1))} className="p-1 hover:bg-slate-200 rounded-full"><ChevronRight size={16}/></button>
+                      </div>
+                      <div className="grid grid-cols-7 gap-y-1 text-center">
+                         {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(d => <span key={d} className="text-[9px] font-black text-slate-400 uppercase">{d}</span>)}
+                         {Array.from({ length: primeiroDia }).map((_, i) => <div key={`empty-${i}`} />)}
+                         {Array.from({ length: diasMes }).map((_, i) => {
+                            const dDia = new Date(anoCorrente, mesCorrente, i + 1);
+                            const passes = dDia < hoje;
+                            const selecionado = dataPasseio && dDia.getTime() === dataPasseio.getTime();
+                            return (
+                              <button type="button" key={i} disabled={passes} onClick={() => setDataPasseio(dDia)} className={`w-full aspect-square flex items-center justify-center text-xs font-bold rounded-lg transition-all ${passes ? 'text-slate-300 pointer-events-none' : selecionado ? 'bg-[#009640] text-white shadow-sm scale-105' : 'text-slate-800 hover:bg-slate-200'}`}>
+                                 {i + 1}
+                              </button>
+                            );
+                         })}
+                      </div>
                    </div>
 
                    <div>
@@ -288,22 +378,37 @@ export default function DisponibilidadeGuiaPage() {
                    </div>
                 </div>
 
-                {/* Logística */}
+                {/* Logística com Autocompletar */}
                 <div className="space-y-4">
                    <h3 className={`${jakarta.className} text-lg font-black text-[#009640] flex items-center gap-2 border-b border-slate-100 pb-2`}><MapPin size={18}/> Logística</h3>
                    
-                   <div className="grid grid-cols-2 gap-4">
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      <div>
                         <label className="text-xs font-bold text-slate-700 block mb-2">A que horas saímos?</label>
-                        <input type="time" value={horarioSaida} onChange={e => setHorarioSaida(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 px-4 text-sm font-medium outline-none focus:border-[#009640] text-slate-700" />
+                        <input type="time" required value={horarioSaida} onChange={e => setHorarioSaida(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 px-4 text-sm font-medium outline-none focus:border-[#009640] text-slate-700" />
                      </div>
-                     <div>
+                     <div className="relative">
                         <label className="text-xs font-bold text-slate-700 block mb-2">Onde a gente se encontra?</label>
-                        <input type="text" value={pontoEncontro} onChange={e => setPontoEncontro(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 px-4 text-sm font-medium outline-none focus:border-[#009640]" placeholder="Na Praça Matriz" />
+                        <div className="relative">
+                          <input type="text" required value={pontoEncontro} onChange={e => { setPontoEncontro(e.target.value); setCoordenadas(''); }} className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 px-4 text-sm font-medium outline-none focus:border-[#009640]" placeholder="Escreva para buscar..." />
+                          {buscandoEndereco && <Loader2 size={16} className="absolute right-4 top-1/2 -translate-y-1/2 animate-spin text-slate-400" />}
+                        </div>
+                        
+                        {/* Menu Suspenso de Sugestões */}
+                        {sugestoesEndereco.length > 0 && (
+                          <div className="absolute z-20 top-[105%] left-0 w-full bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden">
+                            {sugestoesEndereco.map((end, idx) => (
+                              <button key={idx} type="button" onClick={() => selecionarEndereco(end)} className="w-full text-left px-4 py-3 text-xs font-medium text-slate-700 hover:bg-slate-50 border-b border-slate-100 flex items-start gap-2">
+                                <Target size={14} className="text-[#009640] shrink-0 mt-0.5" />
+                                <span>{end.display_name}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
                      </div>
                    </div>
 
-                   <div className="grid grid-cols-2 gap-4">
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      <div>
                         <label className="text-xs font-bold text-slate-700 block mb-2">Quantas pessoas podem ir?</label>
                         <div className="relative">
@@ -327,20 +432,20 @@ export default function DisponibilidadeGuiaPage() {
                    
                    <label className="w-full bg-slate-50 border-2 border-dashed border-slate-300 rounded-2xl p-5 flex flex-col items-center gap-2 cursor-pointer hover:bg-green-50 hover:border-green-300 transition-colors">
                       <Upload size={24} className="text-[#009640]"/>
-                      <span className="text-sm font-bold text-slate-700">{arquivoCapa ? arquivoCapa.name : 'Toque para escolher a Foto Principal'}</span>
+                      <span className="text-sm font-bold text-slate-700 text-center">{arquivoCapa ? arquivoCapa.name : 'Toque para escolher a Foto Principal'}</span>
                       <span className="text-[10px] text-slate-400">Esta é a foto que os turistas vão ver primeiro.</span>
                       <input type="file" accept="image/*" className="hidden" onChange={e => e.target.files && setArquivoCapa(e.target.files[0])} />
                    </label>
 
                    <label className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 flex items-center justify-between gap-2 cursor-pointer hover:bg-slate-100 transition-colors">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm"><Images size={18} className="text-slate-500"/></div>
+                        <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm shrink-0"><Images size={18} className="text-slate-500"/></div>
                         <div>
                            <p className="text-sm font-bold text-slate-700">Adicionar mais fotos (até 6)</p>
                            <p className="text-[10px] text-slate-400">Mostre os detalhes e as paisagens da rota.</p>
                         </div>
                       </div>
-                      <span className="text-xs font-black text-white bg-slate-800 px-3 py-1.5 rounded-full">{arquivosGaleria.length} Selecionadas</span>
+                      <span className="text-[10px] sm:text-xs font-black text-white bg-slate-800 px-3 py-1.5 rounded-full shrink-0">{arquivosGaleria.length} Selecionadas</span>
                       <input type="file" accept="image/*" multiple className="hidden" onChange={handleGaleriaChange} />
                    </label>
                 </div>
@@ -390,7 +495,6 @@ export default function DisponibilidadeGuiaPage() {
                          <span className={`text-xs z-10 w-7 h-7 flex items-center justify-center rounded-full ${isHoje ? 'bg-slate-900 text-white font-black' : temPasseio ? 'font-black text-slate-900' : 'text-slate-500 font-medium'}`}>
                            {i + 1}
                          </span>
-                         {/* O PONTO VERDE SOCIAL DE ATIVIDADE */}
                          {temPasseio && !isHoje && <span className="absolute bottom-0 w-1.5 h-1.5 rounded-full bg-[#009640]"></span>}
                       </div>
                     );
