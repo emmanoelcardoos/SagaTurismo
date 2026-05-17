@@ -79,7 +79,7 @@ function HoteisPageContent() {
   const [criancas, setCriancas] = useState(0);
   const [quartos, setQuartos] = useState(1);
   const [showHospedesPopup, setShowHospedesPopup] = useState(false);
-  const [isSearching, setIsSearching] = useState(false); // ◄── ESTADO PARA O BOTÃO DE LOADING
+  const [isSearching, setIsSearching] = useState(false); // ESTADO PARA O BOTÃO DE LOADING
 
   // Calendário Customizado
   const [showCalendarPopup, setShowCalendarPopup] = useState(false);
@@ -218,7 +218,7 @@ function HoteisPageContent() {
 
   // ── DISPARO DO BOTÃO BUSCAR COM LOADING ANIMADO ──
   const handleBuscar = () => {
-    setIsSearching(true); // Inicia a animação de loading
+    setIsSearching(true);
     
     const checkinStr = checkin ? formatarDataIso(checkin) : '';
     const checkoutStr = checkout ? formatarDataIso(checkout) : '';
@@ -228,7 +228,6 @@ function HoteisPageContent() {
     setShowCalendarPopup(false);
     setShowHospedesPopup(false);
 
-    // Remove o loading após um curto período para permitir que os cartões atualizem visualmente
     setTimeout(() => setIsSearching(false), 800);
   };
 
@@ -332,8 +331,9 @@ function HoteisPageContent() {
     );
   };
 
-  const FiltrosConteudo = () => (
-    <>
+  // Extraído para uma função de renderização normal para evitar bugs no compilador SWC do Next.js
+  const renderFiltros = () => (
+    <div className="flex flex-col gap-0">
       <div className="mb-8">
         <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-4">Categoria</p>
         <div className="space-y-4">
@@ -369,14 +369,14 @@ function HoteisPageContent() {
           ))}
         </div>
       </div>
-    </>
+    </div>
   );
 
   const checkinIsoStr = checkin ? formatarDataIso(checkin) : '';
   const checkoutIsoStr = checkout ? formatarDataIso(checkout) : '';
 
   return (
-    <main className={`${inter.className} min-h-screen bg-[#F5F7FA] text-slate-900 pb-20 md:pb-32`}>
+    <div className={`${inter.className} min-h-screen bg-[#F5F7FA] text-slate-900 pb-20 md:pb-32 w-full`}>
       {/* HEADER */}
       <header className={`fixed left-0 top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl transition-transform duration-300 ${showHeader ? 'translate-y-0' : '-translate-y-full'}`}>
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-5">
@@ -497,14 +497,14 @@ function HoteisPageContent() {
                )}
             </div>
 
-            {/* ◄── BOTÃO COM LOADING ANIMADO ── */}
+            {/* BOTÃO COM LOADING ANIMADO SEGURO */}
             <button 
               onClick={handleBuscar} 
               disabled={isSearching}
               className="bg-slate-900 text-white px-8 md:px-10 py-4 md:py-0 rounded-[1.5rem] font-black text-xs md:text-sm uppercase tracking-widest hover:bg-black transition-all shadow-md shrink-0 flex items-center justify-center gap-2"
             >
               {isSearching ? (
-                <><Loader2 size={16} className="animate-spin" /> Pesquisando...</>
+                <span className="flex items-center gap-2"><Loader2 size={16} className="animate-spin" /> Pesquisando</span>
               ) : (
                 'Buscar'
               )}
@@ -540,7 +540,7 @@ function HoteisPageContent() {
                   <button onClick={limparFiltros} className="text-[10px] font-bold text-slate-400 hover:text-[#00577C] underline">Limpar</button>
                 )}
               </div>
-              <FiltrosConteudo />
+              {renderFiltros()}
             </div>
 
             {/* Banner de Segurança */}
@@ -666,7 +666,7 @@ function HoteisPageContent() {
               </div>
 
               <div className="overflow-y-auto flex-1 hide-scrollbar">
-                 <FiltrosConteudo />
+                 {renderFiltros()}
                  
                  <div className="mt-8 mb-4">
                    <button onClick={limparFiltros} className="w-full py-4 text-slate-500 font-bold text-sm underline">
