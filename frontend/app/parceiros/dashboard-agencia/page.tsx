@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { 
-  Loader2, LogOut, Wallet, Map, 
-  ArrowUpRight, Users, Plus, Bed, Compass, 
-  TrendingUp, Calendar, ArrowRight
+  Loader2, LogOut, Map, 
+  TrendingUp, Users, Plus, Bed, Compass, 
+  Calendar, ArrowRight
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -19,11 +19,11 @@ type Pacote = {
   id: string;
   titulo: string;
   descricao: string;
-  imagem_principal: string;
+  imagem_principal?: string;
   data_inicio: string;
   data_fim: string;
   preco: number;
-  ativo: boolean;
+  ativo?: boolean;
 };
 
 type MetricasAgencia = {
@@ -47,7 +47,6 @@ export default function DashboardAgenciaPage() {
     const nome = localStorage.getItem("nome_negocio");
     const tipo = localStorage.getItem("tipo_parceiro"); 
 
-    // Pode ser 'agencia' ou 'semtur', valida consoante a tua regra de login
     if (!id || (tipo !== 'agencia' && tipo !== 'semtur' && tipo !== 'pacote')) {
       router.push('/parceiros');
     } else {
@@ -56,43 +55,49 @@ export default function DashboardAgenciaPage() {
     }
   }, [router]);
 
-  // 2. CARREGAR PACOTES E CALCULAR MÉTRICAS FINANCEIRAS
+  // 2. CARREGAR PACOTES E CALCULAR MÉTRICAS (VERSÃO BLINDADA)
   useEffect(() => {
     if (!parceiroId) return;
 
     async function carregarDashboard() {
       try {
-        // A) Buscar os pacotes criados por esta agência
+        // A) Buscar TODOS os pacotes (sem ordenar para evitar erros caso a coluna created_at não exista)
         const { data: dadosPacotes, error: errPacotes } = await supabase
           .from('pacotes')
-          .select('*')
-          // .eq('parceiro_id', parceiroId) // Descomenta se quiseres filtrar apenas os desta agência
-          .order('created_at', { ascending: false });
+          .select('*');
 
-        if (dadosPacotes) {
+        if (errPacotes) {
+          console.error("Aviso Supabase (Pacotes):", errPacotes);
+        } else if (dadosPacotes) {
           setPacotes(dadosPacotes as Pacote[]);
         }
 
-        // B) Buscar o histórico de vendas (pedidos) para calcular repasses
-        // Assumimos que na tabela pedidos tens tipo_item = 'pacote'
-        const { data: dadosPedidos } = await supabase
+        // B) Buscar o histórico de vendas de forma crua, sem filtros estritos de base de dados
+        const { data: dadosPedidos, error: errPedidos } = await supabase
           .from('pedidos')
-          .select('valor_total, repasse_hotel, repasse_guia')
-          .eq('tipo_item', 'pacote')
-          .eq('status', 'pago'); // Conta apenas o que foi efetivamente pago
+          .select('valor_total, repasse_hotel, repasse_guia, tipo_item, status');
 
-        if (dadosPedidos) {
-          const totais = dadosPedidos.reduce((acc, pedido) => ({
-            total_vendido: acc.total_vendido + (Number(pedido.valor_total) || 0),
-            repasse_hoteis: acc.repasse_hoteis + (Number(pedido.repasse_hotel) || 0),
-            repasse_guias: acc.repasse_guias + (Number(pedido.repasse_guia) || 0),
-          }), { total_vendido: 0, repasse_hoteis: 0, repasse_guias: 0 });
+        if (errPedidos) {
+          console.error("Aviso Supabase (Pedidos):", errPedidos);
+        } else if (dadosPedidos) {
+          
+          // O Filtro Mágico: O JavaScript lida com maiúsculas, minúsculas e espaços invisíveis
+          const totais = dadosPedidos
+            .filter(pedido => 
+               pedido.tipo_item?.toLowerCase().trim() === 'pacote' && 
+               pedido.status?.toLowerCase().trim() === 'pago'
+            )
+            .reduce((acc, pedido) => ({
+              total_vendido: acc.total_vendido + (Number(pedido.valor_total) || 0),
+              repasse_hoteis: acc.repasse_hoteis + (Number(pedido.repasse_hotel) || 0),
+              repasse_guias: acc.repasse_guias + (Number(pedido.repasse_guia) || 0),
+            }), { total_vendido: 0, repasse_hoteis: 0, repasse_guias: 0 });
 
           setMetricas(totais);
         }
 
       } catch (error) {
-        console.error("Erro ao montar dashboard da agência:", error);
+        console.error("Erro interno no processamento do dashboard:", error);
       } finally {
         setLoading(false);
       }
@@ -110,7 +115,6 @@ export default function DashboardAgenciaPage() {
   
   const formatarDataLocal = (dataStr: string) => {
     if (!dataStr) return '-';
-    // Corrige fuso horário local para não mostrar dia anterior
     const data = new Date(dataStr + 'T12:00:00');
     return data.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '');
   };
@@ -124,7 +128,6 @@ export default function DashboardAgenciaPage() {
     );
   }
 
-  // Fallback visual para imagens em falta
   const IMG_FALLBACK = "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?q=80&w=1721";
 
   return (
@@ -169,7 +172,6 @@ export default function DashboardAgenciaPage() {
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             
-            {/* VENDAS TOTAIS */}
             <div className="bg-white rounded-[2rem] border border-slate-200 p-8 shadow-md flex flex-col justify-between group relative overflow-hidden">
                <div className="absolute top-0 right-0 w-32 h-32 bg-[#00577C]/5 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-700"></div>
                <div className="relative z-10">
@@ -183,7 +185,6 @@ export default function DashboardAgenciaPage() {
                </div>
             </div>
 
-            {/* REPASSE REDE HOTELEIRA */}
             <div className="bg-white rounded-[2rem] border border-slate-200 p-8 shadow-md flex flex-col justify-between group relative overflow-hidden">
                <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-700"></div>
                <div className="relative z-10">
@@ -198,7 +199,6 @@ export default function DashboardAgenciaPage() {
                </div>
             </div>
 
-            {/* REPASSE GUIAS E PASSEIOS */}
             <div className="bg-white rounded-[2rem] border border-slate-200 p-8 shadow-md flex flex-col justify-between group relative overflow-hidden">
                <div className="absolute top-0 right-0 w-32 h-32 bg-[#009640]/5 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-700"></div>
                <div className="relative z-10">
@@ -230,7 +230,7 @@ export default function DashboardAgenciaPage() {
                  <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-4">
                     <Map size={32} className="text-slate-300" />
                  </div>
-                 <h3 className={`${jakarta.className} text-xl font-black text-slate-800 mb-2`}>Nenhum pacote ativo</h3>
+                 <h3 className={`${jakarta.className} text-xl font-black text-slate-800 mb-2`}>Nenhum pacote visível</h3>
                  <p className="text-slate-500 font-medium text-sm max-w-md mb-6">Comece a rentabilizar o turismo da cidade unindo os nossos parceiros num pacote espetacular.</p>
                  <Link href="/parceiros/dashboard-agencia/disponibilidade" className="bg-[#00577C] text-white px-6 py-3 rounded-xl font-black text-sm hover:bg-[#004a6b] transition-colors shadow-lg">
                     Criar o Primeiro Pacote
@@ -240,15 +240,14 @@ export default function DashboardAgenciaPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                  {pacotes.map(pacote => (
                     <div key={pacote.id} className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all group flex flex-col">
-                       {/* Header do Card com Imagem */}
                        <div className="relative h-48 w-full bg-slate-100 overflow-hidden">
                           <Image src={pacote.imagem_principal || IMG_FALLBACK} alt={pacote.titulo} fill className="object-cover group-hover:scale-105 transition-transform duration-700" />
+                          {/* Verifica de forma segura se a coluna 'ativo' existe ou não */}
                           <div className="absolute top-3 left-3 bg-white/95 backdrop-blur text-[#00577C] text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg shadow-sm">
-                             {pacote.ativo ? 'Em Vendas' : 'Em Análise'}
+                             {pacote.ativo !== false ? 'Em Vendas' : 'Em Análise'}
                           </div>
                        </div>
                        
-                       {/* Corpo do Card */}
                        <div className="p-6 flex-1 flex flex-col">
                           <h3 className={`${jakarta.className} text-lg font-black text-slate-900 leading-tight mb-2 line-clamp-2`}>
                              {pacote.titulo}
@@ -267,19 +266,17 @@ export default function DashboardAgenciaPage() {
                                 <p className={`${jakarta.className} text-2xl font-black text-[#00577C]`}>{formatarMoeda(pacote.preco)}</p>
                              </div>
                              <div className="flex -space-x-2">
-                                {/* Avatares decorativos simbolizando turistas comprando */}
                                 <div className="w-8 h-8 rounded-full bg-blue-100 border-2 border-white flex items-center justify-center"><Users size={12} className="text-blue-600"/></div>
                                 <div className="w-8 h-8 rounded-full bg-amber-100 border-2 border-white flex items-center justify-center"><Users size={12} className="text-amber-600"/></div>
                                 <div className="w-8 h-8 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center text-[9px] font-black text-slate-500">+</div>
                              </div>
                           </div>
 
-                          {/* Botão de Relatório Dinâmico */}
                           <Link 
                             href={`/parceiros/dashboard-agencia/pacote/${pacote.id}`}
                             className="w-full bg-slate-900 hover:bg-black text-white text-xs font-black uppercase tracking-widest py-4 rounded-xl flex items-center justify-center gap-2 transition-colors"
                           >
-                             Ver Relatório de Compradores <ArrowRight size={14} />
+                             Ver Relatório de Vendas <ArrowRight size={14} />
                           </Link>
                        </div>
                     </div>
