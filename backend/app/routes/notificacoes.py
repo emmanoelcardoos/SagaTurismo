@@ -13,7 +13,7 @@ SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 class SchemaNotificacaoPasseio(BaseModel):
-    guia_name: str
+    guia_nome: str  # ◄── CORREÇÃO: Alterado de guia_name para guia_nome para sincronizar com o Frontend
     titulo: str
     preco: float
     descricao: str
@@ -28,7 +28,8 @@ async def receber_notificacao_novo_passeio(payload: SchemaNotificacaoPasseio):
         "descricao": payload.descricao
     }
     
-    sucesso = notificar_admin_novo_passeio(payload.guia_name, dados_passeio)
+    # ◄── CORREÇÃO: Atualizado para ler o campo corrigido payload.guia_nome
+    sucesso = notificar_admin_novo_passeio(payload.guia_nome, dados_passeio)
     if sucesso:
         return {"sucesso": True, "mensagem": "E-mail de auditoria enviado para o Emmanoel."}
     raise HTTPException(status_code=500, detail="Falha ao disparar o e-mail de notificação administrativa.")
