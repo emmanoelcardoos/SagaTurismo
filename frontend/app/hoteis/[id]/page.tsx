@@ -2,14 +2,14 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
+import { useEffect, useState, Suspense } from 'react';
 import { 
   ArrowLeft, MapPin, Star, CheckCircle2, Info, 
   Loader2, Menu, X, ChevronLeft, ChevronRight,
   Calendar as CalendarIcon, Bed, ChevronRight as ChevronRightIcon,
-  Users, Award, Phone, Mail, Globe,
-  Wind, Wifi, Bath, CreditCard, Coffee, Edit3, Compass
+  Users, Award, Phone, Mail, Globe, AlertCircle,
+  Wind, Wifi, Bath, CreditCard, Coffee, Edit3, Compass, ZoomIn
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -63,8 +63,11 @@ type Hotel = {
   };
 };
 
-export default function HotelDetalhePage({ params }: { params: { id: string } }) {
+function HotelDetalheContent() {
   const router = useRouter();
+  const { id } = useParams();
+  const searchParams = useSearchParams();
+
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -101,11 +104,11 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
     setMounted(true);
   }, []);
 
-  // Carregamento Inicial do Hotel
+  // 1. CARREGAMENTO INICIAL DO HOTEL + CAPTURA INTELIGENTE DA URL DA PÁGINA ANTERIOR
   useEffect(() => {
     async function fetchHotel() {
       try {
-        const { data: hotelData, error: hotelError } = await supabase.from('hoteis').select('*').eq('id', params.id).single();
+        const { data: hotelData, error: hotelError } = await supabase.from('hoteis').select('*').eq('id', id).single();
         if (hotelError) throw new Error("Erro ao buscar a hospedagem.");
         
         if (hotelData) {
@@ -121,10 +124,28 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
         setLoading(false);
       }
     }
-    if (params.id) fetchHotel();
-  }, [params.id, quartos]);
 
-  // ── REATIVIDADE: ATUALIZAÇÃO PREÇOS DIÁRIOS VIA API RAILWAY ──
+    // ◄── MEMÓRIA AUTOMÁTICA: Lê os filtros vindos da barra de pesquisa principal
+    const ci = searchParams.get('checkin');
+    const co = searchParams.get('checkout');
+    const ad = searchParams.get('adultos');
+    const cr = searchParams.get('criancas');
+    const qu = searchParams.get('quartos');
+
+    if (ci && ci !== 'null') {
+      const dataIn = new Date(ci + 'T00:00:00'); // T00:00:00 evita bugs de fuso horário
+      setCheckin(dataIn);
+      setMesAtualCalendario(dataIn); // Força o calendário a abrir já focado no mês escolhido!
+    }
+    if (co && co !== 'null') setCheckout(new Date(co + 'T00:00:00'));
+    if (ad) setAdultos(Number(ad));
+    if (cr) setCriancas(Number(cr));
+    if (qu) setQuartos(Number(qu));
+
+    if (id) fetchHotel();
+  }, [id, searchParams, quartos]);
+
+  // 2. REATIVIDADE: ATUALIZAÇÃO PREÇOS DIÁRIOS VIA API RAILWAY
   useEffect(() => {
     if (!hotel) return;
 
@@ -143,10 +164,9 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
       const checkoutStr = formatarDataIso(checkout!);
 
       try {
-        // ◄── AQUI ESTÁ A MAGIA DO REVENUE MANAGEMENT: &adultos=${adultos} injetado nas rotas!
         const [resStd, resLux] = await Promise.all([
-          fetch(`https://sagaturismo-production.up.railway.app/api/v1/public/hoteis/${params.id}/calcular-preco?tipo_quarto=standard&checkin=${checkinStr}&checkout=${checkoutStr}&quantidade=${quartos}&adultos=${adultos}`),
-          fetch(`https://sagaturismo-production.up.railway.app/api/v1/public/hoteis/${params.id}/calcular-preco?tipo_quarto=luxo&checkin=${checkinStr}&checkout=${checkoutStr}&quantidade=${quartos}&adultos=${adultos}`)
+          fetch(`https://sagaturismo-production.up.railway.app/api/v1/public/hoteis/${id}/calcular-preco?tipo_quarto=standard&checkin=${checkinStr}&checkout=${checkoutStr}&quantidade=${quartos}&adultos=${adultos}`),
+          fetch(`https://sagaturismo-production.up.railway.app/api/v1/public/hoteis/${id}/calcular-preco?tipo_quarto=luxo&checkin=${checkinStr}&checkout=${checkoutStr}&quantidade=${quartos}&adultos=${adultos}`)
         ]);
 
         const dataStd = await resStd.json();
@@ -175,7 +195,7 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
     }
 
     atualizarPrecosDinamicos();
-  }, [checkin, checkout, quartos, adultos, hotel, params.id]); // ◄── 'adultos' adicionado como dependência para recálculo em tempo real!
+  }, [checkin, checkout, quartos, adultos, hotel, id]);
 
   // Efeito de Scroll Header
   useEffect(() => {
@@ -190,7 +210,6 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
-  // Lógica do Calendário
   const diasDoMes = (ano: number, mes: number) => new Date(ano, mes + 1, 0).getDate();
   const primeiroDiaDoMes = (ano: number, mes: number) => new Date(ano, mes, 1).getDay();
 
@@ -601,5 +620,19 @@ export default function HotelDetalhePage({ params }: { params: { id: string } })
         </div>
       </footer>
     </div>
+  );
+}
+
+// ── EXPORT COMPLETO ENVOLTO EM SUSPENSE PARA SUPORTAR QUERY PARAMS ──
+export default function HotelDetalhePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex flex-col items-center justify-center bg-white text-[#00577C]">
+        <Loader2 className="w-12 h-12 animate-spin mb-4" />
+        <p className="font-bold uppercase tracking-widest text-xs">Sincronizando filtros de pesquisa...</p>
+      </div>
+    }>
+      <HotelDetalheContent />
+    </Suspense>
   );
 }

@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { useEffect, useState, useMemo, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Loader2, Menu, MapPin, ArrowRight,
   Search, Calendar as CalendarIcon, Star, 
@@ -45,7 +46,6 @@ const formatarMoeda = (valor: number) =>
 
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1542314831-c53cd6b7608b?q=80&w=1740";
 
-// Garantir extração de array mesmo que venha como string do banco
 const getArraySeguro = (item: any): string[] => {
   if (!item) return [];
   if (Array.isArray(item)) return item;
@@ -62,7 +62,10 @@ const getArraySeguro = (item: any): string[] => {
   return [];
 };
 
-export default function HoteisPage() {
+function HoteisPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [hoteis, setHoteis] = useState<Hotel[]>([]);
   const [loading, setLoading] = useState(true);
   const [showHeader, setShowHeader] = useState(true);
@@ -83,13 +86,17 @@ export default function HoteisPage() {
   const [mesAtualCalendario, setMesAtualCalendario] = useState(new Date());
   const [hoverDate, setHoverDate] = useState<Date | null>(null);
 
+  // ── DICIONÁRIO DE PREÇOS REAIS CALCULAADOS VIA RAILWAY ──
+  const [precosDinamicos, setPrecosDinamicos] = useState<Record<string, { valor_total: number; noites: number; disponivel: boolean }>>({});
+  const [carregandoPrecos, setCarregandoPrecos] = useState(false);
+
   // ── ESTADOS DOS FILTROS LATERALES ──
   const [estrelasSelecionadas, setEstrelasSelecionadas] = useState<number[]>([]);
   const [comodidadesSelecionadas, setComodidadesSelecionadas] = useState<string[]>([]);
 
-  // Referência para detetar cliques fora da barra de pesquisa
   const searchBarRef = useRef<HTMLDivElement>(null);
 
+  // 1. CARREGAMENTO INICIAL DOS HOTÉIS DA BASE DE DADOS
   useEffect(() => {
     async function fetchHoteis() {
       const { data } = await supabase.from('hoteis').select('*').order('nome');
@@ -98,6 +105,75 @@ export default function HoteisPage() {
     }
     fetchHoteis();
   }, []);
+
+  // 2. SINCRONIZAÇÃO DA URL PARA OS ESTADOS (MEMÓRIA DE PESQUISA)
+  useEffect(() => {
+    const ci = searchParams.get('checkin');
+    const co = searchParams.get('checkout');
+    const ad = searchParams.get('adultos');
+    const cr = searchParams.get('criancas');
+    const qu = searchParams.get('quartos');
+
+    if (ci && ci !== 'null') {
+      const dIn = new Date(ci + 'T00:00:00');
+      setCheckin(dIn);
+      setMesAtualCalendario(dIn);
+    }
+    if (co && co !== 'null') setCheckout(new Date(co + 'T00:00:00'));
+    if (ad) setAdultos(Number(ad));
+    if (cr) setCriancas(Number(cr));
+    if (qu) setQuartos(Number(qu));
+  }, [searchParams]);
+
+  // 3. CONSULTAR PREÇO REAL EM LOTE DE ACORDO COM OS PARÂMETROS DA URL
+  useEffect(() => {
+    if (hoteis.length === 0) return;
+
+    const ci = searchParams.get('checkin');
+    const co = searchParams.get('checkout');
+    const ad = searchParams.get('adultos') || '2';
+    const qu = searchParams.get('quartos') || '1';
+
+    if (!ci || !co) {
+      setPrecosDinamicos({});
+      return;
+    }
+
+    async function carregarPrecosReaisLote() {
+      setCarregandoPrecos(true);
+      const novosPrecos: Record<string, any> = {};
+
+      try {
+        await Promise.all(
+          hoteis.map(async (hotel) => {
+            try {
+              const res = await fetch(
+                `https://sagaturismo-production.up.railway.app/api/v1/public/hoteis/${hotel.id}/calcular-preco?tipo_quarto=standard&checkin=${ci}&checkout=${co}&quantidade=${qu}&adultos=${ad}`
+              );
+              const data = await res.json();
+              if (data.sucesso) {
+                novosPrecos[hotel.id] = {
+                  valor_total: data.valor_total,
+                  noites: data.noites,
+                  disponivel: data.disponivel
+                };
+              }
+            } catch (err) {
+              console.error(`Erro ao carregar tarifa real do hotel ${hotel.id}:`, err);
+            }
+          })
+        );
+        setPrecosDinamicos(novosPrecos);
+      } catch (e) {
+        console.error("Erro no lote de verificação financeira:", e);
+      } finally {
+        setPrecosDinamicos(novosPrecos);
+        setCarregandoPrecos(false);
+      }
+    }
+
+    carregarPrecosReaisLote();
+  }, [hoteis, searchParams]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -109,7 +185,6 @@ export default function HoteisPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
-  // Efeito para detetar cliques fora dos pop-ups
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (searchBarRef.current && !searchBarRef.current.contains(event.target as Node)) {
@@ -117,14 +192,10 @@ export default function HoteisPage() {
         setShowHospedesPopup(false);
       }
     };
-
     document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Controlar o scroll do body quando o menu de filtros abrir no mobile
   useEffect(() => {
     if (isMobileFiltersOpen || isMobileMenuOpen) {
       document.body.style.overflow = 'hidden';
@@ -134,11 +205,21 @@ export default function HoteisPage() {
     return () => { document.body.style.overflow = 'auto'; };
   }, [isMobileFiltersOpen, isMobileMenuOpen]);
 
-  // ── LÓGICA DO CALENDÁRIO ──
-  const diasDoMes = (ano: number, mes: number) => new Date(ano, mes + 1, 0).getDate();
-  const primeiroDiaDoMes = (ano: number, mes: number) => new Date(ano, mes, 1).getDay();
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
+  // Lógica de Formatação para URL imune a fusos horários
+  const formatarDataIso = (data: Date) => {
+    return `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`;
+  };
+
+  // ── DISPARO DO BOTÃO BUSCAR REAL (MUTAÇÃO DO ESTADO DA URL) ──
+  const handleBuscar = () => {
+    const checkinStr = checkin ? formatarDataIso(checkin) : '';
+    const checkoutStr = checkout ? formatarDataIso(checkout) : '';
+    
+    router.push(`/hoteis?checkin=${checkinStr}&checkout=${checkoutStr}&adultos=${adultos}&criancas=${criancas}&quartos=${quartos}`);
+    
+    setShowCalendarPopup(false);
+    setShowHospedesPopup(false);
+  };
 
   const handleDateClick = (data: Date) => {
     if (!checkin || (checkin && checkout)) {
@@ -146,6 +227,7 @@ export default function HoteisPage() {
       setCheckout(null);
     } else if (data > checkin) {
       setCheckout(data);
+      // Fecha o popup mas não dispara a busca sozinho, deixa o botão manual consolidar
       setTimeout(() => setShowCalendarPopup(false), 300);
     } else {
       setCheckin(data);
@@ -157,7 +239,6 @@ export default function HoteisPage() {
     return data.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
   };
 
-  // ── FUNÇÕES DE FILTRAGEM ──
   const toggleEstrela = (star: number) => {
     setEstrelasSelecionadas(prev => prev.includes(star) ? prev.filter(s => s !== star) : [...prev, star]);
   };
@@ -175,7 +256,6 @@ export default function HoteisPage() {
   const hoteisFiltrados = useMemo(() => {
     return hoteis.filter(hotel => {
       if (estrelasSelecionadas.length > 0 && !estrelasSelecionadas.includes(hotel.estrelas)) return false;
-      
       if (comodidadesSelecionadas.length > 0) {
         const comodidadesHotel = getArraySeguro(hotel.comodidades);
         const temTodas = comodidadesSelecionadas.every(c => comodidadesHotel.includes(c));
@@ -183,15 +263,13 @@ export default function HoteisPage() {
       }
       return true;
     });
-  }, [hoteis, estrelasSelecionadas, comodidadesSelecionadas]);
+  }, [hoteis, stars=estrelasSelecionadas, comodidadesSelecionadas]);
 
-  // ── MATEMÁTICA DA PESQUISA ──
   const noites = (checkin && checkout && checkout > checkin) 
     ? Math.ceil((checkout.getTime() - checkin.getTime()) / (1000 * 3600 * 24)) 
     : 1;
   const totalQuartos = quartos || 1;
 
-  // ── RENDERIZAÇÃO DA GRELHA DO MÊS ──
   const renderMonth = () => {
     const ano = mesAtualCalendario.getFullYear();
     const mes = mesAtualCalendario.getMonth();
@@ -244,7 +322,6 @@ export default function HoteisPage() {
     );
   };
 
-  // ── COMPONENTE DOS FILTROS (Partilhado entre Sidebar Desktop e Modal Mobile) ──
   const FiltrosConteudo = () => (
     <>
       <div className="mb-8">
@@ -285,9 +362,12 @@ export default function HoteisPage() {
     </>
   );
 
-  return (
-    <main className={`${inter.className} min-h-screen bg-[#F5F7FA] text-slate-900 pb-20 md:pb-32`}>
+  // Strings de envio blindadas para as URLs dos botões
+  const checkinIsoStr = checkin ? formatarDataIso(checkin) : '';
+  const checkoutIsoStr = checkout ? formatarDataIso(checkout) : '';
 
+  return (
+    <div className="w-full">
       {/* HEADER */}
       <header className={`fixed left-0 top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl transition-transform duration-300 ${showHeader ? 'translate-y-0' : '-translate-y-full'}`}>
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-5">
@@ -367,7 +447,7 @@ export default function HoteisPage() {
                <div className="text-left flex-1 overflow-hidden">
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 truncate">Hóspedes e Quartos</p>
                   <p className="font-bold text-slate-800 text-xs md:text-sm truncate">
-                    {adultos} Adultos · {criancas} Crianças · {quartos} Quarto
+                    {adultos} Adultos · {criancas} Crianças · {quartos} Quarto(s)
                   </p>
                </div>
 
@@ -408,7 +488,8 @@ export default function HoteisPage() {
                )}
             </div>
 
-            <button className="bg-slate-900 text-white px-8 md:px-10 py-4 md:py-0 rounded-[1.5rem] font-black text-xs md:text-sm uppercase tracking-widest hover:bg-black transition-all shadow-md shrink-0">
+            {/* ◄── BOTÃO CORRIGIDO: Agora dispara a busca real injetando os estados na URL */}
+            <button onClick={handleBuscar} className="bg-slate-900 text-white px-8 md:px-10 py-4 md:py-0 rounded-[1.5rem] font-black text-xs md:text-sm uppercase tracking-widest hover:bg-black transition-all shadow-md shrink-0">
               Buscar
             </button>
           </div>
@@ -431,7 +512,7 @@ export default function HoteisPage() {
 
         <div className="flex flex-col lg:flex-row gap-8 items-start">
           
-          {/* BARRA LATERAL DE FILTROS (Apenas visível em Desktop lg:block) */}
+          {/* BARRA LATERAL DE FILTROS */}
           <aside className="hidden lg:block w-72 shrink-0 space-y-6 h-fit lg:self-start">
             <div className="bg-white rounded-[2.5rem] border border-slate-200 p-8 shadow-sm text-left">
               <div className="flex items-center justify-between mb-8">
@@ -473,8 +554,13 @@ export default function HoteisPage() {
               </div>
             ) : (
               hoteisFiltrados.map((hotel) => {
-                const precoDiaria = parseValor(hotel.quarto_standard_preco || hotel.preco_medio);
-                const precoTotal = precoDiaria * noites * totalQuartos;
+                const precoBase = parseValor(hotel.quarto_standard_preco || hotel.preco_medio);
+                
+                // ◄── MOTOR DE PREÇOS REAIS DA RAILWAY ATIVADO
+                const dadosDinamicos = precosDinamicos[hotel.id];
+                const precoTotal = dadosDinamicos ? dadosDinamicos.valor_total : precoBase * noites * totalQuartos;
+                const precoDiariaExibida = dadosDinamicos ? (dadosDinamicos.valor_total / (dadosDinamicos.noites * totalQuartos)) : precoBase;
+                const noitesExibidas = dadosDinamicos ? dadosDinamicos.noites : noites;
 
                 return (
                   <article key={hotel.id} className="bg-white rounded-[2rem] md:rounded-[2.5rem] border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col md:flex-row overflow-hidden group">
@@ -495,7 +581,7 @@ export default function HoteisPage() {
                             {Array.from({ length: hotel.estrelas || 3 }).map((_, i) => <Star key={i} size={14} fill="currentColor"/>)}
                           </div>
                           <h3 className={`${jakarta.className} text-2xl md:text-3xl font-black text-[#00577C] leading-tight hover:underline cursor-pointer`}>
-                            <Link href={`/hoteis/${hotel.id}`}>{hotel.nome}</Link>
+                            <Link href={`/hoteis/${hotel.id}?checkin=${checkinIsoStr}&checkout=${checkoutIsoStr}&adultos=${adultos}&quartos=${quartos}`}>{hotel.nome}</Link>
                           </h3>
                         </div>
                       </div>
@@ -520,18 +606,23 @@ export default function HoteisPage() {
                       <div className="mt-auto pt-5 md:pt-6 border-t border-slate-100 flex flex-col sm:flex-row sm:items-end justify-between gap-5 md:gap-6">
                         <div>
                            <p className="text-xs font-bold text-slate-500 mb-1">
-                             {noites} {noites === 1 ? 'noite' : 'noites'}, {adultos} {adultos === 1 ? 'adulto' : 'adultos'}
+                             {noitesExibidas} {noitesExibidas === 1 ? 'noite' : 'noites'}, {adultos} {adultos === 1 ? 'adulto' : 'adultos'}
                            </p>
                            <p className="text-xs font-bold text-slate-400">
-                             Total estimado: <span className="font-black text-slate-700">{formatarMoeda(precoTotal)}</span>
+                             {carregandoPrecos ? 'Calculando valores...' : dadosDinamicos && !dadosDinamicos.disponivel ? (
+                               <span className="text-red-500 font-bold">Esgotado para estas datas</span>
+                             ) : (
+                               <>Total estimado: <span className="font-black text-slate-700">{formatarMoeda(precoTotal)}</span></>
+                             )}
                            </p>
                         </div>
                         <div className="text-right flex flex-col items-end">
                            <p className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Diária a partir de</p>
                            <p className={`${jakarta.className} text-3xl md:text-4xl font-black text-[#00577C] tabular-nums mb-3 md:mb-4 leading-none`}>
-                             {formatarMoeda(precoDiaria)}
+                             {carregandoPrecos ? '...' : formatarMoeda(precoDiariaExibida)}
                            </p>
-                           <Link href={`/hoteis/${hotel.id}?checkin=${checkin ? checkin.toISOString() : ''}&checkout=${checkout ? checkout.toISOString() : ''}&adultos=${adultos}&quartos=${quartos}`} className="w-full sm:w-auto bg-[#00577C] text-white px-8 md:px-10 py-3.5 md:py-4 rounded-xl md:rounded-[1.5rem] font-black text-xs md:text-sm uppercase tracking-widest hover:bg-[#004a6b] transition-all shadow-xl hover:shadow-[#00577C]/20 flex items-center justify-center gap-3 hover:translate-x-1">
+                           {/* ◄── LINK CORRIGIDO: Envia as strings formatadas para que o detalhe as capture perfeitamente */}
+                           <Link href={`/hoteis/${hotel.id}?checkin=${checkinIsoStr}&checkout=${checkoutIsoStr}&adultos=${adultos}&quartos=${quartos}`} className="w-full sm:w-auto bg-[#00577C] text-white px-8 md:px-10 py-3.5 md:py-4 rounded-xl md:rounded-[1.5rem] font-black text-xs md:text-sm uppercase tracking-widest hover:bg-[#004a6b] transition-all shadow-xl hover:shadow-[#00577C]/20 flex items-center justify-center gap-3 hover:translate-x-1">
                              Ver Disponibilidade <ChevronRight size={18} className="md:w-5 md:h-5"/>
                            </Link>
                         </div>
@@ -545,7 +636,7 @@ export default function HoteisPage() {
         </div>
       </section>
 
-      {/* ── GAVETA DE FILTROS MOBILE (Bottom Sheet) ── */}
+      {/* GAVETA DE FILTROS MOBILE */}
       {isMobileFiltersOpen && (
         <div className="fixed inset-0 z-[100] lg:hidden">
            <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={() => setIsMobileFiltersOpen(false)} />
@@ -561,7 +652,6 @@ export default function HoteisPage() {
 
               <div className="overflow-y-auto flex-1 hide-scrollbar">
                  <FiltrosConteudo />
-                 
                  <div className="mt-8 mb-4">
                    <button onClick={limparFiltros} className="w-full py-4 text-slate-500 font-bold text-sm underline">
                       Limpar todos os filtros
@@ -594,6 +684,20 @@ export default function HoteisPage() {
           </div>
         </div>
       </footer>
-    </main>
+    </div>
+  );
+}
+
+// ── EXPORT ENVOLTO EM SUSPENSE PARA PREVENIR ERROS DE BUILD NO NEXT.JS ──
+export default function HoteisPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex flex-col items-center justify-center bg-white text-[#00577C]">
+        <Loader2 className="w-12 h-12 animate-spin mb-4" />
+        <p className="font-bold uppercase tracking-widest text-xs">Preparando listagem oficial de alojamentos...</p>
+      </div>
+    }>
+      <HoteisPageContent />
+    </Suspense>
   );
 }
