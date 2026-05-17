@@ -339,7 +339,7 @@ def gerar_pdf_voucher(pedido_db: dict, dados_extra: dict = None) -> str:
     _desenhar_header_voucher(c, largura, altura, codigo_pedido)
     y = altura - 40 * mm
 
-    def garantir_espaco(espaco):
+    def garantizar_espaco(espaco):
         nonlocal y
         if y - espaco < 25 * mm: y = nova_pagina(1)
 
@@ -416,7 +416,8 @@ def gerar_pdf_voucher(pedido_db: dict, dados_extra: dict = None) -> str:
     c.drawString(MARGIN_X + 150 * mm, y, "TITULAR")
     y -= 6 * mm
     
-    # ◄── EXTRAÇÃO E LOOP DINÂMICO DO MANIFESTO REAL DE ACOMPANHANTES
+    # ◄── FIX CORREÇÃO DE ESCOPO: total_pessoas declarada no início para evitar UnboundLocalError
+    total_pessoas = pedido_db.get("quantidade_pessoas", 1) or 1
     lista_acompanhantes = pedido_db.get("hospedes_extras", [])
     if not isinstance(lista_acompanhantes, list): 
         lista_acompanhantes = []
@@ -428,7 +429,6 @@ def gerar_pdf_voucher(pedido_db: dict, dados_extra: dict = None) -> str:
             cpf_extra = _safe(hospede.get("cpf"), "NÃO INFORMADO")
             data_nasc_extra = _formatar_data_br(hospede.get("data_nascimento"))
             
-            # Monta o descritor incluindo a data de nascimento junta se existir
             doc_exibicao = f"{cpf_extra} ({data_nasc_extra})" if data_nasc_extra != "—" else cpf_extra
             
             c.setFillColor(COR_TEXTO_ESCURO)
@@ -439,8 +439,6 @@ def gerar_pdf_voucher(pedido_db: dict, dados_extra: dict = None) -> str:
             c.drawString(MARGIN_X + 150 * mm, y, "ACOMPANHANTE")
             y -= 6 * mm
     else:
-        # Fallback inteligente baseado no contador numérico se o array vier vazio (Pedidos Legados)
-        total_pessoas = pedido_db.get("quantidade_pessoas", 1) or 1
         if total_pessoas > 1:
             for idx in range(1, total_pessoas):
                 garantir_espaco(8)
