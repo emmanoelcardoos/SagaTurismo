@@ -82,39 +82,54 @@ async def webhook_pagbank(request: Request):
             nome_cliente = pedido.get("nome_cliente")
             
             # ────────────────────────────────────────────────────────
-            # CASO A: CARTEIRA DIGITAL DE RESIDENTE
+            # CASO A: CARTEIRA DIGITAL DE RESIDENTE (ATUALIZADO)
             # ────────────────────────────────────────────────────────
             if tipo == "carteira":
-                res_residentes = supabase.table("rd_residentes").select("*").eq("email", email_cliente).eq("status", "aguardando_pagamento").execute()
-                residentes_pendentes = res_residentes.data
+                token_id = pedido.get("item_id") # O token foi guardado aqui no pagamentos.py
+                residentes_encontrados = []
 
-                if not residentes_pendentes:
-                    res_residentes = supabase.table("rd_residentes").select("*").eq("cpf", pedido.get("cpf_cliente")).eq("status", "aguardando_pagamento").execute()
-                    residentes_pendentes = res_residentes.data
+                # Tenta procurar diretamente pelo Token (ID único)
+                if token_id:
+                    res_res = supabase.table("rd_residentes").select("*").eq("id", token_id).execute()
+                    if not res_res.data:
+                        # Fallback caso o token seja a chave do QRCode
+                        res_res = supabase.table("rd_residentes").select("*").eq("qrcode_token", token_id).execute()
+                    residentes_encontrados = res_res.data
+                
+                # Se não encontrar pelo token, usa o CPF como salva-vidas
+                if not residentes_encontrados:
+                    res_res = supabase.table("rd_residentes").select("*").eq("cpf", pedido.get("cpf_cliente")).execute()
+                    residentes_encontrados = res_res.data
 
-                if residentes_pendentes:
+                if residentes_encontrados:
                     caminhos_pdfs = []
-                    for res in residentes_pendentes:
-                        supabase.table("rd_residentes").update({"status": "ativo"}).eq("id", res["id"]).execute()
+                    for res in residentes_encontrados:
+                        # Atualiza o residente para "ativa" (é o que o frontend espera)
+                        supabase.table("rd_residentes").update({"status": "ativa"}).eq("id", res["id"]).execute()
                         try:
+                            # Prepara os dados para o PDF
                             dados_pdf = {
-                                "nome": res["nome_completo"],
-                                "cpf": res["cpf"],
-                                "data_nascimento": res["data_nascimento"],
-                                "foto_url": res["foto_url"]
+                                "nome": res.get("nome_completo") or res.get("nome", "Residente Oficial"),
+                                "cpf": res.get("cpf", pedido.get("cpf_cliente")),
+                                "data_nascimento": res.get("data_nascimento", "--/--/----"),
+                                "foto_url": res.get("foto_url")
                             }
-                            caminho_pdf = gerar_pdf_carteira(dados_pdf, res["qrcode_token"])
+                            # Gera o PDF
+                            caminho_pdf = gerar_pdf_carteira(dados_pdf, res.get("qrcode_token") or res["id"])
                             if caminho_pdf:
                                 caminhos_pdfs.append(caminho_pdf)
                         except Exception as e_pdf:
                             print(f"[WEBHOOK] Erro ao gerar PDF da carteira: {e_pdf}")
                     
-                    try:
-                        enviar_carteiras_por_email(email_cliente, nome_cliente, caminhos_pdfs)
-                    except Exception as e_email:
-                        print(f"[WEBHOOK] Erro ao enviar e-mail das carteiras: {e_email}")
+                    # Dispara o email
+                    if caminhos_pdfs:
+                        try:
+                            enviar_carteiras_por_email(email_cliente, nome_cliente, caminhos_pdfs)
+                            print(f"[WEBHOOK] Carteira(s) c/ PDF enviada(s) com sucesso para {email_cliente}")
+                        except Exception as e_email:
+                            print(f"[WEBHOOK] Erro ao enviar e-mail das carteiras: {e_email}")
                 else:
-                    print(f"[WEBHOOK] Carteira Paga, mas nenhum registo 'aguardando_pagamento' encontrado para {email_cliente}")
+                    print(f"[WEBHOOK] Carteira Paga, mas nenhum registo de residente encontrado para o token {token_id}")
 
             # ────────────────────────────────────────────────────────
             # CASO B: RESERVA AVULSA DE HOTEL (AÇÃO 1)
