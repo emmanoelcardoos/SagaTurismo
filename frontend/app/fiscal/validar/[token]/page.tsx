@@ -1,4 +1,6 @@
 import { CheckCircle2, XCircle, ShieldAlert, User, FileText, AlertTriangle, ShieldCheck, CreditCard, Calendar } from 'lucide-react';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 
 interface ValidarResponse {
   sucesso: boolean;
@@ -16,7 +18,6 @@ async function validate(token: string): Promise<ValidarResponse> {
   const FISCAL_KEY = process.env.FISCAL_SECRET_KEY || 'SaoGeraldo2026_Secret_Key';
 
   try {
-    // ◄── ROTA 100% ALINHADA COM O BACKEND: /fiscal/validar/
     const res = await fetch(`${API_URL}/api/v1/fiscal/validar/${encodeURIComponent(token)}`, {
       cache: 'no-store', 
       headers: {
@@ -35,6 +36,18 @@ async function validate(token: string): Promise<ValidarResponse> {
 }
 
 export default async function FiscalPage({ params }: { params: { token: string } }) {
+  // ◄── O CADEADO DE SEGURANÇA COMEÇA AQUI ──►
+  const cookieStore = cookies();
+  const authCookie = cookieStore.get('fiscal_auth');
+
+  // Verifica se o telemóvel tem a credencial (Cookie)
+  if (!authCookie || authCookie.value !== 'autenticado') {
+    // Se for um turista ou curioso, é expulso para a página de Login!
+    redirect(`/fiscal/login?returnUrl=/fiscal/validar/${params.token}`);
+  }
+  // ◄── O CADEADO DE SEGURANÇA TERMINA AQUI ──►
+
+  // Se o código chegar aqui, é porque é mesmo o Fiscal. O sistema vai buscar os dados:
   const data = await validate(params.token);
   
   const isAtivo = data.status === 'ativo';
