@@ -8,7 +8,7 @@ import {
   Loader2, ArrowLeft, Calendar as CalendarIcon, 
   CheckCircle2, AlertTriangle, Save, ToggleLeft, 
   ToggleRight, Info, Bed, Compass, ChevronLeft, ChevronRight,
-  Plus, Award, Percent, Trash2, Layers, Users, Image as ImageIcon
+  Plus, Award, Percent, Trash2, Layers, Users, UploadCloud
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -27,7 +27,7 @@ type QuartoFisico = {
   descricao?: string;
   capacidade: number;
   quantidade_total_quartos: number;
-  imagem_url?: string; // ◄── Coluna real do teu Supabase
+  imagem_url?: string;
 };
 
 export default function DisponibilidadePage() {
@@ -37,21 +37,23 @@ export default function DisponibilidadePage() {
   const [tipoParceiro, setTipoParceiro] = useState<string>('hotel');
   const [loadingSessao, setLoadingSessao] = useState(true);
 
+  // ── ABA HOTEL ──
   const [abaAtiva, setAbaAtiva] = useState<'quartos' | 'calendario'>('quartos');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMensagem, setStatusMensagem] = useState<{ tipo: 'sucesso' | 'erro', texto: string } | null>(null);
   const [mesAtual, setMesAtual] = useState<Date>(new Date());
-  const [refreshCounter, setRefreshCounter] = useState(0); // ◄── Força atualização reativa global
+  const [refreshCounter, setRefreshCounter] = useState(0);
 
   // ── INVENTÁRIO (tipos_quarto) ──
   const [quartosDb, setQuartosDb] = useState<QuartoFisico[]>([]);
   const [selectedQuartoId, setSelectedQuartoId] = useState<string>('');
+  
   const [formNomeQuarto, setFormNomeQuarto] = useState('');
   const [formPrecoBase, setFormPrecoBase] = useState('');
   const [formQuantidade, setFormQuantidade] = useState('5');
   const [formCapacidade, setFormCapacidade] = useState('2');
   const [formDescricao, setFormDescricao] = useState('');
-  const [formImagemUrl, setFormImagemUrl] = useState(''); // ◄── Novo estado obrigatório para fotos
+  const [fileImagem, setFileImagem] = useState<File | null>(null); // ◄── UPLOAD DE ARQUIVO
 
   // ── CALENDÁRIO (disponibilidade_hoteis) ──
   const [novoPreco, setNovoPreco] = useState('');
@@ -61,7 +63,7 @@ export default function DisponibilidadePage() {
   const [porcentagemAcompanhante, setPorcentagemAcompanhante] = useState(''); 
   const [tarifasCarregadas, setTarifasCarregadas] = useState<TarifaCalendario[]>([]); 
 
-  // ── OUTROS PERFIS ──
+  // ── GUIA / PACOTE (MANTIDOS 100% INTACTOS) ──
   const [tituloPasseio, setTituloPasseio] = useState('');
   const [rotaPasseio, setRotaPasseio] = useState('');
   const [pontoEncontro, setPontoEncontro] = useState('');
@@ -113,7 +115,8 @@ export default function DisponibilidadePage() {
         const { data: listagemQuartos } = await supabase
           .from('tipos_quarto')
           .select('*')
-          .eq('hotel_id', parceiroId);
+          .eq('hotel_id', parceiroId)
+          .order('nome_quarto');
 
         if (listagemQuartos) {
           setQuartosDb(listagemQuartos);
@@ -168,14 +171,36 @@ export default function DisponibilidadePage() {
     }
   };
 
+  // ── UPLOAD DE ARQUIVO + CRIAÇÃO DO QUARTO ──
   const handleCriarQuartoFisico = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!parceiroId) return;
+
+    if (!fileImagem) {
+      setStatusMensagem({ tipo: 'erro', texto: 'A foto do quarto é obrigatória.' });
+      return;
+    }
 
     setIsSubmitting(true);
     setStatusMensagem(null);
 
     try {
+      // 1. Upload da Imagem para o Supabase Storage (Bucket: galeria)
+      const fileExt = fileImagem.name.split('.').pop();
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `quartos/${parceiroId}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('galeria')
+        .upload(filePath, fileImagem);
+
+      if (uploadError) throw new Error("Erro no upload da imagem. Verifique se o bucket 'galeria' permite uploads públicos.");
+
+      const { data: publicUrlData } = supabase.storage
+        .from('galeria')
+        .getPublicUrl(filePath);
+
+      // 2. Criar Registo na Base de Dados
       const slugGerado = formNomeQuarto.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w\-]+/g, '');
       
       const { data, error } = await supabase
@@ -184,18 +209,18 @@ export default function DisponibilidadePage() {
           hotel_id: parceiroId,
           nome_quarto: formNomeQuarto,
           preco_quarto: parseFloat(formPrecoBase.replace(',', '.')),
-          quantidade_total_quartos: int(formQuantidade),
-          capacidade: int(formCapacidade),
+          quantidade_total_quartos: parseInt(formQuantidade),
+          capacidade: parseInt(formCapacidade),
           descricao: formDescricao,
-          imagem_url: formImagemUrl, // ◄── Inserção direta da foto estrutural
+          imagem_url: publicUrlData.publicUrl,
           slug: slugGerado
         })
         .select();
 
       if (error) throw error;
 
-      setStatusMensagem({ tipo: 'sucesso', texto: `Categoria "${formNomeQuarto}" registada com sucesso com suporte fotográfico!` });
-      setFormNomeQuarto(''); setFormPrecoBase(''); setFormDescricao(''); setFormImagemUrl('');
+      setStatusMensagem({ tipo: 'sucesso', texto: `Acomodação "${formNomeQuarto}" e foto registadas com sucesso!` });
+      setFormNomeQuarto(''); setFormPrecoBase(''); setFormDescricao(''); setFileImagem(null);
       if (data && data[0]) setSelectedQuartoId(data[0].id);
       setRefreshCounter(prev => prev + 1);
     } catch (err: any) {
@@ -230,6 +255,7 @@ export default function DisponibilidadePage() {
     }
   };
 
+  // ── SUBMISSÃO API ──
   const handleSalvarDados = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!parceiroId) return;
@@ -265,7 +291,7 @@ export default function DisponibilidadePage() {
         data_inicio: formatarDataIso(dataInicio),
         data_fim: formatarDataIso(dataFim),
         preco: parseFloat(novoPreco.replace(',', '.')),
-        disponivel: estaDisponivel // ◄── Mantém o envio da flag de bloqueio para as buscas
+        disponivel: estaDisponivel 
       };
     } else if (tipoParceiro === 'guia') {
       if (!dataPasseio) {
@@ -278,9 +304,26 @@ export default function DisponibilidadePage() {
         titulo: tituloPasseio,
         rota: rotaPasseio,
         ponto_encontro: pontoEncontro,
-        vagas: int(vagasPasseio),
+        vagas: parseInt(vagasPasseio),
         data_passeio: formatarDataIso(dataPasseio),
         preco: parseFloat(valorPasseio.replace(',', '.'))
+      };
+    } else if (tipoParceiro === 'pacote') {
+      if (!dataInicioPacote || !dataFimPacote) {
+        setStatusMensagem({ tipo: 'erro', texto: 'Selecione o período de validade do combo.' });
+        setIsSubmitting(false);
+        return;
+      }
+      endpoint = `https://sagaturismo-production.up.railway.app/api/v1/parceiros/${parceiroId}/pacotes`;
+      bodyPayload = {
+        titulo: tituloPacote,
+        descricao: descricaoPacote,
+        hotel_id: hotelSelecionadoId || null,
+        tipo_quarto: tipoQuartoPacote,
+        guia_id: guiaSelecionadoId || null,
+        data_inicio: formatarDataIso(dataInicioPacote),
+        data_fim: formatarDataIso(dataFimPacote),
+        preco: parseFloat(valorPacote.replace(',', '.'))
       };
     }
 
@@ -292,15 +335,16 @@ export default function DisponibilidadePage() {
       });
 
       if (response.ok) {
-        setStatusMensagem({ tipo: 'sucesso', texto: `Calendário atualizado com sucesso no ecossistema central!` });
+        setStatusMensagem({ tipo: 'sucesso', texto: `Ação registada com sucesso!` });
         setNovoPreco(''); setDataInicio(null); setDataFim(null);
-        setRefreshCounter(prev => prev + 1);
+        setTituloPasseio(''); setRotaPasseio(''); setValorPasseio(''); setTituloPacote(''); setValorPacote('');
+        setRefreshCounter(prev => prev + 1); // Força recarregamento imediato dos dados reais
       } else {
         const resData = await response.json();
         setStatusMensagem({ tipo: 'erro', texto: resData.detail || 'Falha ao salvar dados.' });
       }
     } catch (error) {
-      setStatusMensagem({ tipo: 'erro', texto: 'Erro de ligação com o servidor.' });
+      setStatusMensagem({ tipo: 'erro', texto: 'Erro de ligação com o servidor central.' });
     } finally {
       setIsSubmitting(false);
     }
@@ -313,11 +357,11 @@ export default function DisponibilidadePage() {
   const hoje = new Date();
   hoje.setHours(0,0,0,0);
 
-  // ── 🔄 CALENDÁRIO ULTRA REATIVO CORRIGIDO ──
+  // ── REATIVIDADE RESTAURADA (PREVISÃO IMEDIATA) ──
   const obterPrecoDoDia = (dataDia: Date) => {
     const dataStr = formatarDataIso(dataDia);
     
-    // REGRA DE PREVISÃO EM TEMPO REAL: Se o dia está selecionado no form, injeta o valor digitado IMEDIATAMENTE
+    // EFEITO IMEDIATO: Exibe o valor que está a ser digitado no input em tempo real nos dias selecionados
     if (dataInicio && dataFim && dataDia >= dataInicio && dataDia <= dataFim && novoPreco) {
       return parseFloat(novoPreco.replace(',', '.')) || null;
     }
@@ -325,28 +369,26 @@ export default function DisponibilidadePage() {
       return parseFloat(novoPreco.replace(',', '.')) || null;
     }
 
-    // Se não estiver no intervalo em edição, busca o histórico de exceções
+    // Procura no histórico salvo do Supabase
     const quartoAtual = quartosDb.find(q => q.id === selectedQuartoId);
     const excecaoSazonal = [...tarifasCarregadas].reverse().find(t => {
       return dataStr >= t.data_inicio && dataStr <= t.data_fim && 
-        (t.quarto_tipo_id === selectedQuartoId || (quartoAtual && t.tipo_quarto === quartoAtual.nome_quarto));
+        (t.quarto_tipo_id === selectedQuartoId || t.tipo_quarto === quartoAtual?.nome_quarto);
     });
 
     if (excecaoSazonal) return excecaoSazonal.preco;
-
-    // Se não houver exceção, mostra o valor base estrutural do quarto
     return quartoAtual ? quartoAtual.preco_quarto : null;
   };
 
+  const quartoAtivo = quartosDb.find(q => q.id === selectedQuartoId);
   const tarifasDoQuartoAtual = tarifasCarregadas.filter(t => 
-    t.quarto_tipo_id === selectedQuartoId || 
-    (quartosDb.find(q => q.id === selectedQuartoId)?.nome_quarto === t.tipo_quarto)
+    t.quarto_tipo_id === selectedQuartoId || t.tipo_quarto === quartoAtivo?.nome_quarto
   );
 
   return (
     <div className={`${inter.className} min-h-screen bg-[#F1F5F9] text-slate-900 flex flex-col text-left overflow-x-hidden`}>
       
-      {/* HEADER */}
+      {/* HEADER: AZUL PETRÓLEO */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-50 px-4 md:px-10 py-4">
         <div className="mx-auto max-w-5xl flex items-center justify-between gap-4">
           <Link href="/" className="relative h-10 w-28 md:w-36 shrink-0 transition-transform active:scale-95">
@@ -361,23 +403,25 @@ export default function DisponibilidadePage() {
       <div className="mx-auto w-full max-w-3xl px-4 py-6 md:py-12 flex-1">
         <div className="bg-white rounded-2xl md:rounded-[2.5rem] border border-slate-200 shadow-xl overflow-hidden">
           
-          {/* TITULO */}
           <div className="p-5 md:p-8 border-b border-slate-100 bg-slate-50/50">
              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#00577C] shrink-0 shadow-sm">
-                  <Bed size={24}/>
+                <div className="w-12 h-12 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center text-[#00577C] shrink-0 shadow-sm">
+                  {tipoParceiro === 'hotel' ? <Bed size={24}/> : tipoParceiro === 'guia' ? <Compass size={24}/> : <CalendarIcon size={24}/>}
                 </div>
                 <div>
                    <h2 className={`${jakarta.className} text-xl md:text-2xl font-black text-[#00577C]`}>
-                     Extranet de Acomodações & Estoque
+                     {tipoParceiro === 'hotel' && 'Gestão de Inventário & Quartos'}
+                     {tipoParceiro === 'guia' && 'Criação e Gestão de Passeios'}
+                     {tipoParceiro === 'pacote' && 'Montador de Combos & Pacotes'}
                    </h2>
                    <p className="text-xs font-bold text-slate-400 mt-1 leading-relaxed">
-                     Gerencie o inventário físico de {nomeNegocio} e controle a flutuação tarifária em tempo real.
+                     {tipoParceiro === 'hotel' && 'Gerencie estoques e diárias com reflexo imediato no portal SagaTurismo.'}
+                     {tipoParceiro === 'guia' && 'Lance novos roteiros turísticos ecológicos e defina o número limite de vagas.'}
+                     {tipoParceiro === 'pacote' && 'Combine hotéis e guias locais para comercializar pacotes unificados de turismo.'}
                    </p>
                 </div>
              </div>
 
-             {/* NAVEGAÇÃO DE ABAS REATIVAS */}
              {tipoParceiro === 'hotel' && (
                <div className="flex gap-2 mt-6 bg-slate-100 p-1 rounded-xl max-w-sm border border-slate-200">
                  <button 
@@ -398,18 +442,17 @@ export default function DisponibilidadePage() {
 
           <div className="p-5 md:p-8">
              {statusMensagem && (
-                <div className={`p-4 rounded-xl mb-6 flex items-start gap-3 border ${statusMensagem.tipo === 'sucesso' ? 'bg-green-50 border-[#009640]/20 text-[#009640]' : 'bg-red-50 border-red-100 text-red-800'}`}>
+                <div className={`p-4 rounded-xl mb-6 flex items-start gap-3 border ${statusMensagem.tipo === 'sucesso' ? 'bg-green-50 border-green-200 text-[#009640]' : 'bg-red-50 border-red-100 text-red-800'}`}>
                    <CheckCircle2 size={18} className="shrink-0 mt-0.5" />
                    <p className="text-xs md:text-sm font-bold leading-relaxed">{statusMensagem.texto}</p>
                 </div>
              )}
 
-             {/* ================= ABA 1: MEUS QUARTOS ================= */}
+             {/* ================= ABA 1: MEUS QUARTOS (INVENTÁRIO) ================= */}
              {tipoParceiro === 'hotel' && abaAtiva === 'quartos' && (
                <div className="space-y-8">
-                 
                  <div>
-                   <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-3">Categorias Cadastradas & Fotos Obrigatórias</label>
+                   <label className="text-[10px] font-black uppercase tracking-widest text-[#00577C] block mb-3">Categorias Cadastradas</label>
                    {quartosDb.length === 0 ? (
                      <div className="text-center p-8 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 text-xs font-medium text-slate-400">
                         Nenhuma acomodação configurada nesta propriedade.
@@ -417,9 +460,8 @@ export default function DisponibilidadePage() {
                    ) : (
                      <div className="grid gap-4 sm:grid-cols-2">
                        {quartosDb.map(q => (
-                         <div key={q.id} className="border-2 border-slate-100 bg-slate-50/40 rounded-2xl p-4 flex flex-col justify-between hover:border-slate-200 transition-all">
+                         <div key={q.id} className="border-2 border-slate-100 bg-slate-50/40 rounded-2xl p-4 flex flex-col justify-between hover:border-[#0085FF]/50 transition-all">
                            <div>
-                             {/* EXIBIÇÃO OBRIGATÓRIA DA FOTO DO QUARTO */}
                              {q.imagem_url && (
                                <div className="relative w-full h-32 mb-3 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 shadow-inner">
                                  {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -427,7 +469,7 @@ export default function DisponibilidadePage() {
                                </div>
                              )}
                              <div className="flex justify-between items-start gap-2 mb-1">
-                               <h4 className="font-black text-slate-800 text-sm truncate uppercase">{q.nome_quarto}</h4>
+                               <h4 className="font-black text-[#00577C] text-sm truncate uppercase">{q.nome_quarto}</h4>
                                <button type="button" onClick={() => handleDeletarQuartoFisico(q.id)} className="text-slate-400 hover:text-red-500 p-1.5 bg-white rounded-lg border border-slate-200 transition-colors">
                                  <Trash2 size={13} />
                                </button>
@@ -436,9 +478,9 @@ export default function DisponibilidadePage() {
                            </div>
                            
                            <div className="flex items-center gap-2 pt-2 border-t border-slate-100 text-[10px] font-bold text-slate-600">
-                             <span className="bg-blue-50 text-[#0085FF] px-2 py-0.5 rounded text-[9px] font-black uppercase">Vagas: {q.quantidade_total_quartos}</span>
+                             <span className="bg-[#0085FF]/10 text-[#0085FF] px-2 py-0.5 rounded text-[9px] font-black uppercase">Vagas: {q.quantidade_total_quartos}</span>
                              <span className="bg-stone-100 text-stone-600 px-2 py-0.5 rounded text-[9px] font-black">Cap: {q.capacidade}</span>
-                             <span className="ml-auto font-black text-slate-900 text-xs">R$ {q.preco_quarto}</span>
+                             <span className="ml-auto font-black text-[#009640] text-xs">R$ {q.preco_quarto}</span>
                            </div>
                          </div>
                        ))}
@@ -446,30 +488,31 @@ export default function DisponibilidadePage() {
                    )}
                  </div>
 
-                 {/* FORMULÁRIO DE CRIAÇÃO COM INTEGRALIDADE DE FOTOS */}
                  <form onSubmit={handleCriarQuartoFisico} className="bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-4">
                    <div className="flex items-center gap-2 text-[#00577C] font-black text-xs uppercase tracking-wider mb-2 border-b border-slate-200 pb-2">
-                     <Plus size={16} className="text-[#0085FF]"/> Adicionar Nova Categoria de Acomodação
+                     <Plus size={16} className="text-[#0085FF]"/> Adicionar Categoria
                    </div>
                    
                    <div className="grid gap-4 sm:grid-cols-2">
                      <div className="sm:col-span-2">
-                       <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Nome Estrutural do Quarto</label>
-                       <input required type="text" value={formNomeQuarto} onChange={e => setFormNomeQuarto(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs font-bold text-slate-800 outline-none focus:border-[#0085FF]" placeholder="Ex: Quarto Luxo Casal Duplo" />
+                       <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Nome do Quarto</label>
+                       <input required type="text" value={formNomeQuarto} onChange={e => setFormNomeQuarto(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs font-bold text-slate-800 outline-none focus:border-[#0085FF]" placeholder="Ex: Suíte Presidencial" />
                      </div>
+                     
                      <div className="sm:col-span-2">
-                       <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Link Direto da Imagem / Foto do Quarto (Obrigatório)</label>
-                       <div className="relative">
-                         <ImageIcon size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                         <input required type="url" value={formImagemUrl} onChange={e => setFormImagemUrl(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl p-3 pl-9 text-xs font-bold text-slate-800 outline-none focus:border-[#0085FF]" placeholder="https://exemplo.com/foto-do-quarto.jpg" />
+                       <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Foto Principal do Quarto (Obrigatória)</label>
+                       <div className="relative flex items-center w-full bg-white border border-slate-200 rounded-xl p-2 focus-within:border-[#0085FF] transition-all">
+                         <div className="bg-slate-100 p-2 rounded-lg text-slate-500 mr-3"><UploadCloud size={16}/></div>
+                         <input required type="file" accept="image/*" onChange={e => setFileImagem(e.target.files ? e.target.files[0] : null)} className="w-full text-xs font-bold text-slate-800 file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-[#0085FF]/10 file:text-[#0085FF] hover:file:bg-[#0085FF]/20 cursor-pointer" />
                        </div>
                      </div>
+
                      <div>
-                       <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Preço Base Padrão (R$)</label>
+                       <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Preço Base (R$)</label>
                        <input required type="text" value={formPrecoBase} onChange={e => setFormPrecoBase(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs font-black text-slate-800 outline-none focus:border-[#0085FF]" placeholder="0,00" />
                      </div>
                      <div>
-                       <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Estoque / Quantidade Disponível</label>
+                       <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Total de Quartos Disponíveis</label>
                        <input required type="number" min="1" value={formQuantidade} onChange={e => setFormQuantidade(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs font-bold text-slate-800 outline-none focus:border-[#0085FF]" />
                      </div>
                      <div className="sm:col-span-2">
@@ -483,138 +526,273 @@ export default function DisponibilidadePage() {
                    </div>
 
                    <button type="submit" disabled={isSubmitting} className="w-full bg-[#0085FF] hover:bg-blue-600 text-white py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-md">
-                     {isSubmitting ? <Loader2 className="animate-spin" size={14}/> : <Save size={14}/>} Adicionar ao Catálogo da Cidade
+                     {isSubmitting ? <Loader2 className="animate-spin" size={14}/> : <Save size={14}/>} Guardar Acomodação
                    </button>
                  </form>
                </div>
              )}
 
-             {/* ================= ABA 2: CALENDÁRIO TARIFÁRIO ================= */}
-             {abaAtiva === 'calendario' && (
+             {/* ================= ABA 2 E OUTROS PERFIS ================= */}
+             {(tipoParceiro !== 'hotel' || abaAtiva === 'calendario') && (
                <form onSubmit={handleSalvarDados} className="space-y-6">
                   
-                  <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl p-5 shadow-sm">
-                     <label className="text-[10px] font-black uppercase tracking-widest text-[#00577C] block mb-2">Taxa de Hóspede Acompanhante (% por Quarto)</label>
-                     <p className="text-[11px] text-slate-400 font-medium mb-3">Defina a percentagem extra cobrada por cada pessoa adicional instalada no mesmo quarto.</p>
-                     <div className="relative max-w-[200px]">
-                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm"><Percent size={16}/></div>
-                        <input type="text" placeholder="0" value={porcentagemAcompanhante} onChange={e => setPorcentagemAcompanhante(e.target.value)} className="w-full bg-white border-2 border-slate-200 rounded-xl py-2.5 pl-11 pr-4 text-sm font-black text-slate-800 outline-none focus:border-[#0085FF]" />
-                     </div>
-                  </div>
+                  {tipoParceiro === 'hotel' && (
+                    <>
+                      <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl p-5 shadow-sm">
+                         <label className="text-[10px] font-black uppercase tracking-widest text-[#00577C] block mb-2">Taxa de Hóspede Acompanhante (% por Quarto)</label>
+                         <p className="text-[11px] text-slate-400 font-medium mb-3">Defina a porcentagem extra cobrada por cada pessoa adicional instalada no mesmo quarto.</p>
+                         <div className="relative max-w-[200px]">
+                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm"><Percent size={16}/></div>
+                            <input type="text" placeholder="0" value={porcentagemAcompanhante} onChange={e => setPorcentagemAcompanhante(e.target.value)} className="w-full bg-white border-2 border-slate-200 rounded-xl py-2.5 pl-11 pr-4 text-sm font-black text-slate-800 outline-none focus:border-[#0085FF]" />
+                         </div>
+                      </div>
 
-                  <div>
-                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2.5">Escolha a Acomodação para Aplicar Valores Sazonais</label>
-                     {quartosDb.length === 0 ? (
-                       <p className="text-xs font-bold text-red-500 bg-red-50 p-4 rounded-xl">Precisa de cadastrar pelo menos um quarto antes de precificar diárias.</p>
-                     ) : (
-                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                          {quartosDb.map(q => (
-                            <button key={q.id} type="button" onClick={() => setSelectedQuartoId(q.id)} className={`p-4 rounded-xl border-2 font-bold text-xs uppercase flex flex-col items-center justify-center gap-2 transition-all ${selectedQuartoId === q.id ? 'border-[#0085FF] bg-blue-50/50 text-[#0085FF]' : 'border-slate-100 bg-slate-50 text-slate-500'}`}>
-                               <Bed size={18} />
-                               <span className="truncate w-full text-center">{q.nome_quarto}</span>
-                            </button>
-                          ))}
-                       </div>
-                     )}
-                  </div>
+                      <div>
+                         <label className="text-[10px] font-black uppercase tracking-widest text-[#00577C] block mb-2.5">Acomodação a atualizar</label>
+                         {quartosDb.length === 0 ? (
+                           <p className="text-xs font-bold text-red-500 bg-red-50 p-4 rounded-xl">Necessita registar quartos na aba "Meus Quartos" primeiro.</p>
+                         ) : (
+                           <div className="grid grid-cols-2 gap-3">
+                              {quartosDb.map(q => (
+                                <button key={q.id} type="button" onClick={() => setSelectedQuartoId(q.id)} className={`p-4 rounded-xl border-2 font-bold text-xs uppercase flex flex-col items-center justify-center gap-2 transition-all ${selectedQuartoId === q.id ? 'border-[#0085FF] bg-[#0085FF]/10 text-[#0085FF]' : 'border-slate-100 bg-slate-50 text-slate-500'}`}>
+                                   <Bed size={20} />
+                                   <span className="truncate w-full text-center">{q.nome_quarto}</span>
+                                </button>
+                              ))}
+                           </div>
+                         )}
+                      </div>
 
-                  {selectedQuartoId && (
-                    <div>
-                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Selecione o Intervalo de Diárias no Calendário</label>
-                       <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 md:p-6 shadow-inner">
-                          <div className="flex items-center justify-between mb-4">
-                             <button type="button" onClick={() => setMesAtual(new Date(anoCorrente, mesCorrente - 1))} className="p-1.5 hover:bg-slate-200 rounded-full text-slate-600"><ChevronLeft size={18}/></button>
-                             <p className="font-bold text-slate-800 capitalize text-xs md:text-sm">{mesAtual.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}</p>
-                             <button type="button" onClick={() => setMesAtual(new Date(anoCorrente, mesCorrente + 1))} className="p-1.5 hover:bg-slate-200 rounded-full text-slate-600"><ChevronRight size={18}/></button>
-                          </div>
-                          <div className="grid grid-cols-7 gap-1 text-center mb-2">
-                             {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((d, i) => <span key={i} className="text-[9px] md:text-[10px] font-black text-slate-400">{d}</span>)}
-                          </div>
-                          {/* O MAPA DO CALENDÁRIO COM PREVISÃO LIVE AO DIGITAR */}
-                          <div className="grid grid-cols-7 gap-y-2">
-                             {Array.from({ length: primeiroDia }).map((_, i) => <div key={`empty-${i}`} />)}
-                             {Array.from({ length: diasMes }).map((_, i) => {
-                                const dDia = new Date(anoCorrente, mesCorrente, i + 1);
-                                const passes = dDia < hoje;
-                                const isI = dataInicio && dDia.getTime() === dataInicio.getTime();
-                                const isF = dataFim && dDia.getTime() === dataFim.getTime();
-                                const isM = dataInicio && dataFim && dDia > dataInicio && dDia < dataFim;
-                                
-                                const precoExistente = obterPrecoDoDia(dDia);
+                      {selectedQuartoId && (
+                        <div>
+                           <label className="text-[10px] font-black uppercase tracking-widest text-[#00577C] block mb-2">Selecione o Período Tarifário no Calendário</label>
+                           <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 md:p-6 shadow-inner">
+                              <div className="flex items-center justify-between mb-4">
+                                 <button type="button" onClick={() => setMesAtual(new Date(anoCorrente, mesCorrente - 1))} className="p-1.5 hover:bg-slate-200 rounded-full text-slate-600"><ChevronLeft size={18}/></button>
+                                 <p className="font-bold text-slate-800 capitalize text-xs md:text-sm">{mesAtual.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}</p>
+                                 <button type="button" onClick={() => setMesAtual(new Date(anoCorrente, mesCorrente + 1))} className="p-1.5 hover:bg-slate-200 rounded-full text-slate-600"><ChevronRight size={18}/></button>
+                              </div>
+                              <div className="grid grid-cols-7 gap-1 text-center mb-2">
+                                 {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((d, i) => <span key={i} className="text-[9px] md:text-[10px] font-black text-slate-400">{d}</span>)}
+                              </div>
+                              <div className="grid grid-cols-7 gap-y-2">
+                                 {Array.from({ length: primeiroDia }).map((_, i) => <div key={`empty-${i}`} />)}
+                                 {Array.from({ length: diasMes }).map((_, i) => {
+                                    const dDia = new Date(anoCorrente, mesCorrente, i + 1);
+                                    const passes = dDia < hoje;
+                                    const isI = dataInicio && dDia.getTime() === dataInicio.getTime();
+                                    const isF = dataFim && dDia.getTime() === dataFim.getTime();
+                                    const isM = dataInicio && dataFim && dDia > dataInicio && dDia < dataFim;
+                                    
+                                    const precoExistente = obterPrecoDoDia(dDia);
+                                    // Cores dinâmicas: Amarelo F9C400 para o intervalo que está sendo editado, Verde 009640 para base/histórico
+                                    const isEditando = isI || isF || isM;
 
-                                return (
-                                  <button type="button" key={i} disabled={passes} onClick={() => handleDateClickCommon(dDia, dataInicio, dataFim, setDataInicio, setDataFim)} className={`w-full aspect-square flex flex-col items-center justify-center text-xs font-bold transition-all relative py-1 rounded-lg ${passes ? 'text-slate-300 pointer-events-none' : isI || isF ? 'bg-[#0085FF] text-white shadow-md' : isM ? 'bg-blue-50 text-[#0085FF]' : 'text-slate-800 hover:bg-slate-200'}`}>
-                                     <span>{i + 1}</span>
-                                     {!passes && precoExistente && (
-                                       <span className={`text-[8px] font-black block mt-0.5 tracking-tighter ${isI || isF ? 'text-[#F9C400]' : 'text-[#009640]'}`}>
-                                         R${Math.round(precoExistente)}
-                                       </span>
-                                     )}
-                                  </button>
-                                );
-                             })}
-                          </div>
-                       </div>
-                       <div className="mt-3 bg-blue-50/50 border border-blue-100 px-4 py-2.5 rounded-xl text-xs font-bold text-[#00577C]">
-                          Intervalo Selecionado: {dataInicio ? dataInicio.toLocaleDateString('pt-BR') : '...'} até {dataFim ? dataFim.toLocaleDateString('pt-BR') : '...'}
-                       </div>
-                    </div>
+                                    return (
+                                      <button type="button" key={i} disabled={passes} onClick={() => handleDateClickCommon(dDia, dataInicio, dataFim, setDataInicio, setDataFim)} className={`w-full aspect-square flex flex-col items-center justify-center text-xs font-bold transition-all relative py-1 rounded-lg ${passes ? 'text-slate-300 pointer-events-none' : isI || isF ? 'bg-[#0085FF] text-white shadow-md' : isM ? 'bg-[#0085FF]/10 text-[#0085FF] rounded-none' : 'text-slate-800 hover:bg-slate-200'}`}>
+                                         <span>{i + 1}</span>
+                                         {!passes && precoExistente && (
+                                           <span className={`text-[8px] font-black block mt-0.5 tracking-tighter ${isI || isF ? 'text-[#F9C400]' : (isM && novoPreco) ? 'text-[#F9C400]' : 'text-[#009640]'}`}>
+                                             R${Math.round(precoExistente)}
+                                           </span>
+                                         )}
+                                      </button>
+                                    );
+                                 })}
+                              </div>
+                           </div>
+                           <div className="mt-3 bg-[#0085FF]/10 border border-[#0085FF]/20 px-4 py-2.5 rounded-xl text-xs font-bold text-[#0085FF]">
+                              Intervalo: {dataInicio ? dataInicio.toLocaleDateString('pt-BR') : '...'} até {dataFim ? dataFim.toLocaleDateString('pt-BR') : '...'}
+                           </div>
+                        </div>
+                      )}
+
+                      <div>
+                         <label className="text-[10px] font-black uppercase tracking-widest text-[#00577C] block mb-2">Valor da Diária para este intervalo</label>
+                         <div className="relative">
+                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-black text-sm">R$</div>
+                            <input type="text" required placeholder="0,00" value={novoPreco} onChange={e => setNovoPreco(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-3.5 pl-11 pr-4 text-sm font-black text-slate-800 outline-none focus:border-[#0085FF]" />
+                         </div>
+                      </div>
+
+                      <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex items-center justify-between">
+                         <div className="text-left"><p className="text-xs font-black text-[#00577C] uppercase">Quartos Livres para Venda</p></div>
+                         <button type="button" onClick={() => setEstaDisponivel(!estaDisponivel)} className={`transition-colors ${estaDisponivel ? 'text-[#009640]' : 'text-slate-300'}`}>
+                            {estaDisponivel ? <ToggleRight size={44} /> : <ToggleLeft size={44} />}
+                         </button>
+                      </div>
+
+                      <div className="pt-4 border-t border-slate-100">
+                         <label className="text-[10px] font-black uppercase tracking-widest text-red-500 block mb-3">Limpar / Deletar Tarifas Customizadas</label>
+                         {tarifasDoQuartoAtual.length === 0 ? (
+                            <p className="text-xs font-medium text-slate-400 bg-slate-50 p-4 rounded-xl text-center">Nenhum período customizado cadastrado.</p>
+                         ) : (
+                            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                               {tarifasDoQuartoAtual.map((t) => (
+                                  <div key={t.id} className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex items-center justify-between text-xs font-bold transition-all hover:bg-slate-100/70">
+                                     <div className="text-slate-600">
+                                        <span className="text-[#00577C] capitalize font-black">{t.tipo_quarto}</span>: {t.data_inicio.split('-').reverse().join('/')} até {t.data_fim.split('-').reverse().join('/')}
+                                        <span className="block text-[#009640] text-[11px] mt-0.5">Preço: R$ {Number(t.preco).toFixed(2)}</span>
+                                     </div>
+                                     <button type="button" onClick={() => handleExcluirTarifa(t.id)} className="p-2 text-slate-400 hover:text-red-600 bg-white border border-slate-200 rounded-xl shadow-sm transition-colors">
+                                        <Trash2 size={15} />
+                                     </button>
+                                  </div>
+                               ))}
+                            </div>
+                         )}
+                      </div>
+                    </>
                   )}
 
-                  <div>
-                     {/* INPUT DE VALOR QUE ATUALIZA O CALENDÁRIO AO DIGITAR */}
-                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Valor Customizado da Diária para este Período (Atualiza o calendário ao digitar)</label>
-                     <div className="relative">
-                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-black text-sm">R$</div>
-                        <input type="text" required placeholder="0,00" value={novoPreco} onChange={e => setNovoPreco(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-3.5 pl-11 pr-4 text-sm font-black text-slate-800 outline-none focus:border-[#0085FF]" />
-                     </div>
-                  </div>
+                  {/* ── GUIA / PACOTE (MANTIDOS INTACTOS CONFORME TEU ORIGINAL) ── */}
+                  {tipoParceiro === 'guia' && (
+                    <>
+                      <div className="grid gap-5 sm:grid-cols-2">
+                         <div className="sm:col-span-2">
+                            <label className="text-[10px] font-black uppercase text-[#00577C] block mb-2">Título do Passeio / Experiência</label>
+                            <input required value={tituloPasseio} onChange={e => setTituloPasseio(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-4 text-sm font-bold text-slate-800 focus:border-[#0085FF]" />
+                         </div>
+                         <div className="sm:col-span-2">
+                            <label className="text-[10px] font-black uppercase text-[#00577C] block mb-2">Rota / Trajeto Detalhado</label>
+                            <input required value={rotaPasseio} onChange={e => setRotaPasseio(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-4 text-sm font-bold text-slate-800 focus:border-[#0085FF]" />
+                         </div>
+                         <div>
+                            <label className="text-[10px] font-black uppercase text-[#00577C] block mb-2">Ponto de Encontro</label>
+                            <input required value={pontoEncontro} onChange={e => setPontoEncontro(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-4 text-sm font-bold text-slate-800 focus:border-[#0085FF]" />
+                         </div>
+                         <div>
+                            <label className="text-[10px] font-black uppercase text-[#00577C] block mb-2">Vagas do Grupo</label>
+                            <input type="number" required value={vagasPasseio} onChange={e => setVagasPasseio(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-4 text-sm font-bold text-slate-800 focus:border-[#0085FF]" />
+                         </div>
+                      </div>
 
-                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex items-center justify-between">
-                     <div className="text-left"><p className="text-xs font-black text-slate-800 uppercase">Liberar Quartos para Venda neste Intervalo</p></div>
-                     <button type="button" onClick={() => setEstaDisponivel(!estaDisponivel)} className={`transition-colors ${estaDisponivel ? 'text-[#009640]' : 'text-slate-300'}`}>
-                        {estaDisponivel ? <ToggleRight size={44} /> : <ToggleLeft size={44} />}
-                     </button>
-                  </div>
+                      <div>
+                         <label className="text-[10px] font-black uppercase text-[#00577C] block mb-2">Data do Evento / Saída</label>
+                         <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 shadow-inner">
+                            <div className="flex items-center justify-between mb-4">
+                               <button type="button" onClick={() => setMesAtual(new Date(anoCorrente, mesCorrente - 1))} className="p-1.5 hover:bg-slate-200 rounded-full"><ChevronLeft size={18}/></button>
+                               <p className="font-bold text-slate-800 capitalize text-xs">{mesAtual.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}</p>
+                               <button type="button" onClick={() => setMesAtual(new Date(anoCorrente, mesCorrente + 1))} className="p-1.5 hover:bg-slate-200 rounded-full"><ChevronRight size={18}/></button>
+                            </div>
+                            <div className="grid grid-cols-7 gap-y-1 text-center">
+                               {Array.from({ length: primeiroDia }).map((_, i) => <div key={`empty-${i}`} />)}
+                               {Array.from({ length: diasMes }).map((_, i) => {
+                                  const dDia = new Date(anoCorrente, mesCorrente, i + 1);
+                                  const passes = dDia < hoje;
+                                  const isS = dataPasseio && dDia.getTime() === dataPasseio.getTime();
+                                  return (
+                                    <button type="button" key={i} disabled={passes} onClick={() => setDataPasseio(dDia)} className={`w-full aspect-square flex items-center justify-center text-xs font-bold rounded-lg ${passes ? 'text-slate-300' : isS ? 'bg-[#0085FF] text-white' : 'text-slate-800 hover:bg-slate-200'}`}>
+                                       {i + 1}
+                                    </button>
+                                  );
+                               })}
+                            </div>
+                         </div>
+                      </div>
 
-                  <div className="pt-4 border-t border-slate-100">
-                     <label className="text-[10px] font-black uppercase tracking-widest text-red-500 block mb-3">Histórico de Exceções Tarifárias Ativas</label>
-                     {tarifasDoQuartoAtual.length === 0 ? (
-                        <p className="text-xs font-medium text-slate-400 bg-slate-50 p-4 rounded-xl text-center">Nenhuma exceção tarifária customizada para este quarto.</p>
-                     ) : (
-                        <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                           {tarifasDoQuartoAtual.map((t) => (
-                              <div key={t.id} className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex items-center justify-between text-xs font-bold transition-all hover:bg-slate-100/70">
-                                 <div className="text-slate-600">
-                                    <span className="text-slate-900 capitalize font-black">{t.tipo_quarto}</span>: {t.data_inicio.split('-').reverse().join('/')} até {t.data_fim.split('-').reverse().join('/')}
-                                    <span className="block text-[#009640] text-[11px] mt-0.5">Valor do Período: R$ {Number(t.preco).toFixed(2)}</span>
-                                 </div>
-                                 <button type="button" onClick={() => handleExcluirTarifa(t.id)} className="p-2 text-slate-400 hover:text-red-600 bg-white border border-slate-200 rounded-xl shadow-sm transition-colors">
-                                    <Trash2 size={15} />
-                                 </button>
-                              </div>
-                           ))}
-                        </div>
-                     )}
-                  </div>
+                      <div>
+                         <label className="text-[10px] font-black uppercase text-[#00577C] block mb-2">Valor por Turista (R$)</label>
+                         <div className="relative">
+                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">R$</div>
+                            <input type="text" required value={valorPasseio} onChange={e => setValorPasseio(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-3.5 pl-11 pr-4 text-sm font-black text-slate-800 focus:border-[#0085FF]" />
+                         </div>
+                      </div>
+                    </>
+                  )}
 
-                  <div className="p-4 bg-amber-50 text-amber-800 rounded-xl flex items-start gap-3 border border-amber-100 text-left">
+                  {tipoParceiro === 'pacote' && (
+                    <>
+                      <div className="grid gap-5 sm:grid-cols-2">
+                         <div className="sm:col-span-2">
+                            <label className="text-[10px] font-black uppercase text-[#00577C] block mb-2">Título Comercial do Pacote</label>
+                            <input required value={tituloPacote} onChange={e => setTituloPacote(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-4 text-sm font-bold text-slate-800 focus:border-[#0085FF]" />
+                         </div>
+                         <div className="sm:col-span-2">
+                            <label className="text-[10px] font-black uppercase text-[#00577C] block mb-2">Breve Descrição</label>
+                            <textarea required value={descricaoPacote} onChange={e => setDescricaoPacote(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-4 text-sm font-bold text-slate-800 h-24 focus:border-[#0085FF]" />
+                         </div>
+                         
+                         <div>
+                            <label className="text-[10px] font-black uppercase text-[#00577C] block mb-2">1. Escolha o Hotel Integrado</label>
+                            <select value={hotelSelecionadoId} onChange={e => setHotelSelecionadoId(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-4 text-sm font-bold text-slate-800 cursor-pointer">
+                               <option value="">Nenhum hotel vinculado</option>
+                               {hoteisDb.map(h => <option key={h.id} value={h.id}>{h.nome}</option>)}
+                            </select>
+                         </div>
+
+                         <div>
+                            <label className="text-[10px] font-black uppercase text-[#00577C] block mb-2">Tipo de Quarto Oferecido</label>
+                            <select value={tipoQuartoPacote} onChange={e => setTipoQuartoPacote(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-4 text-sm font-bold text-slate-800 cursor-pointer">
+                               <option value="standard">Standard Simples</option>
+                               <option value="plus">Suíte Plus / Premium</option>
+                            </select>
+                         </div>
+
+                         <div className="sm:col-span-2">
+                            <label className="text-[10px] font-black uppercase text-[#00577C] block mb-2">2. Vincular Guia de Turismo Parceiro</label>
+                            <select value={guiaSelecionadoId} onChange={e => setGuiaSelecionadoId(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-4 text-sm font-bold text-slate-800 cursor-pointer">
+                               <option value="">Sem guia incluso no roteiro</option>
+                               {guiasDb.map(g => <option key={g.id} value={g.id}>{g.nome} ({g.specialty})</option>)}
+                            </select>
+                         </div>
+                      </div>
+
+                      <div>
+                         <label className="text-[10px] font-black uppercase text-[#00577C] block mb-2">Período de Validade do Roteiro Completo</label>
+                         <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 shadow-inner">
+                            <div className="flex items-center justify-between mb-4">
+                               <button type="button" onClick={() => setMesAtual(new Date(anoCorrente, mesCorrente - 1))} className="p-1.5 hover:bg-slate-200 rounded-full"><ChevronLeft size={18}/></button>
+                               <p className="font-bold text-slate-800 capitalize text-xs">{mesAtual.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}</p>
+                               <button type="button" onClick={() => setMesAtual(new Date(anoCorrente, mesCorrente + 1))} className="p-1.5 hover:bg-slate-200 rounded-full"><ChevronRight size={18}/></button>
+                            </div>
+                            <div className="grid grid-cols-7 gap-y-1 text-center">
+                               {Array.from({ length: primeiroDia }).map((_, i) => <div key={`empty-${i}`} />)}
+                               {Array.from({ length: diasMes }).map((_, i) => {
+                                  const dDia = new Date(anoCorrente, mesCorrente, i + 1);
+                                  const passes = dDia < hoje;
+                                  const isI = dataInicioPacote && dDia.getTime() === dataInicioPacote.getTime();
+                                  const isF = dataFimPacote && dDia.getTime() === dataFimPacote.getTime();
+                                  const isM = dataInicioPacote && dataFimPacote && dDia > dataInicioPacote && dDia < dataFimPacote;
+                                  return (
+                                    <button type="button" key={i} disabled={passes} onClick={() => handleDateClickCommon(dDia, dataInicioPacote, dataFimPacote, setDataInicioPacote, setDataFimPacote)} className={`w-full aspect-square flex items-center justify-center text-xs font-bold transition-all ${passes ? 'text-slate-300' : isI || isF ? 'bg-[#0085FF] text-white rounded-lg' : isM ? 'bg-[#0085FF]/10 text-[#0085FF]' : 'text-slate-800 hover:bg-slate-200'}`}>
+                                       {i + 1}
+                                    </button>
+                                  );
+                               })}
+                            </div>
+                         </div>
+                      </div>
+
+                      <div>
+                         <label className="text-[10px] font-black uppercase text-[#00577C] block mb-2">Valor Total do Combo Fechado (R$)</label>
+                         <div className="relative">
+                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">R$</div>
+                            <input type="text" required value={valorPacote} onChange={e => setValorPacote(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-3.5 pl-11 pr-4 text-sm font-black text-slate-800 focus:border-[#0085FF]" />
+                         </div>
+                      </div>
+                    </>
+                  )}
+
+                  <div className="p-4 bg-[#F9C400]/10 text-amber-800 rounded-xl flex items-start gap-3 border border-[#F9C400]/30 text-left">
                      <Info size={16} className="shrink-0 mt-0.5 text-amber-600" />
                      <p className="text-[10px] md:text-xs font-bold leading-relaxed">
-                       Nota: De acordo com as diretrizes da SEMTUR, alterações estruturais das acomodações devem ser executadas com responsabilidade jurídica para auditoria.
+                       Nota: De acordo com as diretrizes da SEMTUR, alterações estruturais de fotos ou descrições textuais das acomodações devem ser executadas com responsabilidade jurídica.
                      </p>
                   </div>
 
-                  <button type="submit" disabled={isSubmitting} className="w-full text-white py-4 rounded-xl font-black uppercase text-xs md:text-sm tracking-widest shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2 mt-4 bg-[#00577C] hover:bg-[#004a6b]">
+                  <button type="submit" disabled={isSubmitting} className="w-full bg-[#0085FF] text-white py-4 rounded-xl font-black uppercase text-xs md:text-sm tracking-widest shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2 mt-4 hover:bg-blue-600">
                      {isSubmitting ? (
-                        <span className="flex items-center gap-2"><Loader2 className="animate-spin" size={18}/> Sincronizando dados centrais...</span>
+                        <span className="flex items-center gap-2"><Loader2 className="animate-spin" size={18}/> Processando no Supabase...</span>
                      ) : (
-                        <span className="flex items-center gap-2"><Save size={16}/> Sincronizar Calendário de Vendas</span>
+                        <span className="flex items-center gap-2"><Save size={16}/> Lançar e Sincronizar Serviço</span>
                      )}
                   </button>
+
                </form>
              )}
           </div>
+
         </div>
       </div>
     </div>
