@@ -129,7 +129,8 @@ def _moldura_foto(c, x, y, w, h, radius=4 * mm):
 def _label_valor(c, x, y, label, valor, tam_label=6, tam_valor=10):
     c.setFillColor(COR_TEXTO_LABEL)
     c.setFont("Helvetica-Bold", tam_label)
-    c.drawString(x, y)
+    # ◄── A CORREÇÃO FOI FEITA NESTA LINHA:
+    c.drawString(x, y, label) 
     c.setFillColor(COR_TEXTO_ESCURO)
     c.setFont("Helvetica-Bold", tam_valor)
     c.drawString(x, y - (tam_valor * 0.45 * mm) - 1.5 * mm, str(valor))
