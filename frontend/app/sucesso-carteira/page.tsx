@@ -8,7 +8,7 @@ import {
   Loader2, CheckCircle2, Mail, FileText, 
   MapPin, Compass, ShieldCheck, 
   ArrowRight, ArrowLeft, Info, Printer, Lock, Menu, Star, CreditCard,
-  AlertTriangle
+  AlertTriangle, User
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
