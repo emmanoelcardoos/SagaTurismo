@@ -27,7 +27,7 @@ export default function CarteiraDigitalPage({ params }: { params: { token: strin
       try {
         const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://sagaturismo-production.up.railway.app';
         
-        # ◄── ROTA CORRIGIDA AQUI: Adicionado /publico/ para contornar o Erro 403 Forbidden
+        //ROTA CORRIGIDA AQUI: Adicionado /publico/ para contornar o Erro 403 Forbidden
         const res = await fetch(`${API_URL}/api/v1/publico/validar/${params.token}?t=${Date.now()}`);
         const json = await res.json();
 
