@@ -164,6 +164,7 @@ export default function ExtranetDisponibilidadePage() {
         .insert([{
           hotel_id: hotelId,
           nome: fNome,
+          nome_quarto: fNome,
           preco_base: parseFloat(fPrecoBase.replace(',', '.')),
           estoque_total: parseInt(fEstoque),
           capacidade: parseInt(fCapacidade),
