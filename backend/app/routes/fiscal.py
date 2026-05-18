@@ -4,7 +4,8 @@ from app.services.validacao_service import supabase
 
 router = APIRouter()
 
-@router.get("/validar/{token}")
+# ◄── A ÚNICA DIFERENÇA ESTÁ AQUI NA ROTA: Adicionei "/fiscal"
+@router.get("/fiscal/validar/{token}")
 async def validar_token_fiscal(token: str, x_fiscal_key: str = Header(None)):
     # 1. Verificação de Segurança da Chave do Fiscal
     SECRET_KEY = "SaoGeraldo2026_Secret_Key" # Deve estar no .env em produção
