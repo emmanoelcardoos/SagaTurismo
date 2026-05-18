@@ -41,6 +41,8 @@ class PedidoPagamento(BaseModel):
     hotel_id: Optional[str] = None
     passeio_id: Optional[str] = None 
     item_id: Optional[str] = None
+
+    token_id: Optional[str] = None
     
     quarto_tipo_id: Optional[str] = None 
     tipo_quarto: Optional[str] = "standard"
@@ -182,8 +184,9 @@ async def processar_pagamento(pedido: PedidoPagamento):
         lista_atracoes_calculadas = []
         
         if pedido.tipo_item == "carteira":
-            valor_total = 10.00 * pedido.quantidade
+            valor_total = 20.00 * pedido.quantidade
             nome_item_checkout = f"Taxa de Emissão - Carteira Digital ({pedido.quantidade}x)"
+            item_id_db = pedido.token_id
 
         elif pedido.tipo_item == "hotel":
             if not hotel_id_sanitizado:
