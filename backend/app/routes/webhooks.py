@@ -4,7 +4,6 @@ import uuid
 from datetime import datetime
 from supabase import create_client, Client
 
-# ◄── IMPORTAÇÃO DE TODAS AS FUNÇÕES DO MOTOR DE E-MAILS TRANSACIONAIS (COM VOUCHER PDF)
 from app.services.pdf_service import gerar_pdf_carteira, gerar_pdf_voucher
 from app.services.email_service import (
     enviar_carteiras_por_email,
@@ -15,7 +14,6 @@ from app.services.email_service import (
 
 router = APIRouter()
 
-# 1. Configurações de Ambiente
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -23,22 +21,19 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 @router.post("/api/v1/webhooks/pagbank")
 async def webhook_pagbank(request: Request):
     try:
-        # 1. Receber e Logar o Payload
         payload = await request.json()
         print(f"--- [WEBHOOK RECEBIDO] ---")
         
         charges = payload.get("charges", [])
         primeira_charge = charges[0] if charges else {}
 
-        # Mineração robusta do Reference ID
         reference_id = (
             payload.get("reference_id")
             or payload.get("data", {}).get("reference_id")
             or primeira_charge.get("reference_id")
-            or payload.get("id") # Fallback para ID da ordem
+            or payload.get("id") 
         )
 
-        # Mineração do Status
         status_raw = (
             payload.get("status")
             or primeira_charge.get("status")
@@ -52,7 +47,6 @@ async def webhook_pagbank(request: Request):
         if not reference_id:
             return {"status": "error", "message": "Reference ID não encontrado no payload"}
 
-        # 2. Verificar existência do pedido no Supabase
         res_pedido = supabase.table("pedidos").select("*").eq("codigo_pedido", reference_id).single().execute()
         
         if not res_pedido.data:
@@ -61,78 +55,78 @@ async def webhook_pagbank(request: Request):
             
         pedido = res_pedido.data
 
-        # 3. Evitar reprocessamento (Idempotência)
         if pedido.get("status_pagamento") == "pago":
             return {"status": "ok", "message": "Pagamento já processado anteriormente"}
 
-        # 4. Processar Sucesso
         status_sucesso = ["PAID", "AUTHORIZED", "COMPLETED", "APPROVED"]
         
         if status_normalizado in status_sucesso:
-            # A. Atualiza o status geral do pedido para "pago"
             supabase.table("pedidos").update({
                 "status_pagamento": "pago"
             }).eq("codigo_pedido", reference_id).execute()
             
             print(f"[WEBHOOK] SUCESSO: O pagamento de {reference_id} foi confirmado.")
 
-            # B. Lógica de Disparos de Negócio baseados no Tipo de Item
             tipo = pedido.get("tipo_item")
             email_cliente = pedido.get("email_cliente")
             nome_cliente = pedido.get("nome_cliente")
             
             # ────────────────────────────────────────────────────────
-            # CASO A: CARTEIRA DIGITAL DE RESIDENTE (ATUALIZADO)
+            # CASO A: CARTEIRA DIGITAL DE RESIDENTE (E-MAIL CORRIGIDO)
             # ────────────────────────────────────────────────────────
             if tipo == "carteira":
-                token_id = pedido.get("item_id") # O token foi guardado aqui no pagamentos.py
+                token_id = pedido.get("item_id") 
                 residentes_encontrados = []
 
-                # Tenta procurar diretamente pelo Token (ID único)
                 if token_id:
                     res_res = supabase.table("rd_residentes").select("*").eq("id", token_id).execute()
                     if not res_res.data:
-                        # Fallback caso o token seja a chave do QRCode
                         res_res = supabase.table("rd_residentes").select("*").eq("qrcode_token", token_id).execute()
                     residentes_encontrados = res_res.data
                 
-                # Se não encontrar pelo token, usa o CPF como salva-vidas
                 if not residentes_encontrados:
                     res_res = supabase.table("rd_residentes").select("*").eq("cpf", pedido.get("cpf_cliente")).execute()
                     residentes_encontrados = res_res.data
 
                 if residentes_encontrados:
                     caminhos_pdfs = []
+                    email_real_destino = email_cliente
+                    nome_real_destino = nome_cliente
+
                     for res in residentes_encontrados:
-                        # Atualiza o residente para "ativa" (é o que o frontend espera)
+                        # Usando a palavra "ativo" no masculino para o Supabase não bloquear
                         supabase.table("rd_residentes").update({"status": "ativo"}).eq("id", res["id"]).execute()
+                        
+                        # ◄── PUXA O E-MAIL E NOME REAIS DA BASE DE DADOS!
+                        if res.get("email"):
+                            email_real_destino = res["email"]
+                        if res.get("nome_completo"):
+                            nome_real_destino = res["nome_completo"]
+
                         try:
-                            # Prepara os dados para o PDF
                             dados_pdf = {
                                 "nome": res.get("nome_completo") or res.get("nome", "Residente Oficial"),
                                 "cpf": res.get("cpf", pedido.get("cpf_cliente")),
                                 "data_nascimento": res.get("data_nascimento", "--/--/----"),
                                 "foto_url": res.get("foto_url")
                             }
-                            # Gera o PDF
                             caminho_pdf = gerar_pdf_carteira(dados_pdf, res.get("qrcode_token") or res["id"])
                             if caminho_pdf:
                                 caminhos_pdfs.append(caminho_pdf)
                         except Exception as e_pdf:
                             print(f"[WEBHOOK] Erro ao gerar PDF da carteira: {e_pdf}")
                     
-                    # Dispara o email
                     if caminhos_pdfs:
                         try:
-                            enviar_carteiras_por_email(email_cliente, nome_cliente, caminhos_pdfs)
-                            print(f"[WEBHOOK] Carteira(s) c/ PDF enviada(s) com sucesso para {email_cliente}")
+                            enviar_carteiras_por_email(email_real_destino, nome_real_destino, caminhos_pdfs)
+                            print(f"[WEBHOOK] Carteira c/ PDF enviada com sucesso para o morador: {email_real_destino}")
                         except Exception as e_email:
                             print(f"[WEBHOOK] Erro ao enviar e-mail das carteiras: {e_email}")
                 else:
                     print(f"[WEBHOOK] Carteira Paga, mas nenhum registo de residente encontrado para o token {token_id}")
 
             # ────────────────────────────────────────────────────────
-            # CASO B: RESERVA AVULSA DE HOTEL (AÇÃO 1)
+            # CASO B: RESERVA AVULSA DE HOTEL
             # ────────────────────────────────────────────────────────
             elif tipo == "hotel":
                 hotel_id = pedido.get("hotel_id") or pedido.get("item_id")
@@ -159,17 +153,14 @@ async def webhook_pagbank(request: Request):
                 }
                 
                 try:
-                    # ◄── GERA O PDF E GUARDA O CAMINHO
                     caminho_pdf = gerar_pdf_voucher(pedido, dados_reserva)
-                    
-                    # ◄── ENVIA O EMAIL PASSANDO O CAMINHO DO PDF PARA ANEXO
                     enviar_voucher_hotel(email_cliente, nome_cliente, dados_reserva, caminho_pdf)
                     print(f"[WEBHOOK] Voucher de Hotel c/ PDF enviado com sucesso para {email_cliente}")
                 except Exception as e_mail:
                     print(f"[WEBHOOK] Erro ao disparar voucher do hotel: {e_mail}")
 
             # ────────────────────────────────────────────────────────
-            # CASO C: COMPRA DE PACOTE TURÍSTICO COMPÓSITO (AÇÃO 2)
+            # CASO C: COMPRA DE PACOTE TURÍSTICO COMPÓSITO
             # ────────────────────────────────────────────────────────
             elif tipo == "pacote":
                 pacote_id = pedido.get("item_id")
@@ -203,17 +194,14 @@ async def webhook_pagbank(request: Request):
                 }
 
                 try:
-                    # ◄── GERA O PDF E GUARDA O CAMINHO
                     caminho_pdf = gerar_pdf_voucher(pedido, dados_pacote)
-                    
-                    # ◄── ENVIA O EMAIL PASSANDO O CAMINHO DO PDF PARA ANEXO
                     enviar_voucher_pacote(email_cliente, nome_cliente, dados_pacote, caminho_pdf)
                     print(f"[WEBHOOK] Voucher do Pacote c/ PDF enviado para {email_cliente}")
                 except Exception as e_mail:
                     print(f"[WEBHOOK] Erro ao disparar voucher do pacote: {e_email}")
 
             # ────────────────────────────────────────────────────────
-            # CASO D: COMPRA DE PASSEIO AVULSO (AÇÃO 3)
+            # CASO D: COMPRA DE PASSEIO AVULSO
             # ────────────────────────────────────────────────────────
             elif tipo == "passeio":
                 passeio_id = pedido.get("item_id")
@@ -245,10 +233,7 @@ async def webhook_pagbank(request: Request):
                 }
 
                 try:
-                    # ◄── GERA O PDF E GUARDA O CAMINHO
                     caminho_pdf = gerar_pdf_voucher(pedido, dados_passeio)
-                    
-                    # ◄── ENVIA O EMAIL PASSANDO O CAMINHO DO PDF PARA ANEXO
                     enviar_voucher_passeio(email_cliente, nome_cliente, dados_passeio, caminho_pdf)
                     print(f"[WEBHOOK] Voucher de Passeio c/ PDF enviado com sucesso para {email_cliente}")
                 except Exception as e_mail:
