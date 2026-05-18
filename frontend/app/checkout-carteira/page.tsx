@@ -22,6 +22,10 @@ declare global {
 
 const formatarMoeda = (valor: number) => (valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const mascaraCartao = (v: string) => v.replace(/\D/g, '').replace(/(\d{4})(?=\d)/g, '$1 ').slice(0, 19);
+// Máscaras auxiliares
+const mascaraCPF = (v: string) => v.replace(/\D/g, '').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2').slice(0, 14);
+const mascaraTelefone = (v: string) => v.replace(/\D/g, '').replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d)/, '$1-$2').slice(0, 15);
+const mascaraCEP = (v: string) => v.replace(/\D/g, '').replace(/(\d{5})(\d)/, '$1-$2').slice(0, 9);
 
 function SectionCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return <div className={`rounded-[2rem] border-2 border-slate-100 bg-white shadow-sm overflow-hidden ${className}`}>{children}</div>;
@@ -93,7 +97,7 @@ function CheckoutCarteiraContent() {
   const [quantidade, setQuantidade] = useState(1);
   const valorTotalReserva = quantidade * PRECO_UNITARIO;
   
-  // Pagamento
+  // Pagamento - Cartão
   const [metodoPagamento, setMetodoPagamento] = useState<'pix' | 'cartao'>('pix');
   const [nomeCartao, setNomeCartao] = useState('');
   const [numeroCartao, setNumeroCartao] = useState('');
@@ -101,6 +105,16 @@ function CheckoutCarteiraContent() {
   const [anoCartao, setAnoCartao] = useState('');
   const [cvvCartao, setCvvCartao] = useState('');
   
+  // ◄── NOVOS ESTADOS: Dados Obrigatórios para Faturação e Antifraude
+  const [cpfFaturamento, setCpfFaturamento] = useState('');
+  const [telefone, setTelefone] = useState('');
+  const [cep, setCep] = useState('');
+  const [rua, setRua] = useState('');
+  const [numeroEndereco, setNumeroEndereco] = useState('');
+  const [bairro, setBairro] = useState('');
+  const [cidade, setCidade] = useState('São Geraldo do Araguaia');
+  const [estado, setEstado] = useState('PA');
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [erroApi, setErroApi] = useState('');
   const [qrCodeData, setQrCodeData] = useState<{ link: string; texto: string; id_pedido: string } | null>(null);
@@ -127,7 +141,7 @@ function CheckoutCarteiraContent() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
-  // ── VALIDAÇÃO DO TOKEN E EXTRAÇÃO DIRETA DOS DADOS (SEM REPETIÇÃO) ──
+  // ── VALIDAÇÃO DO TOKEN ──
   useEffect(() => {
     if (!token) { router.push('/cadastro'); return; }
     
@@ -136,18 +150,18 @@ function CheckoutCarteiraContent() {
         const res = await fetch(`/api/validar?token=${token}`);
         const data = await res.json();
         
-        // Se já estiver pago, vai logo para a carteira digital
         if (data.status === 'ativa' || data.status === 'pago') {
           router.push(`/carteira/${token}`);
           return;
         }
 
-        // Se respondeu algo, extraímos as informações para não chatear o user
         if (data) {
           setDadosCidadão(data);
-          
           if (data.quantidade_pessoas) setQuantidade(data.quantidade_pessoas);
           else if (data.quantidade) setQuantidade(data.quantidade);
+          
+          // Pré-preenche o CPF se já vier do cidadão
+          if (data.cpf) setCpfFaturamento(data.cpf);
 
           setLoadingInitial(false);
         }
@@ -167,14 +181,25 @@ function CheckoutCarteiraContent() {
     setErroApi('');
     setIsSubmitting(true);
 
+    // ◄── PAYLOAD ATUALIZADO: Agora com os dados que o Backend estava a pedir (Evita o Erro 422)
     const payload: any = {
       tipo_item: "carteira", 
       token_id: token,
       quantidade: quantidade,
-      nome_cliente: dadosCidadão?.nome || 'Titular', 
-      cpf_cliente: dadosCidadão?.cpf_mascarado?.replace(/\D/g, '') || '', 
+      nome_cliente: dadosCidadão?.nome || nomeCartao || 'Titular', 
+      cpf_cliente: cpfFaturamento.replace(/\D/g, '') || dadosCidadão?.cpf?.replace(/\D/g, '') || '00000000000', 
       email_cliente: dadosCidadão?.email || 'contato@sagaturismo.com.br',
-      valor_total: valorTotalReserva
+      telefone_cliente: telefone.replace(/\D/g, '') || '11999999999',
+      valor_total: valorTotalReserva,
+      endereco_faturacao: {
+        street: rua || 'Rua Principal',
+        number: numeroEndereco || 'S/N',
+        locality: bairro || 'Centro',
+        city: cidade || 'São Geraldo do Araguaia',
+        region_code: estado || 'PA',
+        postal_code: cep.replace(/\D/g, '') || '68590000',
+        country: 'BRA'
+      }
     };
 
     try {
@@ -276,7 +301,6 @@ function CheckoutCarteiraContent() {
             {!qrCodeData ? (
               <form onSubmit={handlePagamento} className="space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 
-                {/* 1. MÉTODOS DE PAGAMENTO (Foco Direto) */}
                 <SectionCard className="p-6 md:p-10 text-left border-t-4 border-t-[#00577C]">
                   <SectionHeader step={1} title="Método de Pagamento" icon={<Wallet size={20} />} />
                   <div className="grid grid-cols-2 gap-4 mb-8">
@@ -289,20 +313,45 @@ function CheckoutCarteiraContent() {
                   </div>
 
                   {metodoPagamento === 'cartao' && (
-                    <div className="space-y-5 bg-white border-2 border-[#00577C]/10 p-6 rounded-[2rem] shadow-inner mb-8">
-                      <input required value={nomeCartao} onChange={e => setNomeCartao(e.target.value.toUpperCase())} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 uppercase" placeholder="NOME IMPRESSO NO CARTÃO" />
-                      <input required value={numeroCartao} onChange={e => setNumeroCartao(mascaraCartao(e.target.value))} maxLength={19} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 tracking-widest" placeholder="0000 0000 0000 0000" />
-                      <div className="grid grid-cols-[1fr_1fr_1.5fr] gap-3">
-                        <input required value={mesCartao} maxLength={2} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 py-4 text-sm font-bold text-center" placeholder="Mês (MM)" onChange={e => setMesCartao(e.target.value.replace(/\D/g,''))} />
-                        <input required value={anoCartao} maxLength={4} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 py-4 text-sm font-bold text-center" placeholder="Ano (AAAA)" onChange={e => setAnoCartao(e.target.value.replace(/\D/g,''))} />
-                        <input required type="password" value={cvvCartao} maxLength={4} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 py-4 text-sm font-bold text-center tracking-widest" placeholder="CVV" onChange={e => setCvvCartao(e.target.value.replace(/\D/g,''))} />
+                    <div className="space-y-6 animate-in slide-in-from-top-2 duration-300">
+                      
+                      {/* DADOS DO CARTÃO */}
+                      <div className="space-y-5 bg-white border-2 border-[#00577C]/10 p-6 rounded-[2rem] shadow-inner">
+                        <input required value={nomeCartao} onChange={e => setNomeCartao(e.target.value.toUpperCase())} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 uppercase" placeholder="NOME IMPRESSO NO CARTÃO" />
+                        <input required value={numeroCartao} onChange={e => setNumeroCartao(mascaraCartao(e.target.value))} maxLength={19} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 tracking-widest" placeholder="0000 0000 0000 0000" />
+                        <div className="grid grid-cols-[1fr_1fr_1.5fr] gap-3">
+                          <input required value={mesCartao} maxLength={2} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 py-4 text-sm font-bold text-center" placeholder="Mês (MM)" onChange={e => setMesCartao(e.target.value.replace(/\D/g,''))} />
+                          <input required value={anoCartao} maxLength={4} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 py-4 text-sm font-bold text-center" placeholder="Ano (AAAA)" onChange={e => setAnoCartao(e.target.value.replace(/\D/g,''))} />
+                          <input required type="password" value={cvvCartao} maxLength={4} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 py-4 text-sm font-bold text-center tracking-widest" placeholder="CVV" onChange={e => setCvvCartao(e.target.value.replace(/\D/g,''))} />
+                        </div>
                       </div>
+
+                      {/* DADOS DE FATURAMENTO (Obrigatórios para o Antifraude do PagBank) */}
+                      <div className="space-y-4 pt-4">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2"><MapPin size={14}/> Endereço de Faturação & Contato</p>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                           <input required value={cpfFaturamento} onChange={e => setCpfFaturamento(mascaraCPF(e.target.value))} maxLength={14} className="w-full rounded-xl border-2 border-slate-100 bg-white px-4 py-3 text-sm font-bold text-slate-800" placeholder="CPF do Titular do Cartão" />
+                           <input required value={telefone} onChange={e => setTelefone(mascaraTelefone(e.target.value))} maxLength={15} className="w-full rounded-xl border-2 border-slate-100 bg-white px-4 py-3 text-sm font-bold text-slate-800" placeholder="Telemóvel / Celular (com DDD)" />
+                        </div>
+                        
+                        <div className="grid grid-cols-[1fr_2fr] gap-3">
+                           <input required value={cep} onChange={e => setCep(mascaraCEP(e.target.value))} maxLength={9} className="w-full rounded-xl border-2 border-slate-100 bg-white px-4 py-3 text-sm font-bold text-slate-800" placeholder="CEP" />
+                           <input required value={rua} onChange={e => setRua(e.target.value)} className="w-full rounded-xl border-2 border-slate-100 bg-white px-4 py-3 text-sm font-bold text-slate-800" placeholder="Rua / Avenida" />
+                        </div>
+                        
+                        <div className="grid grid-cols-[1fr_2fr] gap-3">
+                           <input required value={numeroEndereco} onChange={e => setNumeroEndereco(e.target.value)} className="w-full rounded-xl border-2 border-slate-100 bg-white px-4 py-3 text-sm font-bold text-slate-800" placeholder="Número" />
+                           <input required value={bairro} onChange={e => setBairro(e.target.value)} className="w-full rounded-xl border-2 border-slate-100 bg-white px-4 py-3 text-sm font-bold text-slate-800" placeholder="Bairro" />
+                        </div>
+                      </div>
+
                     </div>
                   )}
 
-                  {erroApi && <div className="mb-8 p-5 bg-red-50 text-red-700 rounded-2xl font-bold text-sm flex items-center gap-3 border border-red-100"><AlertCircle size={24}/> {erroApi}</div>}
+                  {erroApi && <div className="mt-8 mb-4 p-5 bg-red-50 text-red-700 rounded-2xl font-bold text-sm flex items-center gap-3 border border-red-100"><AlertCircle size={24}/> {erroApi}</div>}
                   
-                  <button type="submit" disabled={isSubmitting} className={`w-full py-6 rounded-[1.5rem] font-black text-xl text-white shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed ${metodoPagamento === 'pix' ? 'bg-[#009640] hover:bg-green-700' : 'bg-[#00577C] hover:bg-blue-900'}`}>
+                  <button type="submit" disabled={isSubmitting} className={`w-full mt-8 py-6 rounded-[1.5rem] font-black text-xl text-white shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed ${metodoPagamento === 'pix' ? 'bg-[#009640] hover:bg-green-700' : 'bg-[#00577C] hover:bg-blue-900'}`}>
                     {isSubmitting ? <><Loader2 className="animate-spin" size={24}/> Autorizando...</> : metodoPagamento === 'pix' ? <><QrCode size={22}/> Gerar Código PIX</> : <><Lock size={22}/> Pagar com Cartão</>}
                   </button>
                 </SectionCard>
