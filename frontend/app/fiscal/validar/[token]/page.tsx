@@ -4,23 +4,23 @@ interface ValidarResponse {
   sucesso: boolean;
   nome?: string;
   status?: string;
-  cpf?: string;             // ◄── CPF Completo para bater com o RG físico
-  data_nascimento?: string; // ◄── Data de nascimento
-  foto_url?: string;        // ◄── Campo essencial para combate à fraude
+  cpf?: string;             
+  data_nascimento?: string; 
+  foto_url?: string;        
   mensagem?: string;
 }
 
 async function validate(token: string): Promise<ValidarResponse> {
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://sagaturismo-production.up.railway.app';
   
-  // A chave secreta que definiste no backend. Em produção, coloca isto no ficheiro .env da Vercel!
   const FISCAL_KEY = process.env.FISCAL_SECRET_KEY || 'SaoGeraldo2026_Secret_Key';
 
   try {
-    const res = await fetch(`${API_URL}/api/v1/fiscal/verificar-qr/${encodeURIComponent(token)}`, {
-      cache: 'no-store', // ◄── Crucial: Nunca guardar cache de verificações fiscais
+    // ◄── ROTA 100% ALINHADA COM O BACKEND: /fiscal/validar/
+    const res = await fetch(`${API_URL}/api/v1/fiscal/validar/${encodeURIComponent(token)}`, {
+      cache: 'no-store', 
       headers: {
-        'x-fiscal-key': FISCAL_KEY // ◄── O escudo de autenticação
+        'x-fiscal-key': FISCAL_KEY 
       }
     });
     
@@ -37,7 +37,6 @@ async function validate(token: string): Promise<ValidarResponse> {
 export default async function FiscalPage({ params }: { params: { token: string } }) {
   const data = await validate(params.token);
   
-  // Só consideramos "PODE ENTRAR" se a API deu sucesso E o status for 'ativo'
   const isAtivo = data.status === 'ativo';
   const ok = data.sucesso === true && isAtivo;
 
@@ -45,18 +44,15 @@ export default async function FiscalPage({ params }: { params: { token: string }
     <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-stone-100">
       <div className="w-full max-w-md space-y-4">
         
-        {/* Badge de Segurança */}
         <div className="flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-stone-400 mb-2">
           <ShieldAlert className="w-4 h-4 text-amber-500" />
           Sistema de Verificação Fiscal
         </div>
 
-        {/* Card Principal */}
         <div className={`rounded-[2.5rem] border-4 shadow-2xl overflow-hidden transition-all ${
           ok ? 'border-[#009640] bg-white' : 'border-red-500 bg-white'
         }`}>
           
-          {/* Barra de Status Gigante (UX para o Fiscal) */}
           <div className={`px-8 py-6 flex items-center gap-5 ${
             ok ? 'bg-[#009640] text-white' : 'bg-red-500 text-white'
           }`}>
@@ -74,10 +70,8 @@ export default async function FiscalPage({ params }: { params: { token: string }
             </div>
           </div>
 
-          {/* Área de Dados e Foto */}
           <div className="p-8 space-y-6">
             
-            {/* FOTO DO RESIDENTE (Destaque para combate à fraude) */}
             {data.sucesso && (
               <div className="flex flex-col items-center">
                 <div className="w-40 h-52 bg-stone-100 rounded-3xl overflow-hidden border-4 border-stone-100 shadow-lg relative">
@@ -107,14 +101,13 @@ export default async function FiscalPage({ params }: { params: { token: string }
                 {data.nome && (
                 <div className="flex items-center gap-4 bg-stone-50 rounded-2xl px-5 py-4 border border-stone-100">
                     <User className="w-5 h-5 text-stone-400 flex-shrink-0" />
-                    <div>
+                    <div className="overflow-hidden">
                         <p className="text-[10px] text-stone-400 font-black uppercase tracking-wider">Titular do Benefício</p>
-                        <p className="font-black text-[#00577C] text-lg leading-tight uppercase">{data.nome}</p>
+                        <p className="font-black text-[#00577C] text-lg leading-tight uppercase truncate">{data.nome}</p>
                     </div>
                 </div>
                 )}
 
-                {/* Mostramos o CPF inteiro para o fiscal bater com o RG da pessoa */}
                 {data.cpf && (
                 <div className="flex items-center gap-4 bg-stone-50 rounded-2xl px-5 py-4 border border-stone-100">
                     <CreditCard className="w-5 h-5 text-stone-400 flex-shrink-0" />
@@ -135,10 +128,9 @@ export default async function FiscalPage({ params }: { params: { token: string }
               </div>
             )}
 
-            {/* Auditoria do Token */}
             <div className="pt-4 border-t border-stone-100">
                 <p className="text-center text-[9px] text-stone-300 font-mono break-all uppercase">
-                Verificação ID: {params.token}
+                Verificação ID: {params.token.slice(0, 18)}...
                 </p>
             </div>
           </div>
