@@ -826,7 +826,7 @@ export default function HomePage() {
               href="/parceiros"
               className="rounded-full bg-[#F9C400] px-5 py-3 text-sm font-bold text-[#00577C] shadow-lg transition hover:bg-[#ffd633]"
             >
-              Torne-se um parceiro
+              Anuncie seu negócio
             </Link>
 
             <Link
