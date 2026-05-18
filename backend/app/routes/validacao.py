@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 import os
 from supabase import create_client, Client
 from datetime import datetime, timezone
@@ -9,55 +9,52 @@ SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-@router.get("/validar/carteira/{token}")
-async def verificar_residente_por_token(token: str):
-    """
-    Endpoint consumido pela Web App do Fiscal.
-    Lê o token do QR Code e devolve se a carteira está apta para o desconto.
-    """
+# Cobrimos as duas formas que o frontend pode chamar a API
+@router.get("/validar/{token}")
+@router.get("/validar")
+async def validar_carteira(token: str = Query(None)):
     try:
-        # Busca o cidadão pelo token (conforme gerado no webhook)
-        response = supabase.table("cidadaos").select("*").eq("token", token).execute()
+        if not token:
+            return {"sucesso": False, "mensagem": "Token não fornecido."}
+            
+        # 1. Busca o residente pela tabela CORRETA
+        res = supabase.table("rd_residentes").select("*").eq("id", token).execute()
         
-        if not response.data:
-            return {"sucesso": False, "mensagem": "Cartão Inválido ou não encontrado na base de dados."}
+        # Fallback: Se não encontrar pelo ID, tenta pelo token do QRCode
+        if not res.data:
+            res = supabase.table("rd_residentes").select("*").eq("qrcode_token", token).execute()
+            
+        if not res.data:
+            return {"sucesso": False, "status": "reprovada", "mensagem": "Cartão Inválido ou não encontrado na base de dados."}
         
-        residente = response.data[0]
-        nome = residente.get("nome_completo", "Cidadão")
+        residente = res.data[0]
+        status_db = residente.get("status", "").lower()
         
-        # 1. Verificar a validade (se a data de expiração existir)
-        if residente.get("data_expiracao"):
-            agora = datetime.now(timezone.utc)
-            # Tenta converter a data de forma segura
-            try:
-                data_exp = datetime.fromisoformat(residente["data_expiracao"].replace('Z', '+00:00'))
-                if agora > data_exp:
-                    return {
-                        "sucesso": False,
-                        "nome": nome,
-                        "status": "expirado",
-                        "mensagem": "ACESSO NEGADO: Cartão expirado. É necessário renovar."
-                    }
-            except ValueError:
-                pass # Se a data estiver mal formatada, ignora a expiração
-        
-        # 2. Lógica de negócio: Status 'aprovado' e pagamento 'pago'
-        if residente.get("status") == "aprovado" and residente.get("pagamento_status") == "pago":
-            return {
-                "sucesso": True,
-                "nome": nome,
-                "cpf": residente.get("cpf"),
-                "foto_url": residente.get("foto_url"),
-                "status": "ativo",
-                "mensagem": "ACESSO LIBERADO: 50% de Desconto Confirmado."
-            }
-        else:
-            return {
-                "sucesso": False,
-                "nome": nome,
-                "status": residente.get("status", "desconhecido"),
-                "mensagem": "ACESSO NEGADO: Pagamento pendente ou carteira suspensa."
-            }
+        # 2. Formatar o CPF para segurança no frontend (cpf_mascarado)
+        cpf_raw = residente.get("cpf", "")
+        cpf_mascarado = cpf_raw
+        if len(cpf_raw) >= 11:
+            cpf_mascarado = f"***.{cpf_raw[3:6]}.{cpf_raw[6:9]}-**"
+            
+        # 3. Contar total de pessoas (Titular + Dependentes) para o checkout cobrar o valor certo
+        qtd_pessoas = 1
+        res_dependentes = supabase.table("rd_residentes").select("id").eq("titular_id", residente["id"]).execute()
+        if res_dependentes.data:
+            qtd_pessoas += len(res_dependentes.data)
+
+        # 4. Retornar a estrutura EXATA que o teu frontend espera
+        return {
+            "sucesso": True,
+            "status": status_db, # Retornará "aguardando_pagamento" ou "ativo"
+            "nome": residente.get("nome_completo", "Cidadão"),
+            "cpf_mascarado": cpf_mascarado,
+            "cpf": residente.get("cpf"),
+            "email": residente.get("email"),
+            "data_nascimento": residente.get("data_nascimento"),
+            "foto_url": residente.get("foto_url"),
+            "quantidade": qtd_pessoas,
+            "mensagem": "Leitura efetuada com sucesso"
+        }
 
     except Exception as e:
         print(f"[ERRO VALIDAÇÃO] {e}")
