@@ -17,7 +17,14 @@ import { supabase } from '@/lib/supabase';
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '700', '800'] });
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'] });
 
-// ── TIPAGENS ──
+// ── TIPAGENS ATUALIZADAS (INCLUINDO QUARTOS REAIS) ──
+type TipoQuarto = {
+  id: string;
+  nome_quarto: string;
+  preco_quarto: number;
+  imagem_url: string;
+};
+
 type Hotel = {
   id: string;
   nome: string;
@@ -28,6 +35,7 @@ type Hotel = {
   preco_medio: any;
   quarto_standard_preco: any;
   comodidades?: string[];
+  tipos_quarto?: TipoQuarto[]; // ◄── A nova relação com o inventário real
 };
 
 // ── UTILITÁRIOS ──
@@ -87,7 +95,7 @@ function HoteisPageContent() {
   const [mesAtualCalendario, setMesAtualCalendario] = useState(new Date());
   const [hoverDate, setHoverDate] = useState<Date | null>(null);
 
-  // ── DICIONÁRIO DE PREÇOS REAIS CALCULAADOS VIA RAILWAY ──
+  // ── DICIONÁRIO DE PREÇOS REAIS CALCULADOS VIA RAILWAY ──
   const [precosDinamicos, setPrecosDinamicos] = useState<Record<string, { valor_total: number; noites: number; disponivel: boolean }>>({});
   const [carregandoPrecos, setCarregandoPrecos] = useState(false);
 
@@ -97,11 +105,16 @@ function HoteisPageContent() {
 
   const searchBarRef = useRef<HTMLDivElement>(null);
 
-  // 1. CARREGAMENTO INICIAL DOS HOTÉIS DA BASE DE DADOS
+  // 1. CARREGAMENTO DOS HOTÉIS COM JOIN DINÂMICO DOS QUARTOS (TEMPO REAL)
   useEffect(() => {
     async function fetchHoteis() {
-      const { data } = await supabase.from('hoteis').select('*').order('nome');
-      if (data) setHoteis(data);
+      // O Join puxa os quartos recém-criados na Extranet para sabermos os preços e fotos reais
+      const { data, error } = await supabase
+        .from('hoteis')
+        .select('*, tipos_quarto(id, nome_quarto, preco_quarto, imagem_url)')
+        .order('nome');
+      
+      if (data) setHoteis(data as Hotel[]);
       setLoading(false);
     }
     fetchHoteis();
@@ -126,7 +139,7 @@ function HoteisPageContent() {
     if (qu) setQuartos(Number(qu));
   }, [searchParams]);
 
-  // 3. CONSULTAR PREÇO REAL EM LOTE DE ACORDO COM OS PARÂMETROS DA URL
+  // 3. CONSULTAR PREÇO REAL EM LOTE (COM CACHE-BUSTER PARA REFLEXÃO IMEDIATA)
   useEffect(() => {
     if (hoteis.length === 0) return;
 
@@ -148,8 +161,16 @@ function HoteisPageContent() {
         await Promise.all(
           hoteis.map(async (hotel) => {
             try {
+              // Descobre qual é o quarto mais barato do inventário para usar de isca no Card
+              const quartoMaisBarato = hotel.tipos_quarto && hotel.tipos_quarto.length > 0 
+                ? hotel.tipos_quarto.reduce((prev, curr) => (curr.preco_quarto < prev.preco_quarto ? curr : prev))
+                : null;
+              
+              const tipoQuery = quartoMaisBarato ? quartoMaisBarato.nome_quarto : 'standard';
+
+              // O &t= garante que a API não usa cache do navegador, lendo as restrições ao segundo
               const res = await fetch(
-                `https://sagaturismo-production.up.railway.app/api/v1/public/hoteis/${hotel.id}/calcular-preco?tipo_quarto=standard&checkin=${ci}&checkout=${co}&quantidade=${qu}&adultos=${ad}`
+                `https://sagaturismo-production.up.railway.app/api/v1/public/hoteis/${hotel.id}/calcular-preco?tipo_quarto=${encodeURIComponent(tipoQuery)}&checkin=${ci}&checkout=${co}&quantidade=${qu}&adultos=${ad}&t=${Date.now()}`
               );
               const data = await res.json();
               if (data.sucesso) {
@@ -164,7 +185,6 @@ function HoteisPageContent() {
             }
           })
         );
-        setPrecosDinamicos(novosPrecos);
       } catch (e) {
         console.error("Erro no lote de verificação financeira:", e);
       } finally {
@@ -557,8 +577,14 @@ function HoteisPageContent() {
               </div>
             ) : (
               hoteisFiltrados.map((hotel) => {
-                const precoBase = parseValor(hotel.quarto_standard_preco || hotel.preco_medio);
-                
+                // Cálculo inteligente do Preço Base olhando para o Inventário Real
+                const quartoMaisBarato = hotel.tipos_quarto && hotel.tipos_quarto.length > 0 
+                  ? hotel.tipos_quarto.reduce((prev, curr) => (curr.preco_quarto < prev.preco_quarto ? curr : prev))
+                  : null;
+                  
+                const precoBase = quartoMaisBarato ? quartoMaisBarato.preco_quarto : parseValor(hotel.quarto_standard_preco || hotel.preco_medio);
+                const imagemAExibir = hotel.imagem_url || quartoMaisBarato?.imagem_url || FALLBACK_IMAGE;
+
                 const dadosDinamicos = precosDinamicos[hotel.id];
                 const precoTotal = dadosDinamicos ? dadosDinamicos.valor_total : precoBase * noites * totalQuartos;
                 const precoDiariaExibida = dadosDinamicos ? (dadosDinamicos.valor_total / (dadosDinamicos.noites * totalQuartos)) : precoBase;
@@ -568,7 +594,7 @@ function HoteisPageContent() {
                   <article key={hotel.id} className="bg-white rounded-[2rem] md:rounded-[2.5rem] border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col md:flex-row overflow-hidden group">
                     
                     <div className="relative w-full h-56 md:h-auto md:w-72 shrink-0 overflow-hidden bg-slate-100">
-                      <Image src={hotel.imagem_url || FALLBACK_IMAGE} alt={hotel.nome} fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
+                      <Image src={imagemAExibir} alt={hotel.nome} fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
                       <div className="absolute top-4 left-4 bg-[#F9C400] text-[#00577C] px-3 py-1.5 rounded-lg text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-lg">
                         {hotel.tipo}
                       </div>
