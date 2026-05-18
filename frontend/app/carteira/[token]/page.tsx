@@ -25,41 +25,49 @@ export default function CarteiraDigitalPage({ params }: { params: { token: strin
   useEffect(() => {
     const checkStatus = async () => {
       try {
-        // Adicionamos o timestamp (&t=...) para forçar o navegador a buscar dados novos sem cache
         const res = await fetch(`/api/validar?token=${params.token}&t=${Date.now()}`);
         const json = await res.json();
 
-        // ── 1. REDIRECIONAMENTO IMEDIATO PARA PAGAMENTO ──
-        // Se a IA aprovou, não mostramos nada nesta página, saltamos direto para o Checkout
-        if (json.sucesso && (json.status === 'aprovada' || json.status === 'aguardando_pagamento' || json.status === 'pendente')) {
-          if (pollInterval.current) clearInterval(pollInterval.current);
-          router.push(`/checkout-carteira?token=${params.token}`);
-          return;
-        }
-
-        // ── 2. CARTEIRA ATIVA (PAGA) ──
-        if (json.sucesso && json.status === 'ativa') {
+        // ── 1. SE A API NÃO ENCONTRAR O TOKEN ──
+        if (!json.sucesso) {
           if (pollInterval.current) clearInterval(pollInterval.current);
           setData(json);
           setLoading(false);
           return;
         }
 
-        // ── 3. REPROVADA OU ERRO ──
-        if (json.status === 'reprovada' || (json.sucesso === false && json.status !== 'processando')) {
+        // ── 2. CARTEIRA ATIVA (PAGA) - AGORA ACEITA MASCULINO E FEMININO ──
+        if (json.status === 'ativa' || json.status === 'ativo') {
           if (pollInterval.current) clearInterval(pollInterval.current);
           setData(json);
           setLoading(false);
           return;
         }
+
+        // ── 3. REPROVADA PELA PREFEITURA ──
+        if (json.status === 'reprovada') {
+          if (pollInterval.current) clearInterval(pollInterval.current);
+          setData(json);
+          setLoading(false);
+          return;
+        }
+
+        // ── 4. AGUARDANDO PAGAMENTO (SALA DE ESPERA) ──
+        // O utilizador fica aqui enquanto o webhook do PagBank não termina o trabalho
+        if (json.status === 'aprovada' || json.status === 'aguardando_pagamento' || json.status === 'pendente') {
+          setData(json);
+          setLoading(false);
+          return;
+        }
+
       } catch (err) {
         console.error("Erro na validação:", err);
       }
     };
 
     checkStatus();
-    // Polling de 5 segundos para máxima rapidez
-    pollInterval.current = setInterval(checkStatus, 5000);
+    // Verifica a base de dados a cada 3 segundos à espera do webhook do PagBank
+    pollInterval.current = setInterval(checkStatus, 3000);
 
     return () => {
       if (pollInterval.current) clearInterval(pollInterval.current);
@@ -74,13 +82,14 @@ export default function CarteiraDigitalPage({ params }: { params: { token: strin
           <ShieldCheck className="w-6 h-6 text-[#009640] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
         </div>
         <div className="space-y-2">
-          <p className="text-sm font-black text-slate-800 uppercase tracking-[0.2em]">Análise em Tempo Real</p>
-          <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest opacity-60">A validar a sua residência com a nossa IA...</p>
+          <p className="text-sm font-black text-slate-800 uppercase tracking-[0.2em]">Acesso Seguro</p>
+          <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest opacity-60">Sincronizando com a base de dados oficial...</p>
         </div>
       </div>
     </div>
   );
 
+  // ── ECRÃ DE ERRO (Token Inválido ou Reprovado) ──
   if (!data || !data.sucesso || data.status === 'reprovada') return (
     <div className="min-h-screen flex items-center justify-center p-6 text-center bg-stone-100">
       <div className="bg-white p-10 rounded-[3rem] border border-red-100 max-w-sm shadow-2xl animate-in zoom-in-95 duration-500 text-left">
@@ -89,7 +98,7 @@ export default function CarteiraDigitalPage({ params }: { params: { token: strin
         </div>
         <h2 className="text-2xl font-black text-slate-900 mb-2">Solicitação Recusada</h2>
         <p className="text-sm font-medium text-slate-500 mb-8 leading-relaxed">
-          {data?.mensagem || "Não foi possível validar os dados do documento enviado. Certifique-se de que a foto está nítida e o comprovativo de morada é atual."}
+          {data?.mensagem || "Não foi possível localizar este documento. Verifique se concluiu o registo corretamente."}
         </p>
         <Link href="/cadastro" className="block w-full bg-slate-900 text-white text-center py-4 rounded-2xl font-bold hover:bg-black transition-all">
           Tentar Novamente
@@ -98,8 +107,28 @@ export default function CarteiraDigitalPage({ params }: { params: { token: strin
     </div>
   );
 
+  // ── SALA DE ESPERA (Aguardando Webhook do PagBank) ──
+  if (data.status === 'aprovada' || data.status === 'aguardando_pagamento' || data.status === 'pendente') return (
+    <div className="min-h-screen flex items-center justify-center p-6 text-center bg-stone-100">
+      <div className="bg-white p-10 rounded-[3rem] border border-[#00577C]/10 max-w-md shadow-2xl animate-in fade-in duration-500">
+        <Loader2 className="w-16 h-16 animate-spin text-[#00577C] mx-auto mb-6" />
+        <h2 className="text-2xl font-black text-slate-900 mb-2">Aguardando Confirmação</h2>
+        <p className="text-sm font-medium text-slate-500 mb-8 leading-relaxed">
+          Estamos a aguardar a validação do PagBank. Se a página não atualizar em 10 segundos ou ainda não efetuou o pagamento, clique abaixo.
+        </p>
+        <button 
+          onClick={() => router.push(`/checkout-carteira?token=${params.token}`)}
+          className="w-full bg-[#00577C] text-white text-center py-4 rounded-2xl font-bold hover:bg-blue-900 transition-all shadow-lg"
+        >
+          Efetuar Pagamento
+        </button>
+      </div>
+    </div>
+  );
+
   const expira = "29/04/2027";
 
+  // ── ECRÃ DE SUCESSO (Carteira Ativa) ──
   return (
     <div className="min-h-screen bg-stone-200 flex flex-col items-center justify-center p-4 md:p-8">
       <div id="carteira-digital" className="w-full max-w-[750px] aspect-[1.6/1] bg-white rounded-[2rem] shadow-2xl overflow-hidden relative border border-stone-300 flex flex-col no-print">
