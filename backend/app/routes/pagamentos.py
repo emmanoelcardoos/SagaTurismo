@@ -69,7 +69,6 @@ def calcular_preco_hotel_dinamico(hotel_id: str, quarto_tipo_id: str, checkin_st
     if not res_h.data:
         raise HTTPException(status_code=404, detail="Alojamento não encontrado.")
         
-    # ◄── MAPEADO: Ajustado para consultar a tabela tipos_quarto existente
     res_q = supabase.table("tipos_quarto").select("*").eq("id", quarto_tipo_id).single().execute()
     if not res_q.data:
         raise HTTPException(status_code=404, detail="Tipo de quarto não configurado para este hotel.")
@@ -77,7 +76,6 @@ def calcular_preco_hotel_dinamico(hotel_id: str, quarto_tipo_id: str, checkin_st
     hotel_data = res_h.data
     quarto_data = res_q.data
     
-    # ◄── MAPEADO: Alinhado com a coluna preco_quarto da tua base de dados
     base_preco = float(quarto_data["preco_quarto"])
     pct_acompanhante = float(hotel_data.get("porcentagem_acompanhante") or 0.0)
     
@@ -139,6 +137,16 @@ async def processar_pagamento(pedido: PedidoPagamento):
         item_id_sanitizado = limpar_uuid(pedido.item_id)
         quarto_tipo_id_sanitizado = limpar_uuid(pedido.quarto_tipo_id)
 
+        # ◄── SALVA-VIDAS DA DEMONSTRAÇÃO: Se o frontend antigo não enviou o ID, procuramos pelo nome (standard/luxo)
+        if not quarto_tipo_id_sanitizado and hotel_id_sanitizado and pedido.tipo_quarto:
+            res_fb = supabase.table("tipos_quarto").select("id").eq("hotel_id", hotel_id_sanitizado).ilike("nome_quarto", f"%{pedido.tipo_quarto}%").execute()
+            if res_fb.data:
+                quarto_tipo_id_sanitizado = res_fb.data[0]["id"]
+            else:
+                res_fb_slug = supabase.table("tipos_quarto").select("id").eq("hotel_id", hotel_id_sanitizado).eq("slug", pedido.tipo_quarto.lower()).execute()
+                if res_fb_slug.data:
+                    quarto_tipo_id_sanitizado = res_fb_slug.data[0]["id"]
+
         valor_total = 0.0
         recebedores_split = []
         splits_array = []
@@ -184,7 +192,6 @@ async def processar_pagamento(pedido: PedidoPagamento):
             nome_item_checkout = f"Hospedagem - {res_hotel_info.data['nome']}"
             item_id_db = hotel_id_sanitizado
 
-            # ◄── MAPEADO: Alinhado com a coluna nome_quarto da tua tabela existente
             res_q_info = supabase.table("tipos_quarto").select("nome_quarto").eq("id", quarto_tipo_id_sanitizado).single().execute()
             if res_q_info.data:
                 nome_quarto_real_texto = res_q_info.data["nome_quarto"]
@@ -213,7 +220,8 @@ async def processar_pagamento(pedido: PedidoPagamento):
 
             guia_proprietario_id = limpar_uuid(dados_p.get("guia_id"))
             if guia_proprietario_id:
-                res_g = supabase.table("parceiros").select("pagbank_recebedor_id").eq("id", guia_proprietario_id).single().execute()
+                # ◄── CORREÇÃO DO ERRO 500: Consulta à tabela 'guias' em vez de 'parceiros'
+                res_g = supabase.table("guias").select("pagbank_recebedor_id").eq("id", guia_proprietario_id).single().execute()
                 if res_g.data:
                     rec_id = res_g.data.get("pagbank_recebedor_id")
                     if rec_id and str(rec_id).startswith("ACC_"):
@@ -243,7 +251,6 @@ async def processar_pagamento(pedido: PedidoPagamento):
                     quantidade_quartos=pedido.quantidade, quantidade_pessoas=pedido.adultos
                 )
                 
-                # ◄── MAPEADO: Alinhado com a coluna nome_quarto da tua tabela existente
                 res_q_info = supabase.table("tipos_quarto").select("nome_quarto").eq("id", quarto_tipo_id_sanitizado).single().execute()
                 if res_q_info.data:
                     nome_quarto_real_texto = res_q_info.data["nome_quarto"]
