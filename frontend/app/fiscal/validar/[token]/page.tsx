@@ -36,16 +36,15 @@ async function validate(token: string): Promise<ValidarResponse> {
 }
 
 export default async function FiscalPage({ params }: { params: { token: string } }) {
-  // ◄── O CADEADO DE SEGURANÇA COMEÇA AQUI ──►
+  // ◄── A REGRA DE OURO DA CAMUFLAGEM ──►
   const cookieStore = cookies();
   const authCookie = cookieStore.get('fiscal_auth');
 
-  // Verifica se o telemóvel tem a credencial (Cookie)
+  // Se não for o fiscal logado, envia silenciosamente para a Página Inicial
   if (!authCookie || authCookie.value !== 'autenticado') {
-    // Se for um turista ou curioso, é expulso para a página de Login!
-    redirect(`/fiscal/login?returnUrl=/fiscal/validar/${params.token}`);
+    redirect('/');
   }
-  // ◄── O CADEADO DE SEGURANÇA TERMINA AQUI ──►
+  // ◄───────────────────────────────────►
 
   // Se o código chegar aqui, é porque é mesmo o Fiscal. O sistema vai buscar os dados:
   const data = await validate(params.token);
