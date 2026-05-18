@@ -15,12 +15,15 @@ import { supabase } from '@/lib/supabase';
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['600', '700', '800'] });
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'] });
 
-// ── TIPAGENS ESTRUTURAIS ──
+// ── TIPAGENS ALINHADAS AO SCHEMA REAL DA BASE DE DADOS ──
 type QuartoCategoria = {
   id: string;
-  nome: string;
-  preco_base: number;
-  estoque_total: number;
+  nome_quarto: string;
+  nome?: string;
+  preco_quarto: number;
+  preco_base?: number;
+  quantidade_total_quartos: number;
+  estoque_total?: number;
   capacidade: number;
   descricao: string;
   imagem_url: string;
@@ -32,7 +35,7 @@ type RestricaoDisponibilidade = {
   data_fim: string;
   preco: number;
   disponivel: boolean;
-  tipo_quarto: string; // <-- Ajustado para bater com o teu banco de dados
+  tipo_quarto: string;
 };
 
 const FALLBACK_IMAGE = "/logop.png";
@@ -89,7 +92,7 @@ export default function ExtranetDisponibilidadePage() {
         .from('tipos_quarto')
         .select('*')
         .eq('hotel_id', hotelId)
-        .order('nome');
+        .order('nome_quarto');
       
       if (qData) {
         setQuartos(qData as QuartoCategoria[]);
@@ -133,7 +136,7 @@ export default function ExtranetDisponibilidadePage() {
 
   const formatarMoeda = (valor: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
 
-  // ── CRIAÇÃO DO QUARTO COM CATCH PARA BUCKET ──
+  // ── INSERÇÃO ALINHADA AO SCHEMA RIGOROSO DA BD ──
   const handleCriarQuarto = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!hotelId || !fImagem) return;
@@ -159,14 +162,20 @@ export default function ExtranetDisponibilidadePage() {
       const { data: urlData } = supabase.storage.from('galeria').getPublicUrl(nomeFicheiroUnico);
       const publicImageUrl = urlData.publicUrl;
 
+      // Duplicação intencional das chaves para satisfazer as colunas antigas (NOT NULL) e as novas
+      const precoNumber = parseFloat(fPrecoBase.replace(',', '.'));
+      const estoqueNumber = parseInt(fEstoque);
+
       const { error: dbError } = await supabase
         .from('tipos_quarto')
         .insert([{
           hotel_id: hotelId,
-          nome: fNome,
           nome_quarto: fNome,
-          preco_base: parseFloat(fPrecoBase.replace(',', '.')),
-          estoque_total: parseInt(fEstoque),
+          nome: fNome,
+          preco_quarto: precoNumber,
+          preco_base: precoNumber,
+          quantidade_total_quartos: estoqueNumber,
+          estoque_total: estoqueNumber,
           capacidade: parseInt(fCapacidade),
           descricao: fDescricao,
           imagem_url: publicImageUrl
@@ -174,7 +183,7 @@ export default function ExtranetDisponibilidadePage() {
 
       if (dbError) throw dbError;
 
-      setStatusFeedback({ tipo: 'sucesso', texto: 'Categoria física adicionada ao inventário!' });
+      setStatusFeedback({ tipo: 'sucesso', texto: 'Acomodação adicionada ao inventário com sucesso!' });
       setMostrarFormQuarto(false);
       setFNome(''); setFPrecoBase(''); setFEstoque(''); setFCapacidade(''); setFDescricao(''); setFImagem(null);
     } catch (err: any) {
@@ -197,7 +206,6 @@ export default function ExtranetDisponibilidadePage() {
     }
   };
 
-  // ── SALVAR CALENDÁRIO ALINHADO COM A TUA BD ──
   const handleSalvarCalendario = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!hotelId || !quartoSelecionadoId || !dataInicio || !dataFim) {
@@ -209,10 +217,10 @@ export default function ExtranetDisponibilidadePage() {
     setStatusFeedback(null);
 
     const quartoSelecionado = quartos.find(q => q.id === quartoSelecionadoId);
+    const nomeDoQuartoAlvo = quartoSelecionado ? (quartoSelecionado.nome_quarto || quartoSelecionado.nome) : 'standard';
 
-    // Ajustado: Envia o `tipo_quarto` como string para bater com a tabela disponibilidade_hoteis
     const payload = {
-      tipo_quarto: quartoSelecionado ? quartoSelecionado.nome : 'standard',
+      tipo_quarto: nomeDoQuartoAlvo,
       data_inicio: formatarDataIso(dataInicio),
       data_fim: formatarDataIso(dataFim),
       preco: precoCustomizado ? parseFloat(precoCustomizado.replace(',', '.')) : null,
@@ -253,7 +261,8 @@ export default function ExtranetDisponibilidadePage() {
 
   const obterEstadoDoDia = (dataVerificacao: Date) => {
     const dataStr = formatarDataIso(dataVerificacao);
-    const quartoNome = quartos.find(q => q.id === quartoSelecionadoId)?.nome;
+    const quartoInfo = quartos.find(q => q.id === quartoSelecionadoId);
+    const quartoNome = quartoInfo ? (quartoInfo.nome_quarto || quartoInfo.nome) : '';
     
     return [...historicoDisponibilidade].reverse().find(h => 
       dataStr >= h.data_inicio && dataStr <= h.data_fim && h.tipo_quarto === quartoNome
@@ -270,7 +279,6 @@ export default function ExtranetDisponibilidadePage() {
   return (
     <div className={`${inter.className} min-h-screen bg-slate-50 text-slate-900 flex flex-col text-left`}>
       
-      {/* HEADER EXECUTIVO */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-50 px-4 md:px-10 py-4">
         <div className="mx-auto max-w-6xl flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
@@ -286,10 +294,8 @@ export default function ExtranetDisponibilidadePage() {
         </div>
       </header>
 
-      {/* PAINEL CENTRAL */}
       <div className="mx-auto w-full max-w-6xl px-4 py-6 md:py-12 flex-1 flex flex-col gap-6 md:gap-8">
         
-        {/* TABS */}
         <div className="flex border-b border-slate-200 bg-white p-2 rounded-2xl border shadow-sm gap-2">
           <button 
             onClick={() => { setAbaAtiva('quartos'); setStatusFeedback(null); }}
@@ -305,7 +311,6 @@ export default function ExtranetDisponibilidadePage() {
           </button>
         </div>
 
-        {/* FEEDBACK POPUP */}
         {statusFeedback && (
           <div className={`p-4 rounded-xl border flex items-start gap-3 animate-in fade-in duration-300 ${statusFeedback.tipo === 'sucesso' ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'}`}>
              <CheckCircle2 size={18} className="shrink-0 mt-0.5 text-current" />
@@ -321,21 +326,21 @@ export default function ExtranetDisponibilidadePage() {
               {quartos.map((q) => (
                 <article key={q.id} className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col group hover:shadow-md transition-shadow">
                   <div className="relative h-44 w-full bg-slate-100">
-                    <img src={q.imagem_url || FALLBACK_IMAGE} alt={q.nome} className="w-full h-full object-cover" />
+                    <img src={q.imagem_url || FALLBACK_IMAGE} alt={q.nome_quarto || q.nome} className="w-full h-full object-cover" />
                     <button onClick={() => handleDeletarQuarto(q.id)} className="absolute top-3 right-3 bg-white hover:bg-red-50 border border-slate-200 p-2.5 rounded-xl text-slate-400 hover:text-red-600 transition-colors shadow-sm">
                       <Trash2 size={16}/>
                     </button>
                   </div>
                   <div className="p-5 flex flex-col flex-1 text-left">
-                    <h4 className={`${jakarta.className} text-lg font-black text-slate-900 leading-tight mb-2`}>{q.nome}</h4>
+                    <h4 className={`${jakarta.className} text-lg font-black text-slate-900 leading-tight mb-2`}>{q.nome_quarto || q.nome}</h4>
                     <p className="text-xs text-slate-500 font-medium line-clamp-2 flex-1 mb-4">{q.descricao || 'Sem descrição.'}</p>
                     <div className="grid grid-cols-2 gap-2 pt-4 border-t border-slate-100 text-[11px] font-bold text-slate-600">
-                      <div className="flex items-center gap-1.5"><Layers size={14} className="text-slate-400"/> Stock: {q.estoque_total} Qts</div>
+                      <div className="flex items-center gap-1.5"><Layers size={14} className="text-slate-400"/> Stock: {q.quantidade_total_quartos || q.estoque_total} Qts</div>
                       <div className="flex items-center gap-1.5"><Users size={14} className="text-slate-400"/> Cap: {q.capacidade} Ad</div>
                     </div>
                     <div className="mt-4 pt-3 border-t border-slate-100 flex items-baseline justify-between">
                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Preço Base</span>
-                      <span className="text-lg font-black text-[#009640]">{formatarMoeda(q.preco_base)}</span>
+                      <span className="text-lg font-black text-[#009640]">{formatarMoeda(q.preco_quarto || q.preco_base || 0)}</span>
                     </div>
                   </div>
                 </article>
@@ -406,7 +411,7 @@ export default function ExtranetDisponibilidadePage() {
                   <div className="flex flex-wrap gap-2">
                     {quartos.map(q => (
                       <button key={q.id} type="button" onClick={() => { setQuartoSelecionadoId(q.id); setDataInicio(null); setDataFim(null); }} className={`px-4 py-2.5 rounded-xl border-2 font-black text-xs uppercase tracking-wider transition-all shadow-sm ${quartoSelecionadoId === q.id ? 'border-[#0085FF] bg-blue-50/70 text-[#0085FF]' : 'border-slate-100 bg-slate-50 text-slate-500'}`}>
-                        {q.nome}
+                        {q.nome_quarto || q.nome}
                       </button>
                     ))}
                   </div>
@@ -439,8 +444,8 @@ export default function ExtranetDisponibilidadePage() {
                       const quartoEspecifico = quartos.find(q => q.id === quartoSelecionadoId);
                       
                       const precoExibido = (isIni || isFi || isBetween) && precoCustomizado
-                        ? parseFloat(precoCustomizado.replace(',', '.')) || quartoEspecifico?.preco_base || 0
-                        : registroSalvo ? registroSalvo.preco : quartoEspecifico?.preco_base || 0;
+                        ? parseFloat(precoCustomizado.replace(',', '.')) || quartoEspecifico?.preco_quarto || quartoEspecifico?.preco_base || 0
+                        : registroSalvo ? registroSalvo.preco : quartoEspecifico?.preco_quarto || quartoEspecifico?.preco_base || 0;
 
                       const isBloqueadoVenda = (isIni || isFi || isBetween)
                         ? !vendaAtiva
@@ -518,10 +523,10 @@ export default function ExtranetDisponibilidadePage() {
               <div className="p-6 border-t border-slate-100 bg-white mt-auto">
                 <label className="text-[10px] font-black uppercase tracking-widest text-red-500 block mb-3">Limpar Tarifas Customizadas</label>
                 <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
-                   {historicoDisponibilidade.filter(h => h.tipo_quarto === quartos.find(q => q.id === quartoSelecionadoId)?.nome).length === 0 ? (
+                   {historicoDisponibilidade.filter(h => h.tipo_quarto === quartos.find(q => q.id === quartoSelecionadoId)?.nome_quarto || h.tipo_quarto === quartos.find(q => q.id === quartoSelecionadoId)?.nome).length === 0 ? (
                       <p className="text-xs font-medium text-slate-400 bg-slate-50 p-4 rounded-xl text-center border border-slate-100">Sem excepções ativas.</p>
                    ) : (
-                      historicoDisponibilidade.filter(h => h.tipo_quarto === quartos.find(q => q.id === quartoSelecionadoId)?.nome).map(t => (
+                      historicoDisponibilidade.filter(h => h.tipo_quarto === quartos.find(q => q.id === quartoSelecionadoId)?.nome_quarto || h.tipo_quarto === quartos.find(q => q.id === quartoSelecionadoId)?.nome).map(t => (
                         <div key={t.id} className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex items-center justify-between text-xs font-bold">
                            <div className="text-slate-600">
                               <span className="text-slate-900 block mb-0.5">{t.data_inicio.split('-').reverse().join('/')} - {t.data_fim.split('-').reverse().join('/')}</span>
