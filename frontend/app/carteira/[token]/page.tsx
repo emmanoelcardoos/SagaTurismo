@@ -25,7 +25,8 @@ export default function CarteiraDigitalPage({ params }: { params: { token: strin
   useEffect(() => {
     const checkStatus = async () => {
       try {
-        const res = await fetch(`/api/validar?token=${params.token}&t=${Date.now()}`);
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://sagaturismo-production.up.railway.app';
+        const res = await fetch(`${API_URL}/api/v1/validar/${params.token}?t=${Date.now()}`);
         const json = await res.json();
 
         // ── 1. SE A API NÃO ENCONTRAR O TOKEN ──
