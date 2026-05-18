@@ -105,7 +105,7 @@ async def webhook_pagbank(request: Request):
                     caminhos_pdfs = []
                     for res in residentes_encontrados:
                         # Atualiza o residente para "ativa" (é o que o frontend espera)
-                        supabase.table("rd_residentes").update({"status": "ativa"}).eq("id", res["id"]).execute()
+                        supabase.table("rd_residentes").update({"status": "ativo"}).eq("id", res["id"]).execute()
                         try:
                             # Prepara os dados para o PDF
                             dados_pdf = {
