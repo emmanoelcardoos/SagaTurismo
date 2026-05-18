@@ -26,6 +26,8 @@ export default function CarteiraDigitalPage({ params }: { params: { token: strin
     const checkStatus = async () => {
       try {
         const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://sagaturismo-production.up.railway.app';
+        
+        # ◄── ROTA CORRIGIDA AQUI: Adicionado /publico/ para contornar o Erro 403 Forbidden
         const res = await fetch(`${API_URL}/api/v1/publico/validar/${params.token}?t=${Date.now()}`);
         const json = await res.json();
 
@@ -37,7 +39,7 @@ export default function CarteiraDigitalPage({ params }: { params: { token: strin
           return;
         }
 
-        // ── 2. CARTEIRA ATIVA (PAGA) - AGORA ACEITA MASCULINO E FEMININO ──
+        // ── 2. CARTEIRA ATIVA (PAGA) ──
         if (json.status === 'ativa' || json.status === 'ativo') {
           if (pollInterval.current) clearInterval(pollInterval.current);
           setData(json);
@@ -53,8 +55,7 @@ export default function CarteiraDigitalPage({ params }: { params: { token: strin
           return;
         }
 
-        // ── 4. AGUARDANDO PAGAMENTO (SALA DE ESPERA) ──
-        // O utilizador fica aqui enquanto o webhook do PagBank não termina o trabalho
+        // ── 4. SALA DE ESPERA (AGUARDANDO WEBHOOK) ──
         if (json.status === 'aprovada' || json.status === 'aguardando_pagamento' || json.status === 'pendente') {
           setData(json);
           setLoading(false);
@@ -67,7 +68,6 @@ export default function CarteiraDigitalPage({ params }: { params: { token: strin
     };
 
     checkStatus();
-    // Verifica a base de dados a cada 3 segundos à espera do webhook do PagBank
     pollInterval.current = setInterval(checkStatus, 3000);
 
     return () => {
@@ -90,7 +90,6 @@ export default function CarteiraDigitalPage({ params }: { params: { token: strin
     </div>
   );
 
-  // ── ECRÃ DE ERRO (Token Inválido ou Reprovado) ──
   if (!data || !data.sucesso || data.status === 'reprovada') return (
     <div className="min-h-screen flex items-center justify-center p-6 text-center bg-stone-100">
       <div className="bg-white p-10 rounded-[3rem] border border-red-100 max-w-sm shadow-2xl animate-in zoom-in-95 duration-500 text-left">
@@ -108,7 +107,6 @@ export default function CarteiraDigitalPage({ params }: { params: { token: strin
     </div>
   );
 
-  // ── SALA DE ESPERA (Aguardando Webhook do PagBank) ──
   if (data.status === 'aprovada' || data.status === 'aguardando_pagamento' || data.status === 'pendente') return (
     <div className="min-h-screen flex items-center justify-center p-6 text-center bg-stone-100">
       <div className="bg-white p-10 rounded-[3rem] border border-[#00577C]/10 max-w-md shadow-2xl animate-in fade-in duration-500">
@@ -129,7 +127,6 @@ export default function CarteiraDigitalPage({ params }: { params: { token: strin
 
   const expira = "29/04/2027";
 
-  // ── ECRÃ DE SUCESSO (Carteira Ativa) ──
   return (
     <div className="min-h-screen bg-stone-200 flex flex-col items-center justify-center p-4 md:p-8">
       <div id="carteira-digital" className="w-full max-w-[750px] aspect-[1.6/1] bg-white rounded-[2rem] shadow-2xl overflow-hidden relative border border-stone-300 flex flex-col no-print">

@@ -244,7 +244,7 @@ function CheckoutCarteiraContent() {
             id_pedido: data.codigo_pedido 
           });
         } else {
-          router.push(`/carteira/${token}`);
+          router.push(`/sucesso?pedido=${data.codigo_pedido}`);
         }
       } else {
         setErroApi(data.detail || data.mensagem || 'Falha na comunicação com o banco.');
