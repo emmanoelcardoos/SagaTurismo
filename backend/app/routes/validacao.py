@@ -9,7 +9,7 @@ SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 def executar_validacao(token: str):
-    # ◄── BLINDAGEM MÁXIMA: Remove espaços, aspas simples, aspas duplas e quebras de linha
+    # BLINDAGEM: Remove espaços, aspas simples, aspas duplas e quebras de linha
     token_clean = str(token).strip().replace("'", "").replace('"', '').replace('\n', '')
     
     if not token_clean:
@@ -23,7 +23,6 @@ def executar_validacao(token: str):
         res = supabase.table("rd_residentes").select("*").eq("qrcode_token", token_clean).execute()
         
     if not res.data:
-        # Adicionei este print para o log da Railway nos avisar se ele continuar a falhar a busca
         print(f"[VALIDAÇÃO] Cidadão não encontrado para o token exato: '{token_clean}'")
         return {"sucesso": False, "status": "reprovada", "mensagem": "Cartão Inválido ou não encontrado na base de dados."}
     
@@ -59,8 +58,8 @@ def executar_validacao(token: str):
         "mensagem": "Leitura efetuada com sucesso"
     }
 
-# ── ROTA 1: Para quando o Frontend usa /validar?token=XYZ ──
-@router.get("/validar")
+# ── ROTA 1 PÚBLICA: Para quando o Frontend usa /publico/validar?token=XYZ ──
+@router.get("/publico/validar")
 async def validar_carteira_query(token: str = Query(None)):
     try:
         return executar_validacao(token)
@@ -68,8 +67,8 @@ async def validar_carteira_query(token: str = Query(None)):
         print(f"[ERRO VALIDAÇÃO QUERY] {e}")
         raise HTTPException(status_code=500, detail="Erro interno ao validar o documento.")
 
-# ── ROTA 2: Para quando o Fiscal usa /validar/{token} ──
-@router.get("/validar/{token}")
+# ── ROTA 2 PÚBLICA: Para quando o Frontend usa /publico/validar/{token} ──
+@router.get("/publico/validar/{token}")
 async def validar_carteira_path(token: str):
     try:
         return executar_validacao(token)
