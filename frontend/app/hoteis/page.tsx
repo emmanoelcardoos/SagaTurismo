@@ -44,7 +44,6 @@ const parseValor = (valor: any): number => {
 const formatarMoeda = (valor: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor || 0);
 
-// Imagem local para não dar erro 404 de domínios externos no Next.js
 const FALLBACK_IMAGE = "/logop.png";
 
 const getArraySeguro = (item: any): string[] => {
@@ -79,7 +78,7 @@ function HoteisPageContent() {
   const [criancas, setCriancas] = useState(0);
   const [quartos, setQuartos] = useState(1);
   const [showHospedesPopup, setShowHospedesPopup] = useState(false);
-  const [isSearching, setIsSearching] = useState(false); // ESTADO PARA O BOTÃO DE LOADING
+  const [isSearching, setIsSearching] = useState(false); 
 
   // Calendário Customizado
   const [showCalendarPopup, setShowCalendarPopup] = useState(false);
@@ -216,7 +215,6 @@ function HoteisPageContent() {
     return `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`;
   };
 
-  // ── DISPARO DO BOTÃO BUSCAR COM LOADING ANIMADO ──
   const handleBuscar = () => {
     setIsSearching(true);
     
@@ -331,7 +329,6 @@ function HoteisPageContent() {
     );
   };
 
-  // Extraído para uma função de renderização normal para evitar bugs no compilador SWC do Next.js
   const renderFiltros = () => (
     <div className="flex flex-col gap-0">
       <div className="mb-8">
@@ -420,10 +417,9 @@ function HoteisPageContent() {
             Alojamento Oficial. <span className="text-[#F9C400] block md:inline">Reserva Segura.</span>
           </h1>
 
-          {/* BARRA DE PESQUISA ESTILO BOOKING */}
+          {/* BARRA DE PESQUISA */}
           <div ref={searchBarRef} className="bg-[#F9C400] p-1.5 md:p-2 rounded-[2rem] shadow-xl max-w-5xl flex flex-col md:flex-row gap-1.5 md:gap-2 relative z-50">
             
-            {/* 1. Destino Fixo */}
             <div className="bg-white flex-1 rounded-[1.5rem] px-4 md:px-5 py-3 flex items-center gap-3">
                <MapPin className="text-[#00577C] shrink-0" size={24} />
                <div className="text-left overflow-hidden">
@@ -432,7 +428,6 @@ function HoteisPageContent() {
                </div>
             </div>
 
-            {/* 2. Calendário Customizado */}
             <div 
               className="bg-white flex-1 rounded-[1.5rem] px-4 md:px-5 py-3 flex items-center gap-3 relative cursor-pointer select-none hover:bg-slate-50 transition-colors" 
               onClick={() => {setShowCalendarPopup(!showCalendarPopup); setShowHospedesPopup(false);}}
@@ -447,7 +442,6 @@ function HoteisPageContent() {
                {showCalendarPopup && renderMonth()}
             </div>
 
-            {/* 3. Hóspedes e Quartos */}
             <div 
               className="bg-white flex-1 rounded-[1.5rem] px-4 md:px-5 py-3 flex items-center gap-3 relative cursor-pointer select-none hover:bg-slate-50 transition-colors" 
               onClick={() => {setShowHospedesPopup(!showHospedesPopup); setShowCalendarPopup(false);}}
@@ -460,13 +454,11 @@ function HoteisPageContent() {
                   </p>
                </div>
 
-               {/* Pop-up Hóspedes */}
                {showHospedesPopup && (
                  <div 
                    className="absolute top-[calc(100%+12px)] left-0 md:left-auto md:right-0 w-[calc(100vw-3rem)] md:w-80 bg-white rounded-3xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] border border-slate-200 p-6 z-[100] text-slate-800 animate-in fade-in slide-in-from-top-2 cursor-default" 
                    onClick={e => e.stopPropagation()}
                  >
-                    {/* Adultos */}
                     <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                       <div><p className="font-bold text-sm">Adultos</p></div>
                       <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl p-1 shadow-sm">
@@ -475,7 +467,6 @@ function HoteisPageContent() {
                          <button onClick={() => setAdultos(adultos + 1)} className="w-8 h-8 md:w-9 md:h-9 flex justify-center items-center rounded-lg hover:bg-white text-[#00577C] font-black text-lg transition-all">+</button>
                       </div>
                     </div>
-                    {/* Crianças */}
                     <div className="flex items-center justify-between py-4 border-b border-slate-100">
                       <div className="text-left"><p className="font-bold text-sm leading-tight">Crianças</p><p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Até 12 anos</p></div>
                       <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl p-1 shadow-sm">
@@ -484,7 +475,6 @@ function HoteisPageContent() {
                          <button onClick={() => setCriancas(criancas + 1)} className="w-8 h-8 md:w-9 md:h-9 flex justify-center items-center rounded-lg hover:bg-white text-[#00577C] font-black text-lg transition-all">+</button>
                       </div>
                     </div>
-                    {/* Quartos */}
                     <div className="flex items-center justify-between pt-4">
                       <div><p className="font-bold text-sm">Quartos</p></div>
                       <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl p-1 shadow-sm">
@@ -497,7 +487,6 @@ function HoteisPageContent() {
                )}
             </div>
 
-            {/* BOTÃO COM LOADING ANIMADO SEGURO */}
             <button 
               onClick={handleBuscar} 
               disabled={isSearching}
@@ -516,7 +505,6 @@ function HoteisPageContent() {
       {/* CONTEÚDO PRINCIPAL: FILTROS + LISTA HORIZONTAL */}
       <section className="mx-auto max-w-7xl px-4 md:px-6 pt-8 md:pt-12 relative z-20">
         
-        {/* CABEÇALHO MOBILE DE FILTROS */}
         <div className="flex lg:hidden items-center justify-between mb-6">
            <h2 className={`${jakarta.className} text-2xl font-black text-slate-800`}>Alojamentos</h2>
            <button 
@@ -529,7 +517,6 @@ function HoteisPageContent() {
 
         <div className="flex flex-col lg:flex-row gap-8 items-start">
           
-          {/* BARRA LATERAL DE FILTROS */}
           <aside className="hidden lg:block w-72 shrink-0 space-y-6 h-fit lg:self-start">
             <div className="bg-white rounded-[2.5rem] border border-slate-200 p-8 shadow-sm text-left">
               <div className="flex items-center justify-between mb-8">
@@ -543,7 +530,6 @@ function HoteisPageContent() {
               {renderFiltros()}
             </div>
 
-            {/* Banner de Segurança */}
             <div className="bg-[#e6f4ea] border border-[#009640]/20 rounded-[2.5rem] p-8 text-center shadow-sm">
                <ShieldCheck className="mx-auto mb-4 text-[#009640]" size={40} />
                <p className="text-base font-black text-[#009640] mb-2">Reserva Garantida</p>
@@ -551,7 +537,7 @@ function HoteisPageContent() {
             </div>
           </aside>
 
-          {/* LISTA DE HOTÉIS HORIZONTAL */}
+          {/* LISTA DE HOTÉIS */}
           <div className="flex-1 w-full space-y-6 md:space-y-8">
             <div className="hidden lg:flex items-center justify-between mb-2">
                <h2 className={`${jakarta.className} text-3xl font-black text-slate-800`}>Alojamentos Disponíveis</h2>
@@ -581,7 +567,6 @@ function HoteisPageContent() {
                 return (
                   <article key={hotel.id} className="bg-white rounded-[2rem] md:rounded-[2.5rem] border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col md:flex-row overflow-hidden group">
                     
-                    {/* IMAGEM (Lado Esquerdo) */}
                     <div className="relative w-full h-56 md:h-auto md:w-72 shrink-0 overflow-hidden bg-slate-100">
                       <Image src={hotel.imagem_url || FALLBACK_IMAGE} alt={hotel.nome} fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
                       <div className="absolute top-4 left-4 bg-[#F9C400] text-[#00577C] px-3 py-1.5 rounded-lg text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-lg">
@@ -589,7 +574,6 @@ function HoteisPageContent() {
                       </div>
                     </div>
 
-                    {/* CONTEÚDO (Lado Direito) */}
                     <div className="p-6 md:p-8 flex flex-col flex-1 text-left">
                       <div className="flex justify-between items-start mb-2 md:mb-3">
                         <div>
@@ -597,7 +581,7 @@ function HoteisPageContent() {
                             {Array.from({ length: hotel.estrelas || 3 }).map((_, i) => <Star key={i} size={14} fill="currentColor"/>)}
                           </div>
                           <h3 className={`${jakarta.className} text-2xl md:text-3xl font-black text-[#00577C] leading-tight hover:underline cursor-pointer`}>
-                            <Link href={`/hoteis/${hotel.id}?checkin=${checkinIsoStr}&checkout=${checkoutIsoStr}&adultos=${adultos}&quartos=${quartos}`}>{hotel.nome}</Link>
+                            <Link href={`/hoteis/${hotel.id}?checkin=${checkinIsoStr}&checkout=${checkoutIsoStr}&adultos=${adultos}&criancas=${criancas}&quartos=${quartos}`}>{hotel.nome}</Link>
                           </h3>
                         </div>
                       </div>
@@ -637,8 +621,8 @@ function HoteisPageContent() {
                            <p className={`${jakarta.className} text-3xl md:text-4xl font-black text-[#00577C] tabular-nums mb-3 md:mb-4 leading-none`}>
                              {carregandoPrecos ? '...' : formatarMoeda(precoDiariaExibida)}
                            </p>
-                           <Link href={`/hoteis/${hotel.id}?checkin=${checkinIsoStr}&checkout=${checkoutIsoStr}&adultos=${adultos}&quartos=${quartos}`} className="w-full sm:w-auto bg-[#00577C] text-white px-8 md:px-10 py-3.5 md:py-4 rounded-xl md:rounded-[1.5rem] font-black text-xs md:text-sm uppercase tracking-widest hover:bg-[#004a6b] transition-all shadow-xl hover:shadow-[#00577C]/20 flex items-center justify-center gap-3 hover:translate-x-1">
-                             Ver Disponibilidade <ChevronRight size={18} className="md:w-5 md:h-5"/>
+                           <Link href={`/hoteis/${hotel.id}?checkin=${checkinIsoStr}&checkout=${checkoutIsoStr}&adultos=${adultos}&criancas=${criancas}&quartos=${quartos}`} className="w-full sm:w-auto bg-[#00577C] text-white px-8 md:px-10 py-3.5 md:py-4 rounded-xl md:rounded-[1.5rem] font-black text-xs md:text-sm uppercase tracking-widest hover:bg-[#004a6b] transition-all shadow-xl hover:shadow-[#00577C]/20 flex items-center justify-center gap-3 hover:translate-x-1">
+                             Selecionar Hotel <ChevronRight size={18} className="md:w-5 md:h-5"/>
                            </Link>
                         </div>
                       </div>
@@ -704,7 +688,6 @@ function HoteisPageContent() {
   );
 }
 
-// ── EXPORT ENVOLTO EM SUSPENSE PARA PREVENIR ERROS DE BUILD NO NEXT.JS ──
 export default function HoteisPage() {
   return (
     <Suspense fallback={

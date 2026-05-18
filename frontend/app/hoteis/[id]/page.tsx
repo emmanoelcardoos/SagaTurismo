@@ -75,12 +75,27 @@ function HotelDetalheContent() {
   const [hotel, setHotel] = useState<Hotel | null>(null);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
-
-  // ── ESTADOS DO MOTOR DE RESERVAS ──
-  const [checkin, setCheckin] = useState<Date | null>(null);
-  const [checkout, setCheckout] = useState<Date | null>(null);
-  const [mesAtualCalendario, setMesAtualCalendario] = useState<Date | null>(null);
   const [mounted, setMounted] = useState(false);
+
+  // ── INICIALIZAÇÃO SÍNCRONA: CAPTURA INTELIGENTE E IMEDIATA DA URL ──
+  const [checkin, setCheckin] = useState<Date | null>(() => {
+    const ci = searchParams.get('checkin');
+    return ci && ci !== 'null' && ci !== '' ? new Date(ci + 'T00:00:00') : null;
+  });
+
+  const [checkout, setCheckout] = useState<Date | null>(() => {
+    const co = searchParams.get('checkout');
+    return co && co !== 'null' && co !== '' ? new Date(co + 'T00:00:00') : null;
+  });
+
+  const [mesAtualCalendario, setMesAtualCalendario] = useState<Date>(() => {
+    const ci = searchParams.get('checkin');
+    return ci && ci !== 'null' && ci !== '' ? new Date(ci + 'T00:00:00') : new Date();
+  });
+
+  const [adultos, setAdultos] = useState(() => Number(searchParams.get('adultos')) || 2);
+  const [criancas, setCriancas] = useState(() => Number(searchParams.get('criancas')) || 0);
+  const [quartos, setQuartos] = useState(() => Number(searchParams.get('quartos')) || 1);
 
   // Valores Finais Dinâmicos
   const [totalStandard, setTotalStandard] = useState(0);
@@ -90,21 +105,15 @@ function HotelDetalheContent() {
   const [luxoDisponivel, setLuxoDisponivel] = useState(true);
   const [calculandoPreco, setCalculandoPreco] = useState(false);
 
-  // Estados de Lotação
-  const [adultos, setAdultos] = useState(2);
-  const [criancas, setCriancas] = useState(0);
-  const [quartos, setQuartos] = useState(1);
-
   // Carrosseis dos Quartos
   const [imgIdxStandard, setImgIdxStandard] = useState(0);
   const [imgIdxLuxo, setImgIdxLuxo] = useState(0);
 
   useEffect(() => {
-    setMesAtualCalendario(new Date());
     setMounted(true);
   }, []);
 
-  // 1. CARREGAMENTO INICIAL DO HOTEL + CAPTURA INTELIGENTE DA URL DA PÁGINA ANTERIOR
+  // 1. CARREGAMENTO INICIAL DO HOTEL
   useEffect(() => {
     async function fetchHotel() {
       try {
@@ -124,26 +133,8 @@ function HotelDetalheContent() {
         setLoading(false);
       }
     }
-
-    // ◄── MEMÓRIA AUTOMÁTICA: Lê os filtros vindos da barra de pesquisa principal
-    const ci = searchParams.get('checkin');
-    const co = searchParams.get('checkout');
-    const ad = searchParams.get('adultos');
-    const cr = searchParams.get('criancas');
-    const qu = searchParams.get('quartos');
-
-    if (ci && ci !== 'null') {
-      const dataIn = new Date(ci + 'T00:00:00'); // T00:00:00 evita bugs de fuso horário
-      setCheckin(dataIn);
-      setMesAtualCalendario(dataIn); // Força o calendário a abrir já focado no mês escolhido!
-    }
-    if (co && co !== 'null') setCheckout(new Date(co + 'T00:00:00'));
-    if (ad) setAdultos(Number(ad));
-    if (cr) setCriancas(Number(cr));
-    if (qu) setQuartos(Number(qu));
-
     if (id) fetchHotel();
-  }, [id, searchParams, quartos]);
+  }, [id, quartos]);
 
   // 2. REATIVIDADE: ATUALIZAÇÃO PREÇOS DIÁRIOS VIA API RAILWAY
   useEffect(() => {
@@ -247,7 +238,7 @@ function HotelDetalheContent() {
     router.push(`/checkout-hotel?hotel=${hotel?.id}&quarto=${tipo}&checkin=${formatarDataIso(checkin)}&checkout=${formatarDataIso(checkout)}&adultos=${adultos}&criancas=${criancas}&quartos=${quartos}`);
   };
 
-  if (!mounted || loading || !mesAtualCalendario) return (
+  if (!mounted || loading) return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-white text-[#00577C]">
       <Loader2 className="w-10 h-10 md:w-12 md:h-12 animate-spin mb-4" />
       <p className="font-bold uppercase tracking-widest text-[10px] md:text-xs">Carregando detalhes da hospedagem...</p>
@@ -598,7 +589,7 @@ function HotelDetalheContent() {
                   <CheckCircle2 size={16} className="shrink-0 mt-0.5" />
                   <div>
                     <p className="text-[10px] md:text-xs font-bold leading-tight">Datas Consultadas!</p>
-                    <p className="text-[9px] md:text-[10px] font-medium opacity-80 mt-1">Preços calculados com base em {totalNoites} noit(s) na API da Railway.</p>
+                    <p className="text-[9px] md:text-[10px] font-medium opacity-80 mt-1">Preços calculados com base em {totalNoites} noite(s) na API da Railway.</p>
                   </div>
                </div>
              )}
