@@ -82,17 +82,18 @@ function SucessoCarteiraContent() {
 
         // 2. Tentar cruzar com a tabela de residentes para garantir o email real registado na carteira
         // Assume-se que o CPF foi gravado no pedido, usamos isso para achar o residente.
-        if (pData.cpf_cliente) {
+        // 2. Buscar o email real diretamente pelo ID do residente guardado na compra
+        if (pData.item_id) {
            const { data: residenteData } = await supabase
             .from('rd_residentes')
             .select('email')
-            .eq('cpf', pData.cpf_cliente)
+            .eq('id', pData.item_id)
             .maybeSingle();
             
            if (residenteData && residenteData.email) {
              setEmailUtente(residenteData.email);
            } else {
-             setEmailUtente(pData.email_cliente); // Fallback para o email do pagamento
+             setEmailUtente(pData.email_cliente); // Fallback
            }
         } else {
            setEmailUtente(pData.email_cliente);
@@ -156,6 +157,9 @@ function SucessoCarteiraContent() {
           <nav className="hidden items-center gap-7 md:flex">
             <Link href="/roteiro" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Rota Turística</Link>
             <Link href="/passeios" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Passeios</Link>
+            <Link href="/historia" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">História do Município</Link>
+            <Link href="/aldeias" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Conheca as nossas Aldeias</Link>
+            <Link href="/parceiros" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Seja um Parceiro</Link>
           </nav>
           <button className="rounded-xl border border-slate-200 p-2 md:hidden"><Menu className="h-5 w-5 text-[#00577C]" /></button>
         </div>
@@ -169,11 +173,11 @@ function SucessoCarteiraContent() {
               <CheckCircle2 size={32} className="text-[#009640] md:w-10 md:h-10"/>
            </div>
            <h1 className={`${jakarta.className} text-3xl md:text-5xl font-black text-slate-900 tracking-tight mb-4`}>
-             Parabéns, {nomeExibicao}! 🎉
+             Tudo pronto, {nomeExibicao}! 
            </h1>
            <p className="text-sm md:text-lg text-slate-600 max-w-2xl mx-auto font-medium leading-relaxed px-2">
              O seu pagamento foi confirmado (Recibo: <span className="font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">{pedido?.codigo_pedido || '---'}</span>).<br/>
-             A sua <span className="text-[#F9C400] font-black">Carteira Digital de Residente</span> foi emitida com sucesso! A partir de agora, já pode aproveitar <span className="font-bold text-[#00577C]">50% de desconto</span> na entrada da Serra das Andorinhas, Cachoeira Três Quedas e outras atrações municipais.
+             A sua <span className="text-[#00577C] font-black">Carteira Digital de Residente</span> foi emitida com sucesso! A partir de agora, já pode aproveitar <span className="font-bold text-[#00577C]">50% de desconto</span> na entrada da Serra das Andorinhas, Cachoeira Três Quedas.
            </p>
         </div>
 
@@ -198,7 +202,7 @@ function SucessoCarteiraContent() {
               <div className="relative z-10">
                  <h3 className={`${jakarta.className} text-base md:text-lg font-bold mb-1`}>Acesso Imediato</h3>
                  <p className="text-xs md:text-sm text-white/80 leading-relaxed">
-                   O seu documento possui um QR Code único. Leve-o no seu telemóvel para validação nas catracas e portarias.
+                   O seu documento possui um QR Code único. Leve-o no seu celular para validação na portaria do parque.
                  </p>
               </div>
            </div>
@@ -212,7 +216,7 @@ function SucessoCarteiraContent() {
               <div className="flex flex-col md:flex-row gap-6 md:gap-10 items-center mb-8 border-b border-slate-100 pb-8">
                  <div className="flex-1 text-center md:text-left">
                     <div className="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg mb-3 text-[#00577C] font-black uppercase text-[9px] md:text-[10px] tracking-widest">
-                       <ShieldCheck size={14}/> Certificado Oficial Municipal
+                       <ShieldCheck size={14}/> Comprovante Oficial Municipal
                     </div>
                     <h2 className={`${jakarta.className} text-2xl md:text-3xl font-black text-slate-900 leading-tight mb-2`}>Faturação da Carteira Digital</h2>
                     <p className="text-slate-500 font-bold text-xs md:text-sm flex items-center justify-center md:justify-start gap-1.5"><MapPin size={14} className="text-[#009640]"/> Válida em São Geraldo do Araguaia - PA</p>
@@ -228,11 +232,11 @@ function SucessoCarteiraContent() {
                           <AlertTriangle size={18} className="text-[#F9C400]" /> Aviso Importante
                        </h4>
                        <p className="text-xs md:text-sm text-amber-900/80 leading-relaxed font-medium">
-                          A Carteira Digital de Residente atua estritamente como um <strong>Cartão de Desconto (50%)</strong> nos atrativos turísticos locais.
-                          Ela <strong>não</strong> tem valor legal como documento de identificação civil.
+                          A Carteira Digital de Residente atua estritamente como um <strong>Cartão de Desconto (50%)</strong> na entrada da Cachoeira Três Quedas.
+                          Ela <strong>não</strong> tem valor legal como documento de identificação.
                        </p>
                        <p className="text-xs md:text-sm text-amber-900/80 leading-relaxed font-bold mt-3">
-                          Para gozar dos seus direitos nos parques, é obrigatório apresentar a carteira juntamente com um documento oficial original com foto (RG, Passaporte, CNH, etc).
+                          Para gozar dos seus direitos nos parques, é estritamente necessário apresentar a carteira juntamente com um documento oficial com foto (RG, Passaporte, CNH, etc).
                        </p>
                     </div>
 
@@ -251,14 +255,11 @@ function SucessoCarteiraContent() {
                  <div className="bg-white border-2 border-slate-100 rounded-3xl md:rounded-[2.5rem] p-6 md:p-8 space-y-4 md:space-y-6 relative overflow-hidden text-left h-full flex flex-col justify-center">
                     <div className="flex justify-between items-center text-xs md:text-sm font-bold text-slate-500 uppercase tracking-widest">
                        <span>Taxa de Emissão</span>
-                       <span className="bg-green-100 text-[#009640] px-2 md:px-3 py-1 rounded-full text-[9px] md:text-[10px] flex items-center gap-1.5 shrink-0">
-                          <ShieldCheck size={12}/> Liquidado
-                       </span>
                     </div>
                     <p className={`${jakarta.className} text-4xl md:text-5xl font-black text-slate-900`}>{formatarMoeda(pedido?.valor_total)}</p>
                     
                     <div className="pt-4 md:pt-6 border-t border-slate-100 flex items-center gap-2 md:gap-3 text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                       <Lock size={12} className="md:w-3.5 md:h-3.5 text-slate-300"/> Transação Segura e Homologada
+                       <Lock size={12} className="md:w-3.5 md:h-3.5 text-slate-300"/> Transação Segura
                     </div>
                  </div>
               </div>
