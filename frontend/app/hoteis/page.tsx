@@ -9,7 +9,7 @@ import {
   Search, Calendar as CalendarIcon, Star, 
   CheckCircle2, ChevronRight, ShieldCheck, 
   Filter, Bed, Users, Coffee, Wifi, Car,
-  ChevronLeft, X, SlidersHorizontal
+  ChevronLeft, X, SlidersHorizontal, AlertTriangle, Layers
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -17,12 +17,12 @@ import { supabase } from '@/lib/supabase';
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '700', '800'] });
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'] });
 
-// ── TIPAGENS ATUALIZADAS (INCLUINDO QUARTOS REAIS) ──
 type TipoQuarto = {
   id: string;
   nome_quarto: string;
   preco_quarto: number;
   imagem_url: string;
+  capacidade: number; // ◄── Mapeamento da capacidade estrutural do quarto
 };
 
 type Hotel = {
@@ -35,10 +35,9 @@ type Hotel = {
   preco_medio: any;
   quarto_standard_preco: any;
   comodidades?: string[];
-  tipos_quarto?: TipoQuarto[]; // ◄── A nova relação com o inventário real
+  tipos_quarto?: TipoQuarto[];
 };
 
-// ── UTILITÁRIOS ──
 const parseValor = (valor: any): number => {
   if (!valor) return 0;
   if (typeof valor === 'number') return isNaN(valor) ? 0 : valor;
@@ -70,6 +69,32 @@ const getArraySeguro = (item: any): string[] => {
   return [];
 };
 
+// ── COMPONENTE SKELETON (ANIMAÇÃO OTA PREMIUM DURANTE A BUSCA) ──
+function HotelCardSkeleton() {
+  return (
+    <div className="bg-white rounded-[2rem] md:rounded-[2.5rem] border border-slate-200 p-0 flex flex-col md:flex-row overflow-hidden h-fit animate-pulse shadow-sm">
+      <div className="w-full h-56 md:h-64 md:w-72 bg-slate-200 shrink-0 relative" />
+      <div className="p-6 md:p-8 flex flex-col flex-1 gap-4">
+        <div className="h-4 bg-slate-200 rounded w-1/4" />
+        <div className="h-8 bg-slate-200 rounded w-3/4 mt-2" />
+        <div className="h-4 bg-slate-200 rounded w-1/3" />
+        <div className="space-y-2 mt-2">
+          <div className="h-3 bg-slate-200 rounded w-full" />
+          <div className="h-3 bg-slate-200 rounded w-5/6" />
+        </div>
+        <div className="flex gap-2 mt-4">
+          <div className="h-6 bg-slate-100 rounded w-20" />
+          <div className="h-6 bg-slate-100 rounded w-24" />
+        </div>
+        <div className="mt-auto pt-6 border-t border-slate-100 flex justify-between items-end">
+          <div className="space-y-2"><div className="h-3 bg-slate-200 rounded w-24" /><div className="h-3 bg-slate-200 rounded w-32" /></div>
+          <div className="h-12 bg-slate-200 rounded-xl w-36" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function HoteisPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -81,37 +106,33 @@ function HoteisPageContent() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
 
-  // ── ESTADOS DA BARRA DE PESQUISA ──
+  // ── GESTÃO DE PESQUISA ──
   const [adultos, setAdultos] = useState(2);
   const [criancas, setCriancas] = useState(0);
   const [quartos, setQuartos] = useState(1);
   const [showHospedesPopup, setShowHospedesPopup] = useState(false);
   const [isSearching, setIsSearching] = useState(false); 
 
-  // Calendário Customizado
   const [showCalendarPopup, setShowCalendarPopup] = useState(false);
   const [checkin, setCheckin] = useState<Date | null>(null);
   const [checkout, setCheckout] = useState<Date | null>(null);
   const [mesAtualCalendario, setMesAtualCalendario] = useState(new Date());
   const [hoverDate, setHoverDate] = useState<Date | null>(null);
 
-  // ── DICIONÁRIO DE PREÇOS REAIS CALCULADOS VIA RAILWAY ──
-  const [precosDinamicos, setPrecosDinamicos] = useState<Record<string, { valor_total: number; noites: number; disponivel: boolean }>>({});
+  // Dicionário Dinâmico
+  const [precosDinamicos, setPrecosDinamicos] = useState<Record<string, { valor_total: number; noites: number; disponivel: boolean; motivo?: string }>>({});
   const [carregandoPrecos, setCarregandoPrecos] = useState(false);
 
-  // ── ESTADOS DOS FILTROS LATERALES ──
   const [estrelasSelecionadas, setEstrelasSelecionadas] = useState<number[]>([]);
   const [comodidadesSelecionadas, setComodidadesSelecionadas] = useState<string[]>([]);
 
   const searchBarRef = useRef<HTMLDivElement>(null);
 
-  // 1. CARREGAMENTO DOS HOTÉIS COM JOIN DINÂMICO DOS QUARTOS (TEMPO REAL)
   useEffect(() => {
     async function fetchHoteis() {
-      // O Join puxa os quartos recém-criados na Extranet para sabermos os preços e fotos reais
       const { data, error } = await supabase
         .from('hoteis')
-        .select('*, tipos_quarto(id, nome_quarto, preco_quarto, imagem_url)')
+        .select('*, tipos_quarto(id, nome_quarto, preco_quarto, imagem_url, capacidade)') // ◄── Puxa a capacidade real da BD
         .order('nome');
       
       if (data) setHoteis(data as Hotel[]);
@@ -120,7 +141,6 @@ function HoteisPageContent() {
     fetchHoteis();
   }, []);
 
-  // 2. SINCRONIZAÇÃO DA URL PARA OS ESTADOS (MEMÓRIA DE PESQUISA)
   useEffect(() => {
     const ci = searchParams.get('checkin');
     const co = searchParams.get('checkout');
@@ -139,7 +159,7 @@ function HoteisPageContent() {
     if (qu) setQuartos(Number(qu));
   }, [searchParams]);
 
-  // 3. CONSULTAR PREÇO REAL EM LOTE (COM CACHE-BUSTER PARA REFLEXÃO IMEDIATA)
+  // ── 🔄 MOTOR MATEMÁTICO INTEGRADO CONTRA PREÇO ENGANOSO ──
   useEffect(() => {
     if (hoteis.length === 0) return;
 
@@ -158,19 +178,30 @@ function HoteisPageContent() {
       const novosPrecos: Record<string, any> = {};
 
       try {
+        // Cálculo do limite mínimo de ocupantes por quarto individual solicitado
+        const capacidadeNecessariaPorQuarto = Math.ceil(Number(ad) / Number(qu));
+
         await Promise.all(
           hoteis.map(async (hotel) => {
             try {
-              // Descobre qual é o quarto mais barato do inventário para usar de isca no Card
-              const quartoMaisBarato = hotel.tipos_quarto && hotel.tipos_quarto.length > 0 
-                ? hotel.tipos_quarto.reduce((prev, curr) => (curr.preco_quarto < prev.preco_quarto ? curr : prev))
-                : null;
-              
-              const tipoQuery = quartoMaisBarato ? quartoMaisBarato.nome_quarto : 'standard';
+              // FILTRAGEM INTELIGENTE: Filtra os quartos que têm capacidade jurídica para abrigar o grupo
+              const quartosValidos = hotel.tipos_quarto && hotel.tipos_quarto.length > 0
+                ? hotel.tipos_quarto.filter(q => q.capacidade >= capacidadeNecessariaPorQuarto)
+                : [];
 
-              // O &t= garante que a API não usa cache do navegador, lendo as restrições ao segundo
+              if (quartosValidos.length === 0) {
+                // Se nenhum quarto do hotel suporta o tamanho do grupo, marca como esgotado por capacidade
+                novosPrecos[hotel.id] = { valor_total: 0, noites: 0, disponivel: false, motivo: 'capacidade' };
+                return;
+              }
+
+              // Encontra a acomodação mais barata APENAS entre os quartos válidos
+              const quartoMaisBaratoValido = quartosValidos.reduce((prev, curr) => 
+                (curr.preco_quarto < prev.preco_quarto ? curr : prev)
+              );
+              
               const res = await fetch(
-                `https://sagaturismo-production.up.railway.app/api/v1/public/hoteis/${hotel.id}/calcular-preco?tipo_quarto=${encodeURIComponent(tipoQuery)}&checkin=${ci}&checkout=${co}&quantidade=${qu}&adultos=${ad}&t=${Date.now()}`
+                `https://sagaturismo-production.up.railway.app/api/v1/public/hoteis/${hotel.id}/calcular-preco?tipo_quarto=${encodeURIComponent(quartoMaisBaratoValido.nome_quarto)}&checkin=${ci}&checkout=${co}&quantidade=${qu}&adultos=${ad}&t=${Date.now()}`
               );
               const data = await res.json();
               if (data.sucesso) {
@@ -181,12 +212,12 @@ function HoteisPageContent() {
                 };
               }
             } catch (err) {
-              console.error(`Erro ao carregar tarifa real do hotel ${hotel.id}:`, err);
+              console.error(err);
             }
           })
         );
       } catch (e) {
-        console.error("Erro no lote de verificação financeira:", e);
+        console.error(e);
       } finally {
         setPrecosDinamicos(novosPrecos);
         setCarregandoPrecos(false);
@@ -217,15 +248,6 @@ function HoteisPageContent() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  useEffect(() => {
-    if (isMobileFiltersOpen || isMobileMenuOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'auto';
-    }
-    return () => { document.body.style.overflow = 'auto'; };
-  }, [isMobileFiltersOpen, isMobileMenuOpen]);
-
   const diasDoMes = (ano: number, mes: number) => new Date(ano, mes + 1, 0).getDate();
   const primeiroDiaDoMes = (ano: number, mes: number) => new Date(ano, mes, 1).getDay();
   const hoje = new Date();
@@ -237,7 +259,6 @@ function HoteisPageContent() {
 
   const handleBuscar = () => {
     setIsSearching(true);
-    
     const checkinStr = checkin ? formatarDataIso(checkin) : '';
     const checkoutStr = checkout ? formatarDataIso(checkout) : '';
     
@@ -245,8 +266,7 @@ function HoteisPageContent() {
     
     setShowCalendarPopup(false);
     setShowHospedesPopup(false);
-
-    setTimeout(() => setIsSearching(false), 800);
+    setTimeout(() => setIsSearching(false), 600);
   };
 
   const handleDateClick = (data: Date) => {
@@ -338,7 +358,7 @@ function HoteisPageContent() {
                 onClick={() => handleDateClick(dataAtual)}
                 onMouseEnter={() => !isPassado && setHoverDate(dataAtual)}
                 onMouseLeave={() => setHoverDate(null)}
-                className={`w-full aspect-square flex items-center justify-center text-xs md:text-sm transition-all ${bgClass}`}
+                className="w-full aspect-square flex items-center justify-center text-xs md:text-sm transition-all"
               >
                 {i + 1}
               </button>
@@ -350,7 +370,7 @@ function HoteisPageContent() {
   };
 
   const renderFiltros = () => (
-    <div className="flex flex-col gap-0">
+    <div className="flex flex-col gap-0 text-left">
       <div className="mb-8">
         <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-4">Categoria</p>
         <div className="space-y-4">
@@ -394,6 +414,7 @@ function HoteisPageContent() {
 
   return (
     <div className={`${inter.className} min-h-screen bg-[#F5F7FA] text-slate-900 pb-20 md:pb-32 w-full`}>
+      
       {/* HEADER */}
       <header className={`fixed left-0 top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl transition-transform duration-300 ${showHeader ? 'translate-y-0' : '-translate-y-full'}`}>
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-5">
@@ -409,28 +430,11 @@ function HoteisPageContent() {
             <Link href="/pacotes" className="text-sm text-slate-600 hover:text-[#00577C]">Pacotes</Link>
             <Link href="/cadastro" className="rounded-full bg-[#F9C400] px-5 py-3 text-sm text-[#00577C] shadow-lg hover:bg-[#ffd633] transition-all">Cartão Residente</Link>
           </nav>
-
-          <button 
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="rounded-xl border border-slate-200 p-2 md:hidden bg-slate-50 text-[#00577C]"
-          >
-            {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
+          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="rounded-xl border border-slate-200 p-2 md:hidden bg-slate-50 text-[#00577C]"><Menu className="h-5 w-5" /></button>
         </div>
-
-        {/* Menu Mobile */}
-        {isMobileMenuOpen && (
-          <div className="absolute top-[100%] left-0 w-full bg-white border-b border-slate-200 p-5 flex flex-col gap-4 shadow-xl md:hidden animate-in slide-in-from-top-4 text-left">
-            <Link href="/roteiro" onClick={() => setIsMobileMenuOpen(false)} className="font-bold text-slate-700 text-lg">Rota Turística</Link>
-            <Link href="/aldeias" onClick={() => setIsMobileMenuOpen(false)} className="font-bold text-slate-700 text-lg">Aldeias</Link>
-            <Link href="/passeios" onClick={() => setIsMobileMenuOpen(false)} className="font-bold text-slate-700 text-lg">Passeios</Link>
-            <Link href="/pacotes" onClick={() => setIsMobileMenuOpen(false)} className="font-bold text-slate-700 text-lg">Pacotes</Link>
-            <Link href="/cadastro" onClick={() => setIsMobileMenuOpen(false)} className="bg-[#F9C400] text-[#00577C] font-black px-4 py-3.5 rounded-xl text-center mt-2 uppercase tracking-widest text-sm shadow-md">Cartão Residente</Link>
-          </div>
-        )}
       </header>
 
-      {/* HERO SECTION SÓBRIA & OFICIAL */}
+      {/* HERO SECTION */}
       <section className="relative pt-[120px] md:pt-[140px] pb-12 md:pb-16 bg-[#00577C] z-30">
         <div className="relative z-10 mx-auto max-w-7xl px-5 md:px-6 text-left">
           <h1 className={`${jakarta.className} text-3xl sm:text-4xl md:text-5xl font-black text-white leading-tight mb-6 md:mb-8`}>
@@ -439,7 +443,6 @@ function HoteisPageContent() {
 
           {/* BARRA DE PESQUISA */}
           <div ref={searchBarRef} className="bg-[#F9C400] p-1.5 md:p-2 rounded-[2rem] shadow-xl max-w-5xl flex flex-col md:flex-row gap-1.5 md:gap-2 relative z-50">
-            
             <div className="bg-white flex-1 rounded-[1.5rem] px-4 md:px-5 py-3 flex items-center gap-3">
                <MapPin className="text-[#00577C] shrink-0" size={24} />
                <div className="text-left overflow-hidden">
@@ -455,9 +458,7 @@ function HoteisPageContent() {
                <CalendarIcon className="text-[#00577C] shrink-0" size={24} />
                <div className="text-left flex-1 overflow-hidden">
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 truncate">Check-in — Check-out</p>
-                  <p className="font-bold text-slate-800 text-xs md:text-sm truncate">
-                    {checkin ? formatarDataInput(checkin) : 'Datas'} {checkout ? ` - ${formatarDataInput(checkout)}` : ''}
-                  </p>
+                  <p className="font-bold text-slate-800 text-xs md:text-sm truncate">{checkin ? formatarDataInput(checkin) : 'Datas'} {checkout ? ` - ${formatarDataInput(checkout)}` : ''}</p>
                </div>
                {showCalendarPopup && renderMonth()}
             </div>
@@ -469,38 +470,33 @@ function HoteisPageContent() {
                <Users className="text-[#00577C] shrink-0" size={24} />
                <div className="text-left flex-1 overflow-hidden">
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 truncate">Hóspedes e Quartos</p>
-                  <p className="font-bold text-slate-800 text-xs md:text-sm truncate">
-                    {adultos} Adultos · {criancas} Crianças · {quartos} Quarto(s)
-                  </p>
+                  <p className="font-bold text-slate-800 text-xs md:text-sm truncate">{adultos} Adultos · {criancas} Crianças · {quartos} Quarto(s)</p>
                </div>
 
                {showHospedesPopup && (
-                 <div 
-                   className="absolute top-[calc(100%+12px)] left-0 md:left-auto md:right-0 w-[calc(100vw-3rem)] md:w-80 bg-white rounded-3xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] border border-slate-200 p-6 z-[100] text-slate-800 animate-in fade-in slide-in-from-top-2 cursor-default" 
-                   onClick={e => e.stopPropagation()}
-                 >
+                 <div className="absolute top-[calc(100%+12px)] left-0 md:left-auto md:right-0 w-[calc(100vw-3rem)] md:w-80 bg-white rounded-3xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] border border-slate-200 p-6 z-[100] text-slate-800 animate-in fade-in slide-in-from-top-2 cursor-default" onClick={e => e.stopPropagation()}>
                     <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                       <div><p className="font-bold text-sm">Adultos</p></div>
                       <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl p-1 shadow-sm">
-                         <button onClick={() => setAdultos(Math.max(1, adultos - 1))} className="w-8 h-8 md:w-9 md:h-9 flex justify-center items-center rounded-lg hover:bg-white text-[#00577C] font-black text-lg transition-all">-</button>
+                         <button onClick={() => setAdultos(Math.max(1, adultos - 1))} className="w-8 h-8 md:w-9 md:h-9 flex justify-center items-center rounded-lg hover:bg-white text-[#00577C] font-black text-lg">-</button>
                          <span className="font-black text-sm w-4 text-center text-[#00577C]">{adultos}</span>
-                         <button onClick={() => setAdultos(adultos + 1)} className="w-8 h-8 md:w-9 md:h-9 flex justify-center items-center rounded-lg hover:bg-white text-[#00577C] font-black text-lg transition-all">+</button>
+                         <button onClick={() => setAdultos(adultos + 1)} className="w-8 h-8 md:w-9 md:h-9 flex justify-center items-center rounded-lg hover:bg-white text-[#00577C] font-black text-lg">+</button>
                       </div>
                     </div>
                     <div className="flex items-center justify-between py-4 border-b border-slate-100">
-                      <div className="text-left"><p className="font-bold text-sm leading-tight">Crianças</p><p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Até 12 anos</p></div>
+                      <div className="text-left"><p className="font-bold text-sm leading-tight">Crianças</p></div>
                       <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl p-1 shadow-sm">
-                         <button onClick={() => setCriancas(Math.max(0, criancas - 1))} className="w-8 h-8 md:w-9 md:h-9 flex justify-center items-center rounded-lg hover:bg-white text-[#00577C] font-black text-lg transition-all">-</button>
+                         <button onClick={() => setCriancas(Math.max(0, criancas - 1))} className="w-8 h-8 md:w-9 md:h-9 flex justify-center items-center rounded-lg hover:bg-white text-[#00577C] font-black text-lg">-</button>
                          <span className="font-black text-sm w-4 text-center text-[#00577C]">{criancas}</span>
-                         <button onClick={() => setCriancas(criancas + 1)} className="w-8 h-8 md:w-9 md:h-9 flex justify-center items-center rounded-lg hover:bg-white text-[#00577C] font-black text-lg transition-all">+</button>
+                         <button onClick={() => setCriancas(criancas + 1)} className="w-8 h-8 md:w-9 md:h-9 flex justify-center items-center rounded-lg hover:bg-white text-[#00577C] font-black text-lg">+</button>
                       </div>
                     </div>
                     <div className="flex items-center justify-between pt-4">
                       <div><p className="font-bold text-sm">Quartos</p></div>
                       <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl p-1 shadow-sm">
-                         <button onClick={() => setQuartos(Math.max(1, quartos - 1))} className="w-8 h-8 md:w-9 md:h-9 flex justify-center items-center rounded-lg hover:bg-white text-[#00577C] font-black text-lg transition-all">-</button>
+                         <button onClick={() => setQuartos(Math.max(1, quartos - 1))} className="w-8 h-8 md:w-9 md:h-9 flex justify-center items-center rounded-lg hover:bg-white text-[#00577C] font-black text-lg">-</button>
                          <span className="font-black text-sm w-4 text-center text-[#00577C]">{quartos}</span>
-                         <button onClick={() => setQuartos(quartos + 1)} className="w-8 h-8 md:w-9 md:h-9 flex justify-center items-center rounded-lg hover:bg-white text-[#00577C] font-black text-lg transition-all">+</button>
+                         <button onClick={() => setQuartos(quartos + 1)} className="w-8 h-8 md:w-9 md:h-9 flex justify-center items-center rounded-lg hover:bg-white text-[#00577C] font-black text-lg">+</button>
                       </div>
                     </div>
                  </div>
@@ -509,51 +505,32 @@ function HoteisPageContent() {
 
             <button 
               onClick={handleBuscar} 
-              disabled={isSearching}
               className="bg-slate-900 text-white px-8 md:px-10 py-4 md:py-0 rounded-[1.5rem] font-black text-xs md:text-sm uppercase tracking-widest hover:bg-black transition-all shadow-md shrink-0 flex items-center justify-center gap-2"
             >
-              {isSearching ? (
-                <span className="flex items-center gap-2"><Loader2 size={16} className="animate-spin" /> Pesquisando</span>
-              ) : (
-                'Buscar'
-              )}
+              <Search size={16} /> Buscar
             </button>
           </div>
         </div>
       </section>
 
-      {/* CONTEÚDO PRINCIPAL: FILTROS + LISTA HORIZONTAL */}
+      {/* CONTEÚDO PRINCIPAL */}
       <section className="mx-auto max-w-7xl px-4 md:px-6 pt-8 md:pt-12 relative z-20">
         
         <div className="flex lg:hidden items-center justify-between mb-6">
            <h2 className={`${jakarta.className} text-2xl font-black text-slate-800`}>Alojamentos</h2>
-           <button 
-             onClick={() => setIsMobileFiltersOpen(true)}
-             className="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-full text-sm font-bold text-[#00577C] shadow-sm"
-           >
+           <button onClick={() => setIsMobileFiltersOpen(true)} className="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-full text-sm font-bold text-[#00577C] shadow-sm">
              <SlidersHorizontal size={16} /> Filtros {(estrelasSelecionadas.length > 0 || comodidadesSelecionadas.length > 0) && <span className="w-2 h-2 rounded-full bg-[#F9C400]"></span>}
            </button>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8 items-start">
-          
           <aside className="hidden lg:block w-72 shrink-0 space-y-6 h-fit lg:self-start">
             <div className="bg-white rounded-[2.5rem] border border-slate-200 p-8 shadow-sm text-left">
               <div className="flex items-center justify-between mb-8">
-                <h3 className={`${jakarta.className} text-xl font-black text-slate-900 flex items-center gap-3`}>
-                  <Filter size={20} className="text-[#00577C]"/> Filtros
-                </h3>
-                {(estrelasSelecionadas.length > 0 || comodidadesSelecionadas.length > 0) && (
-                  <button onClick={limparFiltros} className="text-[10px] font-bold text-slate-400 hover:text-[#00577C] underline">Limpar</button>
-                )}
+                <h3 className={`${jakarta.className} text-xl font-black text-slate-900 flex items-center gap-3`}><Filter size={20} className="text-[#00577C]"/> Filtros</h3>
+                {(estrelasSelecionadas.length > 0 || comodidadesSelecionadas.length > 0) && <button onClick={limparFiltros} className="text-[10px] font-bold text-slate-400 hover:text-[#00577C] underline">Limpar</button>}
               </div>
               {renderFiltros()}
-            </div>
-
-            <div className="bg-[#e6f4ea] border border-[#009640]/20 rounded-[2.5rem] p-8 text-center shadow-sm">
-               <ShieldCheck className="mx-auto mb-4 text-[#009640]" size={40} />
-               <p className="text-base font-black text-[#009640] mb-2">Reserva Garantida</p>
-               <p className="text-xs text-green-800 font-medium leading-relaxed">Ao reservar pelo portal SagaTurismo, garante suporte local oficial da Prefeitura.</p>
             </div>
           </aside>
 
@@ -564,131 +541,138 @@ function HoteisPageContent() {
                {!loading && <p className="text-sm font-bold text-slate-400 bg-white px-4 py-2 rounded-full border border-slate-200">{hoteisFiltrados.length} opções</p>}
             </div>
 
-            {loading ? (
-              <div className="flex flex-col items-center justify-center py-20 md:py-32 bg-white rounded-[2rem] md:rounded-[3rem] border border-slate-200 shadow-sm">
-                <Loader2 className="animate-spin text-[#00577C] mb-4" size={48}/>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Buscando alojamentos...</p>
+            {/* ── 🚀 INTERFACE DINÂMICA: SKELETONS PROGRESSIVOS PADRÃO OTA ── */}
+            {loading || carregandoPrecos || isSearching ? (
+              <div className="space-y-6 md:space-y-8">
+                {[...Array(3)].map((_, i) => <HotelCardSkeleton key={i} />)}
               </div>
             ) : hoteisFiltrados.length === 0 ? (
               <div className="text-center py-16 md:py-20 bg-white rounded-[2rem] md:rounded-[3rem] border-2 border-dashed border-slate-200">
                 <Search size={40} className="mx-auto text-slate-300 mb-4" />
                 <p className="text-base md:text-lg font-bold text-slate-500">Nenhum alojamento atende aos filtros selecionados.</p>
-                <button onClick={limparFiltros} className="mt-4 text-[#00577C] font-bold underline">Limpar Filtros</button>
               </div>
             ) : (
-              hoteisFiltrados.map((hotel) => {
-                // Cálculo inteligente do Preço Base olhando para o Inventário Real
-                const quartoMaisBarato = hotel.tipos_quarto && hotel.tipos_quarto.length > 0 
-                  ? hotel.tipos_quarto.reduce((prev, curr) => (curr.preco_quarto < prev.preco_quarto ? curr : prev))
-                  : null;
+              <div className="space-y-6 md:space-y-8 animate-in fade-in duration-500">
+                {hoteisFiltrados.map((hotel) => {
                   
-                const precoBase = quartoMaisBarato ? quartoMaisBarato.preco_quarto : parseValor(hotel.quarto_standard_preco || hotel.preco_medio);
-                const imagemAExibir = hotel.imagem_url || quartoMaisBarato?.imagem_url || FALLBACK_IMAGE;
+                  // 1. Descobrir os quartos que suportam a capacidade procurada
+                  const capExigida = Math.ceil(adultos / totalQuartos);
+                  const quartosValidosParaGrupo = hotel.tipos_quarto && hotel.tipos_quarto.length > 0
+                    ? hotel.tipos_quarto.filter(q => q.capacidade >= capExigida)
+                    : [];
 
-                const dadosDinamicos = precosDinamicos[hotel.id];
-                const precoTotal = dadosDinamicos ? dadosDinamicos.valor_total : precoBase * noites * totalQuartos;
-                const precoDiariaExibida = dadosDinamicos ? (dadosDinamicos.valor_total / (dadosDinamicos.noites * totalQuartos)) : precoBase;
-                const noitesExibidas = dadosDinamicos ? dadosDinamicos.noites : noites;
+                  const semVagasParaGrupo = quartosValidosParaGrupo.length === 0;
 
-                return (
-                  <article key={hotel.id} className="bg-white rounded-[2rem] md:rounded-[2.5rem] border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col md:flex-row overflow-hidden group">
-                    
-                    <div className="relative w-full h-56 md:h-auto md:w-72 shrink-0 overflow-hidden bg-slate-100">
-                      <Image src={imagemAExibir} alt={hotel.nome} fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
-                      <div className="absolute top-4 left-4 bg-[#F9C400] text-[#00577C] px-3 py-1.5 rounded-lg text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-lg">
-                        {hotel.tipo}
-                      </div>
-                    </div>
+                  // 2. O preço base de partida deve ser o quarto mais barato DENTRE OS QUARTOS VÁLIDOS
+                  const quartoPartida = !semVagasParaGrupo 
+                    ? quartosValidosParaGrupo.reduce((prev, curr) => (curr.preco_quarto < prev.preco_quarto ? curr : prev))
+                    : null;
 
-                    <div className="p-6 md:p-8 flex flex-col flex-1 text-left">
-                      <div className="flex justify-between items-start mb-2 md:mb-3">
-                        <div>
-                          <div className="flex items-center gap-1 text-[#F9C400] mb-2 md:mb-3">
-                            {Array.from({ length: hotel.estrelas || 3 }).map((_, i) => <Star key={i} size={14} fill="currentColor"/>)}
-                          </div>
-                          <h3 className={`${jakarta.className} text-2xl md:text-3xl font-black text-[#00577C] leading-tight hover:underline cursor-pointer`}>
-                            <Link href={`/hoteis/${hotel.id}?checkin=${checkinIsoStr}&checkout=${checkoutIsoStr}&adultos=${adultos}&criancas=${criancas}&quartos=${quartos}`}>{hotel.nome}</Link>
-                          </h3>
-                        </div>
-                      </div>
+                  const precoBase = quartoPartida ? quartoPartida.preco_quarto : parseValor(hotel.quarto_standard_preco || hotel.preco_medio);
+                  const imagemAExibir = hotel.imagem_url || quartoPartida?.imagem_url || FALLBACK_IMAGE;
 
-                      <div className="flex items-center gap-2 text-xs font-bold text-slate-500 mb-4 md:mb-5">
-                        <MapPin size={16} className="text-[#009640] shrink-0"/> São Geraldo do Araguaia
-                      </div>
+                  // 3. Captura os dados calculados em lote da API da Railway
+                  const dadosDinamicos = precosDinamicos[hotel.id];
+                  const esgotadoPelaApi = dadosDinamicos && !dadosDinamicos.disponivel;
+                  const eInvalidoOuEsgotado = semVagasParaGrupo || esgotadoPelaApi || (dadosDinamicos?.motivo === 'capacidade');
+
+                  const precoTotal = dadosDinamicos ? dadosDinamicos.valor_total : precoBase * noites * totalQuartos;
+                  const precoDiariaExibida = dadosDinamicos ? (dadosDinamicos.valor_total / (dadosDinamicos.noites * totalQuartos)) : precoBase;
+                  const noitesExibidas = dadosDinamicos ? dadosDinamicos.noites : noites;
+
+                  return (
+                    <article key={hotel.id} className={`bg-white rounded-[2rem] md:rounded-[2.5rem] border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col md:flex-row overflow-hidden group text-left ${eInvalidoOuEsgotado ? 'opacity-75 grayscale-[30%]' : ''}`}>
                       
-                      <p className="text-slate-500 text-sm leading-relaxed line-clamp-2 mb-6 font-medium pr-0 md:pr-4">
-                        {hotel.descricao}
-                      </p>
-
-                      <div className="flex flex-wrap items-center gap-3 md:gap-4 text-slate-500 mb-6 md:mb-8">
-                         {getArraySeguro(hotel.comodidades).slice(0, 3).map((comodidade, i) => (
-                           <span key={i} className="flex items-center gap-1.5 text-[10px] md:text-xs font-bold bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
-                             <CheckCircle2 size={14} className="text-[#00577C] shrink-0"/> {comodidade}
-                           </span>
-                         ))}
-                      </div>
-
-                      {/* PREÇO E BOTÃO DA MATEMÁTICA */}
-                      <div className="mt-auto pt-5 md:pt-6 border-t border-slate-100 flex flex-col sm:flex-row sm:items-end justify-between gap-5 md:gap-6">
-                        <div>
-                           <p className="text-xs font-bold text-slate-500 mb-1">
-                             {noitesExibidas} {noitesExibidas === 1 ? 'noite' : 'noites'}, {adultos} {adultos === 1 ? 'adulto' : 'adultos'}
-                           </p>
-                           <p className="text-xs font-bold text-slate-400">
-                             {carregandoPrecos ? 'Calculando valores...' : dadosDinamicos && !dadosDinamicos.disponivel ? (
-                               <span className="text-red-500 font-bold">Esgotado para estas datas</span>
-                             ) : (
-                               <>Total estimado: <span className="font-black text-slate-700">{formatarMoeda(precoTotal)}</span></>
-                             )}
-                           </p>
-                        </div>
-                        <div className="text-right flex flex-col items-end">
-                           <p className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Diária a partir de</p>
-                           <p className={`${jakarta.className} text-3xl md:text-4xl font-black text-[#00577C] tabular-nums mb-3 md:mb-4 leading-none`}>
-                             {carregandoPrecos ? '...' : formatarMoeda(precoDiariaExibida)}
-                           </p>
-                           <Link href={`/hoteis/${hotel.id}?checkin=${checkinIsoStr}&checkout=${checkoutIsoStr}&adultos=${adultos}&criancas=${criancas}&quartos=${quartos}`} className="w-full sm:w-auto bg-[#00577C] text-white px-8 md:px-10 py-3.5 md:py-4 rounded-xl md:rounded-[1.5rem] font-black text-xs md:text-sm uppercase tracking-widest hover:bg-[#004a6b] transition-all shadow-xl hover:shadow-[#00577C]/20 flex items-center justify-center gap-3 hover:translate-x-1">
-                             Selecionar Hotel <ChevronRight size={18} className="md:w-5 md:h-5"/>
-                           </Link>
+                      <div className="relative w-full h-56 md:h-auto md:w-72 shrink-0 overflow-hidden bg-slate-100">
+                        <Image src={imagemAExibir} alt={hotel.nome} fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
+                        <div className="absolute top-4 left-4 bg-[#F9C400] text-[#00577C] px-3 py-1.5 rounded-lg text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-lg">
+                          {hotel.tipo}
                         </div>
                       </div>
-                    </div>
-                  </article>
-                );
-              })
+
+                      <div className="p-6 md:p-8 flex flex-col flex-1 text-left">
+                        <div className="flex justify-between items-start mb-2 md:mb-3">
+                          <div>
+                            <div className="flex items-center gap-1 text-[#F9C400] mb-2 md:mb-3">
+                              {Array.from({ length: hotel.estrelas || 3 }).map((_, i) => <Star key={i} size={14} fill="currentColor"/>)}
+                            </div>
+                            <h3 className={`${jakarta.className} text-2xl md:text-3xl font-black text-[#00577C] leading-tight hover:underline cursor-pointer`}>
+                              <Link href={`/hoteis/${hotel.id}?checkin=${checkinIsoStr}&checkout=${checkoutIsoStr}&adultos=${adultos}&criancas=${criancas}&quartos=${quartos}`}>{hotel.nome}</Link>
+                            </h3>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-xs font-bold text-slate-500 mb-4 md:mb-5">
+                          <MapPin size={16} className="text-[#009640] shrink-0"/> São Geraldo do Araguaia
+                        </div>
+                        
+                        <p className="text-slate-500 text-sm leading-relaxed line-clamp-2 mb-6 font-medium pr-0 md:pr-4">
+                          {hotel.descricao}
+                        </p>
+
+                        <div className="flex flex-wrap items-center gap-3 md:gap-4 text-slate-500 mb-6 md:mb-8">
+                           {getArraySeguro(hotel.comodidades).slice(0, 3).map((comodidade, i) => (
+                             <span key={i} className="with-badge flex items-center gap-1.5 text-[10px] md:text-xs font-bold bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
+                               <CheckCircle2 size={14} className="text-[#00577C] shrink-0"/> {comodidade}
+                             </span>
+                           ))}
+                        </div>
+
+                        {/* MATEMÁTICA PROTEGIDA CONTRA DIÁRIA ENGANOSA */}
+                        <div className="mt-auto pt-5 md:pt-6 border-t border-slate-100 flex flex-col sm:flex-row sm:items-end justify-between gap-5 md:gap-6">
+                          <div className="text-left">
+                             <p className="text-xs font-bold text-slate-500 mb-1">
+                               {noitesExibidas} {noitesExibidas === 1 ? 'noite' : 'noites'}, {adultos} {adultos === 1 ? 'adulto' : 'adultos'}
+                             </p>
+                             <p className="text-xs font-bold text-slate-400">
+                               {eInvalidoOuEsgotado ? (
+                                 <span className="text-red-500 font-bold flex items-center gap-1.5 bg-red-50 px-3 py-1.5 rounded-xl border border-red-100 w-fit"><AlertTriangle size={14}/> Indisponível para este grupo</span>
+                               ) : (
+                                 <>Total estimado: <span className="font-black text-slate-700">{formatarMoeda(precoTotal)}</span></>
+                               )}
+                             </p>
+                          </div>
+                          <div className="text-right flex flex-col items-end">
+                             <p className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Diária a partir de</p>
+                             <p className={`${jakarta.className} text-3xl md:text-4xl font-black text-[#00577C] tabular-nums mb-3 md:mb-4 leading-none`}>
+                               {eInvalidoOuEsgotado ? '—' : formatarMoeda(precoDiariaExibida)}
+                             </p>
+                             <Link 
+                               href={`/hoteis/${hotel.id}?checkin=${checkinIsoStr}&checkout=${checkoutIsoStr}&adultos=${adultos}&criancas=${criancas}&quartos=${quartos}`} 
+                               className={`w-full sm:w-auto text-white px-8 md:px-10 py-3.5 md:py-4 rounded-xl md:rounded-[1.5rem] font-black text-xs md:text-sm uppercase tracking-widest transition-all shadow-xl flex items-center justify-center gap-3 hover:translate-x-1 ${
+                                 eInvalidoOuEsgotado ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none hover:translate-x-0' : 'bg-[#00577C] hover:bg-[#004a6b] shadow-[#00577C]/20'
+                               }`}
+                               onClick={(e) => eInvalidoOuEsgotado && e.preventDefault()}
+                             >
+                               {eInvalidoOuEsgotado ? 'Indisponível' : 'Selecionar Hotel'} <ChevronRight size={18} className="md:w-5 md:h-5"/>
+                             </Link>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
             )}
           </div>
         </div>
       </section>
 
-      {/* GAVETA DE FILTROS MOBILE */}
+      {/* FILTROS MOBILE */}
       {isMobileFiltersOpen && (
         <div className="fixed inset-0 z-[100] lg:hidden">
            <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={() => setIsMobileFiltersOpen(false)} />
-           <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2.5rem] p-6 pb-10 flex flex-col max-h-[85vh] animate-in slide-in-from-bottom-full text-left">
+           <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2.5rem] p-6 pb-10 flex flex-col max-h-[85vh] text-left animate-in slide-in-from-bottom-full">
               <div className="flex items-center justify-between mb-8 border-b border-slate-100 pb-4">
-                 <h3 className={`${jakarta.className} text-2xl font-black text-slate-900 flex items-center gap-2`}>
-                   <Filter size={24} className="text-[#00577C]"/> Filtros
-                 </h3>
-                 <button onClick={() => setIsMobileFiltersOpen(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500">
-                    <X size={20} />
-                 </button>
+                 <h3 className={`${jakarta.className} text-2xl font-black text-slate-900 flex items-center gap-2`}><Filter size={24} className="text-[#00577C]"/> Filtros</h3>
+                 <button onClick={() => setIsMobileFiltersOpen(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500"><X size={20} /></button>
               </div>
-
               <div className="overflow-y-auto flex-1 hide-scrollbar">
                  {renderFiltros()}
-                 
-                 <div className="mt-8 mb-4">
-                   <button onClick={limparFiltros} className="w-full py-4 text-slate-500 font-bold text-sm underline">
-                      Limpar todos os filtros
-                   </button>
-                 </div>
+                 <div className="mt-8 mb-4"><button onClick={limparFiltros} className="w-full py-4 text-slate-500 font-bold text-sm underline">Limpar todos os filtros</button></div>
               </div>
-
               <div className="pt-4 border-t border-slate-100 mt-auto">
-                 <button onClick={() => setIsMobileFiltersOpen(false)} className="w-full bg-[#00577C] text-white py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg">
-                    Aplicar Filtros ({hoteisFiltrados.length})
-                 </button>
+                 <button onClick={() => setIsMobileFiltersOpen(false)} className="w-full bg-[#00577C] text-white py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg">Aplicar Filtros ({hoteisFiltrados.length})</button>
               </div>
            </div>
         </div>
@@ -718,7 +702,7 @@ export default function HoteisPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen flex flex-col items-center justify-center bg-white text-[#00577C]">
-        <Loader2 className="w-12 h-12 animate-spin mb-4" />
+        <Loader2 className="w-12 h-12 animate-spin mb-4 text-[#0085FF]" />
         <p className="font-bold uppercase tracking-widest text-xs">Preparando listagem oficial de alojamentos...</p>
       </div>
     }>
