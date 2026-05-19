@@ -605,7 +605,7 @@ function CheckoutHotelContent() {
                     ) : (
                       <>
                         <div className="flex justify-between text-slate-600">
-                           <span>Média por Noite</span>
+                           <span>Total por Noite</span>
                            <span className="font-bold">{loadingPreco ? '...' : formatarMoeda(valorTotalReserva / Math.max(1, numNoites) / Math.max(1, quartosParam))}</span>
                         </div>
                         <div className="flex justify-between text-slate-600">
