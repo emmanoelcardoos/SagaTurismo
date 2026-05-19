@@ -4,7 +4,7 @@ import os
 from supabase import create_client, Client
 from datetime import datetime, timedelta
 
-# ◄── IMPORTAÇÃO DO NOSSO MOTOR UNIFICADO DE E-MAILS
+# ── IMPORTAÇÃO DO NOSSO MOTOR UNIFICADO DE E-MAILS
 from app.services.email_service import enviar_email
 
 router = APIRouter()
@@ -20,7 +20,7 @@ class LoginParceiroSchema(BaseModel):
     senha: str
 
 class InteresseParceiroSchema(BaseModel):
-    nome: str
+    name: str
     empresa: str
     tipo: str
     telefone: str
@@ -32,7 +32,8 @@ class DisponibilidadeParceiroSchema(BaseModel):
     preco: float
     disponivel: bool
 
-# ── FUNÇÕES AUXILIARES INTERNAS (MANTIDAS COMO FALLBACK PARA PEDIDOS ANTIGOS) ──
+# ── FUNÇÕES AUXILIARES INTERNAS CORRIGIDAS (PADRÃO DINÂMICO) ──
+
 def obter_fator_liquido(tipo_item: str) -> float:
     try:
         tipo_busca = tipo_item.lower()
@@ -51,16 +52,28 @@ def obter_fator_liquido(tipo_item: str) -> float:
 def calcular_recorte_hotel_pacote(hotel_id: str, tipo_quarto: str, checkin_str: str, checkout_str: str, quantidade_quartos: int = 1, quantidade_pessoas: int = 2) -> float:
     try:
         if not checkin_str or not checkout_str: return 0.0
-        res_h = supabase.table("hoteis").select("*").eq("id", hotel_id).single().execute()
-        if not res_h.data: return 0.0
         
-        base_preco = float(res_h.data["quarto_luxo_preco"] if tipo_quarto == 'luxo' else res_h.data["quarto_standard_preco"])
-        pct_acompanhante = float(res_h.data.get("porcentagem_acompanhante") or 0.0)
+        # 1. Busca a taxa de acompanhante na tabela pai (hoteis)
+        res_h = supabase.table("hoteis").select("porcentagem_acompanhante").eq("id", hotel_id).single().execute()
+        pct_acompanhante = float(res_h.data.get("porcentagem_acompanhante") or 0.0) if res_h.data else 0.0
         
+        # 2. Busca o preço estrutural correto na tabela tipos_quarto
+        res_q = supabase.table("tipos_quarto").select("preco_quarto", "nome_quarto").eq("hotel_id", hotel_id).eq("nome_quarto", tipo_quarto).execute()
+        if not res_q.data:
+            res_q = supabase.table("tipos_quarto").select("preco_quarto", "nome_quarto").eq("hotel_id", hotel_id).eq("slug", tipo_quarto.lower()).execute()
+        if not res_q.data:
+            res_q = supabase.table("tipos_quarto").select("preco_quarto", "nome_quarto").eq("hotel_id", hotel_id).execute()
+            
+        if not res_q.data: return 0.0
+        
+        quarto_data = res_q.data[0]
+        base_preco = float(quarto_data["preco_quarto"])
+        
+        # 3. Mapeia o calendário de exceções para esta categoria específica
         res_custom = supabase.table("disponibilidade_hoteis") \
             .select("*") \
             .eq("hotel_id", hotel_id) \
-            .eq("tipo_quarto", tipo_quarto) \
+            .eq("tipo_quarto", quarto_data["nome_quarto"]) \
             .order("criado_em", desc=True) \
             .execute()
             
@@ -78,6 +91,8 @@ def calcular_recorte_hotel_pacote(hotel_id: str, tipo_quarto: str, checkin_str: 
                 regra_inicio = datetime.strptime(str(regra["data_inicio"]).split("T")[0], "%Y-%m-%d").date()
                 regra_fim = datetime.strptime(str(regra["data_fim"]).split("T")[0], "%Y-%m-%d").date()
                 if regra_inicio <= d_atual <= regra_fim:
+                    if not regra.get("disponivel", True):
+                        return 0.0 # Bloqueado por overbooking na extranet
                     preco_noite = float(regra["preco"])
                     break
             
@@ -151,12 +166,11 @@ async def login_parceiro(payload: LoginParceiroSchema):
         print(f"[ERRO LOGIN PARCEIRO] {e}")
         raise HTTPException(status_code=500, detail="Erro interno ao processar a autenticação.")
 
-# ── ROTA PARA RECEBER O PEDIDO DE INTERESSE E ENVIAR E-MAIL (ATUALIZADA) ──
+# ── ROTA PARA RECEBER O PEDIDO DE INTERESSE E ENVIAR E-MAIL ──
 
 @router.post("/api/v1/parceiros/interesse", tags=["Portal dos Parceiros"])
 async def registrar_interesse_parceiro(payload: InteresseParceiroSchema):
     try:
-        # Estilização com as Cores Oficiais da Prefeitura (Azul #00577C, Verde #009640)
         html_content = f"""
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #E2E8F0; border-radius: 16px; overflow: hidden;">
             <div style="background: #00577C; padding: 25px; text-align: center;">
@@ -166,9 +180,9 @@ async def registrar_interesse_parceiro(payload: InteresseParceiroSchema):
                 <p style="font-size: 15px; line-height: 1.6;">O portal <strong>SagaTurismo</strong> recebeu uma nova manifestação de interesse para credenciamento na plataforma municipal.</p>
                 
                 <div style="background-color: #F8FAFC; padding: 20px; border-radius: 12px; margin: 25px 0; border-left: 5px solid #009640;">
-                    <p style="margin: 6px 0; font-size: 15px;"><strong>👤 Nome do Responsável:</strong> {payload.nome}</p>
+                    <p style="margin: 6px 0; font-size: 15px;"><strong>👤 Nome do Responsável:</strong> {payload.name}</p>
                     <p style="margin: 6px 0; font-size: 15px;"><strong>🏢 Nome do Negócio:</strong> {payload.empresa}</p>
-                    <p style="margin: 6px 0; font-size: 15px;"><strong>🏷️ Categoria:</strong> <span style="background: #00577C; color: #ffffff; padding: 3px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; uppercase;">{payload.tipo.upper()}</span></p>
+                    <p style="margin: 6px 0; font-size: 15px;"><strong>🏷️ Categoria:</strong> <span style="background: #00577C; color: #ffffff; padding: 3px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; text-transform: uppercase;">{payload.tipo.upper()}</span></p>
                     <p style="margin: 6px 0; font-size: 15px;"><strong>📱 WhatsApp:</strong> {payload.telefone}</p>
                 </div>
                 
@@ -182,7 +196,6 @@ async def registrar_interesse_parceiro(payload: InteresseParceiroSchema):
         </div>
         """
 
-        # ◄── LISTA DE DESTINATÁRIOS: Envia em paralelo para ti e para a Secretaria de Turismo
         emails_destino = ["emmanoel.cardoso09@gmail.com"]
         
         for email in emails_destino:
@@ -201,7 +214,7 @@ async def registrar_interesse_parceiro(payload: InteresseParceiroSchema):
         print(f"[ERRO ENVIO EMAIL INTERESSE] {e}")
         raise HTTPException(status_code=500, detail="Erro interno ao processar o formulário.")
 
-# ── ROTAS DE CONSULTA DO PAINEL COM SISTEMA HÍBRIDO (MANTIDAS INTACTAS) ──
+# ── ROTAS DE CONSULTA DO PAINEL COM SISTEMA HÍBRIDO ──
 
 @router.get("/api/v1/parceiros/{item_id}/reservas", tags=["Portal dos Parceiros"])
 async def listar_reservas_parceiro(item_id: str):
@@ -336,11 +349,13 @@ async def atualizar_disponibilidade_parceiro(item_id: str, payload: Disponibilid
             "disponivel": payload.disponivel
         }
         res = supabase.table("disponibilidade_hoteis").insert(dados_disponibilidade).execute()
-        return {"sucesso": True, "mensagem": "Tarifário updated com sucesso na base de dados!", "dados": res.data}
+        return {"sucesso": True, "mensagem": "Tarifário atualizado com sucesso na base de dados!", "dados": res.data}
     except Exception as e:
         print(f"[ERRO ATUALIZAR DISPONIBILIDADE] {e}")
-        raise HTTPException(status_code=500, detail="Erro interno ao salvar as alterações do calendário no servidor.")
+        raise HTTPException(status_code=500, detail="Erro interno ao salvar as alterações.")
     
+# ── 🔄 MOTOR DE CÁLCULO PÚBLICO ULTRA REATIVO REESCRITO DESDO ZERO ──
+
 @router.get("/api/v1/public/hoteis/{hotel_id}/calcular-preco", tags=["Consultas Públicas"])
 async def obter_preco_hospedagem_publico(
     hotel_id: str, tipo_quarto: str = "standard", checkin: str = None, checkout: str = None, quantidade: int = 1, adultos: int = 2
@@ -348,40 +363,70 @@ async def obter_preco_hospedagem_publico(
     if not checkin or not checkout:
         raise HTTPException(status_code=400, detail="Check-in and Check-out dates are required.")
     try:
-        res_h = supabase.table("hoteis").select("*").eq("id", hotel_id).single().execute()
-        if not res_h.data: raise HTTPException(status_code=404, detail="Hotel não encontrado.")
+        # 1. Busca a taxa de acompanhante extra diretamente na tabela hoteis
+        res_h = supabase.table("hoteis").select("porcentagem_acompanhante").eq("id", hotel_id).single().execute()
+        pct_acompanhante = float(res_h.data.get("porcentagem_acompanhante") or 0.0) if res_h.data else 0.0
         
-        hotel_data = res_h.data
-        base_preco = float(hotel_data["quarto_luxo_preco"] if tipo_quarto == 'luxo' else hotel_data["quarto_standard_preco"])
-        pct_acompanhante = float(hotel_data.get("porcentagem_acompanhante") or 0.0)
+        # 2. Varre a tabela estrutural tipos_quarto para encontrar o preço base definido na extranet
+        res_q = supabase.table("tipos_quarto").select("*").eq("hotel_id", hotel_id).eq("nome_quarto", tipo_quarto).execute()
+        if not res_q.data:
+            # Fallback seguro para buscar por slug (ex: standard -> standard-simples)
+            res_q = supabase.table("tipos_quarto").select("*").eq("hotel_id", hotel_id).eq("slug", tipo_quarto.lower()).execute()
+        if not res_q.data:
+            # Fallback final se o hotel só tiver uma única categoria cadastrada
+            res_q = supabase.table("tipos_quarto").select("*").eq("hotel_id", hotel_id).execute()
+            
+        if not res_q.data: 
+            raise HTTPException(status_code=404, detail="Nenhuma categoria estruturada de quartos localizada.")
         
-        res_custom = supabase.table("disponibilidade_hoteis").select("*").eq("hotel_id", hotel_id).eq("tipo_quarto", tipo_quarto).order("criado_em", desc=True).execute()
+        quarto_selecionado = res_q.data[0]
+        base_preco = float(quarto_selecionado["preco_quarto"])
+        
+        # 3. Mapeia o histórico de exceções de diárias temporárias cadastradas no calendário
+        res_custom = supabase.table("disponibilidade_hoteis") \
+            .select("*") \
+            .eq("hotel_id", hotel_id) \
+            .eq("tipo_quarto", quarto_selecionado["nome_quarto"]) \
+            .order("criado_em", desc=True) \
+            .execute()
+            
         excecoes = res_custom.data or []
         
         d_atual = datetime.strptime(checkin, "%Y-%m-%d").date()
         d_fim = datetime.strptime(checkout, "%Y-%m-%d").date()
         
+        # Lógica matemática de acompanhantes extras por quarto solicitado
         acompanhantes = adultos - quantidade
         if acompanhantes < 0: acompanhantes = 0
         
-        valor_total_bruto = 0.0
+        valor_total_real = 0.0
         while d_atual < d_fim:
             preco_noite = None
             for regra in excecoes:
                 regra_inicio = datetime.strptime(str(regra["data_inicio"]).split("T")[0], "%Y-%m-%d").date()
                 regra_fim = datetime.strptime(str(regra["data_fim"]).split("T")[0], "%Y-%m-%d").date()
                 if regra_inicio <= d_atual <= regra_fim:
+                    # Trava instantânea de OVERBOOKING (Se marcado como Indisponível/Falso)
                     if not regra.get("disponivel", True):
-                        return {"sucesso": False, "disponivel": False, "mensagem": "Esgotado para as datas selecionadas."}
+                        return {"sucesso": True, "disponivel": False, "mensagem": "Bloqueado: Acomodação esgotada para as datas selecionadas.", "valor_total": 0, "noites": 0}
                     preco_noite = float(regra["preco"])
                     break
             
             preco_quarto_noite = preco_noite if preco_noite is not None else base_preco
+            # Cálculo exato: (Preço da Noite * Qtd de Quartos) + Adicional por hóspedes extras instalado
             valor_noite = (preco_quarto_noite * quantidade) + (preco_quarto_noite * (pct_acompanhante / 100.0) * acompanhantes)
-            valor_total_bruto += valor_noite
+            valor_total_real += valor_noite
             d_atual += timedelta(days=1)
             
-        return {"sucesso": True, "disponivel": True, "valor_total": valor_total_bruto * quantidade, "noites": (d_fim - datetime.strptime(checkin, "%Y-%m-%d").date()).days}
+        total_noites = (d_fim - datetime.strptime(checkin, "%Y-%m-%d").date()).days
+        
+        # Retorno limpo e corrigido (sem a multiplicação duplicada por quantidade)
+        return {
+            "sucesso": True, 
+            "disponivel": True, 
+            "valor_total": round(valor_total_real, 2), 
+            "noites": total_noites if total_noites > 0 else 1
+        }
     except Exception as e:
         print(f"[ERRO CALCULO PUBLICO PRECO] {e}")
-        raise HTTPException(status_code=500, detail="Erro ao calcular preço dinâmico.")
+        raise HTTPException(status_code=500, detail="Erro ao processar o preço dinâmico com o inventário.")
