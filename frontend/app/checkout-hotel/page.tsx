@@ -5,9 +5,9 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
   Loader2, MapPin, ShieldCheck, Bed, QrCode, CheckCircle2, 
-  User, Mail, FileText, Copy, AlertCircle, 
-  CreditCard, Lock, ShieldAlert, Home, Clock, Check, ChevronRight,
-  Wallet, Users, Calendar
+  Users, Calendar, Clock, Copy, AlertCircle, 
+  CreditCard, Lock, ShieldAlert, Home, Check, ChevronRight,
+  Wallet
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -23,14 +23,15 @@ declare global {
 
 type Hotel = { 
   id: string; nome: string; imagem_url: string;
-  quarto_standard_nome: string; quarto_standard_preco: any; 
-  quarto_luxo_nome: string; quarto_luxo_preco: any; 
+};
+
+// ◄── NOVO TIPO PARA LER O QUARTO CORRETO DA BD
+type QuartoFisico = {
+  id: string; nome_quarto: string; preco_quarto: number; imagem_url: string;
 };
 
 type Acompanhante = {
-  nome: string;
-  cpf: string;
-  data_nascimento: string;
+  nome: string; cpf: string; data_nascimento: string;
 };
 
 const parseValor = (valor: any): number => {
@@ -117,13 +118,14 @@ function CheckoutHotelContent() {
   const router = useRouter();
 
   const hotelId = searchParams.get('hotel');
-  const quartoTipo = searchParams.get('quarto') as 'standard' | 'luxo' | null;
+  const quartoNomeReal = searchParams.get('quarto'); // ◄── Agora é o nome verdadeiro do quarto!
   const checkinData = searchParams.get('checkin');
   const checkoutData = searchParams.get('checkout');
   const adultosParam = Number(searchParams.get('adultos')) || 2;
   const quartosParam = Number(searchParams.get('quartos')) || 1;
 
   const [hotel, setHotel] = useState<Hotel | null>(null);
+  const [quartoSelecionado, setQuartoSelecionado] = useState<QuartoFisico | null>(null); // ◄── NOVO ESTADO
   const [loadingInitial, setLoadingInitial] = useState(true);
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
@@ -150,7 +152,7 @@ function CheckoutHotelContent() {
   const [hospedesExtras, setHospedesExtras] = useState<Acompanhante[]>([]);
 
   useEffect(() => {
-    const numAcompanhantes = Math.max(0, adultosParam - 1);
+    const numAcompanhantes = Math.max(0, adultosParam - quartosParam); // ◄── Apenas excedentes
     setHospedesExtras(prev => {
       const copy = [...prev];
       if (copy.length === numAcompanhantes) return prev;
@@ -160,7 +162,7 @@ function CheckoutHotelContent() {
       }
       return copy;
     });
-  }, [adultosParam]);
+  }, [adultosParam, quartosParam]);
 
   const handleAcompanhanteChange = (index: number, campo: keyof Acompanhante, valor: string) => {
     setHospedesExtras(prev => {
@@ -182,7 +184,6 @@ function CheckoutHotelContent() {
   const [erroApi, setErroApi] = useState('');
   const [qrCodeData, setQrCodeData] = useState<{ link: string; texto: string; id_pedido: string } | null>(null);
 
-  // Injeção silenciada do SDK do PagSeguro
   useEffect(() => {
     if (typeof window !== 'undefined' && !window.PagSeguro) {
       const script = document.createElement('script');
@@ -202,29 +203,34 @@ function CheckoutHotelContent() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
-  // Carregamento de dados básicos do hotel
+  // Carregamento de dados básicos do hotel E DA TABELA DE QUARTOS
   useEffect(() => {
-    async function carregarHotel() {
+    async function carregarDadosEstruturais() {
       if (!hotelId) {
-        setLoadingInitial(false);
-        return;
+        setLoadingInitial(false); return;
       }
-      const { data, error } = await supabase.from('hoteis').select('*').eq('id', hotelId).single();
-      if (!error && data) setHotel(data as Hotel);
+      
+      const { data: hData } = await supabase.from('hoteis').select('*').eq('id', hotelId).single();
+      if (hData) setHotel(hData as Hotel);
+
+      if (quartoNomeReal) {
+        const { data: qData } = await supabase.from('tipos_quarto').select('*').eq('hotel_id', hotelId).eq('nome_quarto', quartoNomeReal).single();
+        if (qData) setQuartoSelecionado(qData as QuartoFisico);
+      }
       setLoadingInitial(false);
     }
-    carregarHotel();
-  }, [hotelId]);
+    carregarDadosEstruturais();
+  }, [hotelId, quartoNomeReal]);
 
   // Consultar preços na API Railway
   useEffect(() => {
-    if (!hotelId || !checkinData || !checkoutData || !quartoTipo) return;
+    if (!hotelId || !checkinData || !checkoutData || !quartoNomeReal) return;
 
     async function obterPrecoOficialAPI() {
       setLoadingPreco(true);
       try {
         const response = await fetch(
-          `https://sagaturismo-production.up.railway.app/api/v1/public/hoteis/${hotelId}/calcular-preco?tipo_quarto=${quartoTipo}&checkin=${checkinData}&checkout=${checkoutData}&quantidade=${quartosParam}&adultos=${adultosParam}`
+          `https://sagaturismo-production.up.railway.app/api/v1/public/hoteis/${hotelId}/calcular-preco?tipo_quarto=${encodeURIComponent(quartoNomeReal)}&checkin=${checkinData}&checkout=${checkoutData}&quantidade=${quartosParam}&adultos=${adultosParam}`
         );
         const data = await response.json();
         
@@ -246,7 +252,7 @@ function CheckoutHotelContent() {
     }
 
     obterPrecoOficialAPI();
-  }, [hotelId, quartoTipo, checkinData, checkoutData, quartosParam, adultosParam]);
+  }, [hotelId, quartoNomeReal, checkinData, checkoutData, quartosParam, adultosParam]);
 
   const handlePagamento = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -272,7 +278,7 @@ function CheckoutHotelContent() {
     const payload: any = {
       tipo_item: "hotel", 
       hotel_id: hotelId, 
-      tipo_quarto: quartoTipo, 
+      tipo_quarto: quartoNomeReal, 
       data_checkin: checkinData, 
       data_checkout: checkoutData,
       adultos: adultosParam, 
@@ -343,9 +349,15 @@ function CheckoutHotelContent() {
     }
   };
 
-  const precoBaseDiaria = quartoTipo === 'luxo' ? parseValor(hotel?.quarto_luxo_preco) : parseValor(hotel?.quarto_standard_preco);
+  // ◄── A NOVA MATEMÁTICA CORRIGIDA ──►
+  const precoBaseDiaria = quartoSelecionado ? Number(quartoSelecionado.preco_quarto) : 0;
   const valorBaseMatematico = precoBaseDiaria * numNoites * quartosParam;
-  const taxaHospedeAdicional = valorTotalReserva > valorBaseMatematico ? valorTotalReserva - valorBaseMatematico : 0;
+  
+  // Se o valor retornado pela API for maior que a base matemática e houver acompanhantes, é taxa extra
+  const taxaHospedeAdicional = (valorTotalReserva > valorBaseMatematico && hospedesExtras.length > 0) 
+    ? valorTotalReserva - valorBaseMatematico 
+    : 0;
+  
   const exibirTaxaExtra = taxaHospedeAdicional > 0.05;
 
   if (loadingInitial) return <div className="min-h-screen bg-[#F5F7FA] flex items-center justify-center"><Loader2 className="animate-spin text-[#0085FF] w-12 h-12" /></div>;
@@ -407,7 +419,6 @@ function CheckoutHotelContent() {
             {!qrCodeData ? (
               <form onSubmit={handlePagamento} className="space-y-6 md:space-y-8">
                 
-                {/* 1. DADOS DOS HÓSPEDES (TITULAR + DINÂMICO ACOMPANHANTES MOBILE-FIRST) */}
                 <SectionCard className="p-6 md:p-10 text-left">
                   <SectionHeader step={1} title="Dados de Identificação" icon={<Users size={20} />} />
                   
@@ -434,7 +445,6 @@ function CheckoutHotelContent() {
                     </div>
                   </div>
 
-                  {/* Blocos Gerados Dinamicamente com Máscara Digital Inteligente */}
                   {hospedesExtras.length > 0 && (
                     <div className="mt-8 pt-8 border-t-2 border-dashed border-slate-100 space-y-8">
                       <div>
@@ -543,7 +553,7 @@ function CheckoutHotelContent() {
             )}
           </div>
 
-          {/* ── COLUNA DIREITA ── */}
+          {/* ── COLUNA DIREITA (RESUMO COM OS DADOS REAIS DO QUARTO) ── */}
           <aside className="w-full h-fit lg:self-start order-first lg:order-last relative">
             <SectionCard>
               <div className="h-2 w-full bg-gradient-to-r from-[#0085FF] via-[#F9C400] to-[#009640]" />
@@ -553,10 +563,14 @@ function CheckoutHotelContent() {
               </div>
 
               <div className="p-6 md:p-8 space-y-6 text-left">
+                 
+                 {/* ◄── AQUI ENTRA A FOTO E NOME REAL DO QUARTO DA BD ──► */}
                  <div className="flex items-start gap-4 pb-4 border-b border-slate-100">
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0"><Bed size={20} className="text-[#0085FF]"/></div>
+                    <div className="w-12 h-12 rounded-xl bg-slate-100 overflow-hidden shrink-0 border border-slate-200">
+                       <img src={quartoSelecionado?.imagem_url || hotel?.imagem_url} alt="Quarto" className="w-full h-full object-cover"/>
+                    </div>
                     <div className="flex-1 pt-1">
-                       <p className="text-sm font-black text-slate-800 leading-none mb-1.5">{quartoTipo === 'luxo' ? hotel?.quarto_luxo_nome : hotel?.quarto_standard_nome}</p>
+                       <p className="text-sm font-black text-slate-800 leading-none mb-1.5 uppercase">{quartoSelecionado?.nome_quarto || quartoNomeReal}</p>
                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                          {checkinData ? formatarDataExibicao(checkinData) : ''} a {checkoutData ? formatarDataExibicao(checkoutData) : ''}
                        </p>
