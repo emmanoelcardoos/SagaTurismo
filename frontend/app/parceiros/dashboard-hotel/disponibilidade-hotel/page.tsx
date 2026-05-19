@@ -162,23 +162,23 @@ export default function ExtranetDisponibilidadePage() {
       const { data: urlData } = supabase.storage.from('galeria').getPublicUrl(nomeFicheiroUnico);
       const publicImageUrl = urlData.publicUrl;
 
-      // Duplicação intencional das chaves para satisfazer as colunas antigas (NOT NULL) e as novas
+      // Conversão segura de dados
       const precoNumber = parseFloat(fPrecoBase.replace(',', '.'));
       const estoqueNumber = parseInt(fEstoque);
+      const slugGerado = fNome.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w\-]+/g, '');
 
+      // Inserção EXATAMENTE de acordo com o CSV da tabela tipos_quarto
       const { error: dbError } = await supabase
         .from('tipos_quarto')
         .insert([{
           hotel_id: hotelId,
           nome_quarto: fNome,
-          nome: fNome,
           preco_quarto: precoNumber,
-          preco_base: precoNumber,
           quantidade_total_quartos: estoqueNumber,
-          estoque_total: estoqueNumber,
           capacidade: parseInt(fCapacidade),
           descricao: fDescricao,
-          imagem_url: publicImageUrl
+          imagem_url: publicImageUrl,
+          slug: slugGerado
         }]);
 
       if (dbError) throw dbError;
@@ -186,6 +186,9 @@ export default function ExtranetDisponibilidadePage() {
       setStatusFeedback({ tipo: 'sucesso', texto: 'Acomodação adicionada ao inventário com sucesso!' });
       setMostrarFormQuarto(false);
       setFNome(''); setFPrecoBase(''); setFEstoque(''); setFCapacidade(''); setFDescricao(''); setFImagem(null);
+      
+      // Força recarregamento da página para mostrar o novo quarto instantaneamente
+      window.location.reload(); 
     } catch (err: any) {
       setStatusFeedback({ tipo: 'erro', texto: err.message || 'Falha ao processar operação.' });
     } finally {
@@ -272,7 +275,7 @@ export default function ExtranetDisponibilidadePage() {
   if (loadingSessao) return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center">
       <Loader2 className="animate-spin text-[#0085FF] w-12 h-12 mb-4" />
-      <p className={`${jakarta.className} text-xs font-bold text-slate-400 uppercase tracking-widest`}>Abrindo Canal Extranet...</p>
+      <p className={`${jakarta.className} text-xs font-bold text-slate-400 uppercase tracking-widest`}>Abrindo Painel Administrativo...</p>
     </div>
   );
 
