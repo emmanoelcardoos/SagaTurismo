@@ -90,7 +90,6 @@ function HotelDetalheContent() {
   const [qtdQuartosSelecionados, setQtdQuartosSelecionados] = useState(() => Number(searchParams.get('quartos')) || 1);
 
   // ── ESTADO DINÂMICO DE PREÇOS (Calculados pela API) ──
-  // Record<id_do_quarto, PrecoDinamico>
   const [precosDinâmicos, setPrecosDinâmicos] = useState<Record<string, PrecoDinamico>>({});
   const [calculandoPreco, setCalculandoPreco] = useState(false);
 
@@ -102,11 +101,9 @@ function HotelDetalheContent() {
   useEffect(() => {
     async function fetchHotelEQuartos() {
       try {
-        // Busca Hotel
         const { data: hotelData, error: hotelError } = await supabase.from('hoteis').select('*').eq('id', id).single();
         if (hotelError) throw new Error("Erro ao buscar a hospedagem.");
         
-        // Busca Lista Dinâmica de Quartos reais da extranet
         const { data: quartosData, error: quartosError } = await supabase.from('tipos_quarto').select('*').eq('hotel_id', id).order('preco_quarto', { ascending: true });
         if (quartosError) throw new Error("Erro ao mapear o inventário de quartos.");
 
@@ -130,7 +127,6 @@ function HotelDetalheContent() {
     if (!hotel || quartosDb.length === 0) return;
 
     if (!checkin || !checkout) {
-      // Se não há datas, o preço é o base do quarto * quantidade solicitada
       const precosBase: Record<string, PrecoDinamico> = {};
       quartosDb.forEach(q => {
         precosBase[q.id] = { valor_total: q.preco_quarto * qtdQuartosSelecionados, disponivel: true, noites: 1 };
@@ -145,7 +141,6 @@ function HotelDetalheContent() {
       const checkoutStr = formatarDataIso(checkout!);
 
       try {
-        // Dispara pedidos à API para TODOS os quartos em simultâneo
         const promessas = quartosDb.map(quarto => 
           fetch(`https://sagaturismo-production.up.railway.app/api/v1/public/hoteis/${id}/calcular-preco?tipo_quarto=${encodeURIComponent(quarto.nome_quarto)}&checkin=${checkinStr}&checkout=${checkoutStr}&quantidade=${qtdQuartosSelecionados}&adultos=${adultos}`)
             .then(res => res.json())
@@ -163,7 +158,6 @@ function HotelDetalheContent() {
               noites: res.data.noites
             };
           } else {
-            // Se a API devolver sucesso = false (ex: esgotado), marcamos como indisponível
             novosPrecos[res.id] = { valor_total: 0, disponivel: false, noites: 0 };
           }
         });
@@ -179,7 +173,6 @@ function HotelDetalheContent() {
     atualizarPrecosDinamicos();
   }, [checkin, checkout, qtdQuartosSelecionados, adultos, hotel, quartosDb, id]);
 
-  // Efeito de Scroll Header
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
@@ -223,7 +216,6 @@ function HotelDetalheContent() {
       return;
     }
 
-    // Navega para o checkout passando o nome do quarto correto para a OTA
     router.push(`/checkout-hotel?hotel=${hotel?.id}&quarto=${encodeURIComponent(quarto.nome_quarto)}&checkin=${formatarDataIso(checkin)}&checkout=${formatarDataIso(checkout)}&adultos=${adultos}&criancas=${criancas}&quartos=${qtdQuartosSelecionados}`);
   };
 
@@ -249,10 +241,14 @@ function HotelDetalheContent() {
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
 
+  // ◄── LÓGICA DE FILTRAGEM POR CAPACIDADE ──►
+  const capacidadeNecessariaPorQuarto = Math.ceil(adultos / qtdQuartosSelecionados);
+  const quartosFiltrados = quartosDb.filter(quarto => quarto.capacidade >= capacidadeNecessariaPorQuarto);
+
   return (
     <div className={`${inter.className} min-h-screen bg-[#F5F7FA] text-slate-900 flex flex-col`}>
       
-      {/* ── HEADER (Azul Petróleo nas Tipografias Básicas) ── */}
+      {/* ── HEADER ── */}
       <header className={`fixed left-0 top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl transition-transform duration-300 ${showHeader ? 'translate-y-0' : '-translate-y-full'}`}>
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-5">
           <Link href="/" className="flex min-w-0 items-center gap-3 sm:gap-4">
@@ -318,10 +314,9 @@ function HotelDetalheContent() {
          </div>
       </div>
 
-      {/* Container Geral das Colunas */}
       <div className="mx-auto w-full max-w-7xl px-4 md:px-5 py-8 md:py-12 flex flex-col lg:flex-row items-start gap-8 relative z-10">
         
-        {/* COLUNA ESQUERDA (CONTEÚDO E QUARTOS DINÂMICOS) */}
+        {/* COLUNA ESQUERDA */}
         <div className="flex-1 w-full min-w-0 flex flex-col gap-6 md:gap-8">
           
           <section className="bg-white rounded-[1.5rem] md:rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden text-left">
@@ -332,19 +327,25 @@ function HotelDetalheContent() {
              
              <div className="p-4 md:p-6 flex flex-col gap-6 md:gap-8">
                 
+                {/* ◄── FILTRAGEM INTELIGENTE DOS QUARTOS AQUI ──► */}
                 {quartosDb.length === 0 ? (
                   <div className="text-center p-8 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
                     <p className="text-slate-500 font-bold text-sm">Este hotel ainda não disponibilizou o seu inventário de quartos.</p>
                   </div>
+                ) : quartosFiltrados.length === 0 ? (
+                  <div className="text-center p-8 bg-[#F9C400]/10 rounded-2xl border border-dashed border-[#F9C400]/40">
+                    <AlertCircle className="mx-auto text-[#F9C400] mb-3" size={32} />
+                    <p className="text-[#00577C] font-black text-sm">Não há acomodações com capacidade para {capacidadeNecessariaPorQuarto} pessoa(s) por quarto.</p>
+                    <p className="text-slate-500 font-medium text-xs mt-2">Por favor, aumente o número de quartos na lateral para dividir os seus hóspedes.</p>
+                  </div>
                 ) : (
-                  quartosDb.map((quarto) => {
+                  quartosFiltrados.map((quarto) => {
                     const infoPreco = precosDinâmicos[quarto.id] || { valor_total: quarto.preco_quarto * qtdQuartosSelecionados, disponivel: true, noites: 1 };
                     const esgotado = !infoPreco.disponivel;
 
                     return (
                       <div key={quarto.id} className={`border border-slate-200 rounded-2xl md:rounded-[1.5rem] overflow-hidden shadow-sm flex flex-col transition-opacity ${esgotado ? 'opacity-80 bg-slate-50 grayscale-[20%]' : 'bg-white'}`}>
                          
-                         {/* Header do Quarto */}
                          <div className="flex justify-between items-center p-4 md:p-5 bg-slate-50 border-b border-slate-200">
                            <h4 className={`${jakarta.className} font-black text-base md:text-lg text-[#00577C] uppercase`}>{quarto.nome_quarto}</h4>
                            {!esgotado && <span className="bg-[#009640]/10 text-[#009640] px-2 py-1 rounded text-[10px] font-black uppercase flex items-center gap-1"><CheckCircle2 size={12}/> Disponível</span>}
@@ -353,7 +354,6 @@ function HotelDetalheContent() {
                          
                          <div className="flex flex-col xl:flex-row">
                             
-                            {/* Imagem e Comodidades */}
                             <div className="w-full xl:w-2/5 p-4 md:p-5 border-b xl:border-b-0 xl:border-r border-slate-100 flex flex-col">
                                <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden mb-3 md:mb-4 bg-slate-200">
                                   <Image src={quarto.imagem_url || hotel.imagem_url} alt={quarto.nome_quarto} fill className="object-cover" />
@@ -365,7 +365,6 @@ function HotelDetalheContent() {
                                </div>
                             </div>
                             
-                            {/* Preço e Botão */}
                             <div className="w-full xl:w-3/5 flex flex-col sm:flex-row">
                                <div className="flex-1 p-4 md:p-5 border-b sm:border-b-0 sm:border-r border-slate-100 flex flex-col justify-center">
                                   <p className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest mb-3">Resumo</p>
@@ -398,7 +397,7 @@ function HotelDetalheContent() {
              </div>
           </section>
 
-          {/* 2. CARD DE AVALIAÇÕES */}
+          {/* AVALIAÇÕES E CONTATOS (INALTERADOS) */}
           <section className="bg-white rounded-[1.5rem] md:rounded-[2rem] border border-slate-200 shadow-sm p-5 md:p-10 text-left">
              <h3 className={`${jakarta.className} text-xl md:text-2xl font-black text-[#00577C] mb-6`}>Avaliações dos hóspedes</h3>
              <div className="flex flex-col lg:flex-row gap-8">
@@ -432,7 +431,6 @@ function HotelDetalheContent() {
              </div>
           </section>
 
-          {/* 3. INFORMAÇÕES DE CONTACTO */}
           <section className="bg-[#002f40] rounded-[1.5rem] md:rounded-[2rem] p-6 md:p-10 text-white relative overflow-hidden text-left">
              <h3 className={`${jakarta.className} text-xl md:text-2xl font-black mb-2`}>Informações de Contacto</h3>
              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
@@ -488,7 +486,6 @@ function HotelDetalheContent() {
                   </div>
              </div>
 
-             {/* Hóspedes */}
              <div className="space-y-3 pt-4 border-t border-slate-100">
                 <div className="flex items-center justify-between">
                    <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-500">Adultos</span>
@@ -526,7 +523,6 @@ function HotelDetalheContent() {
         </div>
       </div>
 
-      {/* ── FOOTER ── */}
       <footer className="border-t border-slate-200 bg-white mt-auto text-left">
         <div className="mx-auto flex max-w-7xl flex-col gap-6 px-5 py-8 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-col md:flex-row items-center gap-4">
@@ -543,7 +539,6 @@ function HotelDetalheContent() {
   );
 }
 
-// ── EXPORT COMPLETO ENVOLTO EM SUSPENSE PARA SUPORTAR QUERY PARAMS ──
 export default function HotelDetalhePage() {
   return (
     <Suspense fallback={
