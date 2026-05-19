@@ -22,7 +22,7 @@ type TipoQuarto = {
   nome_quarto: string;
   preco_quarto: number;
   imagem_url: string;
-  capacidade: number; // ◄── Mapeamento da capacidade estrutural do quarto
+  capacidade: number;
 };
 
 type Hotel = {
@@ -69,7 +69,6 @@ const getArraySeguro = (item: any): string[] => {
   return [];
 };
 
-// ── COMPONENTE SKELETON (ANIMAÇÃO OTA PREMIUM DURANTE A BUSCA) ──
 function HotelCardSkeleton() {
   return (
     <div className="bg-white rounded-[2rem] md:rounded-[2.5rem] border border-slate-200 p-0 flex flex-col md:flex-row overflow-hidden h-fit animate-pulse shadow-sm">
@@ -106,11 +105,13 @@ function HoteisPageContent() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
 
-  // ── GESTÃO DE PESQUISA ──
+  // GESTÃO DE PESQUISA
   const [adultos, setAdultos] = useState(2);
   const [criancas, setCriancas] = useState(0);
   const [quartos, setQuartos] = useState(1);
   const [showHospedesPopup, setShowHospedesPopup] = useState(false);
+  
+  // ◄── ESTADO REATIVO DO BOTÃO RECUPERADO ──►
   const [isSearching, setIsSearching] = useState(false); 
 
   const [showCalendarPopup, setShowCalendarPopup] = useState(false);
@@ -119,7 +120,6 @@ function HoteisPageContent() {
   const [mesAtualCalendario, setMesAtualCalendario] = useState(new Date());
   const [hoverDate, setHoverDate] = useState<Date | null>(null);
 
-  // Dicionário Dinâmico
   const [precosDinamicos, setPrecosDinamicos] = useState<Record<string, { valor_total: number; noites: number; disponivel: boolean; motivo?: string }>>({});
   const [carregandoPrecos, setCarregandoPrecos] = useState(false);
 
@@ -132,7 +132,7 @@ function HoteisPageContent() {
     async function fetchHoteis() {
       const { data, error } = await supabase
         .from('hoteis')
-        .select('*, tipos_quarto(id, nome_quarto, preco_quarto, imagem_url, capacidade)') // ◄── Puxa a capacidade real da BD
+        .select('*, tipos_quarto(id, nome_quarto, preco_quarto, imagem_url, capacidade)')
         .order('nome');
       
       if (data) setHoteis(data as Hotel[]);
@@ -159,7 +159,6 @@ function HoteisPageContent() {
     if (qu) setQuartos(Number(qu));
   }, [searchParams]);
 
-  // ── 🔄 MOTOR MATEMÁTICO INTEGRADO CONTRA PREÇO ENGANOSO ──
   useEffect(() => {
     if (hoteis.length === 0) return;
 
@@ -178,24 +177,20 @@ function HoteisPageContent() {
       const novosPrecos: Record<string, any> = {};
 
       try {
-        // Cálculo do limite mínimo de ocupantes por quarto individual solicitado
         const capacidadeNecessariaPorQuarto = Math.ceil(Number(ad) / Number(qu));
 
         await Promise.all(
           hoteis.map(async (hotel) => {
             try {
-              // FILTRAGEM INTELIGENTE: Filtra os quartos que têm capacidade jurídica para abrigar o grupo
               const quartosValidos = hotel.tipos_quarto && hotel.tipos_quarto.length > 0
                 ? hotel.tipos_quarto.filter(q => q.capacidade >= capacidadeNecessariaPorQuarto)
                 : [];
 
               if (quartosValidos.length === 0) {
-                // Se nenhum quarto do hotel suporta o tamanho do grupo, marca como esgotado por capacidade
                 novosPrecos[hotel.id] = { valor_total: 0, noites: 0, disponivel: false, motivo: 'capacidade' };
                 return;
               }
 
-              // Encontra a acomodação mais barata APENAS entre os quartos válidos
               const quartoMaisBaratoValido = quartosValidos.reduce((prev, curr) => 
                 (curr.preco_quarto < prev.preco_quarto ? curr : prev)
               );
@@ -266,7 +261,8 @@ function HoteisPageContent() {
     
     setShowCalendarPopup(false);
     setShowHospedesPopup(false);
-    setTimeout(() => setIsSearching(false), 600);
+    // Remove o estado de carregamento do botão após concluir o push da rota
+    setTimeout(() => setIsSearching(false), 800);
   };
 
   const handleDateClick = (data: Date) => {
@@ -323,15 +319,29 @@ function HoteisPageContent() {
     const totalDias = diasDoMes(ano, mes);
     const primeiroDia = primeiroDiaDoMes(ano, mes);
 
+    // ◄── BLOQUEIO DE PASSADO NO CALENDÁRIO ──►
+    const isMesAtualOuPassado = ano < hoje.getFullYear() || (ano === hoje.getFullYear() && mes <= hoje.getMonth());
+
     return (
       <div 
         className="absolute top-[calc(100%+12px)] left-0 md:left-auto md:right-0 w-[calc(100vw-3rem)] md:w-80 bg-white rounded-3xl border border-slate-200 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] p-5 z-[100] animate-in fade-in slide-in-from-top-2 cursor-default"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-5">
-          <button onClick={() => setMesAtualCalendario(new Date(ano, mes - 1))} className="w-8 h-8 flex items-center justify-center hover:bg-slate-100 rounded-full text-[#00577C] transition-colors"><ChevronLeft size={18}/></button>
+          <button 
+            disabled={isMesAtualOuPassado}
+            onClick={(e) => { e.stopPropagation(); setMesAtualCalendario(new Date(ano, mes - 1)); }} 
+            className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors ${isMesAtualOuPassado ? 'text-slate-200 cursor-not-allowed' : 'hover:bg-slate-100 text-[#00577C]'}`}
+          >
+            <ChevronLeft size={18}/>
+          </button>
           <p className={`${jakarta.className} font-black text-slate-800 capitalize text-sm`}>{mesAtualCalendario.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}</p>
-          <button onClick={() => setMesAtualCalendario(new Date(ano, mes + 1))} className="w-8 h-8 flex items-center justify-center hover:bg-slate-100 rounded-full text-[#00577C] transition-colors"><ChevronRight size={18}/></button>
+          <button 
+            onClick={(e) => { e.stopPropagation(); setMesAtualCalendario(new Date(ano, mes + 1)); }} 
+            className="w-8 h-8 flex items-center justify-center hover:bg-slate-100 rounded-full text-[#00577C] transition-colors"
+          >
+            <ChevronRight size={18}/>
+          </button>
         </div>
         <div className="grid grid-cols-7 gap-1 text-center mb-3">
           {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((d, i) => <span key={i} className="text-[10px] font-black text-slate-400">{d}</span>)}
@@ -355,7 +365,7 @@ function HoteisPageContent() {
               <button
                 key={i}
                 disabled={isPassado}
-                onClick={() => handleDateClick(dataAtual)}
+                onClick={(e) => { e.stopPropagation(); handleDateClick(dataAtual); }}
                 onMouseEnter={() => !isPassado && setHoverDate(dataAtual)}
                 onMouseLeave={() => setHoverDate(null)}
                 className="w-full aspect-square flex items-center justify-center text-xs md:text-sm transition-all"
@@ -503,11 +513,17 @@ function HoteisPageContent() {
                )}
             </div>
 
+            {/* ◄── BOTÃO DE PESQUISAR CORRIGIDO COM ESTADO E ESCALA ──► */}
             <button 
-              onClick={handleBuscar} 
-              className="bg-slate-900 text-white px-8 md:px-10 py-4 md:py-0 rounded-[1.5rem] font-black text-xs md:text-sm uppercase tracking-widest hover:bg-black transition-all shadow-md shrink-0 flex items-center justify-center gap-2"
+              onClick={(e) => { e.stopPropagation(); handleBuscar(); }}
+              disabled={isSearching}
+              className="bg-slate-900 text-white px-8 md:px-10 py-4 md:py-0 rounded-[1.5rem] font-black text-xs md:text-sm uppercase tracking-widest hover:bg-black transition-all shadow-md shrink-0 flex items-center justify-center gap-2 h-[56px] md:h-auto active:scale-95 disabled:opacity-80 disabled:cursor-not-allowed"
             >
-              <Search size={16} /> Buscar
+              {isSearching ? (
+                <><Loader2 size={16} className="animate-spin" /> Buscando...</>
+              ) : (
+                <><Search size={16} /> Buscar</>
+              )}
             </button>
           </div>
         </div>
@@ -541,7 +557,6 @@ function HoteisPageContent() {
                {!loading && <p className="text-sm font-bold text-slate-400 bg-white px-4 py-2 rounded-full border border-slate-200">{hoteisFiltrados.length} opções</p>}
             </div>
 
-            {/* ── 🚀 INTERFACE DINÂMICA: SKELETONS PROGRESSIVOS PADRÃO OTA ── */}
             {loading || carregandoPrecos || isSearching ? (
               <div className="space-y-6 md:space-y-8">
                 {[...Array(3)].map((_, i) => <HotelCardSkeleton key={i} />)}
@@ -555,7 +570,6 @@ function HoteisPageContent() {
               <div className="space-y-6 md:space-y-8 animate-in fade-in duration-500">
                 {hoteisFiltrados.map((hotel) => {
                   
-                  // 1. Descobrir os quartos que suportam a capacidade procurada
                   const capExigida = Math.ceil(adultos / totalQuartos);
                   const quartosValidosParaGrupo = hotel.tipos_quarto && hotel.tipos_quarto.length > 0
                     ? hotel.tipos_quarto.filter(q => q.capacidade >= capExigida)
@@ -563,7 +577,6 @@ function HoteisPageContent() {
 
                   const semVagasParaGrupo = quartosValidosParaGrupo.length === 0;
 
-                  // 2. O preço base de partida deve ser o quarto mais barato DENTRE OS QUARTOS VÁLIDOS
                   const quartoPartida = !semVagasParaGrupo 
                     ? quartosValidosParaGrupo.reduce((prev, curr) => (curr.preco_quarto < prev.preco_quarto ? curr : prev))
                     : null;
@@ -571,7 +584,6 @@ function HoteisPageContent() {
                   const precoBase = quartoPartida ? quartoPartida.preco_quarto : parseValor(hotel.quarto_standard_preco || hotel.preco_medio);
                   const imagemAExibir = hotel.imagem_url || quartoPartida?.imagem_url || FALLBACK_IMAGE;
 
-                  // 3. Captura os dados calculados em lote da API da Railway
                   const dadosDinamicos = precosDinamicos[hotel.id];
                   const esgotadoPelaApi = dadosDinamicos && !dadosDinamicos.disponivel;
                   const eInvalidoOuEsgotado = semVagasParaGrupo || esgotadoPelaApi || (dadosDinamicos?.motivo === 'capacidade');
@@ -618,7 +630,6 @@ function HoteisPageContent() {
                            ))}
                         </div>
 
-                        {/* MATEMÁTICA PROTEGIDA CONTRA DIÁRIA ENGANOSA */}
                         <div className="mt-auto pt-5 md:pt-6 border-t border-slate-100 flex flex-col sm:flex-row sm:items-end justify-between gap-5 md:gap-6">
                           <div className="text-left">
                              <p className="text-xs font-bold text-slate-500 mb-1">
