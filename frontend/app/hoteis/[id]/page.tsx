@@ -518,7 +518,7 @@ function HotelDetalheContent() {
                   <CheckCircle2 size={16} className="shrink-0 mt-0.5" />
                   <div>
                     <p className="text-[10px] md:text-xs font-black uppercase tracking-wider leading-tight">Datas Consultadas!</p>
-                    <p className="text-[9px] md:text-[10px] font-medium opacity-80 mt-1">Preços calculados e validados dinamicamente para {totalNoites} noite(s).</p>
+                    <p className="text-[9px] md:text-[10px] font-medium opacity-80 mt-1">Preços calculados e validados dinamicamente para {Math.max(1, Math.ceil((checkout.getTime() - checkin.getTime()) / (1000 * 3600 * 24)))} noite(s).</p>
                   </div>
                </div>
              )}
