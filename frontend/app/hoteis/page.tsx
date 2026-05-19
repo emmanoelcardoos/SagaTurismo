@@ -111,7 +111,6 @@ function HoteisPageContent() {
   const [quartos, setQuartos] = useState(1);
   const [showHospedesPopup, setShowHospedesPopup] = useState(false);
   
-  // ◄── ESTADO REATIVO DO BOTÃO RECUPERADO ──►
   const [isSearching, setIsSearching] = useState(false); 
 
   const [showCalendarPopup, setShowCalendarPopup] = useState(false);
@@ -261,7 +260,8 @@ function HoteisPageContent() {
     
     setShowCalendarPopup(false);
     setShowHospedesPopup(false);
-    // Remove o estado de carregamento do botão após concluir o push da rota
+    
+    // O fallback de 800ms é apenas caso a API seja tão rápida que o router demore, mas a união isSearching || carregandoPrecos segura a UX
     setTimeout(() => setIsSearching(false), 800);
   };
 
@@ -313,13 +313,15 @@ function HoteisPageContent() {
     : 1;
   const totalQuartos = quartos || 1;
 
+  // ◄── ESTADO UNIFICADO DE CARREGAMENTO PARA O BOTÃO ──►
+  const isSearchLoading = isSearching || carregandoPrecos;
+
   const renderMonth = () => {
     const ano = mesAtualCalendario.getFullYear();
     const mes = mesAtualCalendario.getMonth();
     const totalDias = diasDoMes(ano, mes);
     const primeiroDia = primeiroDiaDoMes(ano, mes);
 
-    // ◄── BLOQUEIO DE PASSADO NO CALENDÁRIO ──►
     const isMesAtualOuPassado = ano < hoje.getFullYear() || (ano === hoje.getFullYear() && mes <= hoje.getMonth());
 
     return (
@@ -451,8 +453,8 @@ function HoteisPageContent() {
             Alojamento Oficial. <span className="text-[#F9C400] block md:inline">Reserva Segura.</span>
           </h1>
 
-          {/* BARRA DE PESQUISA */}
-          <div ref={searchBarRef} className="bg-[#F9C400] p-1.5 md:p-2 rounded-[2rem] shadow-xl max-w-5xl flex flex-col md:flex-row gap-1.5 md:gap-2 relative z-50">
+          {/* BARRA DE PESQUISA ALINHADA - ITEMS-STRETCH */}
+          <div ref={searchBarRef} className="bg-[#F9C400] p-1.5 md:p-2 rounded-[2rem] shadow-xl max-w-5xl flex flex-col md:flex-row items-stretch gap-1.5 md:gap-2 relative z-50">
             <div className="bg-white flex-1 rounded-[1.5rem] px-4 md:px-5 py-3 flex items-center gap-3">
                <MapPin className="text-[#00577C] shrink-0" size={24} />
                <div className="text-left overflow-hidden">
@@ -513,16 +515,16 @@ function HoteisPageContent() {
                )}
             </div>
 
-            {/* ◄── BOTÃO DE PESQUISAR CORRIGIDO COM ESTADO E ESCALA ──► */}
+            {/* ◄── BOTÃO COM ESTADO REATIVO UNIFICADO E LARGURA FIXA PARA NÃO QUEBRAR O LAYOUT ──► */}
             <button 
               onClick={(e) => { e.stopPropagation(); handleBuscar(); }}
-              disabled={isSearching}
-              className="bg-slate-900 text-white px-8 md:px-10 py-4 md:py-0 rounded-[1.5rem] font-black text-xs md:text-sm uppercase tracking-widest hover:bg-black transition-all shadow-md shrink-0 flex items-center justify-center gap-2 h-[56px] md:h-auto active:scale-95 disabled:opacity-80 disabled:cursor-not-allowed"
+              disabled={isSearchLoading}
+              className="bg-slate-900 text-white w-full md:w-[180px] shrink-0 rounded-[1.5rem] font-black text-xs md:text-sm uppercase tracking-widest hover:bg-black transition-all shadow-md flex items-center justify-center gap-2 h-[56px] md:h-auto active:scale-95 disabled:opacity-80 disabled:cursor-not-allowed"
             >
-              {isSearching ? (
-                <><Loader2 size={16} className="animate-spin" /> Buscando...</>
+              {isSearchLoading ? (
+                <><Loader2 size={16} className="animate-spin shrink-0" /> Buscando...</>
               ) : (
-                <><Search size={16} /> Buscar</>
+                <><Search size={16} className="shrink-0" /> Buscar</>
               )}
             </button>
           </div>
@@ -557,7 +559,7 @@ function HoteisPageContent() {
                {!loading && <p className="text-sm font-bold text-slate-400 bg-white px-4 py-2 rounded-full border border-slate-200">{hoteisFiltrados.length} opções</p>}
             </div>
 
-            {loading || carregandoPrecos || isSearching ? (
+            {loading || isSearchLoading ? (
               <div className="space-y-6 md:space-y-8">
                 {[...Array(3)].map((_, i) => <HotelCardSkeleton key={i} />)}
               </div>
