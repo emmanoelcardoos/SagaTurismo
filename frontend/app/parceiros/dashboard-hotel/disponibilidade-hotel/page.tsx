@@ -291,7 +291,7 @@ export default function ExtranetDisponibilidadePage() {
               <span className="text-[11px] font-bold text-slate-400 block mt-0.5">{nomeHotel}</span>
             </div>
           </div>
-          <Link href="/parceiros/dashboard" className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#00577C] bg-slate-100 hover:bg-slate-200 border border-slate-200 px-4 py-2.5 rounded-full transition-all">
+          <Link href="/parceiros/dashboard-hotel" className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#00577C] bg-slate-100 hover:bg-slate-200 border border-slate-200 px-4 py-2.5 rounded-full transition-all">
             <ArrowLeft size={14} /> <span>Voltar ao Hub</span>
           </Link>
         </div>
