@@ -874,9 +874,6 @@ export default function HomePage() {
         </div>
 
         <div className="relative z-10 mx-auto max-w-7xl px-5 md:px-6 text-left md:text-center flex flex-col items-start md:items-center w-full">
-          <div className="inline-flex items-center gap-2 bg-[#F9C400] text-[#00577C] px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 md:mb-8 shadow-sm">
-            <ShieldCheck size={14}/> Portal Oficial de Turismo
-          </div>
           <h1 className={`${jakarta.className} text-4xl sm:text-5xl md:text-7xl font-black text-white leading-tight mb-4 md:mb-6 drop-shadow-lg max-w-4xl`}>
             Descubra a beleza natural do <span className="text-[#F9C400] block md:inline">Araguaia.</span>
           </h1>
