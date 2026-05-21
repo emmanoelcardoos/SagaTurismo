@@ -765,7 +765,7 @@ export default function HomePage() {
       if (data && data.length > 0) {
         setHeroSlides(data);
       } else {
-        // Fallback de segurança
+        // Fallback de segurança (suavizado com película azul fraca)
         setHeroSlides([{
           id: 'fallback',
           imagem_url: 'https://images.unsplash.com/photo-1442850473887-0fb77cd0b337?q=80&w=1740&auto=format&fit=crop',
@@ -887,7 +887,7 @@ export default function HomePage() {
         )}
       </header>
 
-      {/* HERO SECTION DINÂMICA & ROTATIVA */}
+      {/* HERO SECTION DINÂMICA & ROTATIVA (ATUALIZADA) */}
       <section className="relative min-h-[75vh] md:min-h-[90vh] flex items-center justify-center pt-28 pb-16 md:pt-32 md:pb-24 overflow-hidden bg-[#002f40]">
         
         {/* ── MAPEAR AS IMAGENS COM FADE IN/OUT ── */}
@@ -903,16 +903,18 @@ export default function HomePage() {
               alt="São Geraldo do Araguaia" 
               fill 
               priority={index === 0}
-              className="object-cover opacity-30" 
+              // AUMENTADA OPACIDADE DA IMAGEM PARA 60%
+              className="object-cover opacity-60" 
             />
           </div>
         ))}
-        <div className="absolute inset-0 bg-[#002f40]/70 z-0 pointer-events-none" />
+        {/* REDUZIDA OPACIDADE DA PELÍCULA PARA 40% (ANTES 70%) */}
+        <div className="absolute inset-0 bg-[#002f40]/40 z-0 pointer-events-none" />
 
         {/* ── CONTEÚDO TEXTUAL DINÂMICO ── */}
         <div className="relative z-10 mx-auto max-w-7xl px-5 md:px-6 text-left md:text-center flex flex-col items-start md:items-center w-full">
           
-          <div className="relative w-full flex justify-center min-h-[160px] md:min-h-[200px]">
+          <div className="relative w-full flex justify-center min-h-[220px] md:min-h-[260px]">
             {heroSlides.map((slide, index) => (
               <div 
                 key={`text-${slide.id}`}
@@ -926,24 +928,24 @@ export default function HomePage() {
                 <p className="text-base sm:text-lg md:text-xl text-white/80 font-medium max-w-2xl mb-8 md:mb-12">
                   {slide.subtitulo}
                 </p>
+
+                {/* ── BOTÕES DE AÇÃO MOVIDOS PARA DENTRO DO LOOP (NÃO FIXOS) ── */}
+                <div className="flex flex-col sm:flex-row items-center gap-3 md:gap-4 w-full sm:w-auto mt-4 md:mt-8">
+                  <Link
+                    href="/roteiro"
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-[#F9C400] hover:bg-[#e5b500] text-[#00577C] px-8 md:px-10 py-4 md:py-5 rounded-[1.5rem] font-black text-xs md:text-sm uppercase tracking-widest transition-all shadow-xl hover:-translate-y-1"
+                  >
+                    Explorar Roteiros <ArrowRight size={18} />
+                  </Link>
+                  <Link
+                    href="/cadastro"
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white px-8 md:px-10 py-4 md:py-5 rounded-[1.5rem] font-black text-xs md:text-sm uppercase tracking-widest transition-all hover:-translate-y-1"
+                  >
+                    Cartão Residente
+                  </Link>
+                </div>
               </div>
             ))}
-          </div>
-
-          {/* ── BOTÕES DE AÇÃO FIXOS ── */}
-          <div className="flex flex-col sm:flex-row items-center gap-3 md:gap-4 w-full sm:w-auto mt-4 md:mt-8">
-            <Link
-              href="/roteiro"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-[#F9C400] hover:bg-[#e5b500] text-[#00577C] px-8 md:px-10 py-4 md:py-5 rounded-[1.5rem] font-black text-xs md:text-sm uppercase tracking-widest transition-all shadow-xl hover:-translate-y-1"
-            >
-              Explorar Roteiros <ArrowRight size={18} />
-            </Link>
-            <Link
-              href="/cadastro"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white px-8 md:px-10 py-4 md:py-5 rounded-[1.5rem] font-black text-xs md:text-sm uppercase tracking-widest transition-all hover:-translate-y-1"
-            >
-              Cartão Residente
-            </Link>
           </div>
 
           {/* ── INDICADORES (DOTS) PARA NAVEGAÇÃO ── */}
@@ -1116,7 +1118,7 @@ export default function HomePage() {
 
             <p className="mt-4 md:mt-5 text-sm md:text-base leading-relaxed text-slate-600">
               Mais do que visitar lugares, o turismo local também fortalece memórias,
-              histórias, economia e orgulho de pertencimento.
+              histórias, economy e orgulho de pertencimento.
             </p>
           </div>
         </div>
