@@ -7,7 +7,7 @@ import {
   Loader2, ArrowLeft, Calendar as CalendarIcon, 
   CheckCircle2, Save, ToggleLeft, 
   ToggleRight, Info, Bed, ChevronLeft, ChevronRight,
-  Plus, Trash2, Layers, DollarSign, Users
+  Plus, Trash2, Layers, DollarSign, Users, CreditCard, Settings
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -15,7 +15,6 @@ import { supabase } from '@/lib/supabase';
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['600', '700', '800'] });
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'] });
 
-// ── TIPAGENS ALINHADAS AO SCHEMA REAL DA BASE DE DADOS ──
 type QuartoCategoria = {
   id: string;
   nome_quarto: string;
@@ -53,6 +52,10 @@ export default function ExtranetDisponibilidadePage() {
   const [statusFeedback, setStatusFeedback] = useState<{ tipo: 'sucesso' | 'erro', texto: string } | null>(null);
   const [mesNavegacao, setMesNavegacao] = useState<Date>(new Date());
 
+  // ── CONFIGURAÇÃO FINANCEIRA DE PARCELAS ──
+  const [maxParcelasSemJuros, setMaxParcelasSemJuros] = useState<number>(0);
+  const [salvandoConfigFinanceira, setSalvandoConfigFinanceira] = useState(false);
+
   // ── ABA 1: QUARTOS ──
   const [quartos, setQuartos] = useState<QuartoCategoria[]>([]);
   const [mostrarFormQuarto, setMostrarFormQuarto] = useState(false);
@@ -88,6 +91,7 @@ export default function ExtranetDisponibilidadePage() {
     if (!hotelId) return;
 
     async function carregarDadosExtranet() {
+      // 1. Carrega dados estruturais das categorias de quartos
       const { data: qData } = await supabase
         .from('tipos_quarto')
         .select('*')
@@ -101,6 +105,18 @@ export default function ExtranetDisponibilidadePage() {
         }
       }
 
+      // 2. Carrega a configuração de juros direto da tabela pai (hoteis) ◄── NOVO!
+      const { data: hData } = await supabase
+        .from('hoteis')
+        .select('max_parcelas_sem_juros')
+        .eq('id', hotelId)
+        .single();
+      
+      if (hData) {
+        setMaxParcelasSemJuros(hData.max_parcelas_sem_juros || 0);
+      }
+
+      // 3. Carrega o calendário de restrições temporárias
       const { data: dData } = await supabase
         .from('disponibilidade_hoteis')
         .select('*')
@@ -136,7 +152,29 @@ export default function ExtranetDisponibilidadePage() {
 
   const formatarMoeda = (valor: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
 
-  // ── INSERÇÃO ALINHADA AO SCHEMA RIGOROSO DA BD ──
+  // ── ATUALIZAÇÃO DA POLÍTICA DE JUROS INDEPENDENTE ──►
+  const handleAtualizarPoliticaJuros = async (numParcelas: number) => {
+    if (!hotelId) return;
+    setSalvandoConfigFinanceira(true);
+    setStatusFeedback(null);
+
+    try {
+      const { error } = await supabase
+        .from('hoteis')
+        .update({ max_parcelas_sem_juros: numParcelas })
+        .eq('id', hotelId);
+
+      if (error) throw error;
+
+      setMaxParcelasSemJuros(numParcelas);
+      setStatusFeedback({ tipo: 'sucesso', texto: 'Estratégia financeira de parcelamento atualizada com sucesso no gateway!' });
+    } catch (err: any) {
+      setStatusFeedback({ tipo: 'erro', texto: err.message || 'Erro ao injetar regras de juros na base de dados.' });
+    } finally {
+      setSalvandoConfigFinanceira(false);
+    }
+  };
+
   const handleCriarQuarto = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!hotelId || !fImagem) return;
@@ -152,22 +190,15 @@ export default function ExtranetDisponibilidadePage() {
         .from('galeria')
         .upload(nomeFicheiroUnico, fImagem);
 
-      if (uploadError) {
-        if (uploadError.message.includes('Bucket not found')) {
-          throw new Error('O Bucket "galeria" não existe no Supabase. Cria o bucket em Storage e coloca como Public.');
-        }
-        throw uploadError;
-      }
+      if (uploadError) throw uploadError;
 
       const { data: urlData } = supabase.storage.from('galeria').getPublicUrl(nomeFicheiroUnico);
       const publicImageUrl = urlData.publicUrl;
 
-      // Conversão segura de dados
       const precoNumber = parseFloat(fPrecoBase.replace(',', '.'));
       const estoqueNumber = parseInt(fEstoque);
       const slugGerado = fNome.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w\-]+/g, '');
 
-      // Inserção EXATAMENTE de acordo com o CSV da tabela tipos_quarto
       const { error: dbError } = await supabase
         .from('tipos_quarto')
         .insert([{
@@ -187,7 +218,6 @@ export default function ExtranetDisponibilidadePage() {
       setMostrarFormQuarto(false);
       setFNome(''); setFPrecoBase(''); setFEstoque(''); setFCapacidade(''); setFDescricao(''); setFImagem(null);
       
-      // Força recarregamento da página para mostrar o novo quarto instantaneamente
       window.location.reload(); 
     } catch (err: any) {
       setStatusFeedback({ tipo: 'erro', texto: err.message || 'Falha ao processar operação.' });
@@ -282,6 +312,7 @@ export default function ExtranetDisponibilidadePage() {
   return (
     <div className={`${inter.className} min-h-screen bg-slate-50 text-slate-900 flex flex-col text-left`}>
       
+      {/* HEADER */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-50 px-4 md:px-10 py-4">
         <div className="mx-auto max-w-6xl flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
@@ -299,6 +330,7 @@ export default function ExtranetDisponibilidadePage() {
 
       <div className="mx-auto w-full max-w-6xl px-4 py-6 md:py-12 flex-1 flex flex-col gap-6 md:gap-8">
         
+        {/* NAVEGAÇÃO ABAS */}
         <div className="flex border-b border-slate-200 bg-white p-2 rounded-2xl border shadow-sm gap-2">
           <button 
             onClick={() => { setAbaAtiva('quartos'); setStatusFeedback(null); }}
@@ -314,6 +346,7 @@ export default function ExtranetDisponibilidadePage() {
           </button>
         </div>
 
+        {/* FEEDBACK STATUS */}
         {statusFeedback && (
           <div className={`p-4 rounded-xl border flex items-start gap-3 animate-in fade-in duration-300 ${statusFeedback.tipo === 'sucesso' ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'}`}>
              <CheckCircle2 size={18} className="shrink-0 mt-0.5 text-current" />
@@ -321,11 +354,47 @@ export default function ExtranetDisponibilidadePage() {
           </div>
         )}
 
-        {/* ─── ABA 1: MEUS QUARTOS ─── */}
+        {/* ─── ABA 1: MEUS QUARTOS (INVENTÁRIO + REGRA DE JUROS) ─── */}
         {abaAtiva === 'quartos' && (
-          <div className="space-y-6">
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="space-y-8">
+            
+            {/* ◄── 💳 NOVO CARD: CONFIGURAÇÃO FINANCEIRA DE PARCELAMENTO SELETIVO ──► */}
+            <section className="bg-white border-2 border-dashed border-[#0085FF]/20 rounded-[2rem] p-6 md:p-8 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="flex items-start gap-4 text-left">
+                <div className="bg-blue-50 p-4 rounded-2xl text-[#0085FF] shrink-0 border border-blue-100 shadow-sm">
+                  <CreditCard size={24}/>
+                </div>
+                <div>
+                  <h3 className={`${jakarta.className} text-xl font-black text-slate-900 flex items-center gap-2`}>Estratégia de Parcelamento (Gateway PagBank)</h3>
+                  <p className="text-xs text-slate-500 font-medium mt-1 leading-relaxed max-w-xl">
+                    Escolha se o seu estabelecimento irá absorver o custo financeiro do parcelamento para o cliente comprar <strong>Sem Juros</strong>. As taxas de antecipação serão descontadas de forma automatizada apenas do seu split de repasse.
+                  </p>
+                </div>
+              </div>
               
+              <div className="w-full md:w-auto shrink-0 flex items-center gap-3 bg-slate-50 border border-slate-200 p-2 rounded-2xl shadow-inner">
+                <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider pl-2">Oferecer:</span>
+                <select 
+                  disabled={salvandoConfigFinanceira}
+                  value={maxParcelasSemJuros} 
+                  onChange={(e) => handleAtualizarPoliticaJuros(Number(e.target.value))}
+                  className="bg-white text-slate-800 font-black text-xs md:text-sm px-4 py-3 border border-slate-200 rounded-xl cursor-pointer outline-none shadow-sm focus:border-[#0085FF]"
+                >
+                  <option value={0}>Bloqueado (Juros por conta do Cliente)</option>
+                  <option value={2}>Até 2x Sem Juros (Hotel assume)</option>
+                  <option value={3}>Até 3x Sem Juros (Hotel assume)</option>
+                  <option value = {4}>Até 4x Sem Juros (Hotel assume)</option>
+                  <option value={5}>Até 5x Sem Juros (Hotel assume)</option>
+                  <option value={6}>Até 6x Sem Juros (Hotel assume)</option>
+                  <option value={10}>Até 10x Sem Juros (Hotel assume)</option>
+                  <option value={12}>Até 12x Sem Juros (Hotel assume)</option>
+                </select>
+                {salvandoConfigFinanceira && <Loader2 size={16} className="animate-spin text-[#0085FF] mr-2" />}
+              </div>
+            </section>
+
+            {/* GRID DE QUARTOS */}
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {quartos.map((q) => (
                 <article key={q.id} className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col group hover:shadow-md transition-shadow">
                   <div className="relative h-44 w-full bg-slate-100">
@@ -355,6 +424,7 @@ export default function ExtranetDisponibilidadePage() {
               </button>
             </div>
 
+            {/* FORMULÁRIO DE NOVO QUARTO */}
             {mostrarFormQuarto && (
               <div className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden p-6 md:p-8 max-w-2xl mx-auto animate-in slide-in-from-bottom-4 duration-300">
                 <h3 className={`${jakarta.className} text-lg font-black text-slate-900 mb-6 border-b border-slate-100 pb-3 flex items-center gap-2`}><Plus size={20} className="text-[#0085FF]"/> Novo Quarto</h3>
@@ -400,11 +470,9 @@ export default function ExtranetDisponibilidadePage() {
           </div>
         )}
 
-        {/* ─── ABA 2: CALENDÁRIO ─── */}
+        {/* ─── ABA 2: CALENDÁRIO TARIFÁRIO (INALTERADO) ─── */}
         {abaAtiva === 'calendario' && (
           <div className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden grid lg:grid-cols-[1fr_340px]">
-            
-            {/* ESQUERDA: MAPA */}
             <div className="p-5 md:p-8 border-b lg:border-b-0 lg:border-r border-slate-100 flex flex-col gap-6">
               <div>
                 <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2.5">Selecione o Quarto</label>
@@ -489,7 +557,6 @@ export default function ExtranetDisponibilidadePage() {
               )}
             </div>
 
-            {/* DIREITA: CONTROLO */}
             <div className="flex flex-col bg-slate-50/50 border-t lg:border-t-0 lg:border-l border-slate-100">
               <form onSubmit={handleSalvarCalendario} className="p-6 space-y-6 flex-1">
                 <h4 className={`${jakarta.className} text-sm font-black uppercase text-[#00577C] tracking-wider flex items-center gap-1.5`}><DollarSign size={16}/> Ajustar Período</h4>
@@ -522,7 +589,6 @@ export default function ExtranetDisponibilidadePage() {
                 </button>
               </form>
 
-              {/* Histórico Limpar Tarifas */}
               <div className="p-6 border-t border-slate-100 bg-white mt-auto">
                 <label className="text-[10px] font-black uppercase tracking-widest text-red-500 block mb-3">Limpar Tarifas Customizadas</label>
                 <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
