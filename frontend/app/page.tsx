@@ -94,26 +94,13 @@ type FotoGaleria = {
   titulo: string;
 };
 
-// ==========================================
-// DADOS ESTÁTICOS
-// ==========================================
-const atracoes = [
-  {
-    title: 'Serra das Andorinhas',
-    desc: 'Um dos maiores símbolos naturais da região, com paisagens marcantes, trilhas, mirantes e o espetáculo das andorinhas ao entardecer.',
-    icon: Mountain,
-  },
-  {
-    title: 'Rio Araguaia',
-    desc: 'Cenário perfeito para lazer, pesca, banho, passeios e contemplação da natureza às margens de um dos rios mais conhecidos do Brasil.',
-    icon: Waves,
-  },
-  {
-    title: 'Trilhas e Ecoturismo',
-    desc: 'Experiências em meio à vegetação, formações rochosas, fauna local e paisagens que revelam a força natural do sul do Pará.',
-    icon: TreePine,
-  },
-];
+type HeroSlide = {
+  id: string;
+  imagem_url: string;
+  titulo_inicio: string;
+  palavra_destaque: string;
+  subtitulo: string;
+};
 
 
 // ==========================================
@@ -762,6 +749,46 @@ export default function HomePage() {
   const [lastScrollY, setLastScrollY] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  // ── ESTADOS DA HERO SECTION ──
+  const [heroSlides, setHeroSlides] = useState<HeroSlide[]>([]);
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  // 1. Buscar os slides ao Supabase
+  useEffect(() => {
+    async function fetchHeroSlides() {
+      const { data } = await supabase
+        .from('hero_slides')
+        .select('*')
+        .eq('ativo', true)
+        .order('ordem', { ascending: true });
+
+      if (data && data.length > 0) {
+        setHeroSlides(data);
+      } else {
+        // Fallback de segurança
+        setHeroSlides([{
+          id: 'fallback',
+          imagem_url: 'https://images.unsplash.com/photo-1442850473887-0fb77cd0b337?q=80&w=1740&auto=format&fit=crop',
+          titulo_inicio: 'Descubra a beleza natural do ',
+          palavra_destaque: 'Araguaia.',
+          subtitulo: 'Rios, serras, trilhas e paisagens inesquecíveis. Viva experiências únicas com a segurança da Prefeitura Municipal.'
+        }]);
+      }
+    }
+    fetchHeroSlides();
+  }, []);
+
+  // 2. Lógica de Rotação Automática (15 segundos)
+  useEffect(() => {
+    if (heroSlides.length <= 1) return;
+
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
+    }, 15000);
+
+    return () => clearInterval(timer);
+  }, [heroSlides.length]);
+
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
@@ -860,28 +887,51 @@ export default function HomePage() {
         )}
       </header>
 
-      {/* HERO SECTION SÓBRIA & OFICIAL */}
+      {/* HERO SECTION DINÂMICA & ROTATIVA */}
       <section className="relative min-h-[75vh] md:min-h-[90vh] flex items-center justify-center pt-28 pb-16 md:pt-32 md:pb-24 overflow-hidden bg-[#002f40]">
-        <div className="absolute inset-0 z-0 pointer-events-none">
-          <Image 
-            src="https://images.unsplash.com/photo-1442850473887-0fb77cd0b337?q=80&w=1740&auto=format&fit=crop" 
-            alt="São Geraldo do Araguaia" 
-            fill 
-            priority
-            className="object-cover opacity-30" 
-          />
-          <div className="absolute inset-0 bg-[#002f40]/70" />
-        </div>
+        
+        {/* ── MAPEAR AS IMAGENS COM FADE IN/OUT ── */}
+        {heroSlides.map((slide, index) => (
+          <div 
+            key={slide.id}
+            className={`absolute inset-0 z-0 pointer-events-none transition-opacity duration-1000 ease-in-out ${
+              index === currentSlide ? 'opacity-100' : 'opacity-0'
+            }`}
+          >
+            <Image 
+              src={slide.imagem_url} 
+              alt="São Geraldo do Araguaia" 
+              fill 
+              priority={index === 0}
+              className="object-cover opacity-30" 
+            />
+          </div>
+        ))}
+        <div className="absolute inset-0 bg-[#002f40]/70 z-0 pointer-events-none" />
 
+        {/* ── CONTEÚDO TEXTUAL DINÂMICO ── */}
         <div className="relative z-10 mx-auto max-w-7xl px-5 md:px-6 text-left md:text-center flex flex-col items-start md:items-center w-full">
-          <h1 className={`${jakarta.className} text-4xl sm:text-5xl md:text-7xl font-black text-white leading-tight mb-4 md:mb-6 drop-shadow-lg max-w-4xl`}>
-            Descubra a beleza natural do <span className="text-[#F9C400] block md:inline">Araguaia.</span>
-          </h1>
-          <p className="text-base sm:text-lg md:text-xl text-white/80 font-medium max-w-2xl mb-8 md:mb-12">
-            Rios, serras, trilhas e paisagens inesquecíveis. Viva experiências únicas com a segurança da Prefeitura Municipal.
-          </p>
+          
+          <div className="relative w-full flex justify-center min-h-[160px] md:min-h-[200px]">
+            {heroSlides.map((slide, index) => (
+              <div 
+                key={`text-${slide.id}`}
+                className={`absolute top-0 transition-all duration-1000 ease-in-out w-full flex flex-col md:items-center ${
+                  index === currentSlide ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
+                }`}
+              >
+                <h1 className={`${jakarta.className} text-4xl sm:text-5xl md:text-7xl font-black text-white leading-tight mb-4 md:mb-6 drop-shadow-lg max-w-4xl`}>
+                  {slide.titulo_inicio} <span className="text-[#F9C400] block md:inline">{slide.palavra_destaque}</span>
+                </h1>
+                <p className="text-base sm:text-lg md:text-xl text-white/80 font-medium max-w-2xl mb-8 md:mb-12">
+                  {slide.subtitulo}
+                </p>
+              </div>
+            ))}
+          </div>
 
-          <div className="flex flex-col sm:flex-row items-center gap-3 md:gap-4 w-full sm:w-auto">
+          {/* ── BOTÕES DE AÇÃO FIXOS ── */}
+          <div className="flex flex-col sm:flex-row items-center gap-3 md:gap-4 w-full sm:w-auto mt-4 md:mt-8">
             <Link
               href="/roteiro"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-[#F9C400] hover:bg-[#e5b500] text-[#00577C] px-8 md:px-10 py-4 md:py-5 rounded-[1.5rem] font-black text-xs md:text-sm uppercase tracking-widest transition-all shadow-xl hover:-translate-y-1"
@@ -895,6 +945,24 @@ export default function HomePage() {
               Cartão Residente
             </Link>
           </div>
+
+          {/* ── INDICADORES (DOTS) PARA NAVEGAÇÃO ── */}
+          {heroSlides.length > 1 && (
+            <div className="absolute -bottom-12 md:-bottom-16 left-1/2 -translate-x-1/2 flex items-center gap-2">
+              {heroSlides.map((_, index) => (
+                <button
+                  key={`dot-${index}`}
+                  onClick={() => setCurrentSlide(index)}
+                  className={`transition-all duration-300 rounded-full ${
+                    index === currentSlide 
+                      ? 'w-8 h-2 bg-[#F9C400]' 
+                      : 'w-2 h-2 bg-white/40 hover:bg-white/80'
+                  }`}
+                  aria-label={`Ir para o slide ${index + 1}`}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
