@@ -354,7 +354,7 @@ async def atualizar_disponibilidade_parceiro(item_id: str, payload: Disponibilid
         print(f"[ERRO ATUALIZAR DISPONIBILIDADE] {e}")
         raise HTTPException(status_code=500, detail="Erro interno ao salvar as alterações.")
     
-# ── 🔄 MOTOR DE CÁLCULO PÚBLICO ULTRA REATIVO REESCRITO DESDO ZERO ──
+# ── 🔄 MOTOR DE CÁLCULO PÚBLICO ULTRA REATIVO REESCRITO DESDE O ZERO ──
 
 @router.get("/api/v1/public/hoteis/{hotel_id}/calcular-preco", tags=["Consultas Públicas"])
 async def obter_preco_hospedagem_publico(
@@ -363,9 +363,10 @@ async def obter_preco_hospedagem_publico(
     if not checkin or not checkout:
         raise HTTPException(status_code=400, detail="Check-in and Check-out dates are required.")
     try:
-        # 1. Busca a taxa de acompanhante extra diretamente na tabela hoteis
-        res_h = supabase.table("hoteis").select("porcentagem_acompanhante").eq("id", hotel_id).single().execute()
+        # 1. Busca a taxa de acompanhante extra e o limite de parcelas diretamente na tabela hoteis ◄── MODIFICADO
+        res_h = supabase.table("hoteis").select("porcentagem_acompanhante, max_parcelas_sem_juros").eq("id", hotel_id).single().execute()
         pct_acompanhante = float(res_h.data.get("porcentagem_acompanhante") or 0.0) if res_h.data else 0.0
+        max_parcelas = int(res_h.data.get("max_parcelas_sem_juros") or 0) if res_h.data else 0
         
         # 2. Varre a tabela estrutural tipos_quarto para encontrar o preço base definido na extranet
         res_q = supabase.table("tipos_quarto").select("*").eq("hotel_id", hotel_id).eq("nome_quarto", tipo_quarto).execute()
@@ -420,12 +421,13 @@ async def obter_preco_hospedagem_publico(
             
         total_noites = (d_fim - datetime.strptime(checkin, "%Y-%m-%d").date()).days
         
-        # Retorno limpo e corrigido (sem a multiplicação duplicada por quantidade)
+        # Retorno limpo e corrigido com a injeção do parcelamento seletivo ◄── MODIFICADO
         return {
             "sucesso": True, 
             "disponivel": True, 
             "valor_total": round(valor_total_real, 2), 
-            "noites": total_noites if total_noites > 0 else 1
+            "noites": total_noites if total_noites > 0 else 1,
+            "max_parcelas_sem_juros": max_parcelas
         }
     except Exception as e:
         print(f"[ERRO CALCULO PUBLICO PRECO] {e}")
