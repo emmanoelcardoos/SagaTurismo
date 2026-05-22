@@ -295,7 +295,7 @@ function CheckoutHotelContent() {
     }
 
     setPassoAtual(prev => prev + 1);
-    window.scrollTo({ top: 0, behavior: 'smooth' }); // Mantém o cliente no topo da nova etapa
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleVoltarPasso = () => {
@@ -477,16 +477,13 @@ function CheckoutHotelContent() {
             {!qrCodeData ? (
               <form onSubmit={handlePagamento} className="relative w-full">
                 
-                {/* ── CARROUSSEL DOS CARDS (OVERFLOW HIDDEN) ── */}
-                <div className="overflow-hidden w-full pb-2">
-                  <div 
-                    className="flex transition-transform duration-500 ease-in-out" 
-                    style={{ transform: `translateX(-${(passoAtual - 1) * 100}%)` }}
-                  >
-                    
-                    {/* PASSO 1: IDENTIFICAÇÃO */}
-                    <div className="w-full shrink-0 px-[2px]">
-                      <SectionCard className="p-6 md:p-10 text-left h-full">
+                {/* ── RENDERIZAÇÃO CONDICIONAL POR PASSO (Resolve a altura e cortes) ── */}
+                <div className="w-full relative">
+                  
+                  {/* PASSO 1: IDENTIFICAÇÃO */}
+                  {passoAtual === 1 && (
+                    <div className="w-full animate-in slide-in-from-right-8 fade-in duration-500">
+                      <SectionCard className="p-6 md:p-10 text-left">
                         <SectionHeader step={1} title="Dados de Identificação" icon={<Users size={20} />} />
                         
                         <div className="space-y-4">
@@ -555,10 +552,12 @@ function CheckoutHotelContent() {
                         )}
                       </SectionCard>
                     </div>
+                  )}
 
-                    {/* PASSO 2: FATURAÇÃO */}
-                    <div className="w-full shrink-0 px-[2px]">
-                      <SectionCard className="p-6 md:p-10 text-left h-full">
+                  {/* PASSO 2: FATURAÇÃO */}
+                  {passoAtual === 2 && (
+                    <div className="w-full animate-in slide-in-from-right-8 fade-in duration-500">
+                      <SectionCard className="p-6 md:p-10 text-left">
                         <SectionHeader step={2} title="Endereço de Faturação" icon={<Home size={20} />} />
                         <div className="grid gap-5 md:gap-6 sm:grid-cols-2">
                           <div className="sm:col-span-2 grid grid-cols-[1fr_100px] gap-4">
@@ -572,10 +571,12 @@ function CheckoutHotelContent() {
                         </div>
                       </SectionCard>
                     </div>
+                  )}
 
-                    {/* PASSO 3: PAGAMENTO */}
-                    <div className="w-full shrink-0 px-[2px]">
-                      <SectionCard className="p-6 md:p-10 text-left h-full">
+                  {/* PASSO 3: PAGAMENTO */}
+                  {passoAtual === 3 && (
+                    <div className="w-full animate-in slide-in-from-right-8 fade-in duration-500">
+                      <SectionCard className="p-6 md:p-10 text-left">
                         <SectionHeader step={3} title="Método de Pagamento" icon={<Wallet size={20} />} />
                         <div className="grid grid-cols-2 gap-4 mb-8">
                           <button type="button" onClick={() => setMetodoPagamento('pix')} className={`flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border-2 transition-all ${metodoPagamento === 'pix' ? 'border-[#009640] bg-[#009640]/5 text-[#009640]' : 'border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200'}`}>
@@ -602,24 +603,24 @@ function CheckoutHotelContent() {
                         )}
                       </SectionCard>
                     </div>
+                  )}
 
-                  </div>
                 </div>
 
                 {/* ── BOTÕES DE CONTROLE & ERRO ── */}
-                <div className="mt-6 space-y-4">
+                <div className="mt-6 space-y-4 w-full">
                   {erroApi && (
                     <div className="p-5 bg-red-50 text-red-700 rounded-2xl font-bold text-sm flex items-center gap-3 border border-red-100 animate-in slide-in-from-bottom-2">
                       <AlertCircle size={24} className="shrink-0"/> {erroApi}
                     </div>
                   )}
 
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-col sm:flex-row items-center gap-4 w-full">
                     {passoAtual > 1 && (
                       <button 
                         type="button" 
                         onClick={handleVoltarPasso} 
-                        className="px-6 py-5 rounded-[1.5rem] font-black text-slate-500 bg-white border-2 border-slate-200 hover:bg-slate-50 hover:text-slate-700 transition-all flex items-center gap-2"
+                        className="w-full sm:w-auto px-6 py-5 rounded-[1.5rem] font-black text-slate-500 bg-white border-2 border-slate-200 hover:bg-slate-50 hover:text-slate-700 transition-all flex items-center justify-center gap-2"
                       >
                         <ChevronLeft size={20} /> Voltar
                       </button>
@@ -629,7 +630,7 @@ function CheckoutHotelContent() {
                       <button 
                         type="button" 
                         onClick={handleAvançarPasso} 
-                        className="flex-1 py-5 rounded-[1.5rem] font-black text-xl text-white shadow-xl bg-[#0085FF] hover:bg-blue-600 transition-all active:scale-[0.98] flex items-center justify-center gap-3 ml-auto"
+                        className="w-full flex-1 py-5 rounded-[1.5rem] font-black text-xl text-white shadow-xl bg-[#0085FF] hover:bg-blue-600 transition-all active:scale-[0.98] flex items-center justify-center gap-3"
                       >
                         Avançar <ChevronRight size={24} />
                       </button>
@@ -637,7 +638,7 @@ function CheckoutHotelContent() {
                       <button 
                         type="submit" 
                         disabled={isSubmitting || loadingPreco || !acomodacaoDisponivel} 
-                        className="flex-1 py-5 rounded-[1.5rem] font-black text-xl text-white shadow-xl bg-slate-900 hover:bg-black transition-all active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed ml-auto"
+                        className="w-full flex-1 py-5 rounded-[1.5rem] font-black text-xl text-white shadow-xl bg-[#0085FF] hover:bg-blue-600 transition-all active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {isSubmitting ? <><Loader2 className="animate-spin" size={24}/> Processando...</> : loadingPreco ? 'Calculando Valor...' : !acomodacaoDisponivel ? 'Esgotado' : <><Lock size={22}/> Confirmar Reserva</>}
                       </button>
