@@ -10,7 +10,7 @@ export default function LoginPage() {
     
     // Substitua pela senha que deseja dar aos seus amigos
     if (password === 'caverna123') {
-      document.cookie = "projeto_autorizado=true; path=/; max-age=604800; SameSite=Strict";
+      document.cookie = "projeto_autorizado=true; path=/; max-age=3600; SameSite=Strict";
       window.location.href = '/';
     } else {
       setError(true);
