@@ -163,29 +163,42 @@ export default function ParceirosPage() {
     <main className={`${inter.className} min-h-screen bg-[#F5F7FA] text-slate-900 flex flex-col overflow-x-hidden`}>
       
       {/* ── HEADER ── */}
-      <header className={`fixed left-0 top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl transition-transform duration-300 ${showHeader ? 'translate-y-0' : '-translate-y-full'}`}>
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-5">
+      <header className="relative z-50 w-full bg-white border-b border-slate-200 py-4">
+        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6">
           <Link href="/" className="flex items-center gap-3">
-             <div className="relative h-10 w-28 md:h-16 md:w-56 shrink-0"><Image src="/logop.png" alt="SGA" fill priority className="object-contain object-left" /></div>
-             <div className="hidden border-l border-slate-200 pl-4 md:block text-left">
-               <p className={`${jakarta.className} text-xl font-bold text-[#00577C] leading-none`}>SagaTurismo</p>
-               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mt-1">Portal do Parceiro</p>
+             <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
+                {/* Removido o filtro invertido para manter as cores originais da logo */}
+                <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain" />
              </div>
           </Link>
-          <div className="flex items-center gap-2">
-            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="rounded-xl border border-slate-200 p-2 lg:hidden text-[#00577C] bg-slate-50">
-              {isMobileMenuOpen ? <X size={20}/> : <Menu size={20}/>}
-            </button>
-          </div>
-          <nav className="hidden lg:flex items-center gap-7 font-bold text-sm">
-            <Link href="/" className="text-slate-600 hover:text-[#00577C]">Voltar ao Portal</Link>
-            <a href="#cadastro" className="bg-[#F9C400] text-[#00577C] px-6 py-3 rounded-full hover:bg-[#ffd633] transition-all shadow-md">Seja um Parceiro</a>
+
+          <nav className="hidden lg:flex items-center gap-8">
+            {['Hoteis', 'Pacotes', 'Roteiros','Passeios', 'Aldeias', 'Eventos', 'Biodiversidade', 'Gastronomia', 'Comunidades'].map(item => (
+              <Link key={item} href={`/${item.toLowerCase()}`} className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-slate-600 hover:text-[#00577C] transition-colors`}>
+                {item}
+              </Link>
+            ))}
+            <Link href="/portal-servicos" className={`${jakarta.className} bg-[#F9C400] text-[#002f40] px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-sm`}>
+              Portal Serviços
+            </Link>
           </nav>
+
+          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="rounded-xl p-2 lg:hidden bg-slate-50 text-[#00577C] hover:bg-slate-100 transition-colors">
+            {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
         </div>
+
+        {/* Menu Mobile */}
         {isMobileMenuOpen && (
-          <div className="absolute top-[100%] left-0 w-full bg-white border-b border-slate-200 p-5 flex flex-col gap-4 shadow-xl lg:hidden text-left animate-in slide-in-from-top-4">
-            <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="font-bold text-slate-700 text-lg">Voltar ao Portal</Link>
-            <a href="#cadastro" onClick={() => setIsMobileMenuOpen(false)} className="bg-[#F9C400] text-[#00577C] font-black px-4 py-3.5 rounded-xl text-center shadow-md">Seja um Parceiro</a>
+          <div className="absolute top-full left-0 w-full bg-white border-b border-slate-200 p-6 flex flex-col gap-4 shadow-2xl lg:hidden z-50">
+            <Link href="/rotas" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Rotas Turísticas</Link>
+            <Link href="/eventos" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Agenda Cultural</Link>
+            <Link href="/pacotes" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Pacotes</Link>
+            <Link href="/roteiro" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Roteiros</Link>
+            <Link href="/biodiversidade" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Biodiversidade</Link>
+            <Link href="/gastronomia" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Gastronomia</Link>
+            <Link href="/comunidades" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Comunidades</Link>
+            <Link href="/cadastro" className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md mt-2`}>Cartão Residente</Link>
           </div>
         )}
       </header>

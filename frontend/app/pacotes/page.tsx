@@ -145,27 +145,42 @@ export default function PacotesPage() {
     <main className={`${inter.className} min-h-screen bg-[#F5F7FA] text-slate-900 pb-20 md:pb-32 text-left`}>
 
       {/* HEADER */}
-      <header className={`fixed left-0 top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl transition-transform duration-300 ${showHeader ? 'translate-y-0' : '-translate-y-full'}`}>
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-5">
-          <Link href="/" className="flex items-center gap-3 shrink-0">
-            <div className="relative h-10 w-28 md:h-12 md:w-36 lg:h-16 lg:w-56 shrink-0"><Image src="/logop.png" alt="SagaTurismo" fill priority className="object-contain object-left" /></div>
+       <header className="relative z-50 w-full bg-white border-b border-slate-200 py-4">
+        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6">
+          <Link href="/" className="flex items-center gap-3">
+             <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
+                {/* Removido o filtro invertido para manter as cores originais da logo */}
+                <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain" />
+             </div>
           </Link>
-          <nav className="hidden lg:flex items-center gap-7 font-bold text-sm">
-            <Link href="/roteiro" className="text-slate-600 hover:text-[#00577C]">Rota Turística</Link>
-            <Link href="/hoteis" className="text-slate-600 hover:text-[#00577C]">Alojamentos</Link>
-            <Link href="/cadastro" className="rounded-full bg-[#F9C400] px-5 py-2.5 text-[#00577C] shadow-lg hover:bg-[#ffd633]">Cartão Residente</Link>
+
+          <nav className="hidden lg:flex items-center gap-8">
+            {['Hoteis', 'Pacotes', 'Roteiros','Passeios', 'Aldeias', 'Eventos', 'Biodiversidade', 'Gastronomia', 'Comunidades'].map(item => (
+              <Link key={item} href={`/${item.toLowerCase()}`} className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-slate-600 hover:text-[#00577C] transition-colors`}>
+                {item}
+              </Link>
+            ))}
+            <Link href="/cadastro" className={`${jakarta.className} bg-[#F9C400] text-[#002f40] px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-sm`}>
+              Cartão Residente
+            </Link>
           </nav>
-          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="lg:hidden p-2 text-[#00577C]">
-            {isMobileMenuOpen ? <X size={24}/> : <Menu size={24}/>}
+
+          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="rounded-xl p-2 lg:hidden bg-slate-50 text-[#00577C] hover:bg-slate-100 transition-colors">
+            {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
 
         {/* Menu Mobile */}
         {isMobileMenuOpen && (
-          <div className="absolute top-full left-0 w-full bg-white border-b border-slate-200 p-5 flex flex-col gap-4 shadow-xl lg:hidden animate-in slide-in-from-top-4">
-            <Link href="/roteiro" onClick={() => setIsMobileMenuOpen(false)} className="font-bold text-slate-700">Rota Turística</Link>
-            <Link href="/hoteis" onClick={() => setIsMobileMenuOpen(false)} className="font-bold text-slate-700">Alojamentos</Link>
-            <Link href="/cadastro" onClick={() => setIsMobileMenuOpen(false)} className="bg-[#F9C400] text-[#00577C] font-black px-4 py-3 rounded-xl text-center">Cartão Residente</Link>
+          <div className="absolute top-full left-0 w-full bg-white border-b border-slate-200 p-6 flex flex-col gap-4 shadow-2xl lg:hidden z-50">
+            <Link href="/rotas" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Rotas Turísticas</Link>
+            <Link href="/eventos" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Agenda Cultural</Link>
+            <Link href="/pacotes" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Pacotes</Link>
+            <Link href="/rotas" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Roteiros</Link>
+            <Link href="/biodiversidade" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Biodiversidade</Link>
+            <Link href="/gastronomia" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Gastronomia</Link>
+            <Link href="/comunidades" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Comunidades</Link>
+            <Link href="/cadastro" className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md mt-2`}>Cartão Residente</Link>
           </div>
         )}
       </header>

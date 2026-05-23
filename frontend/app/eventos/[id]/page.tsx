@@ -2,27 +2,52 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, ReactNode } from 'react';
 import { 
   ArrowLeft, MapPin, Menu, ChevronRight, 
-  Ticket, CalendarDays, Loader2, X
+  Ticket, CalendarDays, Loader2, X, Clock, Info, Navigation, ShieldCheck
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
-
-// Importa o cliente Supabase centralizado
 import { supabase } from '@/lib/supabase';
 
-const jakarta = Plus_Jakarta_Sans({
-  subsets: ['latin'],
-  weight: ['600', '700', '800'],
-});
+// ── FONTES PADRÃO DO SITE ──
+const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['600', '700', '800'] });
+const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'] });
 
-const inter = Inter({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-});
+// ── MOTOR DE ANIMAÇÕES DE SCROLL ──
+function useScrollAnimation(threshold = 0.1) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
 
-// Tipo do evento baseado na tabela da Supabase e no roteiro oficial
+  useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setIsVisible(true);
+        observer.unobserve(entry.target); 
+      }
+    }, { threshold });
+    if (ref.current) observer.observe(ref.current);
+    return () => { if (ref.current) observer.unobserve(ref.current); };
+  }, [threshold]);
+
+  return { ref, isVisible };
+}
+
+function AnimatedSection({ children, className = "", animation = "fade-up", delay = 0 }: { children: ReactNode; className?: string; animation?: "fade-up" | "fade-left" | "fade-right" | "zoom-in"; delay?: number; }) {
+  const { ref, isVisible } = useScrollAnimation();
+  let hiddenClass = "opacity-0 translate-y-12";
+  if (animation === "fade-left") hiddenClass = "opacity-0 translate-x-12";
+  if (animation === "fade-right") hiddenClass = "opacity-0 -translate-x-12";
+  if (animation === "zoom-in") hiddenClass = "opacity-0 scale-95";
+  
+  return (
+    <div ref={ref} className={`transition-all duration-1000 ease-out will-change-transform ${isVisible ? "opacity-100 translate-y-0 translate-x-0 scale-100" : hiddenClass} ${className}`} style={{ transitionDelay: `${delay}ms` }}>
+      {children}
+    </div>
+  );
+}
+
+// ── TIPAGEM ──
 type Evento = {
   id: string;
   titulo: string;
@@ -39,17 +64,13 @@ type Evento = {
 };
 
 export default function EventoDetalhePage({ params }: { params: { id: string } }) {
-  const [showHeader, setShowHeader] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   const [evento, setEvento] = useState<Evento | null>(null);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
 
-  // ==========================================
   // FETCH REAL NA SUPABASE
-  // ==========================================
   useEffect(() => {
     async function fetchEventoReal() {
       try {
@@ -59,15 +80,9 @@ export default function EventoDetalhePage({ params }: { params: { id: string } }
           .eq('id', params.id)
           .single(); 
 
-        if (error) {
-          throw new Error("Erro ao buscar o evento na base de dados.");
-        }
-
-        if (data) {
-          setEvento(data);
-        } else {
-          setErro("Evento não encontrado.");
-        }
+        if (error) throw new Error("Erro ao buscar o evento na base de dados.");
+        if (data) setEvento(data);
+        else setErro("Evento não encontrado.");
       } catch (err: any) {
         setErro(err.message || "Ocorreu um erro inesperado.");
       } finally {
@@ -75,49 +90,35 @@ export default function EventoDetalhePage({ params }: { params: { id: string } }
       }
     }
 
-    if (params.id) {
-      fetchEventoReal();
-    }
+    if (params.id) fetchEventoReal();
   }, [params.id]);
-
-  // Lógica de visibilidade do Header
-  useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      if (currentScrollY < 80) setShowHeader(true);
-      else if (currentScrollY > lastScrollY) setShowHeader(false);
-      else setShowHeader(true);
-      setLastScrollY(currentScrollY);
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [lastScrollY]);
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-white text-[#00577C]">
-        <Loader2 className="w-12 h-12 animate-spin mb-4" />
-        <p className="font-bold uppercase tracking-widest text-xs md:text-sm">A carregar evento...</p>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#002f40] text-white">
+        <Loader2 className="w-16 h-16 animate-spin mb-6 text-[#F9C400]" />
+        <p className={`${jakarta.className} font-black uppercase tracking-widest text-sm`}>Carregando evento...</p>
       </div>
     );
   }
 
   if (erro || !evento) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 text-slate-900 px-6 text-center">
-        <h1 className="text-3xl font-black mb-4">Informação não disponível</h1>
-        <p className="text-slate-500 mb-8 max-w-md">{erro || "Não foi possível carregar os detalhes do evento solicitado."}</p>
-        <Link href="/" className="bg-[#00577C] text-white px-8 py-4 rounded-full font-bold uppercase tracking-widest text-sm shadow-lg">
-          Voltar à Homepage
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#FDFCF7] text-slate-900 px-6 text-center">
+        <CalendarDays className="w-20 h-20 text-slate-300 mb-6" />
+        <h1 className={`${jakarta.className} text-5xl font-black mb-4 text-[#00577C]`}>Evento Indisponível</h1>
+        <p className="text-slate-500 mb-10 max-w-md text-lg">{erro || "Não foi possível carregar os detalhes do evento solicitado."}</p>
+        <Link href="/eventos" className="bg-[#F9C400] text-[#00577C] px-10 py-5 rounded-full font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 transition-transform">
+          Voltar à Agenda
         </Link>
       </div>
     );
   }
 
   // Formatação de Datas
-  const dataObj = new Date(evento.data);
-  const diasSemana = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
-  const meses = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
+  const dataObj = new Date(evento.data + 'T00:00:00'); 
+  const diasSemana = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+  const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
   
   const diaSemana = diasSemana[dataObj.getDay()];
   const diaMes = String(dataObj.getDate()).padStart(2, '0');
@@ -125,209 +126,215 @@ export default function EventoDetalhePage({ params }: { params: { id: string } }
   const ano = dataObj.getFullYear();
 
   return (
-    <main className={`${inter.className} min-h-screen bg-white text-slate-900`}>
+    <main className={`${inter.className} min-h-screen bg-[#FDFCF7] text-slate-900 overflow-x-hidden`}>
       
-      {/* HEADER INSTITUCIONAL */}
-      <header
-        className={`fixed left-0 top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl transition-transform duration-300 ${
-          showHeader ? 'translate-y-0' : '-translate-y-full'
-        }`}
-      >
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-5">
-          <Link href="/" className="flex min-w-0 items-center gap-3 sm:gap-4">
-            <div className="relative h-10 w-28 md:h-12 md:w-36 lg:h-16 lg:w-56 shrink-0">
-              <Image
-                src="/logop.png"
-                alt="Prefeitura de São Geraldo do Araguaia"
-                fill
-                priority
-                className="object-contain object-left"
-              />
-            </div>
-            <div className="hidden border-l border-slate-200 pl-4 lg:block">
-              <p className={`${jakarta.className} text-2xl font-bold leading-none text-[#00577C]`}>
-                SagaTurismo
-              </p>
-              <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
-                Secretaria de Turismo de São Geraldo do Araguaia
-              </p>
-            </div>
+      {/* ── HEADER ESTÁTICO (Fica no topo, não acompanha o scroll) ── */}
+      <header className="relative z-50 w-full bg-white border-b border-slate-200 py-4">
+        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6">
+          <Link href="/" className="flex items-center gap-3">
+             <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
+                {/* Removido o filtro invertido para manter as cores originais da logo */}
+                <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain" />
+             </div>
           </Link>
 
-          <nav className="hidden items-center gap-7 md:flex">
-            <Link href="/roteiro" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Rota Turística</Link>
-            <a href="/#eventos" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Eventos</a>
-            <a href="/hoteis" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Alojamentos</a>
-            <a href="/pacotes" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Pacotes</a>
-            <Link href="/cadastro" className="rounded-full bg-[#F9C400] px-5 py-3 text-sm font-bold text-[#00577C] shadow-lg transition hover:bg-[#ffd633]">Cartão Residente</Link>
+          <nav className="hidden lg:flex items-center gap-8">
+            {['Hoteis', 'Pacotes', 'Roteiros','Passeios', 'Aldeias', 'Eventos', 'Biodiversidade', 'Gastronomia', 'Comunidades'].map(item => (
+              <Link key={item} href={`/${item.toLowerCase()}`} className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-slate-600 hover:text-[#00577C] transition-colors`}>
+                {item}
+              </Link>
+            ))}
+            <Link href="/cadastro" className={`${jakarta.className} bg-[#F9C400] text-[#002f40] px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-sm`}>
+              Cartão Residente
+            </Link>
           </nav>
 
-          <button 
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="rounded-xl border border-slate-200 p-2 md:hidden bg-slate-50 text-[#00577C]"
-          >
-            {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="rounded-xl p-2 lg:hidden bg-slate-50 text-[#00577C] hover:bg-slate-100 transition-colors">
+            {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
 
         {/* Menu Mobile */}
         {isMobileMenuOpen && (
-          <div className="absolute top-[100%] left-0 w-full bg-white border-b border-slate-200 p-5 flex flex-col gap-4 shadow-xl md:hidden animate-in slide-in-from-top-4">
-            <Link href="/roteiro" onClick={() => setIsMobileMenuOpen(false)} className="font-bold text-slate-700 text-lg">Rota Turística</Link>
-            <Link href="/#eventos" onClick={() => setIsMobileMenuOpen(false)} className="font-bold text-slate-700 text-lg">Eventos</Link>
-            <Link href="/hoteis" onClick={() => setIsMobileMenuOpen(false)} className="font-bold text-slate-700 text-lg">Alojamentos</Link>
-            <Link href="/pacotes" onClick={() => setIsMobileMenuOpen(false)} className="font-bold text-slate-700 text-lg">Pacotes</Link>
-            <Link href="/cadastro" onClick={() => setIsMobileMenuOpen(false)} className="bg-[#F9C400] text-[#00577C] font-black px-4 py-3.5 rounded-xl text-center mt-2 uppercase tracking-widest text-sm shadow-md">Cartão Residente</Link>
+          <div className="absolute top-full left-0 w-full bg-white border-b border-slate-200 p-6 flex flex-col gap-4 shadow-2xl lg:hidden z-50">
+            <Link href="/rotas" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Rotas Turísticas</Link>
+            <Link href="/eventos" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Agenda Cultural</Link>
+            <Link href="/pacotes" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Pacotes</Link>
+            <Link href="/rotas" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Roteiros</Link>
+            <Link href="/biodiversidade" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Biodiversidade</Link>
+            <Link href="/gastronomia" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Gastronomia</Link>
+            <Link href="/cadastro" className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md mt-2`}>Cartão Residente</Link>
           </div>
         )}
       </header>
 
-      {/* CONTEÚDO PRINCIPAL */}
-      {/* MAGIA AQUI: flex-col para mobile, lg:flex-row para desktop */}
-      <div className="mx-auto max-w-7xl px-5 pt-28 md:pt-32 pb-16 md:pb-24 flex flex-col lg:flex-row gap-8 lg:gap-16 items-start">
+      {/* ── HERO SECTION DO EVENTO ── */}
+      <section className="relative h-[50vh] md:h-[70vh] flex items-end pb-14 overflow-hidden bg-[#002f40]">
+        {evento.imagem_url ? (
+          <Image 
+            src={evento.imagem_url} 
+            alt={evento.titulo} 
+            fill 
+            className="object-cover opacity-90 scale-100 animate-[spin_120s_linear_infinite]" 
+            priority 
+          />
+        ) : (
+          <div className="absolute inset-0 bg-[#00577C] opacity-80" />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#002f40] via-[#002f40]/40 to-transparent" />
         
-        {/* SIDEBAR DE INFORMAÇÕES TÉCNICAS */}
-        {/* MAGIA AQUI: order-2 em mobile empurra para o fundo, mas lg:order-1 no desktop puxa para a esquerda! */}
-        <aside className="w-full lg:w-[300px] shrink-0 space-y-8 md:space-y-12 order-2 lg:order-1">
-          <div className="bg-[#00577C] text-white p-6 md:p-8 rounded-[2rem] shadow-xl">
-             <h2 className={`${jakarta.className} text-xl md:text-2xl font-black mb-6 md:mb-8 uppercase tracking-tighter`}>Informações</h2>
-             <nav className="space-y-4 md:space-y-5 flex flex-col font-medium text-sm">
-               <Link href="#detalhes" className="hover:text-[#F9C400] transition-colors flex items-center justify-between group border-b border-white/10 pb-2">
-                 Sobre o Evento <ChevronRight size={16} className="opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1" />
-               </Link>
-               <Link href="#local" className="hover:text-[#F9C400] transition-colors flex items-center justify-between group border-b border-white/10 pb-2">
-                 Como Chegar <ChevronRight size={16} className="opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1" />
-               </Link>
-             </nav>
-          </div>
+        {/* pb-16 lg:pb-32 garante que o título não bate no cartão de informações */}
+        <div className="relative z-10 max-w-[1400px] mx-auto w-full px-6 pb-16 lg:pb-24">
+          <AnimatedSection animation="fade-right">
+            <br />
+            {evento.categoria && (
+              <span className={`${jakarta.className} inline-block bg-[#F9C400] text-[#002f40] px-4 py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest mb-4 shadow-lg`}>
+                {evento.categoria}
+              </span>
+            )}
+            
+            {/* Título reduzido para caber melhor na tela */}
+            <h1 className={`${jakarta.className} text-4xl md:text-5xl lg:text-6xl font-black text-white leading-tight tracking-tight max-w-4xl drop-shadow-2xl`}>
+              {evento.titulo}
+            </h1>
+          </AnimatedSection>
+        </div>
+      </section>
 
-          <div className="space-y-6 md:space-y-8 px-4 border-l-2 border-slate-100 text-left">
-             <div>
-               <p className={`${jakarta.className} text-[10px] md:text-xs font-black text-slate-400 uppercase tracking-widest mb-1`}>Duração</p>
-               <p className="text-base md:text-lg font-bold text-slate-800">{evento.duracao || 'Consulte a programação'}</p>
-             </div>
-             <div>
-               <p className={`${jakarta.className} text-[10px] md:text-xs font-black text-slate-400 uppercase tracking-widest mb-1`}>Preço</p>
-               <p className="text-base md:text-lg font-bold text-slate-800">{evento.preco || 'Acesso Livre / Gratuito'}</p>
-             </div>
-             <div>
-               <p className={`${jakarta.className} text-[10px] md:text-xs font-black text-slate-400 uppercase tracking-widest mb-1`}>Horário</p>
-               <p className="text-base md:text-lg font-bold text-slate-800">{evento.horario || 'Consulte o cronograma'}</p>
-             </div>
-          </div>
-        </aside>
-
-        {/* ÁREA DE CONTEÚDO DINÂMICO */}
-        {/* MAGIA AQUI: order-1 em mobile puxa para o topo, lg:order-2 no desktop vai para a direita! */}
-        <section className="flex-1 w-full space-y-8 md:space-y-12 order-1 lg:order-2">
+      {/* ── CONTEÚDO PRINCIPAL (CARD STACKING) ── */}
+      <section className="relative z-20 bg-[#FDFCF7] -mt-16 rounded-t-[3rem] shadow-[0_-20px_50px_rgba(0,0,0,0.15)] py-20 px-6">
+        <div className="max-w-[1400px] mx-auto flex flex-col lg:flex-row gap-12 lg:gap-20">
           
-          <Link href="/#eventos" className="inline-flex items-center gap-2 text-xs md:text-sm font-bold text-[#00577C] hover:text-[#F9C400] transition-colors mb-2 md:mb-4 group">
-            <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> Voltar à Agenda
-          </Link>
-
-          <div className="flex flex-col xl:flex-row gap-6 md:gap-10 items-start">
-             {/* Imagem do Evento */}
-             <div className="relative w-full xl:w-[65%] h-[250px] sm:h-[350px] lg:h-[450px] overflow-hidden rounded-[2rem] md:rounded-[2.5rem] bg-slate-100 shadow-xl md:shadow-2xl shrink-0">
-               {evento.imagem_url ? (
-                 <Image src={evento.imagem_url} alt={evento.titulo} fill className="object-cover" priority />
-               ) : (
-                 <div className="flex items-center justify-center w-full h-full text-slate-300">
-                   <CalendarDays size={48} className="md:w-16 md:h-16" />
+          {/* Lado Esquerdo: Barra de Informações Flutuante */}
+          <aside className="w-full lg:w-[350px] shrink-0">
+            <AnimatedSection animation="fade-up" className="bg-white rounded-[2.5rem] p-8 shadow-xl border border-slate-100 lg:-mt-32 relative z-30">
+              
+              {/* Highlight de Data */}
+              <div className="flex items-center gap-6 mb-10 pb-10 border-b border-slate-100">
+                 <div className="text-center">
+                    <p className={`${jakarta.className} text-5xl md:text-6xl font-black text-[#009640] leading-none tracking-tighter`}>{diaMes}</p>
+                    <p className={`${jakarta.className} text-[10px] font-black uppercase tracking-widest text-slate-400 mt-2`}>{mesExtenso}</p>
                  </div>
-               )}
-             </div>
+                 <div className="w-px h-16 bg-slate-100" />
+                 <div>
+                    <p className={`${jakarta.className} font-bold text-slate-900`}>{diaSemana}</p>
+                    <p className="text-sm font-medium text-slate-500">{ano}</p>
+                 </div>
+              </div>
 
-             {/* Painel de Data e Título */}
-             <div className="w-full xl:w-[35%] flex flex-col items-start pt-2">
-                <div className="flex gap-3 md:gap-4 items-start mb-4 md:mb-6">
-                  <div className={`${jakarta.className} bg-[#00577C] text-white px-3 md:px-4 py-2 md:py-3 text-center rounded-xl md:rounded-2xl shadow-lg leading-none min-w-[60px] md:min-w-[70px]`}>
-                    <p className="text-[9px] md:text-[10px] font-bold uppercase mb-1">{diaSemana}</p>
-                    <p className="text-base md:text-lg font-black uppercase tracking-widest">{mesExtenso}</p>
+              {/* Informações Rápidas */}
+              <div className="space-y-8">
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-full bg-[#00577C]/5 flex items-center justify-center text-[#00577C] shrink-0">
+                    <Clock size={18} />
                   </div>
-                  <p className={`${jakarta.className} text-5xl sm:text-6xl md:text-7xl font-black text-slate-900 tracking-tighter leading-none`}>
-                    {diaMes}
-                  </p>
-                </div>
-                
-                <p className="text-xs md:text-sm font-bold text-slate-400 mb-4 md:mb-6">{dataObj.getDate()} de {mesExtenso} de {ano}</p>
-
-                {evento.categoria && (
-                  <div className="bg-[#F9C400] text-[#00577C] px-3 md:px-4 py-1.5 rounded-lg text-[10px] md:text-xs font-black uppercase tracking-widest shadow-sm mb-3 md:mb-4">
-                    {evento.categoria}
+                  <div>
+                    <p className={`${jakarta.className} text-[10px] font-black uppercase tracking-widest text-slate-400`}>Horário</p>
+                    <p className={`${jakarta.className} font-bold text-slate-900 mt-1`}>{evento.horario || 'Consulte o programa'}</p>
                   </div>
-                )}
-
-                <h1 className={`${jakarta.className} text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-[1.1] md:leading-[1] mb-4 md:mb-6 text-left`}>
-                  {evento.titulo}
-                </h1>
-
-                <div className="mb-6 md:mb-8 text-left">
-                  <p className={`${jakarta.className} text-[10px] md:text-xs font-black text-slate-400 uppercase tracking-widest mb-1`}>Classificação</p>
-                  <p className="text-xs md:text-sm font-bold text-slate-700">{evento.classificacao || 'Livre para todos os públicos'}</p>
                 </div>
 
-                {evento.link_bilheteira && (
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-full bg-[#F9C400]/10 flex items-center justify-center text-[#d9a000] shrink-0">
+                    <Info size={18} />
+                  </div>
+                  <div>
+                    <p className={`${jakarta.className} text-[10px] font-black uppercase tracking-widest text-slate-400`}>Duração & Preço</p>
+                    <p className={`${jakarta.className} font-bold text-slate-900 mt-1`}>{evento.duracao || 'N/D'} • {evento.preco || 'Gratuito'}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-full bg-[#009640]/10 flex items-center justify-center text-[#009640] shrink-0">
+                    <ShieldCheck size={18} />
+                  </div>
+                  <div>
+                    <p className={`${jakarta.className} text-[10px] font-black uppercase tracking-widest text-slate-400`}>Classificação</p>
+                    <p className={`${jakarta.className} font-bold text-slate-900 mt-1`}>{evento.classificacao || 'Livre / Todas as idades'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Botão de Bilheteira */}
+              {evento.link_bilheteira && (
+                <div className="mt-10 pt-10 border-t border-slate-100">
                   <Link 
                     href={evento.link_bilheteira} 
                     target="_blank"
-                    className={`${jakarta.className} w-full bg-[#00577C] text-white px-6 md:px-8 py-4 md:py-5 rounded-xl md:rounded-2xl text-center font-black text-xs md:text-sm uppercase tracking-widest transition-all hover:bg-slate-900 hover:scale-[1.02] shadow-xl flex items-center justify-center gap-3`}
+                    className={`${jakarta.className} w-full flex items-center justify-center gap-3 bg-[#00577C] text-white px-8 py-5 rounded-full font-black text-xs uppercase tracking-widest hover:bg-[#004a6b] hover:shadow-lg transition-all`}
                   >
-                    <Ticket size={20} className="w-4 h-4 md:w-5 md:h-5" /> Participar / Bilhetes
+                    <Ticket size={18} /> Obter Bilhete
                   </Link>
-                )}
-             </div>
+                </div>
+              )}
+            </AnimatedSection>
+          </aside>
+
+          {/* Lado Direito: Descrição e Mapa */}
+          <div className="flex-1 max-w-4xl space-y-20">
+            
+            <AnimatedSection animation="fade-left">
+              <h2 className={`${jakarta.className} text-3xl md:text-4xl font-black text-slate-900 mb-8 flex items-center gap-4`}>
+                <span className="w-8 h-1 bg-[#F9C400] rounded-full" /> Sobre o Evento
+              </h2>
+              <div className="text-lg md:text-xl text-slate-600 font-medium leading-relaxed whitespace-pre-wrap">
+                {evento.descricao || "Este evento não possui descrição detalhada no momento. Para mais informações, contate a Secretaria Municipal de Turismo."}
+              </div>
+            </AnimatedSection>
+
+            {/* Bento Grid para Localização */}
+            <AnimatedSection animation="fade-up">
+              <h2 className={`${jakarta.className} text-3xl md:text-4xl font-black text-slate-900 mb-8 flex items-center gap-4`}>
+                <span className="w-8 h-1 bg-[#009640] rounded-full" /> Onde Vai Acontecer
+              </h2>
+              
+              <div className="bg-white p-4 rounded-[2.5rem] shadow-xl border border-slate-100 flex flex-col md:flex-row gap-6">
+                
+                {/* Informação do Local */}
+                <div className="w-full md:w-1/3 bg-[#002f40] rounded-[2rem] p-8 text-white flex flex-col justify-center relative overflow-hidden">
+                  <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-[#00577C] rounded-full blur-[40px] pointer-events-none" />
+                  <MapPin className="w-12 h-12 text-[#F9C400] mb-6 relative z-10" />
+                  <p className={`${jakarta.className} text-[10px] font-black uppercase tracking-[0.2em] text-white/50 mb-2 relative z-10`}>Localização</p>
+                  <p className={`${jakarta.className} text-2xl md:text-3xl font-black mb-6 relative z-10`}>{evento.local || 'São Geraldo do Araguaia'}</p>
+                  <Link href={`https://maps.google.com/maps?q=${encodeURIComponent((evento.local || '') + ' São Geraldo do Araguaia, Pará')}`} target="_blank" className={`${jakarta.className} inline-flex items-center gap-2 text-[#F9C400] font-bold text-xs uppercase tracking-widest relative z-10 hover:gap-4 transition-all`}>
+                    Obter Direções <Navigation size={14} />
+                  </Link>
+                </div>
+
+                {/* Google Maps iframe CORRIGIDO */}
+                <div className="w-full md:w-2/3 h-[300px] md:h-auto rounded-[2rem] overflow-hidden bg-slate-100">
+                  <iframe
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    loading="lazy"
+                    allowFullScreen
+                    referrerPolicy="no-referrer-when-downgrade"
+                    src={`https://maps.google.com/maps?q=${encodeURIComponent((evento.local || 'São Geraldo do Araguaia') + ', Pará, Brasil')}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                  ></iframe>
+                </div>
+              </div>
+            </AnimatedSection>
+            
           </div>
+        </div>
+      </section>
 
-          {/* Sinopse / Detalhes */}
-          <div id="detalhes" className="pt-10 md:pt-12 border-t border-slate-100 text-left">
-            <h3 className={`${jakarta.className} text-2xl md:text-3xl font-black text-[#00577C] mb-6 md:mb-8 uppercase tracking-tighter`}>Sobre o Evento</h3>
-            <div className="text-base md:text-lg text-slate-600 font-medium leading-relaxed whitespace-pre-wrap max-w-4xl text-justify md:text-left">
-              {evento.descricao || "Não existem detalhes adicionais disponíveis para este evento."}
-            </div>
+      {/* ── FOOTER PREMIUM ── */}
+      <footer className="py-20 px-6 bg-[#001f3f] relative z-30">
+        <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
+          <div className="flex flex-col items-center md:items-start gap-4">
+            <Image src="/logop.png" alt="Prefeitura SGA" width={160} height={60} className="brightness-0 invert opacity-60" />
+            <p className={`${jakarta.className} text-[9px] font-black text-white/30 uppercase tracking-[0.4em]`}>Cidade Amada · Pará · Brasil</p>
           </div>
-
-          {/* Localização com Mapa do Google */}
-          <div id="local" className="bg-slate-50 p-6 md:p-10 rounded-[2rem] md:rounded-[2.5rem] border border-slate-100 flex flex-col md:flex-row gap-6 md:gap-10 items-center">
-             <div className="text-left md:text-left flex-1 w-full">
-               <div className="w-16 h-16 md:w-20 md:h-20 shrink-0 bg-white rounded-2xl md:rounded-3xl flex items-center justify-center shadow-md text-[#009640] mb-5 md:mb-6">
-                 <MapPin size={32} className="md:w-10 md:h-10" />
-               </div>
-               <p className="text-[10px] md:text-xs font-black uppercase text-slate-400 tracking-widest mb-1">Localização e Realização</p>
-               <p className={`${jakarta.className} text-2xl md:text-3xl font-bold text-[#00577C]`}>{evento.local || 'São Geraldo do Araguaia'}</p>
-               <p className="text-xs md:text-sm text-slate-500 mt-2">SEMTUR • Secretaria Municipal de Turismo</p>
-             </div>
-
-             <div className="w-full md:w-[60%] h-[250px] md:h-[300px] rounded-[1.5rem] md:rounded-[2rem] overflow-hidden shadow-lg border border-slate-200 shrink-0">
-                <iframe
-                  width="100%"
-                  height="100%"
-                  style={{ border: 0 }}
-                  loading="lazy"
-                  allowFullScreen
-                  referrerPolicy="no-referrer-when-downgrade"
-                  src={`https://www.google.com/maps?q=${encodeURIComponent((evento.local || 'São Geraldo do Araguaia') + ', São Geraldo do Araguaia, Pará, Brasil')}&output=embed`}
-                ></iframe>
-             </div>
+          <div className="flex flex-col items-center md:items-start gap-4">
+            <Image src="/prefeitura.png" alt="Prefeitura SGA" width={160} height={60} className="brightness-0 invert opacity-90" />
+            <p className={`${jakarta.className} text-[9px] font-black text-white/30 uppercase tracking-[0.4em]`}>Cidade Amada · Pará · Brasil</p>
           </div>
-
-        </section>
-      </div>
-
-      {/* FOOTER INSTITUCIONAL */}
-      <footer className="border-t border-slate-200 bg-white text-left">
-        <div className="mx-auto flex max-w-7xl flex-col gap-6 md:gap-8 px-5 py-8 md:py-12 md:flex-row md:items-center md:justify-between text-center md:text-left">
-          <div className="flex flex-col md:flex-row items-center gap-4">
-            <div className="relative h-12 w-32 md:h-14 md:w-40">
-              <Image src="/logop.png" alt="Prefeitura" fill className="object-contain object-center md:object-left" />
-            </div>
-            <div className="md:border-l border-slate-200 md:pl-4">
-              <p className={`${jakarta.className} text-xl md:text-2xl font-bold text-[#00577C]`}>SagaTurismo</p>
-              <p className="text-xs md:text-sm text-slate-500 uppercase font-bold tracking-widest text-[9px] md:text-[10px]">Portal Oficial de Turismo</p>
-            </div>
+          <div className="flex gap-4">
+             <Link href="/eventos" className={`${jakarta.className} bg-white/5 text-white/60 px-6 py-3 rounded-full text-[10px] font-bold uppercase hover:bg-[#F9C400] hover:text-[#002f40] transition-all tracking-widest`}>Ver Agenda</Link>
+             <Link href="/cadastro" className={`${jakarta.className} bg-[#F9C400] text-[#002f40] px-6 py-3 rounded-full text-[10px] font-bold uppercase hover:bg-white hover:text-[#002f40] transition-all tracking-widest shadow-xl`}>Cartão Digital</Link>
           </div>
-          <p className="text-[10px] md:text-xs text-slate-400 font-medium">
-            © {new Date().getFullYear()} · Prefeitura Municipal de São Geraldo do Araguaia · Pará
-          </p>
         </div>
       </footer>
     </main>

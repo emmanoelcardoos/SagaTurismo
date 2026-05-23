@@ -2,15 +2,16 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
-import { Loader2, X, ZoomIn, Camera, ChevronLeft, ChevronRight, MapPin, ArrowRight, Menu } from 'lucide-react';
+import { useEffect, useState, useRef, ReactNode } from 'react';
+import { Loader2, X, Maximize2, Camera, ChevronLeft, ChevronRight, MapPin, ArrowRight, Menu } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
 
-// AS FONTES DEVEM ESTAR SEMPRE AQUI NO TOPO, COMO CONSTANTES
+// ── FONTES PADRÃO ──
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '700', '800'] });
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
 
+// ── TIPAGEM ──
 type Foto = {
   id: string;
   titulo: string;
@@ -19,11 +20,44 @@ type Foto = {
   categoria: string;
 };
 
-// ── HERO CARROSSEL OTIMIZADO PARA MOBILE ──
+// ── MOTOR DE ANIMAÇÕES DE SCROLL ──
+function useScrollAnimation(threshold = 0.1) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setIsVisible(true);
+        observer.unobserve(entry.target); 
+      }
+    }, { threshold });
+    if (ref.current) observer.observe(ref.current);
+    return () => { if (ref.current) observer.unobserve(ref.current); };
+  }, [threshold]);
+
+  return { ref, isVisible };
+}
+
+function AnimatedSection({ children, className = "", animation = "fade-up", delay = 0 }: { children: ReactNode; className?: string; animation?: "fade-up" | "fade-left" | "fade-right" | "zoom-in"; delay?: number; }) {
+  const { ref, isVisible } = useScrollAnimation();
+  let hiddenClass = "opacity-0 translate-y-12";
+  if (animation === "fade-left") hiddenClass = "opacity-0 translate-x-12";
+  if (animation === "fade-right") hiddenClass = "opacity-0 -translate-x-12";
+  if (animation === "zoom-in") hiddenClass = "opacity-0 scale-95";
+  
+  return (
+    <div ref={ref} className={`transition-all duration-1000 ease-out will-change-transform ${isVisible ? "opacity-100 translate-y-0 translate-x-0 scale-100" : hiddenClass} ${className}`} style={{ transitionDelay: `${delay}ms` }}>
+      {children}
+    </div>
+  );
+}
+
+// ── HERO CARROSSEL (CLEAN, SEM EMBAÇAMENTO) ──
 function HeroCarrossel({ fotos }: { fotos: Foto[] }) {
   const [current, setCurrent] = useState(0);
   const [transitioning, setTransitioning] = useState(false);
-  const heroFotos = fotos.slice(0, 6);
+  const heroFotos = fotos.slice(0, 6); // Usa as primeiras 6 fotos
 
   const goTo = (idx: number) => {
     if (transitioning || idx === current) return;
@@ -36,156 +70,66 @@ function HeroCarrossel({ fotos }: { fotos: Foto[] }) {
   const prev = () => goTo((current - 1 + heroFotos.length) % heroFotos.length);
 
   useEffect(() => {
-    const t = setInterval(next, 7000);
+    const t = setInterval(next, 8000);
     return () => clearInterval(t);
   }, [current, heroFotos.length]);
 
   if (heroFotos.length === 0) return null;
 
   return (
-    <section className="relative w-full h-[60vh] md:h-[85vh] min-h-[450px] md:min-h-[600px] overflow-hidden bg-slate-900">
+    <section className="relative w-full h-[60vh] md:h-[75vh] min-h-[500px] overflow-hidden bg-slate-100">
       {heroFotos.map((foto, idx) => (
         <div
           key={foto.id}
-          className="absolute inset-0 transition-opacity duration-1000"
+          className="absolute inset-0 transition-opacity duration-1000 ease-in-out"
           style={{ opacity: idx === current ? 1 : 0, zIndex: idx === current ? 2 : 1 }}
         >
-          <Image src={foto.imagem_url} alt={foto.titulo} fill className="object-cover object-center" priority={idx === 0} />
+          {/* Imagem nítida, sem overlay escuro pesado em cima */}
+          <Image src={foto.imagem_url} alt={foto.titulo} fill className="object-cover" priority={idx === 0} />
+          
+          {/* Gradiente sútil APENAS na parte de baixo para garantir a leitura do texto */}
+          <div className="absolute inset-x-0 bottom-0 h-[60%] bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
         </div>
       ))}
 
-      <div className="absolute inset-0 z-10 bg-gradient-to-b from-slate-900/60 via-slate-900/20 to-slate-900/95 md:to-slate-900/90" />
-
-      <div className="absolute inset-0 z-20 flex flex-col justify-end pb-10 md:pb-20 px-5 md:px-16 max-w-7xl mx-auto left-0 right-0 text-left">
-        <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-5">
-          <span className="h-px w-6 md:w-10 bg-[#F9C400]" />
-          <span className="text-[#F9C400] text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] md:tracking-[0.3em]">
-            {heroFotos[current]?.categoria || 'São Geraldo do Araguaia'}
-          </span>
-        </div>
-
-        <h1 className={`${jakarta.className} text-4xl sm:text-5xl md:text-7xl font-black text-white leading-tight md:leading-none mb-3 md:mb-4`}>
-          Nossas <em className="text-[#F9C400] not-italic">Memórias</em>
-        </h1>
-        
-        {/* Escondido no mobile para não poluir, visível no desktop */}
-        <p className={`${inter.className} hidden sm:block text-white/80 text-sm md:text-lg max-w-xl leading-relaxed mb-6 md:mb-8`}>
-          Descubra as paisagens, a cultura e a alma de São Geraldo do Araguaia — e planeie a sua visita.
-        </p>
-
-        <div className="flex flex-col sm:flex-row items-center gap-3 md:gap-4 w-full sm:w-auto mt-2 sm:mt-0">
-          <a href="#galeria"
-            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#F9C400] text-[#00577C] font-bold text-sm px-6 py-3.5 md:py-4 rounded-full hover:bg-[#ffd633] transition-colors shadow">
-            <Camera size={16} className="md:w-[18px] md:h-[18px]" /> Explorar Galeria
-          </a>
-          <Link href="/roteiro"
-            className="w-full sm:w-auto flex items-center justify-center gap-2 text-white font-semibold text-sm px-6 py-3.5 md:py-4 rounded-full border border-white/30 hover:border-white/70 transition-colors">
-            Planear visita <ArrowRight size={16} className="md:w-[18px] md:h-[18px]" />
-          </Link>
-        </div>
-
-        <div className="flex items-center justify-between md:justify-start gap-3 mt-6 md:mt-10">
-          <div className="flex gap-2 md:gap-3">
-            {heroFotos.map((_, i) => (
-              <button key={i} onClick={() => goTo(i)}
-                className={`transition-all duration-300 rounded-full ${i === current ? 'w-6 md:w-8 h-1.5 md:h-2 bg-[#F9C400]' : 'w-1.5 md:w-2 h-1.5 md:h-2 bg-white/30 hover:bg-white/60'}`} />
-            ))}
+      <div className="absolute inset-0 z-20 flex flex-col justify-end pb-12 px-6 max-w-[1400px] mx-auto">
+        <AnimatedSection animation="fade-right">
+          <div className="flex items-center gap-3 mb-4">
+            <span className="h-1 w-10 bg-[#F9C400] rounded-full" />
+            <span className={`${jakarta.className} text-[#F9C400] text-xs font-black uppercase tracking-[0.2em]`}>
+              {heroFotos[current]?.categoria || 'São Geraldo do Araguaia'}
+            </span>
           </div>
-          <div className="md:ml-auto flex gap-2">
-            <button onClick={prev} className="w-10 h-10 rounded-full border border-white/30 hover:border-white text-white flex items-center justify-center transition-colors">
-              <ChevronLeft size={20} />
-            </button>
-            <button onClick={next} className="w-10 h-10 rounded-full bg-[#00577C] hover:bg-[#004a6b] text-white flex items-center justify-center transition-colors shadow-lg">
-              <ChevronRight size={20} />
-            </button>
+
+          <h1 className={`${jakarta.className} text-5xl md:text-7xl lg:text-[80px] font-black text-white leading-tight md:leading-[0.9] mb-6 drop-shadow-lg max-w-4xl`}>
+            {heroFotos[current]?.titulo || 'Nossas Memórias'}
+          </h1>
+
+          <div className="flex items-center justify-between mt-8 border-t border-white/20 pt-8">
+            <div className="flex gap-2">
+              {heroFotos.map((_, i) => (
+                <button key={i} onClick={() => goTo(i)}
+                  className={`transition-all duration-300 rounded-full ${i === current ? 'w-10 h-2 bg-[#F9C400]' : 'w-2 h-2 bg-white/40 hover:bg-white/80'}`} 
+                />
+              ))}
+            </div>
+            <div className="flex gap-3">
+              <button onClick={prev} className="w-12 h-12 rounded-full border border-white/40 hover:bg-white/10 text-white flex items-center justify-center backdrop-blur-sm transition-all">
+                <ChevronLeft size={24} />
+              </button>
+              <button onClick={next} className="w-12 h-12 rounded-full bg-[#00577C] hover:bg-[#004a6b] text-white flex items-center justify-center transition-all shadow-lg">
+                <ChevronRight size={24} />
+              </button>
+            </div>
           </div>
-        </div>
+        </AnimatedSection>
       </div>
     </section>
   );
 }
 
-// ── CARD DE FOTO (UNIFICADO: INSTAGRAM STYLE PARA PC E MOBILE) ──
-function FotoCard({ foto, onOpen }: { foto: Foto; onOpen: () => void; }) {
-  return (
-    <div
-      onClick={onOpen}
-      className="group cursor-pointer flex flex-col w-full bg-white border border-slate-200 rounded-[2rem] overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 mb-6 md:mb-0"
-    >
-      {/* CABEÇALHO ESTILO INSTAGRAM */}
-      <div className="flex items-center justify-between p-4 bg-white text-left">
-         <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center border border-slate-100 shrink-0">
-              <MapPin size={16} className="text-[#00577C]" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-sm font-bold text-slate-900 leading-none">{foto.categoria || 'São Geraldo do Araguaia'}</span>
-              <span className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">{foto.ano}</span>
-            </div>
-         </div>
-      </div>
-
-      {/* ÁREA DA FOTO (QUADRADA PERFEITA) */}
-      <div className="relative w-full aspect-square bg-slate-100 overflow-hidden">
-        <Image
-          src={foto.imagem_url}
-          alt={foto.titulo || foto.categoria}
-          fill
-          className="object-cover transition-transform duration-700 group-hover:scale-105"
-        />
-        {/* OVERLAY DE HOVER */}
-        <div className="absolute inset-0 bg-slate-900/0 group-hover:bg-slate-900/20 transition-colors duration-300 flex items-center justify-center">
-          <ZoomIn className="text-white opacity-0 group-hover:opacity-100 transition-all duration-300 scale-75 group-hover:scale-100 w-10 h-10" />
-        </div>
-      </div>
-
-      {/* LEGENDA ESTILO INSTAGRAM */}
-      <div className="flex flex-col p-5 bg-white border-t border-slate-50 text-left">
-         <p className="text-sm text-slate-800 leading-relaxed line-clamp-2">
-           <span className="font-bold mr-2 text-[#00577C]">sagaturismo</span> 
-           {foto.titulo}
-         </p>
-      </div>
-    </div>
-  );
-}
-
-// ── ÁLBUM POR CATEGORIA ──
-function AlbumCategoria({ categoria, fotos, onOpen }: {
-  categoria: string;
-  fotos: Foto[];
-  onOpen: (lista: Foto[], idx: number) => void;
-}) {
-  return (
-    <div className="mb-16 md:mb-24">
-      <div className="flex items-center gap-3 md:gap-5 mb-6 md:mb-8 px-2 md:px-0 text-left">
-        <div className="w-1.5 md:w-1 h-8 md:h-10 rounded-full bg-[#00577C]" />
-        <div>
-          <p className="text-[#009640] text-[9px] md:text-[10px] font-bold uppercase tracking-[0.2em] md:tracking-[0.3em] mb-0.5">Álbum</p>
-          <h2 className={`${jakarta.className} text-2xl md:text-4xl font-black text-[#00577C] leading-none`}>{categoria}</h2>
-        </div>
-        <div className="flex-1 h-px bg-slate-200 hidden md:block" />
-        <span className="hidden md:block text-slate-100 text-5xl font-black select-none">
-          {String(fotos.length).padStart(2, '0')}
-        </span>
-      </div>
-
-      {/* RENDERIZAÇÃO DA GRELHA UNIFICADA */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-0 md:gap-6 px-2 md:px-0">
-        {fotos.map((f, i) => (
-          <FotoCard key={f.id} foto={f} onOpen={() => onOpen(fotos, i)} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ── LIGHTBOX ──
-function Lightbox({ lista, indexInicial, onClose }: {
-  lista: Foto[];
-  indexInicial: number;
-  onClose: () => void;
-}) {
+// ── LIGHTBOX (VISUALIZAÇÃO EM TELA CHEIA) ──
+function Lightbox({ lista, indexInicial, onClose }: { lista: Foto[]; indexInicial: number; onClose: () => void; }) {
   const [idx, setIdx] = useState(indexInicial);
   const current = lista[idx];
 
@@ -203,49 +147,48 @@ function Lightbox({ lista, indexInicial, onClose }: {
   }, [lista.length, onClose]);
 
   return (
-    <div className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-md flex items-center justify-center" onClick={onClose}>
-      <button onClick={onClose} className="absolute top-4 right-4 md:top-5 md:right-5 z-20 p-2 md:p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors">
+    <div className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center" onClick={onClose}>
+      {/* Botão de Fechar */}
+      <button onClick={onClose} className="absolute top-6 right-6 z-20 p-3 bg-white/10 hover:bg-[#F9C400] hover:text-[#002f40] text-white rounded-full transition-colors">
         <X size={24} />
       </button>
+
+      {/* Navegação */}
       {lista.length > 1 && (
-        <button onClick={prev} className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 z-20 p-2 md:p-4 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors">
-          <ChevronLeft size={28} />
-        </button>
+        <>
+          <button onClick={prev} className="absolute left-4 md:left-10 top-1/2 -translate-y-1/2 z-20 p-4 bg-white/5 hover:bg-white/20 text-white rounded-full transition-colors backdrop-blur-md">
+            <ChevronLeft size={32} />
+          </button>
+          <button onClick={next} className="absolute right-4 md:right-10 top-1/2 -translate-y-1/2 z-20 p-4 bg-white/5 hover:bg-white/20 text-white rounded-full transition-colors backdrop-blur-md">
+            <ChevronRight size={32} />
+          </button>
+        </>
       )}
-      <div className="relative w-full max-w-5xl mx-0 md:mx-6 aspect-square md:aspect-video md:rounded-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+
+      {/* Imagem em Destaque */}
+      <div className="relative w-full max-w-[80vw] h-[70vh] md:h-[80vh] flex items-center justify-center" onClick={e => e.stopPropagation()}>
         <Image src={current.imagem_url} alt={current.titulo} fill className="object-contain" />
       </div>
-      {lista.length > 1 && (
-        <button onClick={next} className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 z-20 p-2 md:p-4 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors">
-          <ChevronRight size={28} />
-        </button>
-      )}
-      <div className="absolute bottom-6 md:bottom-8 left-0 right-0 text-center px-5">
-        <p className={`${jakarta.className} text-base md:text-xl font-bold text-white drop-shadow-md`}>{current.titulo}</p>
-        <p className="text-[#F9C400] text-[10px] md:text-xs font-bold uppercase tracking-widest mt-1 drop-shadow-md">
-          {current.categoria} · {current.ano}
-        </p>
-        {lista.length > 1 && (
-          <div className="flex justify-center gap-1.5 md:gap-2 mt-4">
-            {lista.map((_, i) => (
-              <button key={i} onClick={e => { e.stopPropagation(); setIdx(i); }}
-                className={`transition-all duration-300 rounded-full ${i === idx ? 'w-4 md:w-6 h-1.5 md:h-2 bg-[#F9C400]' : 'w-1.5 md:w-2 h-1.5 md:h-2 bg-white/30'}`} />
-            ))}
-          </div>
-        )}
+
+      {/* Informações da Imagem */}
+      <div className="absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-black/80 to-transparent flex flex-col items-center text-center" onClick={e => e.stopPropagation()}>
+        <p className={`${jakarta.className} text-2xl md:text-3xl font-black text-white mb-2`}>{current.titulo}</p>
+        <div className="flex items-center gap-3 text-[#F9C400] text-[10px] md:text-xs font-bold uppercase tracking-widest">
+          <span>{current.categoria}</span>
+          <span className="w-1 h-1 rounded-full bg-[#F9C400]" />
+          <span>{current.ano}</span>
+        </div>
       </div>
     </div>
   );
 }
 
-// ── PÁGINA PRINCIPAL ──
+// ── PÁGINA PRINCIPAL DE GALERIA ──
 export default function GaleriaPage() {
   const [fotos, setFotos] = useState<Foto[]>([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [lightbox, setLightbox] = useState<{ lista: Foto[]; idx: number } | null>(null);
-  const [showHeader, setShowHeader] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
   const [categoriaAtiva, setCategoriaAtiva] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -267,18 +210,7 @@ export default function GaleriaPage() {
     fetchFotos();
   }, []);
 
-  useEffect(() => {
-    const handleScroll = () => {
-      const y = window.scrollY;
-      if (y < 80) setShowHeader(true);
-      else if (y > lastScrollY) setShowHeader(false);
-      else setShowHeader(true);
-      setLastScrollY(y);
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [lastScrollY]);
-
+  // Agrupar fotos e categorias
   const fotosAgrupadas = fotos.reduce((acc, foto) => {
     const cat = foto.categoria || 'Outros Registos';
     if (!acc[cat]) acc[cat] = [];
@@ -292,247 +224,194 @@ export default function GaleriaPage() {
     : fotosAgrupadas;
 
   return (
-    <main className={`${inter.className} min-h-screen bg-[#FAFAF7] text-slate-900 pb-20 md:pb-32`}>
+    <main className={`${inter.className} min-h-screen bg-[#FDFCF7] text-slate-900`}>
 
-      {/* HEADER */}
-      <header
-        className={`fixed left-0 top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl transition-transform duration-300 ${
-          showHeader ? 'translate-y-0' : '-translate-y-full'
-        }`}
-      >
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-5">
-          <Link href="/" className="flex min-w-0 items-center gap-3 sm:gap-4 text-left">
-            <div className="relative h-10 w-28 md:h-12 md:w-36 lg:h-16 lg:w-56 shrink-0">
-              <Image
-                src="/logop.png"
-                alt="Prefeitura de São Geraldo do Araguaia"
-                fill
-                priority
-                className="object-contain object-left"
-              />
-            </div>
-
-            <div className="hidden border-l border-slate-200 pl-4 lg:block">
-              <p className={`${jakarta.className} text-2xl font-bold leading-none text-[#00577C]`}>
-                SagaTurismo
-              </p>
-              <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
-                Secretaria de Turismo de São Geraldo do Araguaia
-              </p>
-            </div>
+      {/* ── HEADER ORIGINAL FORNECIDO ── */}
+      <header className="relative z-50 w-full bg-white border-b border-slate-200 py-4">
+        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6">
+          <Link href="/" className="flex items-center gap-3">
+             <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
+                {/* Removido o filtro invertido para manter as cores originais da logo */}
+                <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain" />
+             </div>
           </Link>
 
-          <nav className="hidden items-center gap-7 md:flex text-left">
-            <Link href="/roteiro" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
-              Rota Turística
-            </Link>
-
-            <Link href="/aldeias" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
-              Aldeias
-            </Link>
-
-            <a href="/#historia" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">
-              História
-            </a>
-
-            <a
-              href="https://saogeraldodoaraguaia.pa.gov.br"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm font-semibold text-slate-600 hover:text-[#00577C]"
-            >
-              Governo
-            </a>
-
-            <Link
-              href="/cadastro"
-              className="rounded-full bg-[#F9C400] px-5 py-3 text-sm font-bold text-[#00577C] shadow-lg transition hover:bg-[#ffd633]"
-            >
+          <nav className="hidden lg:flex items-center gap-8">
+            {['Hoteis', 'Pacotes', 'Roteiros','Passeios', 'Aldeias', 'Eventos', 'Biodiversidade', 'Gastronomia', 'Comunidades'].map(item => (
+              <Link key={item} href={`/${item.toLowerCase()}`} className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-slate-600 hover:text-[#00577C] transition-colors`}>
+                {item}
+              </Link>
+            ))}
+            <Link href="/cadastro" className={`${jakarta.className} bg-[#F9C400] text-[#002f40] px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-sm`}>
               Cartão Residente
             </Link>
           </nav>
 
-          <button 
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="rounded-xl border border-slate-200 p-2 md:hidden bg-slate-50 text-[#00577C]"
-          >
-            {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="rounded-xl p-2 lg:hidden bg-slate-50 text-[#00577C] hover:bg-slate-100 transition-colors">
+            {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
 
         {/* Menu Mobile */}
         {isMobileMenuOpen && (
-          <div className="absolute top-[100%] left-0 w-full bg-white border-b border-slate-200 p-5 flex flex-col gap-4 shadow-xl md:hidden animate-in slide-in-from-top-4 text-left">
-            <Link href="/roteiro" onClick={() => setIsMobileMenuOpen(false)} className="font-bold text-slate-700 text-lg">Rota Turística</Link>
-            <Link href="/aldeias" onClick={() => setIsMobileMenuOpen(false)} className="font-bold text-slate-700 text-lg">Aldeias</Link>
-            <Link href="/hoteis" onClick={() => setIsMobileMenuOpen(false)} className="font-bold text-slate-700 text-lg">Hospedagem</Link>
-            <Link href="/pacotes" onClick={() => setIsMobileMenuOpen(false)} className="font-bold text-slate-700 text-lg">Pacotes</Link>
-            <Link href="/cadastro" onClick={() => setIsMobileMenuOpen(false)} className="bg-[#F9C400] text-[#00577C] font-black px-4 py-3.5 rounded-xl text-center mt-2 uppercase tracking-widest text-sm shadow-md">Cartão Residente</Link>
+          <div className="absolute top-full left-0 w-full bg-white border-b border-slate-200 p-6 flex flex-col gap-4 shadow-2xl lg:hidden z-50">
+            <Link href="/rotas" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Rotas Turísticas</Link>
+            <Link href="/eventos" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Agenda Cultural</Link>
+            <Link href="/pacotes" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Pacotes</Link>
+            <Link href="/roteiro" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Roteiros</Link>
+            <Link href="/biodiversidade" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Biodiversidade</Link>
+            <Link href="/gastronomia" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Gastronomia</Link>
+            <Link href="/comunidades" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Comunidades</Link>
+            <Link href="/cadastro" className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md mt-2`}>Cartão Residente</Link>
           </div>
         )}
       </header>
 
-      {/* ── HERO ── */}
-      <div className="mt-[60px] md:mt-[70px]">
-        {!loading && fotos.length > 0 && <HeroCarrossel fotos={fotos} />}
-        {loading && (
-          <div className="w-full bg-slate-900 flex items-center justify-center min-h-[500px]" style={{ height: 'calc(100vh - 70px)' }}>
-            <Loader2 className="w-10 h-10 animate-spin text-white/20" />
-          </div>
-        )}
-      </div>
+      {/* ── HERO (SEM EMBAÇAMENTO) ── */}
+      {!loading && fotos.length > 0 && <HeroCarrossel fotos={fotos} />}
+      
+      {loading && (
+        <div className="w-full flex items-center justify-center h-[60vh] bg-slate-50">
+          <Loader2 className="w-12 h-12 animate-spin text-[#00577C]" />
+        </div>
+      )}
 
-      {/* ── BARRA DE ESTATÍSTICAS ── */}
+      {/* ── ESTATÍSTICAS ── */}
       {!loading && fotos.length > 0 && (
-        <section className="bg-[#00577C] text-white py-8 md:py-6 px-5 border-b-4 border-[#F9C400]">
-          <div className="mx-auto max-w-7xl flex flex-wrap justify-center md:justify-start gap-8 md:gap-20">
+        <section className="bg-white border-b border-slate-100 py-10 px-6">
+          <div className="max-w-[1400px] mx-auto flex flex-wrap justify-start gap-12 md:gap-24">
             {[
-              { valor: fotos.length, label: 'Fotografias' },
-              { valor: categorias.length, label: 'Álbuns' },
-              { valor: [...new Set(fotos.map(f => f.ano))].length, label: 'Anos registados' },
+              { valor: fotos.length, label: 'Registos Fotográficos' },
+              { valor: categorias.length, label: 'Categorias Culturais' },
+              { valor: [...new Set(fotos.map(f => f.ano))].length, label: 'Anos Documentados' },
             ].map(({ valor, label }) => (
-              <div key={label} className="text-center md:text-left">
-                <p className={`${jakarta.className} text-3xl md:text-4xl font-black text-[#F9C400]`}>
+              <div key={label}>
+                <p className={`${jakarta.className} text-4xl md:text-5xl font-black text-[#00577C] leading-none`}>
                   {String(valor).padStart(2, '0')}
                 </p>
-                <p className="text-white/70 md:text-white/50 text-[10px] md:text-xs font-bold uppercase tracking-widest mt-1">{label}</p>
+                <p className={`${jakarta.className} text-slate-400 text-[10px] font-black uppercase tracking-widest mt-2`}>{label}</p>
               </div>
             ))}
           </div>
         </section>
       )}
 
-      {/* ── GALERIA ── */}
-      <section id="galeria" className="mx-auto max-w-7xl px-2 md:px-5 py-12 md:py-20 text-left">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 md:py-32 text-[#00577C]">
-            <Loader2 className="w-10 h-10 animate-spin mb-4" />
-            <p className="text-xs font-bold uppercase tracking-widest opacity-40">A carregar…</p>
-          </div>
-        ) : erro ? (
-          <div className="text-center py-20 md:py-32 text-left">
-            <p className="text-xl font-bold text-slate-300 mb-2">Algo correu mal.</p>
-            <p className="text-slate-400 text-sm">{erro}</p>
-          </div>
-        ) : fotos.length === 0 ? (
-          <div className="text-center py-20 md:py-32 text-left">
-            <Camera className="w-12 h-12 md:w-16 md:h-16 text-slate-200 mx-auto mb-4" />
-            <p className="text-lg md:text-xl font-bold text-slate-300">Galeria vazia</p>
+      {/* ── GALERIA IMERSIVA (BENTO / MASONRY STYLE) ── */}
+      <section className="max-w-[1400px] mx-auto px-6 py-20">
+        
+        {/* Filtros em formato de "Pílula" (Pills) Minimalistas */}
+        {!loading && categorias.length > 1 && (
+          <AnimatedSection animation="fade-up" className="flex flex-wrap gap-3 mb-16">
+            <button
+              onClick={() => setCategoriaAtiva(null)}
+              className={`${jakarta.className} px-6 py-3 rounded-full text-xs font-black uppercase tracking-widest transition-all ${
+                !categoriaAtiva
+                  ? 'bg-[#00577C] text-white shadow-md'
+                  : 'bg-white text-slate-500 border border-slate-200 hover:border-[#00577C] hover:text-[#00577C]'
+              }`}
+            >
+              Ver Tudo
+            </button>
+            {categorias.map(cat => (
+              <button
+                key={cat}
+                onClick={() => setCategoriaAtiva(cat === categoriaAtiva ? null : cat)}
+                className={`${jakarta.className} px-6 py-3 rounded-full text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${
+                  categoriaAtiva === cat
+                    ? 'bg-[#009640] text-white shadow-md'
+                    : 'bg-white text-slate-500 border border-slate-200 hover:border-[#009640] hover:text-[#009640]'
+                }`}
+              >
+                {cat} <span className="opacity-60">({fotosAgrupadas[cat].length})</span>
+              </button>
+            ))}
+          </AnimatedSection>
+        )}
+
+        {/* Álbuns Dinâmicos */}
+        {erro ? (
+          <div className="text-center py-32 text-slate-500 font-bold">{erro}</div>
+        ) : fotos.length === 0 && !loading ? (
+          <div className="text-center py-32 text-slate-400">
+            <Camera className="w-16 h-16 mx-auto mb-4 opacity-50" />
+            <p className={`${jakarta.className} text-2xl font-bold`}>Galeria Vazia</p>
           </div>
         ) : (
-          <>
-            {/* Filtros por categoria */}
-            {categorias.length > 1 && (
-              <div className="flex flex-wrap gap-2 md:gap-3 mb-10 md:mb-16 px-3 md:px-0">
-                <button
-                  onClick={() => setCategoriaAtiva(null)}
-                  className={`px-4 md:px-5 py-2 md:py-2.5 rounded-full text-xs md:text-sm font-bold transition-all ${!categoriaAtiva
-                    ? 'bg-[#00577C] text-white shadow'
-                    : 'bg-white text-slate-600 border border-slate-200 hover:border-[#00577C] hover:text-[#00577C]'}`}
-                >
-                  Todos
-                </button>
-                {categorias.map(cat => (
-                  <button
-                    key={cat}
-                    onClick={() => setCategoriaAtiva(cat === categoriaAtiva ? null : cat)}
-                    className={`px-4 md:px-5 py-2 md:py-2.5 rounded-full text-xs md:text-sm font-bold transition-all ${categoriaAtiva === cat
-                      ? 'bg-[#009640] text-white shadow'
-                      : 'bg-white text-slate-600 border border-slate-200 hover:border-[#009640] hover:text-[#009640]'}`}
-                  >
-                    {cat}
-                    <span className="ml-1 md:ml-2 text-[10px] md:text-xs opacity-50">({fotosAgrupadas[cat].length})</span>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Álbuns */}
+          <div className="space-y-32">
             {Object.entries(fotosFiltradas).map(([categoria, fotosDaCategoria]) => (
-              <AlbumCategoria
-                key={categoria}
-                categoria={categoria}
-                fotos={fotosDaCategoria}
-                onOpen={(lista, idx) => setLightbox({ lista, idx })}
-              />
+              <div key={categoria}>
+                
+                {/* Título da Categoria */}
+                <AnimatedSection animation="fade-right" className="mb-10 flex items-center gap-6">
+                  <h2 className={`${jakarta.className} text-4xl md:text-5xl font-black text-slate-900`}>{categoria}</h2>
+                  <div className="h-px flex-1 bg-slate-200" />
+                </AnimatedSection>
+
+                {/* Grelha Dinâmica (Sem bordas brancas, puro foco na imagem) */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {fotosDaCategoria.map((foto, index) => {
+                    // Magia do Bento Grid: Algumas fotos ocupam 2 colunas e 2 linhas para dar dinamismo
+                    const isLarge = index % 5 === 0 && fotosDaCategoria.length > 2;
+
+                    return (
+                      <AnimatedSection 
+                        key={foto.id} 
+                        animation="fade-up" 
+                        delay={(index % 6) * 100} 
+                        className={isLarge ? "md:col-span-2 md:row-span-2" : ""}
+                      >
+                        <div
+                          onClick={() => setLightbox({ lista: fotosDaCategoria, idx: index })}
+                          className={`group relative w-full overflow-hidden rounded-[2rem] bg-slate-100 cursor-pointer shadow-sm hover:shadow-2xl transition-all duration-500 ${isLarge ? 'aspect-[4/3] md:aspect-auto md:h-full min-h-[400px]' : 'aspect-[4/5] min-h-[300px]'}`}
+                        >
+                          <Image
+                            src={foto.imagem_url}
+                            alt={foto.titulo || categoria}
+                            fill
+                            className="object-cover transition-transform duration-1000 group-hover:scale-110"
+                          />
+                          
+                          {/* Overlay de Interação (Surge no Hover) */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-[#002f40]/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                          
+                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500 scale-75 group-hover:scale-100">
+                            <div className="bg-white/20 backdrop-blur-md p-4 rounded-full text-white">
+                              <Maximize2 size={24} />
+                            </div>
+                          </div>
+
+                          <div className="absolute bottom-0 left-0 right-0 p-8 translate-y-8 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
+                            <p className={`${jakarta.className} text-white font-black text-2xl mb-1`}>{foto.titulo}</p>
+                            <p className="text-[#F9C400] text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                              <MapPin size={12}/> {foto.ano}
+                            </p>
+                          </div>
+                        </div>
+                      </AnimatedSection>
+                    );
+                  })}
+                </div>
+              </div>
             ))}
-          </>
+          </div>
         )}
       </section>
 
-      {/* ── CTA ── */}
-      <section className="bg-[#00577C] text-white py-16 md:py-20 px-5 md:px-6">
-        <div className="mx-auto max-w-5xl flex flex-col md:flex-row items-center gap-8 md:gap-12 text-center md:text-left">
-          <div className="flex-1 text-left md:text-left">
-            <p className="text-[#F9C400] text-[10px] md:text-xs font-bold uppercase tracking-[0.3em] mb-2 md:mb-3">Venha você também</p>
-            <h2 className={`${jakarta.className} text-3xl sm:text-4xl md:text-5xl font-black leading-tight mb-4 md:mb-5`}>
-              As fotos não fazem<br className="hidden md:block" />
-              <em className="text-[#F9C400] not-italic"> jus à realidade.</em>
-            </h2>
-            <p className={`${inter.className} text-white/75 text-sm md:text-base leading-relaxed max-w-md`}>
-              São Geraldo do Araguaia tem rios cristalinos, culturas vivas, gastronomia autêntica e um povo acolhedor. Planeie já a sua visita.
-            </p>
+      {/* ── FOOTER PREMIUM ── */}
+      <footer className="py-20 px-6 bg-[#001f3f]">
+        <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
+          <div className="flex flex-col items-center md:items-start gap-4">
+            <Image src="/logop.png" alt="Prefeitura SGA" width={160} height={60} className="brightness-0 invert opacity-60" />
+            <p className={`${jakarta.className} text-[9px] font-black text-white/30 uppercase tracking-[0.4em]`}>Cidade Amada · Pará · Brasil</p>
           </div>
-          <div className="flex flex-col gap-3 md:gap-4 flex-shrink-0 w-full md:w-auto">
-            <Link href="/roteiro"
-              className="flex items-center justify-center gap-2 bg-[#F9C400] text-[#00577C] font-bold px-6 md:px-8 py-4 rounded-full hover:bg-[#ffd633] transition-colors shadow text-xs md:text-sm">
-              Ver roteiro turístico <ArrowRight size={16} />
-            </Link>
-            <Link href="/cadastro"
-              className="flex items-center justify-center gap-2 border-2 border-white/25 text-white font-bold px-6 md:px-8 py-4 rounded-full hover:border-white/60 transition-colors text-xs md:text-sm">
-              Cartão do Residente
-            </Link>
-            <div className="flex items-center gap-2 text-white/40 text-[10px] md:text-xs font-medium justify-center mt-2 md:mt-0">
-              <MapPin size={12} className="text-[#4ade80]" />
-              São Geraldo do Araguaia, Pará, Brasil
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* FOOTER INSTITUCIONAL COMPLETO */}
-      <footer className="py-12 md:py-20 px-5 md:px-8 border-t border-slate-100 bg-white text-left">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-10 md:gap-16 mb-12 md:mb-20 text-left">
-            <div className="space-y-6 md:space-y-8 text-left">
-               <img src="/logop.png" alt="Prefeitura SGA" className="h-16 md:h-20 object-contain" />
-               <p className="text-xs md:text-sm text-slate-400 font-bold uppercase tracking-widest leading-relaxed">São Geraldo do Araguaia <br/> "Cidade Amada, seguindo em frente"</p>
-            </div>
-            
-            <div className="space-y-4 md:space-y-6 text-left">
-              <h5 className="font-black text-slate-900 text-[10px] md:text-xs uppercase tracking-widest border-b border-slate-100 pb-3 md:pb-4">Gestão Executiva</h5>
-              <ul className="text-xs md:text-sm text-slate-500 space-y-2 md:space-y-3 font-medium">
-                <li>Prefeito: <br/><b>Jefferson Douglas de Jesus Oliveira</b></li>
-                <li>Vice-Prefeito: <br/><b>Marcos Antônio Candido de Lucena</b></li>
-              </ul>
-            </div>
-
-            <div className="space-y-4 md:space-y-6 text-left">
-              <h5 className="font-black text-slate-900 text-[10px] md:text-xs uppercase tracking-widest border-b border-slate-100 pb-3 md:pb-4">Turismo (SEMTUR)</h5>
-              <ul className="text-xs md:text-sm text-slate-500 space-y-2 md:space-y-3 font-medium">
-                <li>Secretária: <br/><b>Micheli Stephany de Souza</b></li>
-                <li>Contato: <b>(94) 98145-2067</b></li>
-                <li>Email: <b>setursaga@gmail.com</b></li>
-              </ul>
-            </div>
-
-            <div className="space-y-4 md:space-y-6 text-left">
-              <h5 className="font-black text-slate-900 text-[10px] md:text-xs uppercase tracking-widest border-b border-slate-100 pb-3 md:pb-4">Equipe Técnica</h5>
-              <ul className="text-xs md:text-sm text-slate-500 space-y-2 font-medium">
-                <li>• Adriana da Luz Lima</li>
-                <li>• Carmelita Luz da Silva</li>
-                <li>• Diego Silva Costa</li>
-              </ul>
-            </div>
-          </div>
-          
-          <div className="text-center pt-8 md:pt-10 border-t border-slate-50">
-            <p className="text-[9px] md:text-[10px] font-black text-slate-300 uppercase tracking-[0.4em] leading-relaxed">© 2026 Secretaria Municipal de Turismo - São Geraldo do Araguaia (PA)</p>
+          <div className="flex gap-4">
+             <Link href="/roteiro" className={`${jakarta.className} bg-white/5 text-white/60 px-6 py-3 rounded-full text-[10px] font-bold uppercase hover:bg-[#F9C400] hover:text-[#002f40] transition-all tracking-widest`}>Rota Turística</Link>
+             <Link href="/cadastro" className={`${jakarta.className} bg-[#F9C400] text-[#002f40] px-6 py-3 rounded-full text-[10px] font-bold uppercase hover:bg-white hover:text-[#002f40] transition-all tracking-widest shadow-xl`}>Cartão Digital</Link>
           </div>
         </div>
       </footer>
 
-      {/* ── LIGHTBOX ── */}
+      {/* ── RENDERIZAÇÃO DO LIGHTBOX ── */}
       {lightbox && (
         <Lightbox
           lista={lightbox.lista}

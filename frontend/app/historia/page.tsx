@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState, useRef, ReactNode } from 'react';
 import {
-  Menu, BookOpen, Camera, Loader2, Compass, Landmark, History, Fish, TreePine, Mountain, Waves, Leaf, ChevronDown
+  Menu, BookOpen, Camera, Loader2, Compass, Landmark, History, Fish, TreePine, Mountain, Waves, Leaf, ChevronDown, isMobileMenuOpen, setIsMobileMenuOpen, X
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Merriweather, Playfair_Display } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -203,25 +203,44 @@ export default function HistoriaPage() {
     <main className={`${jakarta.className} min-h-screen bg-[#FDFCF7] text-slate-900 overflow-x-hidden`}>
 
       {/* HEADER */}
-      <header className={`fixed left-0 top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl transition-transform duration-300 ${showHeader ? 'translate-y-0' : '-translate-y-full'}`}>
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-5">
-          <Link href="/" className="flex min-w-0 items-center gap-3 sm:gap-4">
-            <div className="relative h-12 w-36 shrink-0 sm:h-16 sm:w-56">
-              <Image src="/logop.png" alt="Prefeitura SGA" fill priority className="object-contain object-left" />
-            </div>
-            <div className="hidden border-l border-slate-200 pl-4 lg:block">
-              <p className={`${jakarta.className} text-2xl font-bold leading-none text-[#00577C]`}>SagaTurismo</p>
-              <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Secretaria de Turismo de São Geraldo do Araguaia</p>
-            </div>
+      <header className="relative z-50 w-full bg-white border-b border-slate-200 py-4">
+        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6">
+          <Link href="/" className="flex items-center gap-3">
+             <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
+                {/* Removido o filtro invertido para manter as cores originais da logo */}
+                <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain" />
+             </div>
           </Link>
-          <nav className="hidden items-center gap-7 md:flex">
-            <Link href="/roteiro" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Rota Turística</Link>
-            <Link href="/#eventos" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Eventos</Link>
-            <Link href="/galeria" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Galeria</Link>
-            <Link href="/cadastro" className="rounded-full bg-[#F9C400] px-5 py-3 text-sm font-bold text-[#00577C] shadow-lg transition hover:bg-[#ffd633]">Cartão Residente</Link>
+
+          <nav className="hidden lg:flex items-center gap-8">
+            {['Hoteis', 'Pacotes', 'Roteiros','Passeios', 'Aldeias', 'Eventos', 'Biodiversidade', 'Gastronomia', 'Comunidades'].map(item => (
+              <Link key={item} href={`/${item.toLowerCase()}`} className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-slate-600 hover:text-[#00577C] transition-colors`}>
+                {item}
+              </Link>
+            ))}
+            <Link href="/cadastro" className={`${jakarta.className} bg-[#F9C400] text-[#002f40] px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-sm`}>
+              Cartão Residente
+            </Link>
           </nav>
-          <button className="rounded-xl border border-slate-200 p-2 md:hidden"><Menu className="h-5 w-5 text-[#00577C]" /></button>
+
+          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="rounded-xl p-2 lg:hidden bg-slate-50 text-[#00577C] hover:bg-slate-100 transition-colors">
+            {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
         </div>
+
+        {/* Menu Mobile */}
+        {isMobileMenuOpen && (
+          <div className="absolute top-full left-0 w-full bg-white border-b border-slate-200 p-6 flex flex-col gap-4 shadow-2xl lg:hidden z-50">
+            <Link href="/rotas" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Rotas Turísticas</Link>
+            <Link href="/eventos" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Agenda Cultural</Link>
+            <Link href="/pacotes" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Pacotes</Link>
+            <Link href="/roteiro" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Roteiros</Link>
+            <Link href="/biodiversidade" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Biodiversidade</Link>
+            <Link href="/gastronomia" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Gastronomia</Link>
+            <Link href="/comunidades" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Comunidades</Link>
+            <Link href="/cadastro" className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md mt-2`}>Cartão Residente</Link>
+          </div>
+        )}
       </header>
 
       {/* HERO COM ANIMAÇÃO IMEDIATA */}
@@ -593,9 +612,9 @@ export default function HistoriaPage() {
               className="bg-[#F9C400] text-[#00577C] px-8 py-4 rounded-full font-black uppercase text-sm shadow-2xl hover:scale-105 transition-transform flex items-center gap-2">
               <Camera size={17} /> Álbum de Fotos
             </Link>
-            <Link href="/roteiro"
+            <Link href="/rotas"
               className="border-2 border-white/30 text-white px-8 py-4 rounded-full font-black uppercase text-sm hover:bg-white/10 transition-colors flex items-center gap-2">
-              <Compass size={17} /> Explorar Roteiro
+              <Compass size={17} /> Explorar Rotas Turisticas
             </Link>
           </div>
         </AnimatedSection>

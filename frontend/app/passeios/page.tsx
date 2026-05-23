@@ -7,7 +7,7 @@ import {
   Loader2, Menu, MapPin, ArrowRight,
   CalendarClock, Search, CalendarDays, Star, 
   CheckCircle2, ChevronRight, Sparkles, X, 
-  ShieldCheck, Filter, Compass, Ticket, Sun
+  ShieldCheck, Filter, Compass, Ticket, Sun, isMobileMenuOpen, setIsMobileMenuOpen, searchBarRef, setShowPopup, showPopup, checkin, checkout, adultos, quartos, setAdultos, setQuartos, handleBuscar, isSearchLoading, CalendarIcon, Users, currentHeroSlide, setCurrentHeroSlide
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -108,61 +108,77 @@ export default function PasseiosPage() {
     <main className={`${inter.className} min-h-screen bg-[#F5F7FA] text-slate-900 pb-20`}>
 
       {/* HEADER */}
-      <header className={`fixed left-0 top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl transition-transform duration-300 ${showHeader ? 'translate-y-0' : '-translate-y-full'}`}>
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-5">
+      <header className="relative z-50 w-full bg-white border-b border-slate-200 py-4">
+        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6">
           <Link href="/" className="flex items-center gap-3">
-            <div className="relative h-12 w-36 sm:h-16 sm:w-56"><Image src="/logop.png" alt="Prefeitura" fill priority className="object-contain object-left" /></div>
-            <div className="hidden border-l border-slate-200 pl-4 lg:block text-left">
-              <p className={`${jakarta.className} text-2xl font-bold text-[#00577C]`}>SagaTurismo</p>
-              <p className="mt-1 text-[11px] font-bold uppercase tracking-widest text-slate-500">Secretaria de Turismo</p>
-            </div>
+             <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
+                {/* Removido o filtro invertido para manter as cores originais da logo */}
+                <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain" />
+             </div>
           </Link>
-          <nav className="hidden items-center gap-7 md:flex text-left font-bold">
-            <Link href="/roteiro" className="text-sm text-slate-600 hover:text-[#00577C]">Rota Turística</Link>
-            <Link href="/hoteis" className="text-sm text-slate-600 hover:text-[#00577C]">Alojamentos</Link>
-            <Link href="/pacotes" className="text-sm text-slate-600 hover:text-[#00577C]">Pacotes</Link>
-            <Link href="/cadastro" className="rounded-full bg-[#F9C400] px-5 py-3 text-sm text-[#00577C] shadow-lg hover:bg-[#ffd633] transition-all">Cartão Residente</Link>
+
+          <nav className="hidden lg:flex items-center gap-8">
+            {['Hoteis', 'Pacotes', 'Rotas','Passeios', 'Aldeias', 'Eventos', 'Biodiversidade', 'Gastronomia', 'Comunidades'].map(item => (
+              <Link key={item} href={`/${item.toLowerCase()}`} className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-slate-600 hover:text-[#00577C] transition-colors`}>
+                {item}
+              </Link>
+            ))}
+            <Link href="/cadastro" className={`${jakarta.className} bg-[#F9C400] text-[#002f40] px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-sm`}>
+              Cartão Residente
+            </Link>
           </nav>
+
+          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="rounded-xl p-2 lg:hidden bg-slate-50 text-[#00577C] hover:bg-slate-100 transition-colors">
+            {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
         </div>
+
+        {/* Menu Mobile */}
+        {isMobileMenuOpen && (
+          <div className="absolute top-full left-0 w-full bg-white border-b border-slate-200 p-6 flex flex-col gap-4 shadow-2xl lg:hidden z-50">
+            <Link href="/rotas" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Rotas Turísticas</Link>
+            <Link href="/eventos" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Agenda Cultural</Link>
+            <Link href="/pacotes" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Pacotes</Link>
+            <Link href="/rotas" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Roteiros</Link>
+            <Link href="/biodiversidade" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Biodiversidade</Link>
+            <Link href="/gastronomia" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Gastronomia</Link>
+            <Link href="/comunidades" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Comunidades</Link>
+            <Link href="/cadastro" className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md mt-2`}>Cartão Residente</Link>
+          </div>
+        )}
       </header>
 
-      {/* HERO SECTION SÓBRIA & OFICIAL */}
-      <section className="relative pt-[140px] pb-16 bg-[#00577C] z-30">
-        <div className="relative z-10 mx-auto max-w-7xl px-6 text-left">
-          <h1 className={`${jakarta.className} text-4xl md:text-5xl font-black text-white leading-tight mb-8`}>
-            Passeios Oficiais. <span className="text-[#F9C400]">Aventuras Seguras.</span>
-          </h1>
+      {/* ── HERO SECTION (CARROSSEL DINÂMICO E SEARCH PILL) ── */}
+      <section className="relative h-[20vh] min-h-[300px] w-full flex flex-col justify-end pb-12 px-6">
+        <div className="absolute inset-0 bg-[#002f40]">
+          {passeios.length > 0 && passeios.map((p, i) => (
+             <Image key={p.id} src={p.imagem_principal || FALLBACK_IMAGE} alt="Fundo" fill className={`object-cover transition-opacity duration-1000 ease-in-out ${i === currentHeroSlide ? 'opacity-50' : 'opacity-0'}`} />
+          ))}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#002f40] via-[#002f40]/40 to-transparent" />
+        </div>
+        
+        <div className="relative z-10 w-full max-w-[1400px] mx-auto text-center md:text-left flex flex-col items-center md:items-start">
+           <h1 className={`${jakarta.className} text-5xl md:text-7xl font-black text-white leading-[1.1] md:leading-[0.9] tracking-tight mb-8`}>
+             <span className="text-[#F9C400]">Passeios Turisticos</span>
+           </h1>
 
-          {/* BARRA DE PESQUISA ESTILO BOOKING */}
-          <div className="bg-[#F9C400] p-1.5 md:p-2 rounded-[2rem] shadow-xl max-w-5xl flex flex-col md:flex-row gap-1.5 md:gap-2 relative z-50">
-            
-            {/* 1. Destino Fixo */}
+           {/* SEARCH PILL FLUTUANTE */}
+           <div className="bg-[#F9C400] p-1.5 md:p-2 rounded-[2rem] shadow-xl max-w-5xl flex flex-col md:flex-row gap-1.5 md:gap-2">
             <div className="bg-white flex-1 rounded-[1.5rem] px-5 py-3 flex items-center gap-3">
-               <MapPin className="text-[#00577C] shrink-0" size={24} />
-               <div className="text-left overflow-hidden">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 truncate">Destino</p>
-                  <p className="font-bold text-slate-800 text-sm truncate">São Geraldo do Araguaia - PA</p>
-               </div>
+               <MapPin className="text-[#00577C] shrink-0" size={20} />
+               <div className="text-left"><p className="text-[9px] font-black uppercase text-slate-400">Destino</p><p className="font-bold text-slate-800 text-xs">São Geraldo do Araguaia - PA</p></div>
             </div>
-
-            {/* 2. Busca por Texto */}
-            <div className="bg-white flex-[2] rounded-[1.5rem] px-5 py-3 flex items-center gap-3 relative">
-               <Search className="text-[#00577C] shrink-0" size={24} />
-               <div className="text-left flex-1">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Procurar Passeio</p>
-                  <input 
-                    type="text" 
-                    placeholder="Ex: Trilha, Praia do Pium, Barco..." 
-                    value={termoBusca}
-                    onChange={(e) => setTermoBusca(e.target.value)}
-                    className="w-full border-none font-bold text-slate-800 text-sm outline-none placeholder:text-slate-300 p-0"
-                  />
-               </div>
+            <div className="bg-white flex-[2] rounded-[1.5rem] px-5 py-3 flex items-center gap-3">
+               <Search className="text-[#00577C] shrink-0" size={20} />
+               <input 
+                 type="text" 
+                 placeholder="O que procura?" 
+                 value={termoBusca}
+                 onChange={(e) => setTermoBusca(e.target.value)}
+                 className="w-full border-none font-bold text-slate-800 text-xs outline-none placeholder:text-slate-300"
+               />
             </div>
-
-            <button className="bg-slate-900 text-white px-10 py-4 md:py-0 rounded-[1.5rem] font-black text-sm uppercase tracking-widest hover:bg-black transition-all shadow-md shrink-0">
-              Buscar
-            </button>
+            <button className="bg-slate-900 text-white px-8 py-3.5 md:py-0 rounded-[1.5rem] font-black text-xs uppercase tracking-widest hover:bg-black transition-all">Buscar</button>
           </div>
         </div>
       </section>
