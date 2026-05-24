@@ -371,7 +371,7 @@ function CheckoutPasseioContent() {
       </header>
 
       {/* PROGRESS BAR */}
-      <div className="bg-white border-b border-slate-200 mt-[65px] md:mt-[80px]">
+      <div className="bg-white border-b border-slate-200 mt-[0px] md:mt-[0px]">
         <div className="mx-auto max-w-7xl px-4 md:px-8 py-4 md:py-5">
           <div className="flex items-center justify-center md:justify-start gap-2 md:gap-4 text-[9px] md:text-[10px] uppercase tracking-[0.2em] font-black text-slate-400">
             <span className="hidden sm:inline-block">Passeio</span> <ChevronRight size={14} className="hidden sm:inline-block"/> 
