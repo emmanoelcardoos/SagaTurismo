@@ -170,19 +170,27 @@ async def webhook_pagbank(request: Request):
                 ponto_encontro = "Centro de Atendimento ao Turista (CAT) de São Geraldo do Araguaia."
 
                 try:
-                    res_p = supabase.table("pacotes").select("titulo, roteiro_detalhado").eq("id", pacote_id).single().execute()
-                    if res_p.data:
-                        nome_pacote = res_p.data.get("titulo", nome_pacote)
+                    # Busca o pacote com segurança
+                    res_p = supabase.table("pacotes").select("titulo, roteiro_detalhado").eq("id", pacote_id).execute()
+                    if res_p.data and len(res_p.data) > 0:
+                        nome_pacote = res_p.data[0].get("titulo", nome_pacote)
 
-                    if pedido.get("hotel_id"):
-                        res_h = supabase.table("hoteis").select("nome").eq("id", pedido.get("hotel_id")).single().execute()
-                        if res_h.data: nome_hotel = res_h.data.get("nome")
+                    # Busca o hotel com segurança
+                    hotel_id_pedido = pedido.get("hotel_id")
+                    if hotel_id_pedido:
+                        res_h = supabase.table("hoteis").select("nome").eq("id", hotel_id_pedido).execute()
+                        if res_h.data and len(res_h.data) > 0: 
+                            nome_hotel = res_h.data[0].get("nome")
 
-                    if pedido.get("guia_id"):
-                        res_g = supabase.table("parceiros").select("nome_negocio").eq("id", pedido.get("guia_id")).single().execute()
-                        if res_g.data: nome_guia = res_g.data.get("nome_negocio")
+                    # Busca o guia com segurança (na tabela 'guias' e não 'parceiros')
+                    guia_id_pedido = pedido.get("guia_id")
+                    if guia_id_pedido:
+                        res_g = supabase.table("guias").select("nome").eq("id", guia_id_pedido).execute()
+                        if res_g.data and len(res_g.data) > 0: 
+                            nome_guia = res_g.data[0].get("nome")
+
                 except Exception as e_db:
-                    print(f"[WEBHOOK PACOTE] Erro ao minerar dados relacionais: {e_db}")
+                    print(f"[WEBHOOK PACOTE] Aviso na mineração de dados relacionais: {e_db}")
 
                 dados_pacote = {
                     "nome_pacote": nome_pacote,
@@ -198,7 +206,7 @@ async def webhook_pagbank(request: Request):
                     enviar_voucher_pacote(email_cliente, nome_cliente, dados_pacote, caminho_pdf)
                     print(f"[WEBHOOK] Voucher do Pacote c/ PDF enviado para {email_cliente}")
                 except Exception as e_mail:
-                    print(f"[WEBHOOK] Erro ao disparar voucher do pacote: {e_email}")
+                    print(f"[WEBHOOK] Erro ao disparar voucher do pacote: {e_mail}")
 
             # ────────────────────────────────────────────────────────
             # CASO D: COMPRA DE PASSEIO AVULSO
@@ -208,26 +216,30 @@ async def webhook_pagbank(request: Request):
                 nome_passeio = "Passeio Ecológico Oficial"
                 nome_guia = "Guia de Turismo Credenciado"
                 contato_guia = "Disponível via Central SagaTurismo"
+                endereco_local = "Orla de São Geraldo do Araguaia - Ponto de Embarque Oficial"
 
                 try:
-                    res_pass = supabase.table("passeios").select("titulo, guia_id, ponto_encontro").eq("id", passeio_id).single().execute()
-                    if res_pass.data:
-                        nome_passeio = res_pass.data.get("titulo", nome_passeio)
-                        endereco_local = res_pass.data.get("ponto_encontro") or "Orla de São Geraldo do Araguaia - Ponto de Embarque Oficial"
-                        g_id = res_pass.data.get("guia_id") or pedido.get("guia_id")
+                    res_pass = supabase.table("passeios").select("titulo, guia_id, ponto_encontro").eq("id", passeio_id).execute()
+                    if res_pass.data and len(res_pass.data) > 0:
+                        nome_passeio = res_pass.data[0].get("titulo", nome_passeio)
+                        if res_pass.data[0].get("ponto_encontro"):
+                            endereco_local = res_pass.data[0].get("ponto_encontro")
+                        
+                        g_id = res_pass.data[0].get("guia_id") or pedido.get("guia_id")
                         
                         if g_id:
-                            res_g = supabase.table("parceiros").select("nome_negocio, telefone").eq("id", g_id).single().execute()
-                            if res_g.data:
-                                nome_guia = res_g.data.get("nome_negocio", nome_guia)
-                                contato_guia = res_g.data.get("telefone", contato_guia)
+                            # Procura o guia na tabela correta ('guias' e não 'parceiros')
+                            res_g = supabase.table("guias").select("nome, whatsapp").eq("id", g_id).execute()
+                            if res_g.data and len(res_g.data) > 0:
+                                nome_guia = res_g.data[0].get("nome", nome_guia)
+                                contato_guia = res_g.data[0].get("whatsapp", contato_guia)
                 except Exception as e_db:
-                    print(f"[WEBHOOK PASSEIO] Falha ao ler a tabela de passeios/parceiros: {e_db}")
+                    print(f"[WEBHOOK PASSEIO] Aviso ao ler a tabela de passeios/guias: {e_db}")
 
                 dados_passeio = {
                     "nome_passeio": nome_passeio,
                     "data_hora": pedido.get("data_checkin") or "Agendado (Consultar painel)",
-                    "endereco": endereco_local if 'endereco_local' in locals() else "Orla de São Geraldo do Araguaia",
+                    "endereco": endereco_local,
                     "nome_guia": nome_guia,
                     "contato_guia": contato_guia
                 }
@@ -237,8 +249,9 @@ async def webhook_pagbank(request: Request):
                     enviar_voucher_passeio(email_cliente, nome_cliente, dados_passeio, caminho_pdf)
                     print(f"[WEBHOOK] Voucher de Passeio c/ PDF enviado com sucesso para {email_cliente}")
                 except Exception as e_mail:
-                    print(f"[WEBHOOK] Erro ao disparar voucher do passeio: {e_email}")
+                    print(f"[WEBHOOK] Erro ao disparar voucher do passeio: {e_mail}")
 
+                    
         elif status_normalizado in ["DECLINED", "CANCELED", "REFUNDED"]:
             supabase.table("pedidos").update({"status_pagamento": "recusado"}).eq("codigo_pedido", reference_id).execute()
             print(f"[WEBHOOK] Pagamento {reference_id} marcado como RECUSADO.")

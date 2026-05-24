@@ -307,18 +307,23 @@ async def processar_pagamento(pedido: PedidoPagamento):
                             recebedores_split.append({ "account": {"id": rec_id}, "amount": {"value": int((v_individual_atr * fator_liquido) * 100)} })
                         lista_atracoes_calculadas.append({"id": atr_id, "valor": v_individual_atr})
 
-            # 5. NOVO: Lucro do Agente (O valor 'preco' da tabela pacotes)
-            lucro_agente = float(dados_pacote.get("preco") or 0.0)
-            
+            # 5. NOVO: Matemática Inversa - O Preço do Pacote é o Preço Final
+            valor_total = float(dados_pacote.get("preco") or 0.0) # Preço que o agente digitou (ex: 600)
+            custo_terceiros = v_hospedagem_total + v_guia_total + v_atracoes_total
+            lucro_agente = valor_total - custo_terceiros
+
+            # Se o agente vender mais barato que o preço de custo, o sistema bloqueia para não dar prejuízo!
+            if lucro_agente < 0:
+                raise HTTPException(status_code=400, detail=f"O preço de venda (R$ {valor_total}) é menor que o custo base (R$ {custo_terceiros}). Ajuste o valor.")
+
             if parceiro_agente_id and lucro_agente > 0:
-                res_agente = supabase.table("agencias").select("pagbank_recebedor_id").eq("id", dados_pacote.get("agencia_id")).single().execute()
+                # Busca o PagBank ID na tabela de agencias (e não parceiros!)
+                res_agente = supabase.table("agencias").select("pagbank_recebedor_id").eq("id", parceiro_agente_id).single().execute()
                 if res_agente.data:
                     rec_id_agente = res_agente.data.get("pagbank_recebedor_id")
                     if rec_id_agente and str(rec_id_agente).startswith("ACC_"):
                         recebedores_split.append({ "account": {"id": rec_id_agente}, "amount": {"value": int((lucro_agente * fator_liquido) * 100)} })
 
-            # 6. Valor final a ser cobrado do cliente
-            valor_total = v_hospedagem_total + v_guia_total + v_atracoes_total + lucro_agente
 
         # Lógica Fina de Split
         # Lógica Fina de Split
@@ -414,6 +419,14 @@ async def processar_pagamento(pedido: PedidoPagamento):
                             "valor_bruto": atr["valor"], "taxa_plataforma": round(atr["valor"] * (taxa_prefeitura_pct / 100.0), 2),
                             "valor_liquido": round(atr["valor"] * fator_liquido, 2), "status_repasse": "processando"
                         })
+                if parceiro_agente_id and lucro_agente > 0:
+                    repasses_db.append({
+                        "pedido_id": pedido_id_gerado, "parceiro_id": parceiro_agente_id, "tipo_parceiro": "agencia",
+                        "valor_bruto": lucro_agente, "taxa_plataforma": round(lucro_agente * (taxa_prefeitura_pct / 100.0), 2),
+                        "valor_liquido": round(lucro_agente * fator_liquido, 2), "status_repasse": "processando"
+                    })
+
+                        
             
             if repasses_db:
                 supabase.table("repasses_financeiros").insert(repasses_db).execute()
