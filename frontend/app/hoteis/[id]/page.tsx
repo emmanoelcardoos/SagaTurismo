@@ -9,7 +9,7 @@ import {
   Loader2, Menu, X, ChevronLeft, ChevronRight,
   Calendar as CalendarIcon, Bed, ChevronRight as ChevronRightIcon,
   Users, Award, Phone, Mail, Globe,
-  Wind, Wifi, Bath, CreditCard, Coffee, Edit3, Layers
+  Wind, Wifi, Bath, CreditCard, Coffee, Edit3, Layers,
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -221,7 +221,7 @@ function HotelDetalheContent() {
 
   if (!mounted || loading) return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-white text-[#00577C]">
-      <Loader2 className="w-10 h-10 md:w-12 md:h-12 animate-spin mb-4 text-[#0085FF]" />
+      <Loader2 className="w-10 h-10 md:w-12 md:h-12 animate-spin mb-4 text-[#00577C]" />
       <p className="font-bold uppercase tracking-widest text-[10px] md:text-xs">Carregando inventário da hospedagem...</p>
     </div>
   );
@@ -230,7 +230,7 @@ function HotelDetalheContent() {
     <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 text-slate-900 px-6 text-center">
       <h1 className="text-2xl md:text-3xl font-black mb-4 text-[#00577C]">Alojamento Não Encontrado</h1>
       <p className="text-slate-500 mb-8 max-w-md text-sm md:text-base">{erro}</p>
-      <Link href="/hoteis" className="bg-[#0085FF] text-white px-8 py-4 rounded-full font-bold uppercase tracking-widest text-xs shadow-lg">Voltar aos Hotéis</Link>
+      <Link href="/hoteis" className="bg-[#00577C] text-white px-8 py-4 rounded-full font-bold uppercase tracking-widest text-xs shadow-lg">Voltar aos Hotéis</Link>
     </div>
   );
 
@@ -314,7 +314,7 @@ function HotelDetalheContent() {
       <div className="sticky top-[60px] md:top-[88px] z-40 bg-white border-b border-slate-200 shadow-sm lg:hidden">
          <div className="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between gap-4 overflow-x-auto">
             <div className="flex items-center gap-3 shrink-0">
-               <div className="bg-[#0085FF]/10 p-2 rounded-lg text-[#0085FF]"><CalendarIcon size={16}/></div>
+               <div className="bg-[#00577C]/10 p-2 rounded-lg text-[#00577C]"><CalendarIcon size={16}/></div>
                <div className="text-left leading-none">
                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Estadia</p>
                   <p className="text-xs font-bold text-slate-800 mt-1">
@@ -324,13 +324,13 @@ function HotelDetalheContent() {
             </div>
             <div className="h-8 w-px bg-slate-100" />
             <div className="flex items-center gap-3 shrink-0">
-               <div className="bg-green-50 p-2 rounded-lg text-[#009640]"><Users size={16}/></div>
+               <div className="bg-[#00577C]/10 p-2 rounded-lg text-[#00577C]"><Users size={16}/></div>
                <div className="text-left leading-none">
                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Hóspedes</p>
                   <p className="text-xs font-bold text-slate-800 mt-1">{adultos} Ad. · {qtdQuartosSelecionados} Qts.</p>
                </div>
             </div>
-            <button onClick={() => document.getElementById('motor-reservas')?.scrollIntoView({ behavior: 'smooth' })} className="ml-auto bg-slate-50 p-2.5 rounded-full border border-slate-200 text-[#0085FF] shadow-sm"><Edit3 size={16}/></button>
+            <button onClick={() => document.getElementById('motor-reservas')?.scrollIntoView({ behavior: 'smooth' })} className="ml-auto bg-slate-50 p-2.5 rounded-full border border-slate-200 text-[#00577C] shadow-sm"><Edit3 size={16}/></button>
          </div>
       </div>
 
@@ -380,8 +380,8 @@ function HotelDetalheContent() {
                                </div>
                                <p className="text-xs text-slate-500 mb-3 line-clamp-2">{quarto.descricao || 'Quarto confortável e preparado para a sua estadia.'}</p>
                                <div className="grid grid-cols-2 gap-2 text-[10px] md:text-xs text-[#00577C] font-bold mt-auto">
-                                  <span className="flex items-center gap-1.5"><Layers size={12}/> Vagas: {quarto.quantidade_total_quartos}</span>
-                                  <span className="flex items-center gap-1.5"><Users size={12}/> Cap: {quarto.capacidade}</span>
+                                  <span className="flex items-center gap-1.5"><Layers size={12}/> Quartos disponiveis: {quarto.quantidade_total_quartos}</span>
+                                  <span className="flex items-center gap-1.5"><Users size={12}/> Capacidade do quarto: {quarto.capacidade} pessoa(s)</span>
                                </div>
                             </div>
                             
@@ -402,7 +402,7 @@ function HotelDetalheContent() {
                                     disabled={esgotado || calculandoPreco}
                                     onClick={() => handleReserva(quarto)} 
                                     className={`w-full py-3.5 md:py-3 rounded-xl font-black uppercase text-[10px] md:text-xs tracking-widest transition-all shadow-md active:scale-95 ${
-                                      esgotado ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none active:scale-100' : 'bg-[#0085FF] hover:bg-blue-600 text-white'
+                                      esgotado ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none active:scale-100' : 'bg-[#00577C] hover:bg-[#004466] text-white'
                                     }`}
                                   >
                                      {calculandoPreco ? 'Calculando...' : esgotado ? 'Esgotado' : 'Reservar'}
@@ -466,7 +466,7 @@ function HotelDetalheContent() {
         <div id="motor-reservas" className="w-full lg:w-[380px] shrink-0 h-fit lg:self-start relative z-30">
           <div className="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] shadow-xl border border-slate-200 text-left">
              <h3 className={`${jakarta.className} text-lg md:text-xl font-black text-[#00577C] mb-5 flex items-center gap-2`}>
-                <CalendarIcon className="text-[#0085FF]" size={20}/> Escolher Período
+                <CalendarIcon className="text-[#00577C]" size={20}/> Escolher Período
              </h3>
 
              <div className="space-y-4 mb-6">
@@ -490,8 +490,8 @@ function HotelDetalheContent() {
                            
                            let bgClass = "bg-transparent hover:bg-slate-200 text-slate-800";
                            if (isPassado) bgClass = "text-slate-300 cursor-not-allowed pointer-events-none";
-                           else if (isCheckin || isCheckout) bgClass = "bg-[#0085FF] text-white shadow-md rounded-md font-black scale-110 z-10";
-                           else if (isInBetween) bgClass = "bg-[#0085FF]/10 text-[#0085FF] rounded-none";
+                           else if (isCheckin || isCheckout) bgClass = "bg-[#00577C] text-white shadow-md rounded-md font-black scale-110 z-10";
+                           else if (isInBetween) bgClass = "bg-[#00577C]/10 text-[#00577C] rounded-none";
 
                            return (
                              <button 
@@ -510,35 +510,21 @@ function HotelDetalheContent() {
                 <div className="flex items-center justify-between">
                    <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-500">Adultos</span>
                    <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg p-1">
-                      <button type="button" onClick={() => setAdultos(Math.max(1, adultos - 1))} className="w-6 h-6 flex justify-center items-center text-[#0085FF] font-black hover:bg-slate-200 rounded">-</button>
+                      <button type="button" onClick={() => setAdultos(Math.max(1, adultos - 1))} className="w-6 h-6 flex justify-center items-center text-[#00577C] font-black hover:bg-slate-200 rounded">-</button>
                       <span className="font-bold text-xs w-4 text-center text-slate-800">{adultos}</span>
-                      <button type="button" onClick={() => setAdultos(adultos + 1)} className="w-6 h-6 flex justify-center items-center text-[#0085FF] font-black hover:bg-slate-200 rounded">+</button>
+                      <button type="button" onClick={() => setAdultos(adultos + 1)} className="w-6 h-6 flex justify-center items-center text-[#00577C] font-black hover:bg-slate-200 rounded">+</button>
                    </div>
                 </div>
                 <div className="flex items-center justify-between">
                    <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-500">Quartos</span>
                    <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg p-1">
-                      <button type="button" onClick={() => setQtdQuartosSelecionados(Math.max(1, qtdQuartosSelecionados - 1))} className="w-6 h-6 flex justify-center items-center text-[#0085FF] font-black hover:bg-slate-200 rounded">-</button>
+                      <button type="button" onClick={() => setQtdQuartosSelecionados(Math.max(1, qtdQuartosSelecionados - 1))} className="w-6 h-6 flex justify-center items-center text-[#00577C] font-black hover:bg-slate-200 rounded">-</button>
                       <span className="font-bold text-xs w-4 text-center text-slate-800">{qtdQuartosSelecionados}</span>
-                      <button type="button" onClick={() => setQtdQuartosSelecionados(qtdQuartosSelecionados + 1)} className="w-6 h-6 flex justify-center items-center text-[#0085FF] font-black hover:bg-slate-200 rounded">+</button>
+                      <button type="button" onClick={() => setQtdQuartosSelecionados(qtdQuartosSelecionados + 1)} className="w-6 h-6 flex justify-center items-center text-[#00577C] font-black hover:bg-slate-200 rounded">+</button>
                    </div>
                 </div>
              </div>
              
-             {!checkin || !checkout ? (
-               <div className="mt-5 p-4 bg-[#F9C400]/10 text-amber-800 rounded-xl flex items-start gap-3 border border-[#F9C400]/30">
-                  <Info size={16} className="shrink-0 mt-0.5 text-amber-600" />
-                  <p className="text-[10px] md:text-xs font-bold leading-relaxed">Selecione o check-in e check-out para calcular as tarifas do calendário.</p>
-               </div>
-             ) : (
-               <div className="mt-5 p-4 bg-green-50 text-[#009640] rounded-xl flex items-start gap-3 border border-green-200">
-                  <CheckCircle2 size={16} className="shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-[10px] md:text-xs font-black uppercase tracking-wider leading-tight">Datas Consultadas!</p>
-                    <p className="text-[9px] md:text-[10px] font-medium opacity-80 mt-1">Preços calculados e validados dinamicamente para {Math.max(1, Math.ceil((checkout.getTime() - checkin.getTime()) / (1000 * 3600 * 24)))} noite(s).</p>
-                  </div>
-               </div>
-             )}
           </div>
         </div>
       </div>
@@ -563,7 +549,7 @@ export default function HotelDetalhePage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen flex flex-col items-center justify-center bg-white text-[#00577C]">
-        <Loader2 className="w-12 h-12 animate-spin mb-4 text-[#0085FF]" />
+        <Loader2 className="w-12 h-12 animate-spin mb-4 text-[#00577C]" />
         <p className="font-bold uppercase tracking-widest text-xs">A Sincronizar motor de reservas...</p>
       </div>
     }>

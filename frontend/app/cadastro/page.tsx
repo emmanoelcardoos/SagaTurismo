@@ -30,8 +30,8 @@ import { cadastrarResidente, type CadastroResponse } from '@/lib/api';
 
 // ── IMPORTS DAS ANIMAÇÕES LOTTIE ──
 import Lottie from 'lottie-react';
-import idCardAnimation from '@/public/ID card.json';
-import incorrectAnimation from '@/public/incorrect.json';
+import idCardAnimation from '../../public/id-card.json';
+import incorrectAnimation from '../../public/icorrect.json';
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
