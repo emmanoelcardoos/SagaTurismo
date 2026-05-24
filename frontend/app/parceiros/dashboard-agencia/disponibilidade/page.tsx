@@ -69,6 +69,7 @@ export default function CriarPacotePage() {
     categoria: '',
     horarios_info: '',
     precoCustomizado: '',
+    vagas_totais:'',
     ativo: true
   });
 
@@ -242,7 +243,9 @@ export default function CriarPacotePage() {
           preco: precoFinal,
           categoria: formData.categoria,
           horarios_info: formData.horarios_info || null,
-          ativo: formData.ativo
+          vagas_totais: parseInt(formData.vagas_totais), 
+          agencia_id: parceiroId,
+          ativo: formData.ativo,
         }])
         .select().single();
 
@@ -329,6 +332,11 @@ export default function CriarPacotePage() {
                 <select name="categoria" value={formData.categoria} onChange={handleInputChange} className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold outline-none bg-slate-50/50 cursor-pointer text-slate-700 capitalize">
                   {categoriasDb.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                 </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider">Total de Vagas</label>
+                <input required type="number" min="1" name="vagas_totais" value={formData.vagas_totais} onChange={handleInputChange} placeholder="Ex: 20" className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold outline-none focus:border-[#0085FF] bg-slate-50/50" />
               </div>
 
               <div className="md:col-span-2 space-y-2">
