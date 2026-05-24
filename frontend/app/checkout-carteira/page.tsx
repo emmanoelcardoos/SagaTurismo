@@ -3,12 +3,13 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image'; // <-- ADICIONADO
 import { 
   Loader2, MapPin, ShieldCheck, QrCode, CheckCircle2, 
   User, Mail, Copy, AlertCircle, CreditCard, Lock, 
   ShieldAlert, Home, Clock, Check, ChevronRight, Wallet, 
-  Smartphone, IdCard, Users, isMobileMenuOpen, setIsMobileMenuOpen, Menu, X, CalendarDays, Calendar
-} from 'lucide-react';
+  Smartphone, IdCard, Users, Menu, X, CalendarDays, Calendar
+} from 'lucide-react'; // Removidos isMobileMenuOpen, setIsMobileMenuOpen
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '700', '800'] });
@@ -22,7 +23,6 @@ declare global {
 
 const formatarMoeda = (valor: number) => (valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const mascaraCartao = (v: string) => v.replace(/\D/g, '').replace(/(\d{4})(?=\d)/g, '$1 ').slice(0, 19);
-// Máscaras auxiliares
 const mascaraCPF = (v: string) => v.replace(/\D/g, '').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2').slice(0, 14);
 const mascaraTelefone = (v: string) => v.replace(/\D/g, '').replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d)/, '$1-$2').slice(0, 15);
 const mascaraCEP = (v: string) => v.replace(/\D/g, '').replace(/(\d{5})(\d)/, '$1-$2').slice(0, 9);
@@ -92,6 +92,9 @@ function CheckoutCarteiraContent() {
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
 
+  // ── Estado local para menu mobile (CORRIGIDO) ──
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   // Estados Financeiros
   const PRECO_UNITARIO = 20;
   const [quantidade, setQuantidade] = useState(1);
@@ -105,7 +108,7 @@ function CheckoutCarteiraContent() {
   const [anoCartao, setAnoCartao] = useState('');
   const [cvvCartao, setCvvCartao] = useState('');
   
-  // ◄── NOVOS ESTADOS: Dados Obrigatórios para Faturação e Antifraude
+  // Dados Obrigatórios para Faturação e Antifraude
   const [cpfFaturamento, setCpfFaturamento] = useState('');
   const [telefone, setTelefone] = useState('');
   const [cep, setCep] = useState('');
@@ -181,7 +184,6 @@ function CheckoutCarteiraContent() {
     setErroApi('');
     setIsSubmitting(true);
 
-    // ◄── PAYLOAD ATUALIZADO: Agora com os dados que o Backend estava a pedir (Evita o Erro 422)
     const payload: any = {
       tipo_item: "carteira", 
       token_id: token,
@@ -271,7 +273,6 @@ function CheckoutCarteiraContent() {
         <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6">
           <Link href="/" className="flex items-center gap-3">
              <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
-                {/* Removido o filtro invertido para manter as cores originais da logo */}
                 <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain" />
              </div>
           </Link>

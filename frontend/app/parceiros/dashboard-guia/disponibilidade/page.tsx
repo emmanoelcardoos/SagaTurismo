@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { 
   Loader2, ArrowLeft, CheckCircle2, Save, Compass, 
   ChevronLeft, ChevronRight, DollarSign, Users, 
-  MapPin, Trash2, Upload, Images, MailWarning, Calendar as CalendarIcon, Plus, Target
+  MapPin, Trash2, Upload, Images, MailWarning, Calendar as CalendarIcon, Plus, Target, Bed, ShoppingBag, X
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -31,6 +31,18 @@ type EnderecoBusca = {
   lon: string;
 };
 
+type Hotel = {
+  id: string;
+  titulo: string;
+  valor_diaria: number; // ou preço base que tu tens na tabela hospedagens
+};
+
+type ServicoExtra = {
+  id: string;
+  nome: string;
+  valor: number;
+};
+
 export default function DisponibilidadeGuiaPage() {
   const router = useRouter();
   const [parceiroId, setParceiroId] = useState<string | null>(null);
@@ -45,17 +57,25 @@ export default function DisponibilidadeGuiaPage() {
   // ── ESTADOS DO FORMULÁRIO ──
   const [titulo, setTitulo] = useState('');
   const [categoria, setCategoria] = useState('');
-  const [categoriasDb, setCategoriasDb] = useState<string[]>(['Trilha', 'Praia', 'Camping', 'Cachoeira']); // Fallback inicial
+  const [categoriasDb, setCategoriasDb] = useState<string[]>(['Trilha', 'Praia', 'Camping', 'Cachoeira']);
   const [descricaoCurta, setDescricaoCurta] = useState('');
-  const [descricaoCompleta, setDescricaoCompleta] = useState('');
   const [horarioSaida, setHorarioSaida] = useState('');
   const [pontoEncontro, setPontoEncontro] = useState('');
   const [coordenadas, setCoordenadas] = useState('');
-  const [valorTotal, setValorTotal] = useState('');
   const [vagasTotais, setVagasTotais] = useState('15');
-  
-  // Calendário Híbrido
   const [dataPasseio, setDataPasseio] = useState<Date | null>(null);
+
+  // ── NOVO: CONSTRUÇÃO DE PREÇO ──
+  const [valorBaseGuia, setValorBaseGuia] = useState(''); // O que o guia cobra pelo serviço dele
+  
+  // Hotéis
+  const [hoteisDb, setHoteisDb] = useState<Hotel[]>([]);
+  const [hotelSelecionadoId, setHotelSelecionadoId] = useState<string>('');
+  
+  // Serviços Extra Livres
+  const [servicosExtras, setServicosExtras] = useState<ServicoExtra[]>([]);
+  const [novoServicoNome, setNovoServicoNome] = useState('');
+  const [novoServicoValor, setNovoServicoValor] = useState('');
 
   // Estados de Arquivos
   const [arquivoCapa, setArquivoCapa] = useState<File | null>(null);
@@ -64,8 +84,6 @@ export default function DisponibilidadeGuiaPage() {
   // Estados de Busca de Endereço (OpenStreetMap)
   const [sugestoesEndereco, setSugestoesEndereco] = useState<EnderecoBusca[]>([]);
   const [buscandoEndereco, setBuscandoEndereco] = useState(false);
-
-  // Lista de Passeios Existentes
   const [passeiosExistentes, setPasseiosExistentes] = useState<PasseioCadastrado[]>([]);
 
   // 1. VALIDAÇÃO DE SESSÃO
@@ -83,31 +101,42 @@ export default function DisponibilidadeGuiaPage() {
     }
   }, [router]);
 
-  // 2. CARREGAR DADOS INICIAIS (PASSEIOS E CATEGORIAS DINÂMICAS)
+  // 2. CARREGAR DADOS INICIAIS (PASSEIOS, CATEGORIAS E HOTÉIS)
   useEffect(() => {
     if (!parceiroId) return;
 
     async function carregarDadosIniciais() {
-      const { data, error } = await supabase
+      // 1. Carregar Passeios do Guia
+      const { data: passeios, error: errPasseios } = await supabase
         .from('passeios')
         .select('id, titulo, data_passeio, valor_total, vagas_totais, vagas_disponiveis, categoria, guia_id')
         .order('data_passeio', { ascending: true });
 
-      if (!error && data) {
-        const meusPasseios = data.filter(p => p.guia_id === parceiroId);
+      if (!errPasseios && passeios) {
+        const meusPasseios = passeios.filter(p => p.guia_id === parceiroId);
         setPasseiosExistentes(meusPasseios as any);
 
-        const catsUnicas = Array.from(new Set(data.map(p => p.categoria).filter(Boolean)));
+        const catsUnicas = Array.from(new Set(passeios.map(p => p.categoria).filter(Boolean)));
         if (catsUnicas.length > 0) {
           setCategoriasDb(catsUnicas as string[]);
           setCategoria(catsUnicas[0] as string);
         }
       }
+
+      // 2. Carregar Hoteis para a Parceria
+      const { data: hoteis, error: errHoteis } = await supabase
+        .from('hospedagens')
+        .select('id, titulo, valor_diaria')
+        .eq('ativo', true);
+      
+      if (!errHoteis && hoteis) {
+         setHoteisDb(hoteis as Hotel[]);
+      }
     }
     carregarDadosIniciais();
   }, [parceiroId, isSubmitting]);
 
-  // ── BUSCA INTELIGENTE DE ENDEREÇO (Nominatim) ──
+  // ── BUSCA INTELIGENTE DE ENDEREÇO ──
   useEffect(() => {
     const delayDebounceFn = setTimeout(async () => {
       if (pontoEncontro.length > 3 && !coordenadas) {
@@ -125,7 +154,6 @@ export default function DisponibilidadeGuiaPage() {
         setSugestoesEndereco([]);
       }
     }, 800);
-
     return () => clearTimeout(delayDebounceFn);
   }, [pontoEncontro, coordenadas]);
 
@@ -166,6 +194,32 @@ export default function DisponibilidadeGuiaPage() {
     }
   };
 
+  // ── LÓGICA DE CÁLCULO DE PREÇO ──
+  const valorBaseConvertido = parseFloat(valorBaseGuia.replace(',', '.')) || 0;
+  
+  const hotelEncontrado = hoteisDb.find(h => h.id === hotelSelecionadoId);
+  const valorHotel = hotelEncontrado ? hotelEncontrado.valor_diaria : 0;
+  
+  const valorTotalExtras = servicosExtras.reduce((acc, curr) => acc + curr.valor, 0);
+  
+  // PREÇO FINAL QUE SERÁ SALVO NA BASE DE DADOS E MOSTRADO AO TURISTA
+  const valorTotalCalculado = valorBaseConvertido + valorHotel + valorTotalExtras;
+
+  const handleAddServicoExtra = () => {
+    if (!novoServicoNome || !novoServicoValor) return;
+    const vConvertido = parseFloat(novoServicoValor.replace(',', '.'));
+    if (isNaN(vConvertido)) return;
+
+    setServicosExtras([...servicosExtras, { id: Math.random().toString(), nome: novoServicoNome, valor: vConvertido }]);
+    setNovoServicoNome('');
+    setNovoServicoValor('');
+  };
+
+  const handleRemoverServicoExtra = (id: string) => {
+    setServicosExtras(servicosExtras.filter(s => s.id !== id));
+  };
+
+
   // 3. ENGENHARIA DE SUBMISSÃO
   const handleCriarPasseio = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -175,17 +229,26 @@ export default function DisponibilidadeGuiaPage() {
       setStatusMensagem({ tipo: 'erro', texto: 'Por favor, diga-nos a data da expedição.' });
       return;
     }
-
     if (!arquivoCapa) {
       setStatusMensagem({ tipo: 'erro', texto: 'Uma foto de capa bonita ajuda a vender! Por favor, anexe uma.' });
       return;
+    }
+    if (valorTotalCalculado <= 0) {
+       setStatusMensagem({ tipo: 'erro', texto: 'O valor final do passeio tem de ser maior que zero.' });
+       return;
     }
 
     setIsSubmitting(true);
     setStatusMensagem(null);
 
-    const vTotal = parseFloat(valorTotal.replace(',', '.'));
-    const taxaPref = vTotal * 0.10;
+    const taxaPref = valorTotalCalculado * 0.10;
+
+    // Constrói um descritivo interno dos custos extra (Opcional, para teu registo)
+    const detalhes_composicao_preco = {
+       valor_guia: valorBaseConvertido,
+       hotel: hotelEncontrado ? { id: hotelEncontrado.id, nome: hotelEncontrado.titulo, valor: valorHotel } : null,
+       extras: servicosExtras
+    };
 
     try {
       const nomeCapaLimpo = limparNomeArquivo(arquivoCapa.name);
@@ -212,7 +275,7 @@ export default function DisponibilidadeGuiaPage() {
         .insert([{
           titulo,
           descricao_curta: descricaoCurta,
-          descricao_completa: descricaoCompleta || null,
+          descricao_completa: JSON.stringify(detalhes_composicao_preco), // Guardamos a decomposição do preço aqui ou noutra coluna JSONB se criares
           imagem_principal: urlCapaPublica.publicUrl,
           imagens_galeria: urlsGaleria,
           data_passeio: formatarDataIso(dataPasseio),
@@ -221,7 +284,7 @@ export default function DisponibilidadeGuiaPage() {
           coordenadas_google_maps: coordenadas || null,
           nome_guia: nomeNegocio,
           guia_id: parceiroId,
-          valor_total: vTotal,
+          valor_total: valorTotalCalculado,
           taxa_prefeitura: taxaPref,
           vagas_totais: parseInt(vagasTotais),
           vagas_disponiveis: parseInt(vagasTotais),
@@ -233,14 +296,13 @@ export default function DisponibilidadeGuiaPage() {
       if (errInsert) throw errInsert;
 
       try {
-        // ◄── ENRIQUECIMENTO DO PAYLOAD: Agora envia todos os dados necessários para o e-mail do Emmanoel!
         await fetch(`https://sagaturismo-production.up.railway.app/api/v1/notificacoes/novo-passeio`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             guia_nome: nomeNegocio, 
             titulo: titulo, 
-            preco: vTotal,
+            preco: valorTotalCalculado,
             descricao: descricaoCurta,
             data_evento: formatarDataIso(dataPasseio) 
           })
@@ -249,9 +311,11 @@ export default function DisponibilidadeGuiaPage() {
 
       setStatusMensagem({ tipo: 'sucesso', texto: 'Aventura enviada! A prefeitura vai rever as fotos e aprovar em breve.' });
       
-      setTitulo(''); setDescricaoCurta(''); setDescricaoCompleta('');
-      setHorarioSaida(''); setPontoEncontro(''); setCoordenadas(''); setValorTotal('');
+      // Resetar form
+      setTitulo(''); setDescricaoCurta(''); 
+      setHorarioSaida(''); setPontoEncontro(''); setCoordenadas(''); 
       setDataPasseio(null); setArquivoCapa(null); setArquivosGaleria([]);
+      setValorBaseGuia(''); setHotelSelecionadoId(''); setServicosExtras([]);
 
     } catch (err: any) {
       setStatusMensagem({ tipo: 'erro', texto: err.message || 'Erro interno de processamento.' });
@@ -298,7 +362,7 @@ export default function DisponibilidadeGuiaPage() {
             <div className="w-12 h-12 rounded-full bg-[#009640] flex items-center justify-center text-white shadow-md shrink-0"><Plus size={24} /></div>
             <div>
                <h2 className={`${jakarta.className} text-2xl font-black text-slate-900 leading-none`}>Nova Expedição</h2>
-               <p className="text-sm font-medium text-slate-500 mt-1">Crie um roteiro incrível e atraia turistas.</p>
+               <p className="text-sm font-medium text-slate-500 mt-1">Construa o seu roteiro e componha o preço final.</p>
             </div>
           </div>
 
@@ -311,6 +375,8 @@ export default function DisponibilidadeGuiaPage() {
              )}
 
              <form onSubmit={handleCriarPasseio} className="space-y-7">
+                
+                {/* BLOCO 1: A AVENTURA */}
                 <div className="space-y-4">
                    <h3 className={`${jakarta.className} text-lg font-black text-[#009640] flex items-center gap-2 border-b border-slate-100 pb-2`}><Compass size={18}/> A Aventura</h3>
                    
@@ -327,7 +393,7 @@ export default function DisponibilidadeGuiaPage() {
                         </div>
                         <div className="hidden md:block relative group">
                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><CalendarIcon size={18}/></div>
-                           <input readOnly value={dataPasseio ? dataPasseio.toLocaleDateString('pt-BR') : ''} className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 pl-10 pr-4 text-sm font-medium outline-none cursor-pointer text-slate-700 hover:bg-slate-100 transition-all" placeholder="Selecione no calendário abaixo" />
+                           <input readOnly value={dataPasseio ? dataPasseio.toLocaleDateString('pt-BR') : ''} className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 pl-10 pr-4 text-sm font-medium outline-none cursor-pointer text-slate-700 hover:bg-slate-100 transition-all" placeholder="Selecione no calendário ao lado" />
                         </div>
                      </div>
 
@@ -340,6 +406,7 @@ export default function DisponibilidadeGuiaPage() {
                      </div>
                    </div>
 
+                   {/* CALENDÁRIO DESKTOP */}
                    <div className="hidden md:block bg-slate-50 border border-slate-200 rounded-2xl p-4 shadow-inner mt-2">
                       <div className="flex items-center justify-between mb-3">
                          <button type="button" onClick={() => setMesAtual(new Date(anoCorrente, mesCorrente - 1))} className="p-1 hover:bg-slate-200 rounded-full"><ChevronLeft size={16}/></button>
@@ -368,6 +435,7 @@ export default function DisponibilidadeGuiaPage() {
                    </div>
                 </div>
 
+                {/* BLOCO 2: LOGÍSTICA */}
                 <div className="space-y-4">
                    <h3 className={`${jakarta.className} text-lg font-black text-[#009640] flex items-center gap-2 border-b border-slate-100 pb-2`}><MapPin size={18}/> Logística</h3>
                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -394,25 +462,83 @@ export default function DisponibilidadeGuiaPage() {
                      </div>
                    </div>
 
-                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                     <div>
-                        <label className="text-xs font-bold text-slate-700 block mb-2">Quantas pessoas podem ir?</label>
-                        <div className="relative">
-                           <Users className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18}/>
-                           <input type="number" required value={vagasTotais} onChange={e => setVagasTotais(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 pl-10 pr-4 text-sm font-medium outline-none focus:border-[#009640]" />
-                        </div>
-                     </div>
-                     <div>
-                        <label className="text-xs font-bold text-slate-700 block mb-2">Preço (R$ por pessoa)</label>
-                        <div className="relative">
-                           <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-[#009640]" size={18}/>
-                           <input type="text" required placeholder="0,00" value={valorTotal} onChange={e => setValorTotal(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 pl-10 pr-4 text-sm font-black text-slate-900 outline-none focus:border-[#009640] focus:ring-4 ring-green-500/10" />
-                        </div>
-                     </div>
+                   <div>
+                      <label className="text-xs font-bold text-slate-700 block mb-2">Quantas pessoas podem ir?</label>
+                      <div className="relative">
+                         <Users className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18}/>
+                         <input type="number" required value={vagasTotais} onChange={e => setVagasTotais(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 pl-10 pr-4 text-sm font-medium outline-none focus:border-[#009640]" />
+                      </div>
                    </div>
                 </div>
 
-                <div className="space-y-4">
+                {/* BLOCO 3: CONSTRUÇÃO DE PREÇO E PARCERIAS (NOVO) */}
+                <div className="space-y-4 pt-4">
+                   <h3 className={`${jakarta.className} text-lg font-black text-[#00577C] flex items-center gap-2 border-b border-slate-100 pb-2`}><DollarSign size={18}/> Construção do Preço (Por Pessoa)</h3>
+                   
+                   <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-5 space-y-5">
+                      
+                      {/* 1. Valor Base do Guia */}
+                      <div>
+                        <label className="text-xs font-bold text-slate-700 block mb-2">Valor Base do seu serviço (Guia)</label>
+                        <div className="relative">
+                           <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-black text-slate-400">R$</span>
+                           <input type="text" required placeholder="0,00" value={valorBaseGuia} onChange={e => setValorBaseGuia(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-3 pl-10 pr-4 text-sm font-black text-slate-900 outline-none focus:border-[#00577C]" />
+                        </div>
+                      </div>
+
+                      {/* 2. Adicionar Hotel (Parceria) */}
+                      <div className="border-t border-blue-100/50 pt-4">
+                         <label className="text-xs font-bold text-slate-700 block mb-2 flex items-center gap-2"><Bed size={14} className="text-[#00577C]"/> Incluir Hotel no pacote? (Opcional)</label>
+                         <select value={hotelSelecionadoId} onChange={e => setHotelSelecionadoId(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 text-sm font-medium outline-none focus:border-[#00577C] cursor-pointer">
+                            <option value="">Nenhum Hotel (Apenas Passeio)</option>
+                            {hoteisDb.map(h => (
+                               <option key={h.id} value={h.id}>{h.titulo} (+ R$ {h.valor_diaria})</option>
+                            ))}
+                         </select>
+                      </div>
+
+                      {/* 3. Adicionar Extras Livres (Transporte, Alimentação, etc) */}
+                      <div className="border-t border-blue-100/50 pt-4">
+                         <label className="text-xs font-bold text-slate-700 block mb-2 flex items-center gap-2"><ShoppingBag size={14} className="text-[#00577C]"/> Outros Custos Extras (Transporte, Refeição...)</label>
+                         <div className="flex gap-2">
+                            <input type="text" placeholder="Nome do Extra (Ex: Almoço)" value={novoServicoNome} onChange={e => setNovoServicoNome(e.target.value)} className="flex-1 bg-white border border-slate-200 rounded-xl py-2.5 px-3 text-sm font-medium outline-none focus:border-[#00577C]" />
+                            <div className="relative w-28">
+                               <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-black text-slate-400">R$</span>
+                               <input type="text" placeholder="0,00" value={novoServicoValor} onChange={e => setNovoServicoValor(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2.5 pl-7 pr-2 text-sm font-black text-slate-900 outline-none focus:border-[#00577C]" />
+                            </div>
+                            <button type="button" onClick={handleAddServicoExtra} className="bg-[#00577C] text-white px-3 rounded-xl hover:bg-[#004766] transition-colors"><Plus size={16}/></button>
+                         </div>
+
+                         {/* Lista de Extras Adicionados */}
+                         {servicosExtras.length > 0 && (
+                            <ul className="mt-3 space-y-2">
+                               {servicosExtras.map(extra => (
+                                  <li key={extra.id} className="flex justify-between items-center bg-white p-2.5 rounded-lg border border-slate-100 text-sm">
+                                     <span className="text-slate-600 font-medium">{extra.nome}</span>
+                                     <div className="flex items-center gap-3">
+                                        <span className="font-black text-slate-900">R$ {extra.valor.toFixed(2)}</span>
+                                        <button type="button" onClick={() => handleRemoverServicoExtra(extra.id)} className="text-red-400 hover:text-red-600"><X size={14}/></button>
+                                     </div>
+                                  </li>
+                               ))}
+                            </ul>
+                         )}
+                      </div>
+
+                      {/* 4. TOTAL CALCULADO */}
+                      <div className="mt-6 bg-[#00577C] rounded-2xl p-5 text-white flex justify-between items-center shadow-lg">
+                         <div>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-blue-200 mb-1">Preço Final ao Turista</p>
+                            <p className="text-xs text-blue-100/80">Guia + Hotel + Extras</p>
+                         </div>
+                         <p className={`${jakarta.className} text-3xl font-black text-[#F9C400]`}>R$ {valorTotalCalculado.toFixed(2)}</p>
+                      </div>
+
+                   </div>
+                </div>
+
+                {/* BLOCO 4: FOTOS */}
+                <div className="space-y-4 pt-4">
                    <h3 className={`${jakarta.className} text-lg font-black text-[#009640] flex items-center gap-2 border-b border-slate-100 pb-2`}><Images size={18}/> Fotos Lindas</h3>
                    <label className="w-full bg-slate-50 border-2 border-dashed border-slate-300 rounded-2xl p-5 flex flex-col items-center gap-2 cursor-pointer hover:bg-green-50 hover:border-green-300 transition-colors">
                       <Upload size={24} className="text-[#009640]"/>
@@ -432,15 +558,15 @@ export default function DisponibilidadeGuiaPage() {
                    </label>
                 </div>
 
-                <div className="bg-amber-50 rounded-2xl p-4 flex gap-3 border border-amber-100 text-left">
+                <div className="bg-amber-50 rounded-2xl p-4 flex gap-3 border border-amber-100 text-left mt-6">
                    <MailWarning size={20} className="text-amber-500 shrink-0" />
                    <p className="text-[11px] text-amber-800 font-medium leading-relaxed">
-                     Assim que clicares em enviar, a prefeitura vai ver a tua proposta. Se estiver tudo certinho, o teu passeio vai para o ar para o mundo todo ver!
+                     Assim que clicares em enviar, a prefeitura vai ver a tua proposta. Se estiver tudo certinho, o teu pacote vai para o ar para o mundo todo ver!
                    </p>
                 </div>
 
-                <button type="submit" disabled={isSubmitting} className="w-full bg-[#009640] hover:bg-[#007a33] text-white py-4 md:py-5 rounded-2xl font-black text-sm shadow-xl shadow-green-900/20 flex items-center justify-center gap-2 active:scale-95 transition-all">
-                   {isSubmitting ? <><Loader2 className="animate-spin" size={20}/> Guardando a Aventura...</> : <><Save size={20}/> Enviar para o Portal SagaTurismo</>}
+                <button type="submit" disabled={isSubmitting} className="w-full bg-[#009640] hover:bg-[#007a33] text-white py-4 md:py-5 rounded-2xl font-black text-sm shadow-xl shadow-green-900/20 flex items-center justify-center gap-2 active:scale-95 transition-all mt-4">
+                   {isSubmitting ? <><Loader2 className="animate-spin" size={20}/> Guardando Pacote...</> : <><Save size={20}/> Enviar para o Portal SagaTurismo</>}
                 </button>
              </form>
           </div>
@@ -496,7 +622,7 @@ export default function DisponibilidadeGuiaPage() {
                           </div>
                           <div className="flex gap-2">
                              <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded text-[9px] font-bold tracking-widest">{p.vagas_disponiveis} vagas</span>
-                             <span className="bg-green-50 text-green-700 px-2 py-1 rounded text-[9px] font-bold tracking-widest uppercase">R$ {p.valor_total}</span>
+                             <span className="bg-[#00577C]/10 text-[#00577C] px-2 py-1 rounded text-[9px] font-bold tracking-widest uppercase">R$ {p.valor_total}</span>
                           </div>
                        </div>
                     ))
