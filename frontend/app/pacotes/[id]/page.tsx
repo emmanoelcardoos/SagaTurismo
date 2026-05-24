@@ -554,10 +554,6 @@ function PacoteDetalheContent() {
                       </div>
                     </div>
                     <div className="flex items-center justify-between sm:justify-end gap-5 w-full sm:w-auto border-t border-slate-100 sm:border-t-0 pt-3 sm:pt-0">
-                      <div className="text-left sm:text-right">
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5 text-left sm:text-right">Custo Base</p>
-                        <p className={`${jakarta.className} text-lg md:text-xl font-black text-slate-900`}>{formatarMoeda(parseValor(guia.preco_diaria))}</p>
-                      </div>
                       <div className={`w-5 h-5 md:w-6 md:h-6 shrink-0 rounded-full border-2 flex items-center justify-center ${selected ? 'border-[#009640] bg-[#009640]' : 'border-slate-300'}`}>
                          {selected && <Check size={12} className="text-white md:w-3.5 md:h-3.5" strokeWidth={4} />}
                       </div>
