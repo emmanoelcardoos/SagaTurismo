@@ -3,12 +3,13 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';  // <-- CORREÇÃO: importação adicionada
 import { 
   Loader2, MapPin, ShieldCheck, QrCode, CheckCircle2, 
   User, Mail, Copy, AlertCircle, CreditCard, Lock, 
   ShieldAlert, Clock, Check, ChevronRight, Wallet,
-  Smartphone, Users, Calendar, Compass, isMobileMenuOpen, setIsMobileMenuOpen, Menu, X, UserPlus
-} from 'lucide-react';
+  Smartphone, Users, Calendar, Compass, Menu, X, UserPlus
+} from 'lucide-react'; // <-- CORREÇÃO: removidos isMobileMenuOpen e setIsMobileMenuOpen
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
 
@@ -132,6 +133,9 @@ function CheckoutPasseioContent() {
   
   // Estado Dinâmico para Acompanhantes Extras
   const [hospedesExtras, setHospedesExtras] = useState<Acompanhante[]>([]);
+
+  // CORREÇÃO: estados para o menu mobile
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const numAcompanhantes = Math.max(0, pessoasParam - 1);
@@ -331,7 +335,6 @@ function CheckoutPasseioContent() {
         <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6">
           <Link href="/" className="flex items-center gap-3">
              <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
-                {/* Removido o filtro invertido para manter as cores originais da logo */}
                 <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain" />
              </div>
           </Link>
