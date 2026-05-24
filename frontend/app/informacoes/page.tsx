@@ -493,7 +493,7 @@ export default function InformacoesPage() {
               Descubra roteiros, eventos e experiências únicas em São Geraldo do Araguaia.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Link href="/roteiro" className={`${dmSans.className} inline-flex items-center gap-2 bg-[#00577C] text-white px-8 py-4 rounded-full font-semibold text-sm uppercase tracking-widest shadow-lg hover:-translate-y-1 transition-transform`}>
+              <Link href="/rotas" className={`${dmSans.className} inline-flex items-center gap-2 bg-[#00577C] text-white px-8 py-4 rounded-full font-semibold text-sm uppercase tracking-widest shadow-lg hover:-translate-y-1 transition-transform`}>
                 Explorar Roteiros <ArrowRight size={16} />
               </Link>
               <Link href="/pacotes" className={`${dmSans.className} inline-flex items-center gap-2 bg-[#00577C] text-white px-8 py-4 rounded-full font-semibold text-sm uppercase tracking-widest shadow-lg hover:-translate-y-1 transition-transform`}>

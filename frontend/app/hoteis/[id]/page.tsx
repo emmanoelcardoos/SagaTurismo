@@ -290,7 +290,7 @@ function HotelDetalheContent() {
       </header>
 
       {/* ── HERO SECTION ── */}
-      <div className="w-full h-[60vh] md:h-[60vh] relative bg-[#002f40] mt-[90px] md:mt-[0px]">
+      <div className="w-full h-[60vh] md:h-[60vh] relative bg-[#002f40] mt-[0px] md:mt-[0px]">
         <Link href="/hoteis" className="absolute top-4 md:top-6 left-4 md:left-6 z-20 flex items-center gap-2 text-xs md:text-sm font-bold text-slate-800 bg-white hover:bg-slate-50 px-3 md:px-4 py-1.5 md:py-2 rounded-full shadow-lg transition-colors">
           <ArrowLeft size={16} /> Voltar
         </Link>

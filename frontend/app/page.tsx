@@ -654,7 +654,11 @@ export default function HomePage() {
       </header>
 
       {/* ── HERO SECTION PREMIUM (imagem estática — sem Supabase) ── */}
-      <section className="relative h-[100vh] md:h-screen flex items-end pb-20 px-10 overflow-hidden bg-[#002f40] max-md:pb-10 max-md:px-5 max-md:items-center">
+      <section className="relative h-[100vh] md:h-screen flex flex-col items-start 
+        justify-end        // 👈 agora funciona tanto mobile quanto desktop (joga para o fundo)
+        pb-20 px-10 overflow-hidden bg-[#002f40] 
+        max-md:pb-10 max-md:px-5"   // 👈 removido max-md:items-center
+      > 
         <video 
           src="/serra_3mb.mp4" 
           autoPlay 

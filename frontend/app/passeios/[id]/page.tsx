@@ -214,7 +214,7 @@ export default function PasseioDetalhePage() {
       </header>
 
       {/* ── HERO ── */}
-      <div className="w-full h-[40vh] md:h-[60vh] relative bg-[#002f40] mt-[70px] md:mt-[0px]">
+      <div className="w-full h-[40vh] md:h-[60vh] relative bg-[#002f40] mt-[0px] md:mt-[0px]">
         <Link href="/passeios" className="absolute top-6 left-6 z-20 flex items-center gap-2 text-sm font-bold text-slate-800 bg-white hover:bg-slate-50 px-4 py-2 rounded-full shadow-lg transition-colors">
           <ArrowLeft size={16} /> Voltar
         </Link>

@@ -178,7 +178,7 @@ export default function AldeiaDetalhePage({ params }: { params: { id: string } }
       </header>
 
       {/* ── HERO ── */}
-      <div className="relative w-full h-[60vh] md:h-[80vh] overflow-hidden mt-[90px] md:mt-[1px]">
+      <div className="relative w-full h-[60vh] md:h-[80vh] overflow-hidden mt-[0px] md:mt-[1px]">
         <Image
           src={aldeia.imagem_capa}
           alt={aldeia.nome}

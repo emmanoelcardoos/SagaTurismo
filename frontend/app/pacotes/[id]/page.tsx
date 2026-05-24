@@ -336,7 +336,7 @@ function PacoteDetalheContent() {
       </header>
 
       {/* ── HERO SECTION ── */}
-      <div className="relative w-full h-[40vh] md:h-[50vh] bg-slate-900 mt-[64px] md:mt-[0px]">
+      <div className="relative w-full h-[40vh] md:h-[50vh] bg-slate-900 mt-[0px] md:mt-[0px]">
         <Image src={pacote.imagem_principal || FALLBACK_IMAGE} alt={pacote.titulo || 'Pacote'} fill className="object-cover" priority />
         <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/20 to-transparent" />
         <div className="absolute bottom-6 md:bottom-10 left-5 md:left-16 right-5 text-left">
