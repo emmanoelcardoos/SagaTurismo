@@ -269,30 +269,33 @@ async def processar_pagamento(pedido: PedidoPagamento):
                             recebedores_split.append({ "account": {"id": rec_id}, "amount": {"value": int((v_individual_atr * fator_liquido) * 100)} })
                         lista_atracoes_calculadas.append({"id": atr_id, "valor": v_individual_atr})
 
-            # Calcula Hotel (Standard e Upgrade)
+            # 3. Calcula o Custo do Hotel e o Upgrade Estático (Igual ao Frontend)
             v_hospedagem_standard = 0.0
             acrescimo_upgrade = 0.0
 
             if pacote_hotel_id and quarto_tipo_id_sanitizado:
+                # O custo que o Hotel RECEBE continua a respeitar o calendário dinâmico dele:
                 v_hospedagem_total = calcular_preco_hotel_dinamico(
                     pacote_hotel_id, quarto_tipo_id_sanitizado, pedido.data_checkin, pedido.data_checkout,
                     quantidade_quartos=pedido.quantidade, quantidade_pessoas=pedido.adultos
                 )
                 
-                res_std = supabase.table("tipos_quarto").select("id").eq("hotel_id", pacote_hotel_id).order("preco_quarto").limit(1).execute()
-                if res_std.data:
-                    id_quarto_standard = res_std.data[0]["id"]
-                    if id_quarto_standard != quarto_tipo_id_sanitizado:
-                        v_hospedagem_standard = calcular_preco_hotel_dinamico(
-                            pacote_hotel_id, id_quarto_standard, pedido.data_checkin, pedido.data_checkout,
-                            quantidade_quartos=pedido.quantidade, quantidade_pessoas=pedido.adultos
-                        )
-                        acrescimo_upgrade = max(0.0, v_hospedagem_total - v_hospedagem_standard)
-                    else:
-                        v_hospedagem_standard = v_hospedagem_total
-
-                res_q_info = supabase.table("tipos_quarto").select("nome_quarto").eq("id", quarto_tipo_id_sanitizado).single().execute()
-                if res_q_info.data: nome_quarto_real_texto = res_q_info.data["nome_quarto"]
+                # Mas o UPGRADE cobrado do cliente segue a diferença ESTÁTICA (para bater os R$ 259 cravados)
+                res_std = supabase.table("tipos_quarto").select("id, preco_quarto").eq("hotel_id", pacote_hotel_id).order("preco_quarto").limit(1).execute()
+                res_escolhido = supabase.table("tipos_quarto").select("preco_quarto, nome_quarto").eq("id", quarto_tipo_id_sanitizado).single().execute()
+                
+                if res_std.data and res_escolhido.data:
+                    preco_std = float(res_std.data[0]["preco_quarto"])
+                    preco_escolhido = float(res_escolhido.data["preco_quarto"])
+                    
+                    if preco_escolhido > preco_std:
+                        diferenca_diaria = preco_escolhido - preco_std
+                        d_ci = datetime.strptime(pedido.data_checkin, "%Y-%m-%d")
+                        d_co = datetime.strptime(pedido.data_checkout, "%Y-%m-%d")
+                        noites_finais = max(1, (d_co - d_ci).days)
+                        acrescimo_upgrade = diferenca_diaria * noites_finais * pedido.quantidade # quantidade = quartos
+                        
+                if res_escolhido.data: nome_quarto_real_texto = res_escolhido.data["nome_quarto"]
 
                 res_h_info = supabase.table("hoteis").select("pagbank_recebedor_id").eq("id", pacote_hotel_id).single().execute()
                 if res_h_info.data:
