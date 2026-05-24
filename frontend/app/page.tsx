@@ -654,26 +654,27 @@ export default function HomePage() {
       </header>
 
       {/* ── HERO SECTION PREMIUM (imagem estática — sem Supabase) ── */}
-      <section className="relative h-[100vh] md:h-screen flex items-end pb-20 px-10 overflow-hidden bg-[#002f40]">
+      <section className="relative h-[100vh] md:h-screen flex items-end pb-20 px-10 overflow-hidden bg-[#002f40] max-md:pb-10 max-md:px-5 max-md:items-center">
         <video 
-            src="/serra_3mb.mp4" 
-            autoPlay 
-            loop 
-            muted 
-            playsInline
-            className="absolute inset-0 w-full h-full object-cover opacity-80" 
-            />
+          src="/serra_3mb.mp4" 
+          autoPlay 
+          loop 
+          muted 
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover opacity-80" 
+        />
         <div className="absolute inset-0 bg-gradient-to-t from-[#002f40] via-[#002f40]/10 to-transparent" />
 
         <div className="relative z-10 max-w-[1400px] mx-auto w-full">
-          <h1 className={`${jakarta.className} text-6xl md:text-8xl font-black text-white leading-[0.9] mb-8`}>
-            Conheça <br /><span className="italic text-[#F9C400]">São Geraldo do Araguaia</span>
+          <h1 className={`${jakarta.className} text-6xl md:text-8xl font-black text-white leading-[0.9] mb-8 max-md:text-4xl max-md:leading-[1.1] max-md:mb-4`}>
+            Conheça <br />
+            <span className="italic text-[#F9C400]">São Geraldo do Araguaia</span>
           </h1>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <Link href="/rotas" className="inline-block bg-white text-[#00577C] px-10 py-4 rounded-full font-black text-xs uppercase tracking-widest hover:bg-[#F9C400] transition-colors">
-               Aventure-se
+          <div className="flex flex-col sm:flex-row gap-4 max-md:gap-3">
+            <Link href="/rotas" className="inline-block bg-white text-[#00577C] px-10 py-4 rounded-full font-black text-xs uppercase tracking-widest hover:bg-[#F9C400] transition-colors max-md:px-6 max-md:py-3 max-md:text-center">
+              Aventure-se
             </Link>
-            <a href="/eventos" className="inline-block border border-white/30 text-white px-10 py-4 rounded-full font-black text-xs uppercase tracking-widest hover:bg-white/10 transition-colors">
+            <a href="/eventos" className="inline-block border border-white/30 text-white px-10 py-4 rounded-full font-black text-xs uppercase tracking-widest hover:bg-white/10 transition-colors max-md:px-6 max-md:py-3 max-md:text-center">
               Eventos
             </a>
           </div>

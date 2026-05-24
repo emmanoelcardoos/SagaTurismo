@@ -271,7 +271,7 @@ function PacoteDetalheContent() {
   };
 
   if (!mounted || loading || !pacote || !mesAtualCalendario) return (
-    <div className={`${inter.className} min-h-screen flex flex-col items-center justify-center bg-white text-[#0085FF]`}>
+    <div className={`${inter.className} min-h-screen flex flex-col items-center justify-center bg-white text-[#00577C]`}>
       <Loader2 className="w-12 h-12 animate-spin mb-4" />
       <p className="font-bold uppercase tracking-widest text-[10px] md:text-xs">A preparar portal de reservas...</p>
     </div>
@@ -336,29 +336,20 @@ function PacoteDetalheContent() {
       </header>
 
       {/* ── HERO SECTION ── */}
-      <div className="relative w-full h-[40vh] md:h-[50vh] bg-slate-900 mt-[64px] md:mt-[80px]">
+      <div className="relative w-full h-[40vh] md:h-[50vh] bg-slate-900 mt-[64px] md:mt-[0px]">
         <Image src={pacote.imagem_principal || FALLBACK_IMAGE} alt={pacote.titulo || 'Pacote'} fill className="object-cover" priority />
         <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/20 to-transparent" />
         <div className="absolute bottom-6 md:bottom-10 left-5 md:left-16 right-5 text-left">
-          <Link href="/pacotes" className="inline-flex items-center gap-2 text-[10px] md:text-xs font-black uppercase text-white/70 mb-3 hover:text-white transition-colors">
-            <ArrowLeft size={14}/> Voltar aos Pacotes
-          </Link>
           <div className="flex items-center gap-2 mb-2 md:mb-3">
-             <span className="bg-[#F9C400] text-[#0085FF] px-3 py-1.5 rounded-lg text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-md">
-               Expedição Oficial
-             </span>
           </div>
           <h1 className={`${jakarta.className} text-3xl sm:text-4xl md:text-6xl font-black text-white leading-tight drop-shadow-lg line-clamp-2 md:line-clamp-none`}>{pacote.titulo}</h1>
-          <p className="text-white/80 font-bold flex items-center gap-2 mt-2 md:mt-3 text-xs md:text-sm">
-             <MapPin size={16} className="text-[#F9C400] shrink-0"/> São Geraldo do Araguaia, Pará
-          </p>
         </div>
       </div>
 
       <div className={`sticky z-40 bg-white border-b border-slate-200 shadow-sm lg:hidden transition-all duration-300 ${showHeader ? 'top-[64px] md:top-[80px]' : 'top-0'}`}>
          <div className="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between gap-4 overflow-x-auto text-left">
             <div className="flex items-center gap-3 shrink-0">
-               <div className="bg-blue-50 p-2 rounded-lg text-[#0085FF]"><CalendarIcon size={18}/></div>
+               <div className="bg-blue-50 p-2 rounded-lg text-[#00577C]"><CalendarIcon size={18}/></div>
                <div className="text-left leading-none">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Sua Estadia</p>
                   <p className="text-xs font-bold text-slate-800 mt-1">
@@ -368,7 +359,7 @@ function PacoteDetalheContent() {
             </div>
             <div className="h-8 w-px bg-slate-100" />
             <div className="flex items-center gap-3 shrink-0">
-               <div className="bg-green-50 p-2 rounded-lg text-[#009640]"><Users size={18}/></div>
+               <div className="bg-green-50 p-2 rounded-lg text-[#00577C]"><Users size={18}/></div>
                <div className="text-left leading-none">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Hóspedes</p>
                   <p className="text-xs font-bold text-slate-800 mt-1">{adultos} Adultos · {quartos} Quarto(s)</p>
@@ -376,7 +367,7 @@ function PacoteDetalheContent() {
             </div>
             <button 
                onClick={() => document.getElementById('motor-reservas')?.scrollIntoView({ behavior: 'smooth' })}
-               className="ml-auto bg-slate-100 p-2.5 rounded-full text-[#0085FF] hover:bg-[#0085FF] hover:text-white transition-all shrink-0"
+               className="ml-auto bg-slate-100 p-2.5 rounded-full text-[#00577C] hover:bg-[#00577C] hover:text-white transition-all shrink-0"
             >
                <Edit3 size={18}/>
             </button>
@@ -389,7 +380,7 @@ function PacoteDetalheContent() {
 
           {/* ROTEIRO */}
           <section className="bg-white rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-10 shadow-sm border border-slate-200 text-left">
-            <div className="flex items-center gap-4 text-xs md:text-sm font-semibold text-[#0085FF] mb-6 border-b border-slate-100 pb-6">
+            <div className="flex items-center gap-4 text-xs md:text-sm font-semibold text-[#00577C] mb-6 border-b border-slate-100 pb-6">
               <span className="flex items-center gap-2 bg-blue-50 px-4 py-2 rounded-full">
                 <Clock size={16} /> Duração: {pacote.dias} dias / {pacote.noites} noites
               </span>
@@ -406,7 +397,7 @@ function PacoteDetalheContent() {
           <section className="bg-white rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-10 shadow-sm border border-slate-200 text-left overflow-hidden relative">
             <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none"><Bed size={150}/></div>
             <h3 className={`${jakarta.className} text-xl md:text-2xl font-black text-slate-900 mb-8 flex items-center gap-3 relative z-10`}>
-              <div className="w-10 h-10 md:w-12 md:h-12 bg-[#0085FF] text-white rounded-xl md:rounded-2xl flex items-center justify-center shadow-md">
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-[#00577C] text-white rounded-xl md:rounded-2xl flex items-center justify-center shadow-md">
                 <Bed size={20} className="md:w-6 md:h-6" />
               </div>
               1. Acomodação Inclusa
@@ -420,7 +411,7 @@ function PacoteDetalheContent() {
                     {hoteisDisponiveis.map((hotel: any) => (
                       <button 
                         key={hotel.id} onClick={() => setHotelSelecionado(hotel)}
-                        className={`px-4 md:px-5 py-2.5 md:py-3 rounded-xl border-2 font-bold text-xs md:text-sm transition-colors ${hotelSelecionado?.id === hotel.id ? 'border-[#0085FF] bg-blue-50/50 text-[#0085FF]' : 'border-slate-100 text-slate-500 hover:border-slate-200'}`}
+                        className={`px-4 md:px-5 py-2.5 md:py-3 rounded-xl border-2 font-bold text-xs md:text-sm transition-colors ${hotelSelecionado?.id === hotel.id ? 'border-[#00577C] bg-blue-50/50 text-[#00577C]' : 'border-slate-100 text-slate-500 hover:border-slate-200'}`}
                       >
                         {hotel.nome}
                       </button>
@@ -434,10 +425,10 @@ function PacoteDetalheContent() {
                   <h4 className={`${jakarta.className} text-lg md:text-xl font-bold text-slate-800`}>Acomodações no {hotelSelecionado.nome}</h4>
                   
                   {/* Quarto Standard */}
-                  <div className={`border-2 rounded-2xl md:rounded-3xl overflow-hidden shadow-sm flex flex-col transition-all cursor-pointer ${tipoQuarto === 'standard' ? 'border-[#0085FF] ring-4 ring-blue-50/50' : 'border-slate-200 hover:border-[#0085FF]/30 bg-slate-50/50'}`} onClick={() => setTipoQuarto('standard')}>
+                  <div className={`border-2 rounded-2xl md:rounded-3xl overflow-hidden shadow-sm flex flex-col transition-all cursor-pointer ${tipoQuarto === 'standard' ? 'border-[#00577C] ring-4 ring-blue-50/50' : 'border-slate-200 hover:border-[#00577C]/30 bg-slate-50/50'}`} onClick={() => setTipoQuarto('standard')}>
                      <div className="flex justify-between items-center p-4 md:p-5 bg-white border-b border-slate-100">
-                        <h4 className={`${jakarta.className} font-bold text-base md:text-lg text-[#0085FF]`}>{hotelSelecionado.quarto_standard_nome || 'Quarto Standard'}</h4>
-                        <div className={`w-5 h-5 md:w-6 md:h-6 rounded-full border-2 flex items-center justify-center ${tipoQuarto === 'standard' ? 'border-[#0085FF] bg-[#0085FF]' : 'border-slate-300'}`}>
+                        <h4 className={`${jakarta.className} font-bold text-base md:text-lg text-[#00577C]`}>{hotelSelecionado.quarto_standard_nome || 'Quarto Standard'}</h4>
+                        <div className={`w-5 h-5 md:w-6 md:h-6 rounded-full border-2 flex items-center justify-center ${tipoQuarto === 'standard' ? 'border-[#00577C] bg-[#00577C]' : 'border-slate-300'}`}>
                            {tipoQuarto === 'standard' && <Check size={12} className="text-white md:w-3.5 md:h-3.5" strokeWidth={4} />}
                         </div>
                      </div>
@@ -461,7 +452,7 @@ function PacoteDetalheContent() {
                               <p className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest mb-3">Resumo da Inclusão</p>
                               <ul className="space-y-2 md:space-y-3 mb-4 md:mb-6">
                                  <li className="flex items-start gap-2 text-xs md:text-sm text-[#009640] font-bold"><CheckCircle2 size={16} className="shrink-0 mt-0.5 md:w-4 md:h-4" /> Cancelamento grátis (24h)</li>
-                                 <li className="flex items-start gap-2 text-xs md:text-sm text-[#0085FF] font-bold"><Zap size={16} className="shrink-0 mt-0.5 md:w-4 md:h-4" /> Confirmação Imediata</li>
+                                 <li className="flex items-start gap-2 text-xs md:text-sm text-[#00577C] font-bold"><Zap size={16} className="shrink-0 mt-0.5 md:w-4 md:h-4" /> Confirmação Imediata</li>
                               </ul>
                            </div>
                            <div className="w-full sm:w-48 p-4 md:p-5 flex flex-col items-center sm:items-end justify-center bg-slate-50/50">
@@ -476,12 +467,12 @@ function PacoteDetalheContent() {
 
                   {/* Quarto Luxo */}
                   <div className={`border-2 rounded-2xl md:rounded-3xl overflow-hidden shadow-sm flex flex-col relative transition-all cursor-pointer ${tipoQuarto === 'luxo' ? 'border-[#F9C400] ring-4 ring-yellow-50/50' : 'border-slate-200 hover:border-[#F9C400]/50 bg-slate-50/50'}`} onClick={() => setTipoQuarto('luxo')}>
-                     <div className="absolute top-0 right-0 bg-[#0085FF] text-white text-[9px] md:text-[10px] font-black uppercase tracking-widest px-3 md:px-4 py-1.5 rounded-bl-xl shadow-sm z-10 flex items-center gap-1.5">
+                     <div className="absolute top-0 right-0 bg-[#00577C] text-white text-[9px] md:text-[10px] font-black uppercase tracking-widest px-3 md:px-4 py-1.5 rounded-bl-xl shadow-sm z-10 flex items-center gap-1.5">
                         <Award size={12} className="md:w-3.5 md:h-3.5"/> Premium
                      </div>
                      <div className="flex justify-between items-center p-4 md:p-5 bg-white border-b border-slate-100">
-                        <h4 className={`${jakarta.className} font-bold text-base md:text-lg text-[#0085FF]`}>{hotelSelecionado.quarto_luxo_nome || 'Suíte Luxo Premium'}</h4>
-                        <div className={`w-5 h-5 md:w-6 md:h-6 rounded-full border-2 flex items-center justify-center ${tipoQuarto === 'luxo' ? 'border-[#F9C400] bg-[#F9C400]' : 'border-slate-300'}`}>
+                        <h4 className={`${jakarta.className} font-bold text-base md:text-lg text-[#00577C]`}>{hotelSelecionado.quarto_luxo_nome || 'Suíte Luxo Premium'}</h4>
+                        <div className={`w-5 h-5 md:w-6 md:h-6 rounded-full border-2 flex items-center justify-center ${tipoQuarto === 'luxo' ? 'border-[#00577C] bg-[#00577C]' : 'border-slate-300'}`}>
                            {tipoQuarto === 'luxo' && <Check size={12} className="text-white md:w-3.5 md:h-3.5" strokeWidth={4} />}
                         </div>
                      </div>
@@ -505,13 +496,13 @@ function PacoteDetalheContent() {
                               <p className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest mb-3">Resumo da Inclusão</p>
                               <ul className="space-y-2 md:space-y-3 mb-4 md:mb-6">
                                  <li className="flex items-start gap-2 text-xs md:text-sm text-[#009640] font-bold"><CheckCircle2 size={16} className="shrink-0 mt-0.5 md:w-4 md:h-4" /> Cancelamento grátis (24h)</li>
-                                 <li className="flex items-start gap-2 text-xs md:text-sm text-[#0085FF] font-bold"><Coffee size={16} className="shrink-0 mt-0.5 md:w-4 md:h-4" /> Pequeno-almoço incluso</li>
+                                 <li className="flex items-start gap-2 text-xs md:text-sm text-[#00577C] font-bold"><Coffee size={16} className="shrink-0 mt-0.5 md:w-4 md:h-4" /> Pequeno-almoço incluso</li>
                               </ul>
                            </div>
                            <div className="w-full sm:w-48 p-4 md:p-5 flex flex-col items-center sm:items-end justify-center bg-blue-50/10">
                               <div className="mt-auto text-center sm:text-right w-full">
-                                <p className="text-[9px] md:text-[10px] font-black uppercase text-[#0085FF] tracking-widest mb-1">Taxa Base / Noite</p>
-                                <p className={`${jakarta.className} text-xl md:text-2xl font-black text-[#0085FF] leading-none`}>{formatarMoeda(parseValor(hotelSelecionado.quarto_luxo_preco))}</p>
+                                <p className="text-[9px] md:text-[10px] font-black uppercase text-[#00577C] tracking-widest mb-1">Taxa Base / Noite</p>
+                                <p className={`${jakarta.className} text-xl md:text-2xl font-black text-[#00577C] leading-none`}>{formatarMoeda(parseValor(hotelSelecionado.quarto_luxo_preco))}</p>
                               </div>
                            </div>
                         </div>
@@ -528,7 +519,7 @@ function PacoteDetalheContent() {
               <div className="w-10 h-10 md:w-12 md:h-12 bg-[#009640] text-white rounded-xl md:rounded-2xl flex items-center justify-center shadow-md">
                 <UserCheck size={20} className="md:w-6 md:h-6" />
               </div>
-              2. Guia Oficial
+              2. Guia Responsável pelo Roteiro
             </h3>
 
             <div className="flex flex-col gap-4">
@@ -567,13 +558,13 @@ function PacoteDetalheContent() {
 
           {/* ── 3. AVALIAÇÕES E POLÍTICAS ── */}
           <section className="bg-white rounded-[2rem] md:rounded-[2.5rem] border border-slate-200 shadow-sm p-6 md:p-10 text-left">
-             <h3 className={`${jakarta.className} text-xl md:text-2xl font-black text-slate-900 mb-6 md:mb-8`}>Políticas do Pacote Oficial</h3>
+             <h3 className={`${jakarta.className} text-xl md:text-2xl font-black text-slate-900 mb-6 md:mb-8`}>Políticas do Pacote</h3>
              <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-x-8 gap-y-5 text-sm">
                 <div className="font-black text-slate-800">Cancelamento</div>
-                <div className="text-slate-600 font-medium">Reembolso integral se cancelado até 48 hours antes da data de check-in programada.</div>
+                <div className="text-slate-600 font-medium">Reembolso integral se cancelado até 48 horas antes da data de check-in programada.</div>
                 <div className="md:col-span-2 h-px bg-slate-100 my-1 md:my-2"></div>
                 <div className="font-black text-slate-800">Inclusões</div>
-                <div className="text-slate-600 font-medium">O pacote inclui os custos do guia diário, do quarto de hotel selecionado e as entradas nos parques.</div>
+                <div className="text-slate-600 font-medium">O pacote inclui os custos do guia diário, do quarto de hotel selecionado e outros serviços já inclusos.</div>
                 <div className="md:col-span-2 h-px bg-slate-100 my-1 md:my-2"></div>
                 <div className="font-black text-slate-800">Clima e Segurança</div>
                 <div className="text-slate-600 font-medium">O roteiro pode sofrer alterações de ordem sem aviso prévio caso as condições climáticas não garantam a segurança.</div>
@@ -590,7 +581,7 @@ function PacoteDetalheContent() {
             <div className="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[3rem] shadow-xl border border-slate-200 overflow-hidden">
 
               <div className="border-b border-slate-100 pb-5 mb-5 text-center bg-slate-50 rounded-2xl p-4 border border-slate-200">
-                <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-[#0085FF] mb-1">Valor Total Estimado</p>
+                <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-[#00577C] mb-1">Valor Total Estimado</p>
                 <div className="flex items-end justify-center gap-2">
                   <p className={`${jakarta.className} text-3xl md:text-4xl font-black text-[#009640]`}>
                     {calculandoPreco ? '...' : formatarMoeda(valorTotalFinal)}
@@ -600,7 +591,7 @@ function PacoteDetalheContent() {
 
               {/* CALENDÁRIO INLINE */}
               <div className="mb-6">
-                <p className="text-[10px] font-black uppercase tracking-widest text-[#0085FF] mb-3 md:mb-4">Selecione as Datas</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#00577C] mb-3 md:mb-4">Selecione as Datas</p>
                 <div className="bg-slate-50 border border-slate-200 rounded-2xl md:rounded-[2rem] p-4 md:p-5 shadow-inner">
                   <div className="flex items-center justify-between mb-3 md:mb-4">
                     <button onClick={() => setMesAtualCalendario(new Date(anoCorrente, mesCorrente - 1))} className="p-1 md:p-2 hover:bg-slate-200 rounded-full transition-colors"><ChevronLeft size={18} className="md:w-5 md:h-5" /></button>
@@ -623,8 +614,8 @@ function PacoteDetalheContent() {
 
                       let bgClass = "bg-transparent hover:bg-slate-200 text-slate-800";
                       if (isPassado) bgClass = "bg-transparent text-slate-300 cursor-not-allowed line-through";
-                      else if (isCheckin || isCheckout) bgClass = "bg-[#0085FF] text-white shadow-md rounded-md md:rounded-lg scale-105 z-10";
-                      else if (isInBetween || isHovered) bgClass = "bg-[#0085FF]/10 text-[#0085FF] rounded-none";
+                      else if (isCheckin || isCheckout) bgClass = "bg-[#00577C] text-white shadow-md rounded-md md:rounded-lg scale-105 z-10";
+                      else if (isInBetween || isHovered) bgClass = "bg-[#00577C]/10 text-[#00577C] rounded-none";
 
                       return (
                         <button
@@ -642,21 +633,21 @@ function PacoteDetalheContent() {
 
               {/* ── NOVA SEÇÃO: CONFIGURAÇÃO DE HÓSPEDES E QUARTOS (RESOLVE O MISTÉRIO 2) ── */}
               <div className="space-y-3 py-4 border-t border-b border-slate-100 mb-6">
-                <p className="text-[10px] font-black uppercase tracking-widest text-[#0085FF] mb-1">Configuração do Grupo</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#00577C] mb-1">Configuração do Grupo</p>
                 <div className="flex items-center justify-between">
                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Hóspedes (Adultos)</span>
                    <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg p-1">
-                      <button type="button" onClick={() => setAdultos(Math.max(1, adultos - 1))} className="w-6 h-6 flex justify-center items-center text-[#0085FF] font-black">-</button>
+                      <button type="button" onClick={() => setAdultos(Math.max(1, adultos - 1))} className="w-6 h-6 flex justify-center items-center text-[#00577C] font-black">-</button>
                       <span className="font-bold text-xs w-4 text-center">{adultos}</span>
-                      <button type="button" onClick={() => setAdultos(adultos + 1)} className="w-6 h-6 flex justify-center items-center text-[#0085FF] font-black">+</button>
+                      <button type="button" onClick={() => setAdultos(adultos + 1)} className="w-6 h-6 flex justify-center items-center text-[#00577C] font-black">+</button>
                    </div>
                 </div>
                 <div className="flex items-center justify-between">
                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Quartos Requeridos</span>
                    <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg p-1">
-                      <button type="button" onClick={() => setQuartos(Math.max(1, quartos - 1))} className="w-6 h-6 flex justify-center items-center text-[#0085FF] font-black">-</button>
+                      <button type="button" onClick={() => setQuartos(Math.max(1, quartos - 1))} className="w-6 h-6 flex justify-center items-center text-[#00577C] font-black">-</button>
                       <span className="font-bold text-xs w-4 text-center">{quartos}</span>
-                      <button type="button" onClick={() => setQuartos(quartos + 1)} className="w-6 h-6 flex justify-center items-center text-[#0085FF] font-black">+</button>
+                      <button type="button" onClick={() => setQuartos(quartos + 1)} className="w-6 h-6 flex justify-center items-center text-[#00577C] font-black">+</button>
                    </div>
                 </div>
               </div>
@@ -672,7 +663,7 @@ function PacoteDetalheContent() {
               {/* RESUMO DOS VALORES */}
               <div className="space-y-2.5 md:space-y-3 mb-6 md:mb-8 text-xs md:text-sm font-semibold pt-2">
                 <div className="flex justify-between items-center text-slate-600">
-                  <span className="flex items-center gap-2"><Bed size={14} className="text-[#0085FF] shrink-0" /> Hospedagem ({totalNoites} nts)</span>
+                  <span className="flex items-center gap-2"><Bed size={14} className="text-[#00577C] shrink-0" /> Hospedagem ({totalNoites} nts)</span>
                   <span className="text-slate-800 tabular-nums">{calculandoPreco ? '...' : formatarMoeda(totalHospedagem)}</span>
                 </div>
                 <div className="flex justify-between items-center text-slate-600">
@@ -688,13 +679,13 @@ function PacoteDetalheContent() {
               <button
                 disabled={!hotelDisponivel || calculandoPreco}
                 onClick={handleReserva}
-                className={`${jakarta.className} flex items-center justify-center gap-3 w-full py-4 md:py-5 rounded-xl md:rounded-2xl font-black text-base md:text-lg transition-transform shadow-xl ${!hotelDisponivel ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none' : 'bg-[#0085FF] hover:bg-[#004a6b] text-white hover:-translate-y-1'}`}
+                className={`${jakarta.className} flex items-center justify-center gap-3 w-full py-4 md:py-5 rounded-xl md:rounded-2xl font-black text-base md:text-lg transition-transform shadow-xl ${!hotelDisponivel ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none' : 'bg-[#00577C] hover:bg-[#004a6b] text-white hover:-translate-y-1'}`}
               >
                 {calculandoPreco ? 'A calcular...' : !hotelDisponivel ? 'Esgotado' : <><>Prosseguir para Checkout</> <ChevronRightIcon size={18} className="md:w-5 md:h-5" /></>}
               </button>
 
               <p className="flex mt-4 text-center text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest items-center justify-center gap-1.5">
-                <ShieldCheck size={12} className="text-[#0085FF] md:w-3.5 md:h-3.5" /> Plataforma Oficial SagaTurismo
+                <ShieldCheck size={12} className="text-[#00577C] md:w-3.5 md:h-3.5" /> Plataforma Oficial SagaTurismo
               </p>
             </div>
 
@@ -715,7 +706,7 @@ function PacoteDetalheContent() {
                   className="relative aspect-square rounded-xl md:rounded-2xl overflow-hidden shadow-sm md:shadow-md group bg-slate-200 cursor-pointer"
                 >
                   <Image src={url} alt={`Foto Galeria ${idx + 1}`} fill className="object-cover group-hover:scale-110 transition-transform duration-700" />
-                  <div className="absolute inset-0 bg-[#0085FF]/0 group-hover:bg-[#0085FF]/40 transition-colors duration-300 flex items-center justify-center">
+                  <div className="absolute inset-0 bg-[#00577C]/0 group-hover:bg-[#00577C]/40 transition-colors duration-300 flex items-center justify-center">
                     <ZoomIn className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-8 h-8 md:w-10 md:h-10 scale-50 group-hover:scale-100" />
                   </div>
                 </div>
@@ -761,7 +752,7 @@ function PacoteDetalheContent() {
                <p className="text-[9px] font-black text-slate-400 uppercase leading-none mb-1">Total do Pacote</p>
                <p className={`${jakarta.className} text-xl font-black text-[#009640] tabular-nums leading-none`}>{calculandoPreco ? '...' : formatarMoeda(valorTotalFinal)}</p>
             </div>
-            <button disabled={!hotelDisponivel || calculandoPreco} onClick={handleReserva} className={`text-white px-5 py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg flex items-center gap-2 ${!hotelDisponivel ? 'bg-slate-300 cursor-not-allowed shadow-none' : 'bg-[#0085FF]'}`}>
+            <button disabled={!hotelDisponivel || calculandoPreco} onClick={handleReserva} className={`text-white px-5 py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg flex items-center gap-2 ${!hotelDisponivel ? 'bg-slate-300 cursor-not-allowed shadow-none' : 'bg-[#00577C]'}`}>
                {calculandoPreco ? '...' : !hotelDisponivel ? 'Esgotado' : <><>Reservar</> <ArrowRight size={14}/></>}
             </button>
          </div>
@@ -783,7 +774,7 @@ function PacoteDetalheContent() {
 // ── EXPORT COM SUSPENSE ──
 export default function PacoteDetailPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-white"><Loader2 className="animate-spin text-[#0085FF]" size={48} /></div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-white"><Loader2 className="animate-spin text-[#00577C]" size={48} /></div>}>
       <PacoteDetalheContent />
     </Suspense>
   );
