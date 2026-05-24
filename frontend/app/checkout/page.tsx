@@ -124,6 +124,7 @@ function CheckoutPacoteContent() {
   const checkoutData = searchParams.get('checkout');
   const adultosParam = Number(searchParams.get('adultos')) || 2;
   const quartosParam = Number(searchParams.get('quartos')) || 1;
+  const precoParam = Number(searchParams.get('preco')) || 0;
 
   // Estados de Dados
   const [pacote, setPacote] = useState<Pacote | null>(null);
@@ -265,9 +266,10 @@ function CheckoutPacoteContent() {
   }, [hotelId, quartoTipo, checkinData, checkoutData, quartosParam, adultosParam]);
 
   // Totais do Carrinho
-  const precoGuia = guiaSel ? parseValor(guiaSel.preco_diaria) * (numNoites + 1) : 0;
+  // ── PREÇO SOBERANO DA URL ──
+  const totalPagamento = precoParam;
   const precoAtracoes = atracoes.reduce((acc, curr) => acc + parseValor(curr.preco_entrada), 0) * adultosParam;
-  const totalPagamento = valorHospedagemDin + precoGuia + precoAtracoes;
+  
 
   const handlePagamento = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -710,14 +712,16 @@ function CheckoutPacoteContent() {
                  <div className="pt-4 border-t border-dashed border-slate-200 space-y-2 text-sm">
                     {exibirTaxaExtra ? (
                       <>
-                        <div className="flex justify-between text-slate-600">
-                           <span>Valor Base da Hospedagem</span>
-                           <span className="font-bold">{loadingPreco ? '...' : formatarMoeda(valorBaseMatematico)}</span>
-                        </div>
-                        <div className="flex justify-between text-slate-600">
-                           <span>Taxa de Hóspede(s) Adicional(is)</span>
-                           <span className="font-bold text-amber-600">{loadingPreco ? '...' : formatarMoeda(taxaHospedeAdicional)}</span>
-                        </div>
+                        <div className="pt-4 border-t border-dashed border-slate-200 space-y-2 text-sm">
+                          <div className="flex justify-between text-slate-600">
+                            <span>Total de Inclusões</span>
+                            <span className="font-bold">Incluído no pacote</span>
+                          </div>
+                          <div className="flex justify-between text-slate-600">
+                            <span>Taxas Municipais Governamentais</span>
+                            <span className="font-bold text-[#009640]">Isento</span>
+                          </div>
+                      </div>
                       </>
                     ) : (
                       <>

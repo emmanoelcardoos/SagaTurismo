@@ -273,13 +273,13 @@ function PacoteDetalheContent() {
       document.getElementById('motor-reservas')?.scrollIntoView({ behavior: 'smooth' });
       return;
     }
-
     if (!hotelDisponivel) {
       alert("Pedimos desculpa, mas o quarto selecionado está esgotado para estas datas. Por favor, escolha outro período ou acomodação.");
       return;
     }
 
-    router.push(`/checkout?pacote=${pacote?.id}&hotel=${hotelSelecionado?.id}&quarto=${tipoQuarto}&guia=${guiaSelecionado?.id}&checkin=${formatarDataIso(checkin)}&checkout=${formatarDataIso(checkout)}&adultos=${adultos}&quartos=${quartos}`);
+    // ◄── INJETAMOS O &preco AQUI NO FINAL DA URL ──►
+    router.push(`/checkout?pacote=${pacote?.id}&hotel=${hotelSelecionado?.id}&quarto=${tipoQuarto}&guia=${guiaSelecionado?.id}&checkin=${formatarDataIso(checkin)}&checkout=${formatarDataIso(checkout)}&adultos=${adultos}&quartos=${quartos}&preco=${valorTotalFinal}`);
   };
 
   if (!mounted || loading || !pacote || !mesAtualCalendario) return (
