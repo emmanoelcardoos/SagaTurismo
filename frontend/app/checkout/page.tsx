@@ -726,11 +726,7 @@ function CheckoutPacoteContent() {
                     ) : (
                       <>
                         <div className="flex justify-between text-slate-600">
-                           <span>Acomodação Hoteleira</span>
-                           <span className="font-bold">{loadingPreco ? '...' : formatarMoeda(valorHospedagemDin)}</span>
-                        </div>
-                        <div className="flex justify-between text-slate-600">
-                           <span>Taxas Municipais Governamentais</span>
+                           <span>Taxas Fundo Ambiental</span>
                            <span className="font-bold text-[#009640]">Isento</span>
                         </div>
                       </>

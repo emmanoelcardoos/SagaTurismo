@@ -671,7 +671,7 @@ export default function HomePage() {
 
         <div className="relative z-10 max-w-[1400px] mx-auto w-full">
           <h1 className={`${jakarta.className} text-6xl md:text-8xl font-black text-white leading-[0.9] mb-8 max-md:text-4xl max-md:leading-[1.1] max-md:mb-4`}>
-            Conheça <br />
+            Conheça<br />
             <span className="italic text-[#F9C400]">São Geraldo do Araguaia</span>
           </h1>
           <div className="flex flex-col sm:flex-row gap-4 max-md:gap-3">

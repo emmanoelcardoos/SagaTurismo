@@ -73,10 +73,7 @@ function getRichContent(rota: Rota) {
       emoji: 'águas',
       icons: [<Waves key="w" size={20} />, <Sun key="s" size={20} />, <Camera key="c" size={20} />],
       detalhes: [
-        { icon: <Clock size={16} />, label: 'Duração', valor: 'Não especificado' },
-        { icon: <Mountain size={16} />, label: 'Dificuldade', valor: 'Moderada' },
-        { icon: <Users size={16} />, label: 'Grupo', valor: 'Sem limite de pessoas' },
-        { icon: <Shield size={16} />, label: 'Guia', valor: 'Obrigatório' },
+        
       ],
       destaques: [
         { titulo: 'Praias fluviais secretas', desc: 'Areias brancas às margens do Araguaia, acessíveis apenas pela rota oficial.' },

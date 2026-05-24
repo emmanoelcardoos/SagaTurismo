@@ -4,7 +4,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState, useRef, ReactNode } from 'react';
 import {
-  Menu, X, MapPin, ArrowRight, Loader2, Utensils, Fish, Flame
+  Menu, X, MapPin, ArrowRight, Loader2, Utensils, Fish, Flame,
+  ShieldCheck
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -258,43 +259,30 @@ export default function GastronomiaPage() {
       </section>
 
       {/* FOOTER INSTITUCIONAL */}
-      <footer className="py-12 md:py-20 px-5 md:px-8 border-t border-slate-100 bg-white text-left">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-10 md:gap-16 mb-12 md:mb-20 text-left">
-            <div className="space-y-6 md:space-y-8 text-left">
-               <img src="/logop.png" alt="Prefeitura SGA" className="h-16 md:h-20 object-contain" />
-               <p className="text-xs md:text-sm text-slate-400 font-bold uppercase tracking-widest leading-relaxed">São Geraldo do Araguaia <br/> "Cidade Amada, seguindo em frente"</p>
+      <footer className="py-20 px-8 border-t border-slate-200 bg-white text-left">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
+          <div className="flex flex-col items-center md:items-start gap-4">
+            <div className="flex items-center gap-6">
+              <Image src="/logop.png" alt="SagaTurismo" width={160} height={50} className="object-contain" />
+              <div className="w-px h-12 bg-slate-200 hidden md:block" />
+              <Image src="/prefeitura.png" alt="Prefeitura de São Geraldo do Araguaia" width={140} height={50} className="object-contain" />
             </div>
-            
-            <div className="space-y-4 md:space-y-6 text-left">
-              <h5 className="font-black text-slate-900 text-[10px] md:text-xs uppercase tracking-widest border-b border-slate-100 pb-3 md:pb-4">Gestão Executiva</h5>
-              <ul className="text-xs md:text-sm text-slate-500 space-y-2 md:space-y-3 font-medium">
-                <li>Prefeito: <br/><b>Jefferson Douglas de Jesus Oliveira</b></li>
-                <li>Vice-Prefeito: <br/><b>Marcos Antônio Candido de Lucena</b></li>
-              </ul>
-            </div>
-
-            <div className="space-y-4 md:space-y-6 text-left">
-              <h5 className="font-black text-slate-900 text-[10px] md:text-xs uppercase tracking-widest border-b border-slate-100 pb-3 md:pb-4">Turismo (SEMTUR)</h5>
-              <ul className="text-xs md:text-sm text-slate-500 space-y-2 md:space-y-3 font-medium">
-                <li>Secretária: <br/><b>Micheli Stephany de Souza</b></li>
-                <li>Contato: <b>(94) 98145-2067</b></li>
-                <li>Email: <b>setursaga@gmail.com</b></li>
-              </ul>
-            </div>
-
-            <div className="space-y-4 md:space-y-6 text-left">
-              <h5 className="font-black text-slate-900 text-[10px] md:text-xs uppercase tracking-widest border-b border-slate-100 pb-3 md:pb-4">Equipe Técnica</h5>
-              <ul className="text-xs md:text-sm text-slate-500 space-y-2 font-medium">
-                <li>• Adriana da Luz Lima</li>
-                <li>• Carmelita Luz da Silva</li>
-                <li>• Diego Silva Costa</li>
-              </ul>
+            <div className="text-left space-y-1">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                © 2026 Secretaria Municipal de Turismo - SGA | Todos os direitos reservados
+              </p>
+              <p className="text-[10px] font-bold text-slate-400/80">
+                CNPJ: 10.249.241/0001-22
+              </p>
             </div>
           </div>
-          
-          <div className="text-center pt-8 md:pt-10 border-t border-slate-50">
-            <p className="text-[9px] md:text-[10px] font-black text-slate-300 uppercase tracking-[0.4em] leading-relaxed">© 2026 Secretaria Municipal de Turismo - São Geraldo do Araguaia (PA)</p>
+
+          <div className="flex gap-10">
+            <div className="text-left border-l-2 border-slate-100 pl-9">
+              <p className="text-[10px] font-black text-[#00577C] uppercase mb-1">Contato Oficial</p>
+              <p className="text-xs font-bold text-slate-500 tracking-tight">setursaga@gmail.com</p>
+            </div>
+            <ShieldCheck size={40} className="text-[#009640] opacity-30" />
           </div>
         </div>
       </footer>

@@ -7,7 +7,8 @@ import { useParams } from 'next/navigation';
 import {
   ArrowLeft, ArrowRight, MapPin, Compass, Mountain,
   Waves, Camera, Shield, Clock, ChevronDown, Menu, X, Loader2,
-  Phone, Map, Bed, Image as ImageIcon // <-- Ícones corrigidos aqui
+  Phone, Map, Bed, Image as ImageIcon, // <-- Ícones corrigidos aqui
+  ShieldCheck
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -311,12 +312,32 @@ export default function AtracaoDetailPage() {
       </section>
       
       {/* ── FOOTER MINIMAL ── */}
-      <footer className="py-10 px-6 md:px-12 border-t" style={{ backgroundColor: theme.bgDark, borderColor: theme.cor + '15' }}>
-        <div className="max-w-[1400px] mx-auto flex flex-col items-center justify-center gap-4">
-          <Image src="/logop.png" alt="SagaTurismo" width={100} height={40} className="brightness-[100] invert opacity-30" />
-          <p className="text-[9px] font-black uppercase tracking-[0.4em] text-center" style={{ color: 'rgba(255,255,255,0.15)' }}>
-            © 2026 Secretaria Municipal de Turismo — São Geraldo do Araguaia (PA)
-          </p>
+      {/* FOOTER */}
+      <footer className="py-20 px-8 border-t border-slate-200 bg-white text-left">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
+          <div className="flex flex-col items-center md:items-start gap-4">
+            <div className="flex items-center gap-6">
+              <Image src="/logop.png" alt="SagaTurismo" width={160} height={50} className="object-contain" />
+              <div className="w-px h-12 bg-slate-200 hidden md:block" />
+              <Image src="/prefeitura.png" alt="Prefeitura de São Geraldo do Araguaia" width={140} height={50} className="object-contain" />
+            </div>
+            <div className="text-left space-y-1">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                © 2026 Secretaria Municipal de Turismo - SGA | Todos os direitos reservados
+              </p>
+              <p className="text-[10px] font-bold text-slate-400/80">
+                CNPJ: 10.249.241/0001-22
+              </p>
+            </div>
+          </div>
+
+          <div className="flex gap-10">
+            <div className="text-left border-l-2 border-slate-100 pl-9">
+              <p className="text-[10px] font-black text-[#00577C] uppercase mb-1">Contato Oficial</p>
+              <p className="text-xs font-bold text-slate-500 tracking-tight">setursaga@gmail.com</p>
+            </div>
+            <ShieldCheck size={40} className="text-[#009640] opacity-30" />
+          </div>
         </div>
       </footer>
     </main>

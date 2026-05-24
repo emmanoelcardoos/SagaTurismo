@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState, useRef, ReactNode } from 'react';
 import {
-  Menu, X, MapPin, ArrowRight, Loader2, CalendarDays, Clock, Sparkles, ChevronRight, ChevronLeft, isMobile, useMediaQuery, isMobileMenuOpen
+  Menu, X, MapPin, ArrowRight, Loader2, CalendarDays, Clock, Sparkles, ChevronRight, ChevronLeft
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -63,6 +63,7 @@ export default function EventosPage() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [eventosPorMes, setEventosPorMes] = useState<Record<number, Evento[]>>({});
   const [loading, setLoading] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // ✅ CORREÇÃO AQUI
 
   const hoje = new Date();
   const dataHojeISO = hoje.toISOString().split('T')[0];

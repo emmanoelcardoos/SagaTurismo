@@ -174,7 +174,6 @@ function Lightbox({ lista, indexInicial, onClose }: { lista: Foto[]; indexInicia
       <div className="absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-black/80 to-transparent flex flex-col items-center text-center" onClick={e => e.stopPropagation()}>
         <p className={`${jakarta.className} text-2xl md:text-3xl font-black text-white mb-2`}>{current.titulo}</p>
         <div className="flex items-center gap-3 text-[#F9C400] text-[10px] md:text-xs font-bold uppercase tracking-widest">
-          <span>{current.categoria}</span>
           <span className="w-1 h-1 rounded-full bg-[#F9C400]" />
           <span>{current.ano}</span>
         </div>
@@ -281,7 +280,7 @@ export default function GaleriaPage() {
         <section className="bg-white border-b border-slate-100 py-10 px-6">
           <div className="max-w-[1400px] mx-auto flex flex-wrap justify-start gap-12 md:gap-24">
             {[
-              { valor: fotos.length, label: 'Registos Fotográficos' },
+              { valor: fotos.length, label: 'Registros Fotográficos' },
               { valor: categorias.length, label: 'Categorias Culturais' },
               { valor: [...new Set(fotos.map(f => f.ano))].length, label: 'Anos Documentados' },
             ].map(({ valor, label }) => (

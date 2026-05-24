@@ -440,18 +440,35 @@ export default function ParceirosPage() {
       </section>
 
       {/* ── FOOTER ── */}
-      <footer className="py-12 px-5 border-t border-slate-200 bg-white text-left">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex flex-col md:flex-row items-center gap-4">
-            <div className="relative h-10 w-28 md:h-12 md:w-36"><Image src="/logop.png" alt="SGA" fill className="object-contain object-left md:object-center" /></div>
-            <div className="hidden border-l border-slate-200 pl-4 md:block">
-              <p className={`${jakarta.className} text-xl font-bold text-[#00577C]`}>SagaTurismo</p>
-              <p className="text-[9px] text-slate-500 uppercase font-bold tracking-widest">Portal do Parceiro</p>
-            </div>
-          </div>
-          <p className="text-[9px] md:text-[10px] text-slate-400 font-bold tracking-widest uppercase text-center md:text-left">© 2026 Secretaria Municipal de Turismo</p>
-        </div>
-      </footer>
+      {/* FOOTER */}
+            {/* FOOTER */}
+                  <footer className="py-20 px-8 border-t border-slate-200 bg-white text-left">
+                    <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
+                      <div className="flex flex-col items-center md:items-start gap-4">
+                        <div className="flex items-center gap-6">
+                          <Image src="/logop.png" alt="SagaTurismo" width={160} height={50} className="object-contain" />
+                          <div className="w-px h-12 bg-slate-200 hidden md:block" />
+                          <Image src="/prefeitura.png" alt="Prefeitura de São Geraldo do Araguaia" width={140} height={50} className="object-contain" />
+                        </div>
+                        <div className="text-left space-y-1">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                            © 2026 Secretaria Municipal de Turismo - SGA | Todos os direitos reservados
+                          </p>
+                          <p className="text-[10px] font-bold text-slate-400/80">
+                            CNPJ: 10.249.241/0001-22
+                          </p>
+                        </div>
+                      </div>
+            
+                      <div className="flex gap-10">
+                        <div className="text-left border-l-2 border-slate-100 pl-9">
+                          <p className="text-[10px] font-black text-[#00577C] uppercase mb-1">Contato Oficial</p>
+                          <p className="text-xs font-bold text-slate-500 tracking-tight">setursaga@gmail.com</p>
+                        </div>
+                        <ShieldCheck size={40} className="text-[#009640] opacity-30" />
+                      </div>
+                    </div>
+                  </footer>
     </main>
   );
 }

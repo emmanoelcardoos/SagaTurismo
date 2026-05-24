@@ -359,31 +359,6 @@ function PacoteDetalheContent() {
       </div>
 
       <div className={`sticky z-40 bg-white border-b border-slate-200 shadow-sm lg:hidden transition-all duration-300 ${showHeader ? 'top-[64px] md:top-[80px]' : 'top-0'}`}>
-         <div className="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between gap-4 overflow-x-auto text-left">
-            <div className="flex items-center gap-3 shrink-0">
-               <div className="bg-blue-50 p-2 rounded-lg text-[#00577C]"><CalendarIcon size={18}/></div>
-               <div className="text-left leading-none">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Sua Estadia</p>
-                  <p className="text-xs font-bold text-slate-800 mt-1">
-                    {checkin ? checkin.toLocaleDateString('pt-BR', {day:'2-digit', month:'short'}) : 'Escolher'} — {checkout ? checkout.toLocaleDateString('pt-BR', {day:'2-digit', month:'short'}) : 'Datas'}
-                  </p>
-               </div>
-            </div>
-            <div className="h-8 w-px bg-slate-100" />
-            <div className="flex items-center gap-3 shrink-0">
-               <div className="bg-green-50 p-2 rounded-lg text-[#00577C]"><Users size={18}/></div>
-               <div className="text-left leading-none">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Hóspedes</p>
-                  <p className="text-xs font-bold text-slate-800 mt-1">{adultos} Adultos · {quartos} Quarto(s)</p>
-               </div>
-            </div>
-            <button 
-               onClick={() => document.getElementById('motor-reservas')?.scrollIntoView({ behavior: 'smooth' })}
-               className="ml-auto bg-slate-100 p-2.5 rounded-full text-[#00577C] hover:bg-[#00577C] hover:text-white transition-all shrink-0"
-            >
-               <Edit3 size={18}/>
-            </button>
-         </div>
       </div>
 
       <div className="mx-auto w-full max-w-7xl px-4 md:px-5 py-8 md:py-12 flex flex-col lg:flex-row items-start gap-8 relative z-10">
@@ -753,14 +728,34 @@ function PacoteDetalheContent() {
       </div>
 
       {/* ── FOOTER ── */}
-      <footer className="py-10 md:py-20 px-5 border-t border-slate-200 bg-white text-left mt-6 md:mt-10 mb-16 lg:mb-0">
-         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8">
-            <Image src="/logop.png" alt="SGA" width={120} height={40} className="object-contain opacity-40 grayscale md:w-[140px] md:h-[50px]" />
-            <p className="text-[9px] md:text-[10px] font-black text-slate-300 uppercase tracking-widest leading-relaxed text-center md:text-right">
-              © 2026 Secretaria Municipal de Turismo - SGA <br/> Portal Oficial de Turismo e Reservas
-            </p>
-         </div>
-      </footer>
+      {/* FOOTER */}
+            <footer className="py-20 px-8 border-t border-slate-200 bg-white text-left">
+              <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
+                <div className="flex flex-col items-center md:items-start gap-4">
+                  <div className="flex items-center gap-6">
+                    <Image src="/logop.png" alt="SagaTurismo" width={160} height={50} className="object-contain" />
+                    <div className="w-px h-12 bg-slate-200 hidden md:block" />
+                    <Image src="/prefeitura.png" alt="Prefeitura de São Geraldo do Araguaia" width={140} height={50} className="object-contain" />
+                  </div>
+                  <div className="text-left space-y-1">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                      © 2026 Secretaria Municipal de Turismo - SGA | Todos os direitos reservados
+                    </p>
+                    <p className="text-[10px] font-bold text-slate-400/80">
+                      CNPJ: 10.249.241/0001-22
+                    </p>
+                  </div>
+                </div>
+      
+                <div className="flex gap-10">
+                  <div className="text-left border-l-2 border-slate-100 pl-9">
+                    <p className="text-[10px] font-black text-[#00577C] uppercase mb-1">Contato Oficial</p>
+                    <p className="text-xs font-bold text-slate-500 tracking-tight">setursaga@gmail.com</p>
+                  </div>
+                  <ShieldCheck size={40} className="text-[#009640] opacity-30" />
+                </div>
+              </div>
+            </footer>
     </main>
   );
 }

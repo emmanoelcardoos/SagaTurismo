@@ -244,7 +244,7 @@ function HoteisPageContent() {
 
   const isSearchLoading = isSearching || carregandoPrecos;
 
-  // Lógica do Calendário Visual
+  // Lógica do Calendário Visual (CORRIGIDA)
   const renderCalendario = () => {
     const ano = mesAtual.getFullYear();
     const mes = mesAtual.getMonth();
@@ -253,7 +253,7 @@ function HoteisPageContent() {
     const hoje = new Date(); hoje.setHours(0,0,0,0);
 
     return (
-      <div className="absolute top-[120%] left-0 md:left-1/2 md:-translate-x-1/2 w-[340px] bg-white rounded-[2rem] border border-slate-100 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] p-6 z-[100] animate-in fade-in slide-in-from-top-4 cursor-default" onClick={e => e.stopPropagation()}>
+      <div className="w-[380px] bg-white rounded-[2rem] border border-slate-100 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] p-6 cursor-default">
         <div className="flex items-center justify-between mb-6">
           <button onClick={() => setMesAtual(new Date(ano, mes - 1))} disabled={mesAtual <= hoje} className="p-2 hover:bg-slate-100 rounded-full disabled:opacity-30 disabled:hover:bg-transparent"><ChevronLeft size={20}/></button>
           <span className={`${jakarta.className} font-black text-slate-800 capitalize`}>{mesAtual.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}</span>
@@ -340,56 +340,126 @@ function HoteisPageContent() {
         )}
       </header>
 
-      {/* ── HERO SECTION (CARROSSEL DINÂMICO E SEARCH PILL) ── */}
-      <section className="relative h-[65vh] min-h-[500px] w-full flex flex-col justify-end pb-12 px-6">
+      {/* ── HERO SECTION (CARROSSEL DINÂMICO E SEARCH CARD RESPONSIVO) ── */}
+      <section className="relative h-auto min-h-[500px] w-full flex flex-col justify-end pb-12 px-6">
         <div className="absolute inset-0 bg-[#002f40]">
           {hoteis.length > 0 && hoteis.map((h, i) => (
-             <Image key={h.id} src={h.imagem_url || FALLBACK_IMAGE} alt="Fundo" fill className={`object-cover transition-opacity duration-1000 ease-in-out ${i === currentHeroSlide ? 'opacity-50' : 'opacity-0'}`} />
+            <Image
+              key={h.id}
+              src={h.imagem_url || FALLBACK_IMAGE}
+              alt="Fundo"
+              fill
+              className={`object-cover transition-opacity duration-1000 ease-in-out ${
+                i === currentHeroSlide ? 'opacity-50' : 'opacity-0'
+              }`}
+            />
           ))}
           <div className="absolute inset-0 bg-gradient-to-t from-[#002f40] via-[#002f40]/40 to-transparent" />
         </div>
-        
+
         <div className="relative z-10 w-full max-w-[1400px] mx-auto text-center md:text-left flex flex-col items-center md:items-start">
-           <h1 className={`${jakarta.className} text-5xl md:text-7xl font-black text-white leading-[1.1] md:leading-[0.9] tracking-tight mb-8`}>
-             <span className="text-[#F9C400]">Alojamentos locais</span>
-           </h1>
+          <h1 className={`${jakarta.className} text-5xl md:text-7xl font-black text-white leading-[1.1] md:leading-[0.9] tracking-tight mb-8`}>
+            <span className="text-[#F9C400]">Alojamentos locais</span>
+          </h1>
 
-           {/* SEARCH PILL FLUTUANTE */}
-           <div ref={searchBarRef} className="relative w-full max-w-4xl bg-white p-2 rounded-full shadow-2xl flex flex-col md:flex-row items-center gap-2">
-              
-              <div className="flex-1 w-full flex items-center px-6 py-4 border-b md:border-b-0 md:border-r border-slate-100 gap-3">
-                 <MapPin className="text-[#00577C]" size={20} />
-                 <div className="text-left"><p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Destino</p><p className="font-bold text-sm text-slate-800">São Geraldo do Araguaia</p></div>
+          {/* SEARCH CARD – sem overflow-hidden para não cortar o calendário */}
+          <div ref={searchBarRef} className="relative w-full max-w-4xl bg-white shadow-2xl rounded-2xl md:rounded-2xl">
+            <div className="flex flex-col md:flex-row">
+              {/* Destino */}
+              <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-100 md:border-b-0 md:border-r flex-1">
+                <MapPin className="text-[#00577C] shrink-0" size={20} />
+                <div className="flex-1 text-left">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Destino</p>
+                  <p className="font-bold text-sm text-slate-800">São Geraldo do Araguaia</p>
+                </div>
               </div>
 
-              <div onClick={() => {setShowPopup(showPopup === 'calendar' ? null : 'calendar')}} className="flex-1 w-full flex items-center px-6 py-4 md:border-r border-slate-100 gap-3 cursor-pointer hover:bg-slate-50 transition-colors">
-                 <CalendarIcon className="text-[#00577C]" size={20} />
-                 <div className="text-left"><p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Datas da Estadia</p><p className="font-bold text-sm text-slate-800">{checkin ? checkin.toLocaleDateString('pt-BR',{day:'2-digit', month:'short'}) : 'Check-in'} — {checkout ? checkout.toLocaleDateString('pt-BR',{day:'2-digit', month:'short'}) : 'Check-out'}</p></div>
-                 {showPopup === 'calendar' && renderCalendario()}
-              </div>
+              {/* Datas da Estadia */}
+              <div
+                onClick={() => setShowPopup(showPopup === 'calendar' ? null : 'calendar')}
+                className="relative flex items-center gap-3 px-5 py-4 border-b border-slate-100 md:border-b-0 md:border-r flex-1 cursor-pointer hover:bg-slate-50 transition-colors"
+              >
+                <CalendarIcon className="text-[#00577C] shrink-0" size={20} />
+                <div className="flex-1 text-left">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Datas da Estadia</p>
+                  <p className="font-bold text-sm text-slate-800">
+                    {checkin ? checkin.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) : 'Check-in'} —
+                    {checkout ? checkout.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) : 'Check-out'}
+                  </p>
+                </div>
 
-              <div onClick={() => {setShowPopup(showPopup === 'hospedes' ? null : 'hospedes')}} className="flex-1 w-full flex items-center px-6 py-4 gap-3 cursor-pointer hover:bg-slate-50 transition-colors rounded-r-full">
-                 <Users className="text-[#00577C]" size={20} />
-                 <div className="text-left"><p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Viajantes</p><p className="font-bold text-sm text-slate-800">{adultos} Adultos · {quartos} Quarto</p></div>
-                 
-                 {showPopup === 'hospedes' && (
-                    <div className="absolute top-[120%] right-0 md:right-32 w-72 bg-white rounded-3xl p-6 shadow-2xl border border-slate-100 z-50 text-slate-800" onClick={e=>e.stopPropagation()}>
-                       <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-                          <span className="font-bold text-sm">Adultos</span>
-                          <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl p-1"><button onClick={()=>setAdultos(Math.max(1, adultos-1))} className="w-8 h-8 rounded text-[#00577C] font-black">-</button><span className="font-black text-sm w-4 text-center">{adultos}</span><button onClick={()=>setAdultos(adultos+1)} className="w-8 h-8 rounded text-[#00577C] font-black">+</button></div>
-                       </div>
-                       <div className="flex items-center justify-between pt-4">
-                          <span className="font-bold text-sm">Quartos</span>
-                          <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl p-1"><button onClick={()=>setQuartos(Math.max(1, quartos-1))} className="w-8 h-8 rounded text-[#00577C] font-black">-</button><span className="font-black text-sm w-4 text-center">{quartos}</span><button onClick={()=>setQuartos(quartos+1)} className="w-8 h-8 rounded text-[#00577C] font-black">+</button></div>
-                       </div>
+                {/* CALENDÁRIO – corrigido com novo renderCalendario */}
+                {showPopup === 'calendar' && (
+                  <>
+                    {/* Overlay para fechar ao clicar fora (apenas mobile) */}
+                    <div 
+                      className="fixed inset-0 z-40 md:hidden" 
+                      onClick={() => setShowPopup(null)} 
+                    />
+                    <div 
+                      className={`
+                        fixed left-4 right-4 top-1/2 -translate-y-1/2 
+                        md:absolute md:left-auto md:right-0 md:top-full md:translate-y-0 md:mt-2 md:w-[380px]
+                        z-50 bg-white rounded-2xl shadow-2xl border border-slate-100
+                        max-h-[80vh] overflow-y-auto
+                      `}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {renderCalendario()}
                     </div>
-                 )}
+                  </>
+                )}
               </div>
 
-              <button onClick={handleBuscar} disabled={isSearchLoading} className="w-full md:w-auto h-[60px] md:h-auto bg-[#F9C400] hover:bg-[#e5b500] text-[#00577C] px-10 py-4 rounded-full font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2">
-                 {isSearchLoading ? <Loader2 size={16} className="animate-spin" /> : <><Search size={16} /> Pesquisar</>}
-              </button>
-           </div>
+              {/* Viajantes */}
+              <div
+                onClick={() => setShowPopup(showPopup === 'hospedes' ? null : 'hospedes')}
+                className="relative flex items-center gap-3 px-5 py-4 border-b border-slate-100 md:border-b-0 flex-1 cursor-pointer hover:bg-slate-50 transition-colors"
+              >
+                <Users className="text-[#00577C] shrink-0" size={20} />
+                <div className="flex-1 text-left">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Viajantes</p>
+                  <p className="font-bold text-sm text-slate-800">
+                    {adultos} Adultos · {quartos} Quarto{quartos !== 1 ? 's' : ''}
+                  </p>
+                </div>
+                {showPopup === 'hospedes' && (
+                  <div
+                    className="fixed left-4 right-4 top-1/2 -translate-y-1/2 md:absolute md:left-auto md:right-0 md:top-full md:translate-y-0 md:mt-2 w-auto md:w-72 bg-white rounded-3xl p-6 shadow-2xl border border-slate-100 z-50 text-slate-800"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                      <span className="font-bold text-sm">Adultos</span>
+                      <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl p-1">
+                        <button onClick={() => setAdultos(Math.max(1, adultos - 1))} className="w-8 h-8 rounded text-[#00577C] font-black">-</button>
+                        <span className="font-black text-sm w-4 text-center">{adultos}</span>
+                        <button onClick={() => setAdultos(adultos + 1)} className="w-8 h-8 rounded text-[#00577C] font-black">+</button>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between pt-4">
+                      <span className="font-bold text-sm">Quartos</span>
+                      <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl p-1">
+                        <button onClick={() => setQuartos(Math.max(1, quartos - 1))} className="w-8 h-8 rounded text-[#00577C] font-black">-</button>
+                        <span className="font-black text-sm w-4 text-center">{quartos}</span>
+                        <button onClick={() => setQuartos(quartos + 1)} className="w-8 h-8 rounded text-[#00577C] font-black">+</button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Botão Pesquisar */}
+              <div className="bg-white md:bg-transparent flex items-center">
+                <button
+                  onClick={handleBuscar}
+                  disabled={isSearchLoading}
+                  className="w-full md:w-auto px-4 md:px-10 py-4 bg-[#F9C400] hover:bg-[#e5b500] text-[#00577C] rounded-xl md:rounded-full font-black text-xs md:text-sm uppercase tracking-widest transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {isSearchLoading ? <Loader2 size={16} className="animate-spin" /> : <><Search size={16} className="md:w-5 md:h-5" /> Pesquisar</>}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -527,21 +597,34 @@ function HoteisPageContent() {
       )}
 
       {/* FOOTER */}
-      <footer className="py-12 md:py-20 px-5 md:px-8 border-t border-slate-200 bg-white mt-12 md:mt-20 text-left">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8 md:gap-10">
-          <div className="flex flex-col items-center md:items-start gap-4">
-             <Image src="/logop.png" alt="SGA" width={140} height={50} className="object-contain" />
-             <p className="text-[9px] md:text-[10px] font-black text-slate-300 uppercase tracking-[0.4em] text-center md:text-left">© 2026 Secretaria Municipal de Turismo - SGA</p>
-          </div>
-          <div className="flex items-center gap-6 md:gap-10">
-             <div className="text-left md:border-l-2 border-slate-100 md:pl-6">
-                <p className="text-[9px] md:text-[10px] font-black text-[#00577C] uppercase mb-1">Contato Oficial</p>
-                <p className="text-xs font-bold text-slate-500 tracking-tight">setursaga@gmail.com</p>
-             </div>
-             <ShieldCheck size={36} className="text-[#009640] opacity-30 md:w-10 md:h-10"/>
-          </div>
-        </div>
-      </footer>
+      {/* FOOTER */}
+            <footer className="py-20 px-8 border-t border-slate-200 bg-white text-left">
+              <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
+                <div className="flex flex-col items-center md:items-start gap-4">
+                  <div className="flex items-center gap-6">
+                    <Image src="/logop.png" alt="SagaTurismo" width={160} height={50} className="object-contain" />
+                    <div className="w-px h-12 bg-slate-200 hidden md:block" />
+                    <Image src="/prefeitura.png" alt="Prefeitura de São Geraldo do Araguaia" width={140} height={50} className="object-contain" />
+                  </div>
+                  <div className="text-left space-y-1">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                      © 2026 Secretaria Municipal de Turismo - SGA | Todos os direitos reservados
+                    </p>
+                    <p className="text-[10px] font-bold text-slate-400/80">
+                      CNPJ: 10.249.241/0001-22
+                    </p>
+                  </div>
+                </div>
+      
+                <div className="flex gap-10">
+                  <div className="text-left border-l-2 border-slate-100 pl-9">
+                    <p className="text-[10px] font-black text-[#00577C] uppercase mb-1">Contato Oficial</p>
+                    <p className="text-xs font-bold text-slate-500 tracking-tight">setursaga@gmail.com</p>
+                  </div>
+                  <ShieldCheck size={40} className="text-[#009640] opacity-30" />
+                </div>
+              </div>
+            </footer>
     </div>
   );
 }

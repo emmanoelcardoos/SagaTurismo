@@ -5,7 +5,8 @@ import Image from 'next/image';
 import { useEffect, useState, useRef, ReactNode } from 'react';
 import {
   Menu, X, ArrowRight, ArrowLeft, Loader2, Compass,
-  TreePine, Waves, Mountain, ChevronDown, MapPin, Users, Camera, Ticket
+  TreePine, Waves, Mountain, ChevronDown, MapPin, Users, Camera, Ticket,
+  ShieldCheck
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -490,63 +491,31 @@ export default function AtracoesPage() {
       )}
 
       {/* ── FOOTER MINIMAL DARK ── */}
-      <footer className="py-10 px-6 md:px-12 border-t"
-        style={{ backgroundColor: '#000f18', borderColor: 'rgba(0,87,124,0.15)' }}>
-        <div className="max-w-[1400px] mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-14 mb-14">
-
-            <div className="space-y-5">
-              <div className="relative h-10 w-32">
-                <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain brightness-[100] invert opacity-25" />
-              </div>
-              <p className="text-[10px] font-black uppercase tracking-widest leading-relaxed"
-                style={{ color: 'rgba(255,255,255,0.15)' }}>
-                São Geraldo do Araguaia<br />"Cidade Amada, seguindo em frente"
+      {/* FOOTER */}
+      <footer className="py-20 px-8 border-t border-slate-200 bg-white text-left">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
+          <div className="flex flex-col items-center md:items-start gap-4">
+            <div className="flex items-center gap-6">
+              <Image src="/logop.png" alt="SagaTurismo" width={160} height={50} className="object-contain" />
+              <div className="w-px h-12 bg-slate-200 hidden md:block" />
+              <Image src="/prefeitura.png" alt="Prefeitura de São Geraldo do Araguaia" width={140} height={50} className="object-contain" />
+            </div>
+            <div className="text-left space-y-1">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                © 2026 Secretaria Municipal de Turismo - SGA | Todos os direitos reservados
               </p>
-            </div>
-
-            <div className="space-y-4">
-              <h5 className="font-black text-[9px] uppercase tracking-widest pb-3 border-b"
-                style={{ color: 'rgba(255,255,255,0.2)', borderColor: 'rgba(255,255,255,0.06)' }}>
-                Gestão Executiva
-              </h5>
-              <ul className="text-xs space-y-2 font-medium" style={{ color: 'rgba(255,255,255,0.25)' }}>
-                <li>Prefeito:<br /><b className="text-white/40">Jefferson Douglas de Jesus Oliveira</b></li>
-                <li>Vice-Prefeito:<br /><b className="text-white/40">Marcos Antônio Candido de Lucena</b></li>
-              </ul>
-            </div>
-
-            <div className="space-y-4">
-              <h5 className="font-black text-[9px] uppercase tracking-widest pb-3 border-b"
-                style={{ color: 'rgba(255,255,255,0.2)', borderColor: 'rgba(255,255,255,0.06)' }}>
-                Turismo (SEMTUR)
-              </h5>
-              <ul className="text-xs space-y-2 font-medium" style={{ color: 'rgba(255,255,255,0.25)' }}>
-                <li>Secretária:<br /><b className="text-white/40">Micheli Stephany de Souza</b></li>
-                <li>Contato: <b className="text-white/40">(94) 98145-2067</b></li>
-                <li>Email: <b className="text-white/40">setursaga@gmail.com</b></li>
-              </ul>
-            </div>
-
-            <div className="space-y-4">
-              <h5 className="font-black text-[9px] uppercase tracking-widest pb-3 border-b"
-                style={{ color: 'rgba(255,255,255,0.2)', borderColor: 'rgba(255,255,255,0.06)' }}>
-                Equipe Técnica
-              </h5>
-              <ul className="text-xs space-y-2 font-medium" style={{ color: 'rgba(255,255,255,0.25)' }}>
-                <li>• Adriana da Luz Lima</li>
-                <li>• Carmelita Luz da Silva</li>
-                <li>• Diego Silva Costa</li>
-              </ul>
+              <p className="text-[10px] font-bold text-slate-400/80">
+                CNPJ: 10.249.241/0001-22
+              </p>
             </div>
           </div>
 
-          <div className="pt-8 border-t text-center"
-            style={{ borderColor: 'rgba(255,255,255,0.04)' }}>
-            <p className="text-[9px] font-black uppercase tracking-[0.4em]"
-              style={{ color: 'rgba(255,255,255,0.1)' }}>
-              © 2026 Secretaria Municipal de Turismo — São Geraldo do Araguaia (PA)
-            </p>
+          <div className="flex gap-10">
+            <div className="text-left border-l-2 border-slate-100 pl-9">
+              <p className="text-[10px] font-black text-[#00577C] uppercase mb-1">Contato Oficial</p>
+              <p className="text-xs font-bold text-slate-500 tracking-tight">setursaga@gmail.com</p>
+            </div>
+            <ShieldCheck size={40} className="text-[#009640] opacity-30" />
           </div>
         </div>
       </footer>

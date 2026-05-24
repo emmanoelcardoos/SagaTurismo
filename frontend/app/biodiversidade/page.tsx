@@ -7,7 +7,7 @@ import {
   ArrowRight, ArrowLeft, Leaf, Mountain, Waves, TreePine, Bird, Bug,
   Droplets, Wind, Sun, Star, MapPin, ChevronDown, ChevronRight,
   Eye, Menu, X, Fish, Feather, Flower2, Globe, Layers,
-  Shield, Users, Camera, Compass, isMobileMenuOpen, setIsMobileMenuOpen
+  Shield, Users, Camera, Compass, ShieldCheck
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter, Playfair_Display } from 'next/font/google';
 
@@ -67,12 +67,12 @@ const fauna = [
 // DADOS — FLORA
 // ==========================================
 const flora = [
-  { nome: "Ipê-amarelo", cientifico: "Handroanthus albus", habitat: "Cerrado", imagem: "https://images.unsplash.com/photo-1589876891ade-6bd51c67d36a?w=600&q=80", descricao: "Árvore símbolo do Brasil, exuberante floração amarela no cerrado.", cor: "#c2930a" },
-  { nome: "Castanheira", cientifico: "Bertholletia excelsa", habitat: "Floresta Amazônica", imagem: "https://images.unsplash.com/photo-1502082553048-f009c37129b9?w=600&q=80", descricao: "Gigante da Amazônia, pode viver mais de 1000 anos.", cor: "#1a5e2a" },
-  { nome: "Buritizeiro", cientifico: "Mauritia flexuosa", habitat: "Veredas / Cerrado", imagem: "https://images.unsplash.com/photo-1566906049816-76ecc4e38a7e?w=600&q=80", descricao: "Palmeira das veredas, fundamental para a fauna local.", cor: "#3a7d18" },
-  { nome: "Andiroba", cientifico: "Carapa guianensis", habitat: "Floresta Amazônica", imagem: "https://images.unsplash.com/photo-1448375240586-882707db888b?w=600&q=80", descricao: "Árvore medicinal de alto valor, protegida na Serra das Andorinhas.", cor: "#2d5c1a" },
-  { nome: "Pequizeiro", cientifico: "Caryocar brasiliense", habitat: "Cerrado", imagem: "https://images.unsplash.com/photo-1501004318641-b39e6451bec6?w=600&q=80", descricao: "Fruto ícone do cerrado, alimento e símbolo cultural regional.", cor: "#8b6914" },
-  { nome: "Sumaúma", cientifico: "Ceiba pentandra", habitat: "Floresta Amazônica", imagem: "https://images.unsplash.com/photo-1511884642898-4c92249e20b6?w=600&q=80", descricao: "A 'Rainha da Floresta', pode ultrapassar 50 metros de altura.", cor: "#1a4a2a" },
+  { nome: "Ipê-amarelo", cientifico: "Handroanthus albus", habitat: "Cerrado", imagem: "https://images.pexels.com/photos/13596969/pexels-photo-13596969.jpeg?_gl=1*ccckmr*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzk2NTY5NTgkbzYzJGcxJHQxNzc5NjU3MDEwJGo4JGwwJGgw", descricao: "Árvore símbolo do Brasil, exuberante floração amarela no cerrado.", cor: "#c2930a" },
+  { nome: "Castanheira", cientifico: "Bertholletia excelsa", habitat: "Floresta Amazônica", imagem: "https://images.pexels.com/photos/12941185/pexels-photo-12941185.jpeg?_gl=1*1od68zg*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzk2NTY5NTgkbzYzJGcxJHQxNzc5NjU4MjA4JGozNiRsMCRoMA..", descricao: "Gigante da Amazônia, pode viver mais de 1000 anos.", cor: "#1a5e2a" },
+  { nome: "Buritizeiro", cientifico: "Mauritia flexuosa", habitat: "Veredas / Cerrado", imagem: "https://images.pexels.com/photos/2563244/pexels-photo-2563244.jpeg?_gl=1*18vbbro*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzk2NTY5NTgkbzYzJGcxJHQxNzc5NjU3OTQ3JGoyMiRsMCRoMA..", descricao: "Palmeira das veredas, fundamental para a fauna local.", cor: "#3a7d18" },
+  { nome: "Andiroba", cientifico: "Carapa guianensis", habitat: "Floresta Amazônica", imagem: "https://images.pexels.com/photos/20992632/pexels-photo-20992632.jpeg?_gl=1*m5be40*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzk2NTY5NTgkbzYzJGcxJHQxNzc5NjU4MjY3JGozOCRsMCRoMA..", descricao: "Árvore medicinal de alto valor, protegida na Serra das Andorinhas.", cor: "#2d5c1a" },
+  { nome: "Pequizeiro", cientifico: "Caryocar brasiliense", habitat: "Cerrado", imagem: "https://images.pexels.com/photos/2170351/pexels-photo-2170351.jpeg?_gl=1*1m2qajr*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzk2NTY5NTgkbzYzJGcxJHQxNzc5NjU4MzY2JGozNCRsMCRoMA..", descricao: "Fruto ícone do cerrado, alimento e símbolo cultural regional.", cor: "#8b6914" },
+  { nome: "Sumaúma", cientifico: "Ceiba pentandra", habitat: "Floresta Amazônica", imagem: "https://images.pexels.com/photos/4773620/pexels-photo-4773620.jpeg?_gl=1*do5myu*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzk2NTY5NTgkbzYzJGcxJHQxNzc5NjU4NDI0JGozNiRsMCRoMA..", descricao: "A 'Rainha da Floresta', pode ultrapassar 50 metros de altura.", cor: "#1a4a2a" },
 ];
 
 // ==========================================
@@ -132,7 +132,7 @@ function HeroBiodiversidade() {
         <div className="flex flex-col items-start">
           <p className="text-[#F9C400] font-black uppercase tracking-[0.35em] text-[9px] md:text-[10px] mb-5 flex items-center gap-3">
             <span className="w-8 h-[1px] bg-[#F9C400]" />
-            Parque Estadual Serra das Andorinhas
+            Parque Estadual Serra das Andorinhas/Martírios
           </p>
 
           <h1 className={`${jakarta.className} text-[clamp(3.5rem,8vw,9rem)] font-black text-white leading-[0.88] mb-6`}>
@@ -683,7 +683,7 @@ export default function BiodiversidadePage() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -698,78 +698,88 @@ export default function BiodiversidadePage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
-  const secoes = [
-    { label: "Parque", href: "#parque" },
-    { label: "Cachoeiras", href: "#cachoeiras" },
-    { label: "Fauna", href: "#fauna" },
-    { label: "Flora", href: "#flora" },
-    { label: "Trilhas", href: "#trilhas" },
-  ];
-
   return (
-    <main className={`${inter.className} bg-[#021a0d] text-white overflow-x-hidden`}>
-
-      {/* HEADER */}
-      <header className="relative z-50 w-full bg-white border-b border-slate-200 py-4">
-        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6">
-          <Link href="/" className="flex items-center gap-3">
-             <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
-                {/* Removido o filtro invertido para manter as cores originais da logo */}
-                <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain" />
-             </div>
-          </Link>
-
-          <nav className="hidden lg:flex items-center gap-8">
-            {['Hoteis', 'Pacotes', 'Roteiros','Passeios', 'Aldeias', 'Eventos', 'Biodiversidade', 'Gastronomia', 'Comunidades'].map(item => (
-              <Link key={item} href={`/${item.toLowerCase()}`} className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-slate-600 hover:text-[#00577C] transition-colors`}>
-                {item}
-              </Link>
-            ))}
-            <Link href="/cadastro" className={`${jakarta.className} bg-[#F9C400] text-[#002f40] px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-sm`}>
-              Cartão Residente
+    <main className={`${inter.className} min-h-screen flex flex-col bg-[#021a0d] text-white overflow-x-hidden`}>
+      {/* Conteúdo principal (tudo excepto o footer) */}
+      <div className="flex-1">
+        {/* HEADER */}
+        <header className="relative z-50 w-full bg-white border-b border-slate-200 py-4">
+          <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6">
+            <Link href="/" className="flex items-center gap-3">
+               <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
+                  <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain" />
+               </div>
             </Link>
-          </nav>
 
-          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="rounded-xl p-2 lg:hidden bg-slate-50 text-[#00577C] hover:bg-slate-100 transition-colors">
-            {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
-        </div>
+            <nav className="hidden lg:flex items-center gap-8">
+              {['Hoteis', 'Pacotes', 'Roteiros','Passeios', 'Aldeias', 'Eventos', 'Biodiversidade', 'Gastronomia', 'Comunidades'].map(item => (
+                <Link key={item} href={`/${item.toLowerCase()}`} className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-slate-600 hover:text-[#00577C] transition-colors`}>
+                  {item}
+                </Link>
+              ))}
+              <Link href="/cadastro" className={`${jakarta.className} bg-[#F9C400] text-[#002f40] px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-sm`}>
+                Cartão Residente
+              </Link>
+            </nav>
 
-        {/* Menu Mobile */}
-        {isMobileMenuOpen && (
-          <div className="absolute top-full left-0 w-full bg-white border-b border-slate-200 p-6 flex flex-col gap-4 shadow-2xl lg:hidden z-50">
-            <Link href="/rotas" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Rotas Turísticas</Link>
-            <Link href="/eventos" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Agenda Cultural</Link>
-            <Link href="/pacotes" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Pacotes</Link>
-            <Link href="/rotas" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Roteiros</Link>
-            <Link href="/biodiversidade" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Biodiversidade</Link>
-            <Link href="/gastronomia" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Gastronomia</Link>
-            <Link href="/comunidades" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Comunidades</Link>
-            <Link href="/cadastro" className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md mt-2`}>Cartão Residente</Link>
+            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="rounded-xl p-2 lg:hidden bg-slate-50 text-[#00577C] hover:bg-slate-100 transition-colors">
+              {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
           </div>
-        )}
-      </header>
 
-      {/* CONTEÚDO */}
-      <HeroBiodiversidade />
-      <SecParque />
-      <SecBiomas />
-      <SecCachoeiras />
-      <SecFauna />
-      <SecFlora />
-      <SecEducacaoComunidades />
-      <SecNaturezaIntocada />
-      <SecCTA />
+          {/* Menu Mobile */}
+          {isMobileMenuOpen && (
+            <div className="absolute top-full left-0 w-full bg-white border-b border-slate-200 p-6 flex flex-col gap-4 shadow-2xl lg:hidden z-50">
+              <Link href="/rotas" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Rotas Turísticas</Link>
+              <Link href="/eventos" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Agenda Cultural</Link>
+              <Link href="/pacotes" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Pacotes</Link>
+              <Link href="/rotas" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Roteiros</Link>
+              <Link href="/biodiversidade" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Biodiversidade</Link>
+              <Link href="/gastronomia" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Gastronomia</Link>
+              <Link href="/comunidades" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Comunidades</Link>
+              <Link href="/cadastro" className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md mt-2`}>Cartão Residente</Link>
+            </div>
+          )}
+        </header>
 
-      {/* FOOTER MINIMAL */}
-      <footer className="py-12 px-6 md:px-12 border-t border-white/5 bg-[#010f05]">
-        <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="relative h-10 w-32">
-            <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain brightness-[100] invert opacity-40" />
+        {/* CONTEÚDO DAS SECÇÕES */}
+        <HeroBiodiversidade />
+        <SecParque />
+        <SecBiomas />
+        <SecCachoeiras />
+        <SecFauna />
+        <SecFlora />
+        <SecEducacaoComunidades />
+        <SecNaturezaIntocada />
+        <SecCTA />
+      </div>
+
+      {/* FOOTER */}
+      <footer className="py-20 px-8 border-t border-slate-200 bg-white text-left">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
+          <div className="flex flex-col items-center md:items-start gap-4">
+            <div className="flex items-center gap-6">
+              <Image src="/logop.png" alt="SagaTurismo" width={160} height={50} className="object-contain" />
+              <div className="w-px h-12 bg-slate-200 hidden md:block" />
+              <Image src="/prefeitura.png" alt="Prefeitura de São Geraldo do Araguaia" width={140} height={50} className="object-contain" />
+            </div>
+            <div className="text-left space-y-1">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                © 2026 Secretaria Municipal de Turismo - SGA | Todos os direitos reservados
+              </p>
+              <p className="text-[10px] font-bold text-slate-400/80">
+                CNPJ: 10.249.241/0001-22
+              </p>
+            </div>
           </div>
-          <p className="text-[9px] font-black text-white/20 uppercase tracking-[0.4em] text-center">
-            © 2026 Secretaria Municipal de Turismo — São Geraldo do Araguaia (PA). All rigths reserved.
-          </p>
+
+          <div className="flex gap-10">
+            <div className="text-left border-l-2 border-slate-100 pl-9">
+              <p className="text-[10px] font-black text-[#00577C] uppercase mb-1">Contato Oficial</p>
+              <p className="text-xs font-bold text-slate-500 tracking-tight">setursaga@gmail.com</p>
+            </div>
+            <ShieldCheck size={40} className="text-[#009640] opacity-30" />
+          </div>
         </div>
       </footer>
     </main>

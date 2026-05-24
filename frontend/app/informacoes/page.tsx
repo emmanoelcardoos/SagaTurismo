@@ -7,7 +7,8 @@ import {
   Menu, AlertTriangle, Compass, HeartPulse, Shield,
   Flame, Building2, Phone, MapPin, Clock, Info,
   ChevronRight, X, ArrowRight, Ambulance, TreePine,
-  LifeBuoy, Stethoscope, Car, Wifi, DollarSign, Droplets, isMobileMenuOpen, setIsMobileMenuOpen
+  LifeBuoy, Stethoscope, Car, Wifi, DollarSign, Droplets, isMobileMenuOpen, setIsMobileMenuOpen,
+  ShieldCheck
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, DM_Sans } from 'next/font/google';
 import Lottie, { LottieRefCurrentProps } from 'lottie-react';
@@ -504,14 +505,34 @@ export default function InformacoesPage() {
         </section>
 
         {/* ── FOOTER ── */}
-        <footer className="py-10 px-4 bg-white border-t border-slate-100 text-center">
-          <div className="relative h-12 w-36 mx-auto mb-3">
-            <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain" />
+        {/* FOOTER */}
+      <footer className="py-20 px-8 border-t border-slate-200 bg-white text-left">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
+          <div className="flex flex-col items-center md:items-start gap-4">
+            <div className="flex items-center gap-6">
+              <Image src="/logop.png" alt="SagaTurismo" width={160} height={50} className="object-contain" />
+              <div className="w-px h-12 bg-slate-200 hidden md:block" />
+              <Image src="/prefeitura.png" alt="Prefeitura de São Geraldo do Araguaia" width={140} height={50} className="object-contain" />
+            </div>
+            <div className="text-left space-y-1">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                © 2026 Secretaria Municipal de Turismo - SGA | Todos os direitos reservados
+              </p>
+              <p className="text-[10px] font-bold text-slate-400/80">
+                CNPJ: 10.249.241/0001-22
+              </p>
+            </div>
           </div>
-          <p className={`${dmSans.className} text-[10px] font-semibold text-slate-300 uppercase tracking-[.3em]`}>
-            © 2026 Secretaria Municipal de Turismo — São Geraldo do Araguaia (PA)
-          </p>
-        </footer>
+
+          <div className="flex gap-10">
+            <div className="text-left border-l-2 border-slate-100 pl-9">
+              <p className="text-[10px] font-black text-[#00577C] uppercase mb-1">Contato Oficial</p>
+              <p className="text-xs font-bold text-slate-500 tracking-tight">setursaga@gmail.com</p>
+            </div>
+            <ShieldCheck size={40} className="text-[#009640] opacity-30" />
+          </div>
+        </div>
+      </footer>
 
       </main>
     </>

@@ -10,6 +10,7 @@ import {
   Calendar as CalendarIcon, Bed, ChevronRight as ChevronRightIcon,
   Users, Award, Phone, Mail, Globe,
   Wind, Wifi, Bath, CreditCard, Coffee, Edit3, Layers,
+  ShieldCheck,
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -304,34 +305,7 @@ function HotelDetalheContent() {
              </div>
           </div>
           <h1 className={`${jakarta.className} text-3xl sm:text-4xl md:text-6xl font-black text-white leading-tight drop-shadow-lg`}>{hotel.nome}</h1>
-          <p className="text-white/80 font-medium flex items-center gap-2 mt-2 md:mt-3 text-xs md:text-sm">
-             <MapPin size={16} className="text-[#009640] w-4 h-4"/> {hotel.endereco || 'São Geraldo do Araguaia, Pará'}
-          </p>
         </div>
-      </div>
-
-      {/* ── BARRA DE SELEÇÃO RÁPIDA MOBILE ── */}
-      <div className="sticky top-[60px] md:top-[88px] z-40 bg-white border-b border-slate-200 shadow-sm lg:hidden">
-         <div className="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between gap-4 overflow-x-auto">
-            <div className="flex items-center gap-3 shrink-0">
-               <div className="bg-[#00577C]/10 p-2 rounded-lg text-[#00577C]"><CalendarIcon size={16}/></div>
-               <div className="text-left leading-none">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Estadia</p>
-                  <p className="text-xs font-bold text-slate-800 mt-1">
-                    {checkin ? checkin.toLocaleDateString('pt-BR', {day:'2-digit', month:'short'}) : 'Datas'} — {checkout ? checkout.toLocaleDateString('pt-BR', {day:'2-digit', month:'short'}) : 'Datas'}
-                  </p>
-               </div>
-            </div>
-            <div className="h-8 w-px bg-slate-100" />
-            <div className="flex items-center gap-3 shrink-0">
-               <div className="bg-[#00577C]/10 p-2 rounded-lg text-[#00577C]"><Users size={16}/></div>
-               <div className="text-left leading-none">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Hóspedes</p>
-                  <p className="text-xs font-bold text-slate-800 mt-1">{adultos} Ad. · {qtdQuartosSelecionados} Qts.</p>
-               </div>
-            </div>
-            <button onClick={() => document.getElementById('motor-reservas')?.scrollIntoView({ behavior: 'smooth' })} className="ml-auto bg-slate-50 p-2.5 rounded-full border border-slate-200 text-[#00577C] shadow-sm"><Edit3 size={16}/></button>
-         </div>
       </div>
 
       <div className="mx-auto w-full max-w-7xl px-4 md:px-5 py-8 md:py-12 flex flex-col lg:flex-row items-start gap-8 relative z-10">
@@ -529,16 +503,32 @@ function HotelDetalheContent() {
         </div>
       </div>
 
-      <footer className="border-t border-slate-200 bg-white mt-auto text-left">
-        <div className="mx-auto flex max-w-7xl flex-col gap-6 px-5 py-8 md:flex-row md:items-center md:justify-between">
-          <div className="flex flex-col md:flex-row items-center gap-4">
-            <div className="relative h-10 w-28 md:h-14 md:w-40 shrink-0"><Image src="/logop.png" alt="Prefeitura" fill className="object-contain" /></div>
-            <div className="hidden border-l border-slate-200 pl-4 md:block">
-              <p className={`${jakarta.className} text-xl font-bold text-[#00577C]`}>SagaTurismo</p>
-              <p className="text-xs text-slate-500 uppercase font-bold tracking-widest text-[9px]">Portal Oficial de Turismo</p>
+      {/* FOOTER */}
+      <footer className="py-20 px-8 border-t border-slate-200 bg-white text-left">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
+          <div className="flex flex-col items-center md:items-start gap-4">
+            <div className="flex items-center gap-6">
+              <Image src="/logop.png" alt="SagaTurismo" width={160} height={50} className="object-contain" />
+              <div className="w-px h-12 bg-slate-200 hidden md:block" />
+              <Image src="/prefeitura.png" alt="Prefeitura de São Geraldo do Araguaia" width={140} height={50} className="object-contain" />
+            </div>
+            <div className="text-left space-y-1">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                © 2026 Secretaria Municipal de Turismo - SGA | Todos os direitos reservados
+              </p>
+              <p className="text-[10px] font-bold text-slate-400/80">
+                CNPJ: 10.249.241/0001-22
+              </p>
             </div>
           </div>
-          <p className="text-[9px] md:text-[10px] text-slate-400 font-medium uppercase tracking-widest text-center">© 2026 · Prefeitura Municipal de São Geraldo do Araguaia</p>
+
+          <div className="flex gap-10">
+            <div className="text-left border-l-2 border-slate-100 pl-9">
+              <p className="text-[10px] font-black text-[#00577C] uppercase mb-1">Contato Oficial</p>
+              <p className="text-xs font-bold text-slate-500 tracking-tight">setursaga@gmail.com</p>
+            </div>
+            <ShieldCheck size={40} className="text-[#009640] opacity-30" />
+          </div>
         </div>
       </footer>
     </div>
