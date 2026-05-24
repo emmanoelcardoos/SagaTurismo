@@ -243,7 +243,7 @@ async def processar_pagamento(pedido: PedidoPagamento):
             if not pacote_id_sanitizado:
                 raise HTTPException(status_code=400, detail="Identificador do pacote ausente no payload.")
                 
-            # ◄── PROTEÇÃO ANTI-OVERBOOKING DE VAGAS EM PACOTES
+            # 1. Busca os dados do pacote e verifica vagas
             res_pacote = supabase.table("pacotes").select("*").eq("id", pacote_id_sanitizado).single().execute()
             if not res_pacote.data: 
                 raise HTTPException(status_code=404, detail="Pacote não encontrado")
@@ -253,16 +253,17 @@ async def processar_pagamento(pedido: PedidoPagamento):
             vagas_vendidas = int(dados_pacote.get("vagas_vendidas") or 0)
             qtd_solicitada = int(pedido.adultos or 1)
 
-            # Só verifica estoque se o hotel configurou limites (> 0)
             if vagas_totais > 0 and (vagas_vendidas + qtd_solicitada) > vagas_totais:
                 vagas_restantes = vagas_totais - vagas_vendidas
-                raise HTTPException(status_code=400, detail=f"Esgotado! O pacote tem apenas {vagas_restantes} vaga(s) disponível(is).")
+                raise HTTPException(status_code=400, detail=f"Esgotado! O pacote tem apenas {vagas_restantes} vaga(s).")
             
             nome_item_checkout = f"Pacote: {dados_pacote.get('titulo', 'Turístico')}"
             item_id_db = pacote_id_sanitizado
+            parceiro_agente_id = limpar_uuid(dados_pacote.get("parceiro_id"))
 
             v_atracoes_total = 0.0
 
+            # 2. Calcula custo do Hotel
             if hotel_id_sanitizado and quarto_tipo_id_sanitizado:
                 v_hospedagem_total = calcular_preco_hotel_dinamico(
                     hotel_id_sanitizado, quarto_tipo_id_sanitizado, pedido.data_checkin, pedido.data_checkout,
@@ -277,6 +278,7 @@ async def processar_pagamento(pedido: PedidoPagamento):
                     if rec_id and str(rec_id).startswith("ACC_"):
                         recebedores_split.append({ "account": {"id": rec_id}, "amount": {"value": int((v_hospedagem_total * fator_liquido) * 100)} })
 
+            # 3. Calcula custo do Guia
             d_ci = datetime.strptime(pedido.data_checkin, "%Y-%m-%d")
             d_co = datetime.strptime(pedido.data_checkout, "%Y-%m-%d")
             noites_calculadas = (d_co - d_ci).days
@@ -290,6 +292,7 @@ async def processar_pagamento(pedido: PedidoPagamento):
                     if rec_id and str(rec_id).startswith("ACC_"):
                         recebedores_split.append({ "account": {"id": rec_id}, "amount": {"value": int((v_guia_total * fator_liquido) * 100)} })
 
+            # 4. Calcula custo das Atrações
             res_itens = supabase.table("pacote_itens").select("atracao_id").eq("pacote_id", pacote_id_sanitizado).execute()
             for item in res_itens.data:
                 atr_id = limpar_uuid(item.get("atracao_id"))
@@ -304,8 +307,20 @@ async def processar_pagamento(pedido: PedidoPagamento):
                             recebedores_split.append({ "account": {"id": rec_id}, "amount": {"value": int((v_individual_atr * fator_liquido) * 100)} })
                         lista_atracoes_calculadas.append({"id": atr_id, "valor": v_individual_atr})
 
-            valor_total = v_hospedagem_total + v_guia_total + v_atracoes_total
+            # 5. NOVO: Lucro do Agente (O valor 'preco' da tabela pacotes)
+            lucro_agente = float(dados_pacote.get("preco") or 0.0)
+            
+            if parceiro_agente_id and lucro_agente > 0:
+                res_agente = supabase.table("agencias").select("pagbank_recebedor_id").eq("id", dados_pacote.get("agencia_id")).single().execute()
+                if res_agente.data:
+                    rec_id_agente = res_agente.data.get("pagbank_recebedor_id")
+                    if rec_id_agente and str(rec_id_agente).startswith("ACC_"):
+                        recebedores_split.append({ "account": {"id": rec_id_agente}, "amount": {"value": int((lucro_agente * fator_liquido) * 100)} })
 
+            # 6. Valor final a ser cobrado do cliente
+            valor_total = v_hospedagem_total + v_guia_total + v_atracoes_total + lucro_agente
+
+        # Lógica Fina de Split
         # Lógica Fina de Split
         soma_splits_centavos = sum(r["amount"]["value"] for r in recebedores_split)
         valor_total_centavos = int(valor_total * 100)
@@ -316,6 +331,12 @@ async def processar_pagamento(pedido: PedidoPagamento):
                 "receivers": recebedores_split
             }]
         else:
+            splits_array = []
+
+        # ◄── HACK DE TESTE SANDBOX ──►
+        # Se for ambiente de teste, esconde o split do PagBank para não dar erro de conta inexistente.
+        # Mas os dados continuam a ir para a base de dados (repasses_financeiros) perfeitamente!
+        if "sandbox" in PAGBANK_API_URL:
             splits_array = []
 
         pedido_db = {
