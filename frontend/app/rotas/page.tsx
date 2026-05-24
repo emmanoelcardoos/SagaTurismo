@@ -29,7 +29,7 @@ const themes = [
     bgDark: '#001f2e',
     label: 'Rota das Águas',
     icon: <Waves size={16} />,
-    detalhes: { duracao: '4–6 horas', dificuldade: 'Moderada', grupo: 'Até 15 pessoas' },
+    detalhes: { duracao: '4–6 horas', dificuldade: 'Moderada', grupo: 'Sem limite de pessoas' },
   },
   {
     cor: '#009640',
@@ -37,7 +37,7 @@ const themes = [
     bgDark: '#051a09',
     label: 'Rota da Mata',
     icon: <TreePine size={16} />,
-    detalhes: { duracao: '6–8 horas', dificuldade: 'Difícil', grupo: 'Até 8 pessoas' },
+    detalhes: { duracao: '6–8 horas', dificuldade: 'Difícil', grupo: 'Sem limite de pessoas' },
   },
   {
     cor: '#8b5e0a',
@@ -45,7 +45,7 @@ const themes = [
     bgDark: '#1a0e02',
     label: 'Rota da Serra',
     icon: <Mountain size={16} />,
-    detalhes: { duracao: '3–5 horas', dificuldade: 'Fácil', grupo: 'Sem limite' },
+    detalhes: { duracao: '3–5 horas', dificuldade: 'Fácil', grupo: 'Sem limite de pessoas' },
   },
 ];
 
@@ -310,13 +310,6 @@ export default function RotasPage() {
         <div className="absolute left-6 md:left-12 top-[20%] bottom-[20%] w-px pointer-events-none z-10 hidden md:block"
           style={{ background: 'linear-gradient(to bottom, transparent, #F9C40045, transparent)' }} />
 
-        <div className={`${jakarta.className} absolute right-6 md:right-12 bottom-16
-          text-[220px] md:text-[320px] font-black leading-none select-none pointer-events-none z-0`}
-          style={{ color: '#00577C', opacity: 0.1 }}
-          aria-hidden="true">
-          ✦
-        </div>
-
         <div className="relative z-10 max-w-[1400px] w-full mx-auto">
           <Reveal anim="up">
 
@@ -334,18 +327,6 @@ export default function RotasPage() {
           </Reveal>
         </div>
 
-        <div className="absolute bottom-10 right-6 md:right-12 z-10 hidden md:flex flex-col items-end gap-5">
-          <div className="text-right">
-            <p className={`${jakarta.className} text-4xl font-black leading-none`} style={{ color: '#F9C400' }}>
-              {loading ? '—' : rotas.length}
-            </p>
-            <p className="text-[9px] font-black uppercase tracking-widest mt-1 text-white/25">Rotas Oficiais</p>
-          </div>
-          <div className="text-right">
-            <p className={`${jakarta.className} text-4xl font-black leading-none`} style={{ color: '#009640' }}>100%</p>
-            <p className="text-[9px] font-black uppercase tracking-widest mt-1 text-white/25">Guiadas</p>
-          </div>
-        </div>
 
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10">
           <ChevronDown size={18} className="animate-bounce" style={{ color: 'rgba(249,196,0,0.35)' }} />
@@ -358,7 +339,7 @@ export default function RotasPage() {
       <div className="grid grid-cols-3">
         {[
           { cor: '#00577C', icon: <Waves size={18} />, label: 'Águas' },
-          { cor: '#009640', icon: <TreePine size={18} />, label: 'Mata' },
+          { cor: '#009640', icon: <TreePine size={18} />, label: 'Florestas' },
           { cor: '#8b5e0a', icon: <Mountain size={18} />, label: 'Serra' },
         ].map((item, i) => (
           <Reveal key={item.label} anim="up" delay={i * 60}>

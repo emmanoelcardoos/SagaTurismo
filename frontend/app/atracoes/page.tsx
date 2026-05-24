@@ -311,13 +311,6 @@ export default function AtracoesPage() {
         <div className="absolute left-6 md:left-12 top-[20%] bottom-[20%] w-px pointer-events-none z-10 hidden md:block"
           style={{ background: 'linear-gradient(to bottom, transparent, #F9C40045, transparent)' }} />
 
-        <div className={`${jakarta.className} absolute right-6 md:right-12 bottom-16
-          text-[220px] md:text-[320px] font-black leading-none select-none pointer-events-none z-0`}
-          style={{ color: '#00577C', opacity: 0.1 }}
-          aria-hidden="true">
-          ✦
-        </div>
-
         <div className="relative z-10 max-w-[1400px] w-full mx-auto">
           <Reveal anim="up">
             <p className="font-black uppercase tracking-[0.35em] text-[20px] md:text-[20px] mb-5 flex items-center gap-3"

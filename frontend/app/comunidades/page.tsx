@@ -4,98 +4,258 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState, useRef, ReactNode } from 'react';
 import {
-  Menu, X, MapPin, ArrowRight, Loader2, Compass, TreePine, Leaf
+  Menu, X, ArrowRight, ArrowLeft, Loader2, Compass,
+  TreePine, Waves, Mountain, ChevronDown, MapPin, Users, Heart
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
 
-// ── FONTES PADRÃO DO SITE ──
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '700', '800'] });
-const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'] });
+const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
 
-// ── TIPAGEM DA TABELA 'rotas' ──
-type RotaTuristica = {
+// ── TIPAGEM ──
+type Comunidade = {
   id: string;
   titulo: string;
   descricao_curta: string;
   imagem_url: string;
+  ordem?: number;
 };
 
-// ── MOTOR DE ANIMAÇÕES DE SCROLL ──
-function useScrollAnimation(threshold = 0.15) {
+// ── SISTEMA DE TEMAS (Cores da Terra, Água e Floresta) ──
+const themes = [
+  {
+    cor: '#8b5e0a',
+    corAccent: '#F9C400',
+    bgDark: '#1a0e02',
+    label: 'Cultura Viva',
+    icon: <Users size={16} />
+  },
+  {
+    cor: '#00577C',
+    corAccent: '#F9C400',
+    bgDark: '#001f2e',
+    label: 'Povo das Águas',
+    icon: <Waves size={16} />
+  },
+  {
+    cor: '#009640',
+    corAccent: '#F9C400',
+    bgDark: '#051a09',
+    label: 'Guardiões da Mata',
+    icon: <TreePine size={16} />
+  },
+];
+
+const getTheme = (index: number) => themes[index % themes.length];
+
+// ── MOTOR DE SCROLL ──
+function useScrollAnimation(threshold = 0.08) {
   const ref = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
-
   useEffect(() => {
     const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        setIsVisible(true);
-        observer.unobserve(entry.target); 
-      }
+      if (entry.isIntersecting) { setIsVisible(true); observer.unobserve(entry.target); }
     }, { threshold });
     if (ref.current) observer.observe(ref.current);
     return () => { if (ref.current) observer.unobserve(ref.current); };
   }, [threshold]);
-
   return { ref, isVisible };
 }
 
-function AnimatedSection({ children, className = "", animation = "fade-up", delay = 0 }: { children: ReactNode; className?: string; animation?: "fade-up" | "fade-left" | "fade-right" | "zoom-in"; delay?: number; }) {
+function Reveal({ children, className = '', anim = 'up', delay = 0 }: {
+  children: ReactNode; className?: string;
+  anim?: 'up' | 'left' | 'right' | 'zoom' | 'fade'; delay?: number;
+}) {
   const { ref, isVisible } = useScrollAnimation();
-  let hiddenClass = "";
-  switch (animation) {
-    case "fade-up": hiddenClass = "opacity-0 translate-y-16"; break;
-    case "fade-left": hiddenClass = "opacity-0 translate-x-16"; break;
-    case "fade-right": hiddenClass = "opacity-0 -translate-x-16"; break;
-    case "zoom-in": hiddenClass = "opacity-0 scale-95"; break;
-  }
+  const hidden: Record<string, string> = {
+    up: 'opacity-0 translate-y-14',
+    left: 'opacity-0 translate-x-14',
+    right: 'opacity-0 -translate-x-14',
+    zoom: 'opacity-0 scale-90',
+    fade: 'opacity-0',
+  };
   return (
-    <div ref={ref} className={`transition-all duration-[1000ms] ease-out will-change-transform ${isVisible ? "opacity-100 translate-y-0 translate-x-0 scale-100" : hiddenClass} ${className}`} style={{ transitionDelay: `${delay}ms` }}>
+    <div ref={ref}
+      className={`transition-all duration-1000 ease-out will-change-transform
+        ${isVisible ? 'opacity-100 translate-y-0 translate-x-0 scale-100' : hidden[anim]} ${className}`}
+      style={{ transitionDelay: `${delay}ms` }}>
       {children}
     </div>
   );
 }
 
+// ══════════════════════════════════════
+// CARD EDITORIAL DE COMUNIDADE
+// ══════════════════════════════════════
+function ComunidadeCard({ comunidade, index }: { comunidade: Comunidade; index: number }) {
+  const theme = getTheme(index);
+  const isPar = index % 2 === 0;
+  const num = String(index + 1).padStart(2, '0');
+
+  return (
+    <article className="relative group">
+      {index > 0 && (
+        <div className="h-px w-full mb-0"
+          style={{ background: `linear-gradient(to right, transparent, ${theme.cor}25, transparent)` }} />
+      )}
+
+      <div className={`relative flex flex-col ${isPar ? 'lg:flex-row' : 'lg:flex-row-reverse'} min-h-[85vh] overflow-hidden`}
+        style={{ backgroundColor: theme.bgDark }}>
+
+        {/* ── METADE IMAGEM ── */}
+        <div className="relative w-full lg:w-[55%] h-[50vh] lg:h-auto overflow-hidden">
+          <Image
+            src={comunidade.imagem_url || 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09'}
+            alt={comunidade.titulo}
+            fill
+            className="object-cover transition-transform duration-[1400ms] ease-out group-hover:scale-105 grayscale-[20%] group-hover:grayscale-0"
+          />
+
+          <div className="absolute inset-0 pointer-events-none"
+            style={{
+              background: isPar
+                ? `linear-gradient(to right, transparent 50%, ${theme.bgDark} 100%)`
+                : `linear-gradient(to left, transparent 50%, ${theme.bgDark} 100%)`,
+            }} />
+          <div className="absolute inset-0 pointer-events-none lg:hidden"
+            style={{ background: `linear-gradient(to top, ${theme.bgDark} 0%, transparent 60%)` }} />
+
+          <div className="absolute top-6 left-6 z-10 w-14 h-14 rounded-2xl flex items-center justify-center shadow-2xl"
+            style={{ backgroundColor: theme.corAccent }}>
+            <span className={`${jakarta.className} text-xl font-black`} style={{ color: theme.bgDark }}>
+              {num}
+            </span>
+          </div>
+
+          <div className="absolute top-6 right-6 z-10 flex items-center gap-2 px-4 py-2 rounded-full border text-[9px] font-black uppercase tracking-widest"
+            style={{
+              backgroundColor: theme.cor + '20',
+              borderColor: theme.cor + '50',
+              color: theme.corAccent,
+            }}>
+            {theme.icon}
+            {theme.label}
+          </div>
+        </div>
+
+        {/* ── METADE TEXTO ── */}
+        <div className={`relative z-10 w-full lg:w-[45%] flex flex-col justify-center
+          px-8 py-16 lg:py-24
+          ${isPar ? 'lg:pl-16 xl:pl-20 lg:pr-16' : 'lg:pr-16 xl:pr-20 lg:pl-16'}`}>
+
+          <div className={`${jakarta.className} absolute top-1/2 -translate-y-1/2
+            ${isPar ? '-right-4 lg:-right-6' : '-left-4 lg:-left-6'}
+            text-[180px] md:text-[220px] font-black leading-none select-none pointer-events-none`}
+            style={{ color: theme.cor, opacity: 0.08 }}
+            aria-hidden="true">
+            {num}
+          </div>
+
+          <Reveal anim={isPar ? 'left' : 'right'} delay={100}>
+            <div className="flex items-center gap-4 mb-7">
+              <span className="w-8 h-[2px] rounded-full" style={{ backgroundColor: theme.cor }} />
+              <span className="text-[9px] font-black uppercase tracking-[0.3em]" style={{ color: theme.cor }}>
+                Comunidade Local
+              </span>
+            </div>
+
+            <h2 className={`${jakarta.className} text-5xl md:text-6xl xl:text-7xl font-black text-white leading-[0.88] mb-6`}>
+              {comunidade.titulo}
+            </h2>
+
+            <p className="text-white/60 text-base md:text-lg leading-relaxed mb-10 max-w-md font-medium italic">
+              "{comunidade.descricao_curta}"
+            </p>
+
+            <div className="flex flex-wrap gap-3 mb-10">
+              {[
+                { icon: <MapPin size={12} />, valor: 'São Geraldo do Araguaia' },
+                { icon: <Heart size={12} />, valor: 'Herança Viva' },
+              ].map((m, i) => (
+                <span key={i}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold border"
+                  style={{
+                    borderColor: theme.cor + '40',
+                    backgroundColor: theme.cor + '12',
+                    color: 'rgba(255,255,255,0.6)',
+                  }}>
+                  <span style={{ color: theme.corAccent }}>{m.icon}</span>
+                  {m.valor}
+                </span>
+              ))}
+            </div>
+
+            <Link
+              href={`/comunidades/${comunidade.id}`}
+              className="group/btn inline-flex items-center gap-3 self-start px-8 py-4 rounded-full
+                font-black text-[10px] uppercase tracking-widest shadow-xl
+                hover:-translate-y-1 hover:shadow-2xl transition-all duration-300"
+              style={{ backgroundColor: theme.cor, color: theme.corAccent }}>
+              Conhecer a comunidade
+              <ArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
+            </Link>
+          </Reveal>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+// ══════════════════════════════════════
+// PÁGINA PRINCIPAL
+// ══════════════════════════════════════
 export default function ComunidadesPage() {
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [comunidades, setComunidades] = useState<RotaTuristica[]>([]);
+  const [comunidades, setComunidades] = useState<Comunidade[]>([]);
   const [loading, setLoading] = useState(true);
+  const [scrollY, setScrollY] = useState(0);
 
-  // Buscar comunidades ao Supabase
+  // Ref para forçar o Autoplay no Mobile
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.play().catch(err => console.log("Autoplay bloqueado pelo navegador, poster em uso.", err));
+    }
+  }, []);
+
   useEffect(() => {
     async function fetchComunidades() {
       const { data, error } = await supabase
         .from('comunidades')
         .select('*')
-        .eq('ativo', true)
         .order('ordem', { ascending: true });
-
       if (data) setComunidades(data);
-      if (error) console.error("Erro ao buscar comunidades:", error);
+      if (error) console.error('Erro ao buscar comunidades:', error);
       setLoading(false);
     }
     fetchComunidades();
   }, []);
 
-  // Lógica de esconder/mostrar Header no scroll (Padrão do site)
   useEffect(() => {
     const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      if (currentScrollY < 80) setShowHeader(true);
-      else if (currentScrollY > lastScrollY) setShowHeader(false);
+      const y = window.scrollY;
+      setScrollY(y);
+      setIsScrolled(y > 50);
+      if (y < 80) setShowHeader(true);
+      else if (y > lastScrollY) setShowHeader(false);
       else setShowHeader(true);
-      setLastScrollY(currentScrollY);
+      setLastScrollY(y);
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
   return (
-    <main className={`${inter.className} bg-white text-slate-900 overflow-x-hidden min-h-screen`}>
-      
-      {/* ── HEADER PADRÃO ── */}
+    <main className={`${inter.className} text-white overflow-x-hidden min-h-screen`}
+      style={{ backgroundColor: '#001f2e' }}>
+
+      {/* ── HEADER FLUTUANTE ── */}
       <header className="relative z-50 w-full bg-white border-b border-slate-200 py-4">
         <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6">
           <Link href="/" className="flex items-center gap-3">
@@ -106,7 +266,7 @@ export default function ComunidadesPage() {
           </Link>
 
           <nav className="hidden lg:flex items-center gap-8">
-            {['Hoteis', 'Pacotes', 'Roteiros','Passeios', 'Aldeias', 'Eventos', 'Biodiversidade', 'Gastronomia'].map(item => (
+            {['Hoteis', 'Pacotes', 'Rotas','Passeios', 'Aldeias','Biodiversidade', 'Gastronomia', 'Comunidades'].map(item => (
               <Link key={item} href={`/${item.toLowerCase()}`} className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-slate-600 hover:text-[#00577C] transition-colors`}>
                 {item}
               </Link>
@@ -130,163 +290,161 @@ export default function ComunidadesPage() {
             <Link href="/rotas" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Roteiros</Link>
             <Link href="/biodiversidade" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Biodiversidade</Link>
             <Link href="/gastronomia" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Gastronomia</Link>
+            <Link href="/comunidades" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Comunidades</Link>
             <Link href="/cadastro" className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md mt-2`}>Cartão Residente</Link>
           </div>
         )}
       </header>
 
-      {/* ── HERO SECTION SEM EFEITO EMBAÇADO ── */}
-      <section className="relative min-h-[80vh] flex items-center justify-center pt-28 pb-16 md:pt-32 md:pb-24 overflow-hidden bg-[#002f40]">
-        <div className="absolute inset-0 z-0 pointer-events-none">
-          <video 
-            src="/comunidades.mp4" 
+      {/* ══════════════════════════════════════
+          HERO CINEMATOGRÁFICO
+      ══════════════════════════════════════ */}
+      <section className="relative h-screen flex flex-col items-start justify-end
+        pb-20 md:pb-28 px-6 md:px-12 overflow-hidden"
+        style={{ backgroundColor: '#002f40' }}>
+
+        <div className="absolute inset-0 z-0 scale-110"
+          style={{ transform: `translateY(${scrollY * 0.25}px) scale(1.1)` }}>
+          <video
+            ref={videoRef}
+            src="/comunidades.mp4"
             autoPlay 
             loop 
             muted 
             playsInline
-            className="absolute inset-0 w-full h-full object-cover opacity-80" 
-            />
-        <div className="absolute inset-0 bg-[#002f40]/10" />
-            </div>
+            preload="auto"
+            poster="/logop.png" 
+            className="absolute inset-0 w-full h-full object-cover opacity-200"
+          />
+        </div>
 
-        <div className="relative z-10 text-center px-5 max-w-4xl pt-10">
-          <AnimatedSection animation="zoom-in">
-            <h1 className={`${jakarta.className} text-4xl sm:text-5xl md:text-9xl font-black text-white tracking-tight leading-tight mb-6 drop-shadow-xl`}>
-              Nossas <span className="text-[#F9C400]">Comunidades</span>
+        <div className="absolute inset-0 z-0 pointer-events-none"
+          style={{ background: 'linear-gradient(to top, #001f2e 0%, #001f2ecc 30%, #001f2e55 60%, transparent 85%)' }} />
+        <div className="absolute inset-0 z-0 pointer-events-none"
+          style={{ background: 'linear-gradient(to right, #001f2eaa 0%, transparent 65%)' }} />
+
+        <div className="absolute left-6 md:left-12 top-[20%] bottom-[20%] w-px pointer-events-none z-10 hidden md:block"
+          style={{ background: 'linear-gradient(to bottom, transparent, #F9C40045, transparent)' }} />
+
+        <div className="relative z-10 max-w-[1400px] w-full mx-auto">
+          <Reveal anim="up">
+
+            <h1 className={`${jakarta.className} text-[clamp(4rem,11vw,9rem)] font-black text-white leading-[0.88] mb-6`}>
+              Nossas<br />
+              <span className="italic" style={{ color: '#F9C400' }}>Comunidades</span>
             </h1>
-            <p className="text-base sm:text-lg md:text-xl text-white/80 font-medium leading-relaxed drop-shadow-md max-w-2xl mx-auto">
-             Conheça comunidades tradicioanais. Viva suas culturas, histórias e tradicões
+
+          </Reveal>
+        </div>
+
+        <div className="absolute bottom-10 right-6 md:right-12 z-10 hidden md:flex flex-col items-end gap-5">
+          <div className="text-right">
+            <p className={`${jakarta.className} text-4xl font-black leading-none`} style={{ color: '#F9C400' }}>
+              {loading ? '—' : comunidades.length}
             </p>
-          </AnimatedSection>
+            <p className="text-[9px] font-black uppercase tracking-widest mt-1 text-white/25">Comunidades</p>
+          </div>
+          <div className="text-right">
+            <p className={`${jakarta.className} text-4xl font-black leading-none`} style={{ color: '#009640' }}>100%</p>
+            <p className="text-[9px] font-black uppercase tracking-widest mt-1 text-white/25">Raízes Vivas</p>
+          </div>
+        </div>
+
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10">
+          <ChevronDown size={18} className="animate-bounce" style={{ color: 'rgba(249,196,0,0.35)' }} />
         </div>
       </section>
 
-      {/* ── LISTAGEM DAS ROTAS (ZIGZAG LAYOUT) ── */}
-      <section className="py-24 md:py-32 bg-white relative">
-        <div className="mx-auto max-w-7xl px-5 relative z-10">
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-20">
-              <Loader2 className="animate-spin text-[#00577C] w-12 h-12 mb-4" />
-              <p className="text-xs font-black uppercase tracking-widest text-slate-400">Carregando comunidades...</p>
-            </div>
-          ) : comunidades.length === 0 ? (
-            <div className="text-center py-20 border-2 border-dashed border-slate-200 rounded-[2rem]">
-              <Compass className="mx-auto w-16 h-16 text-slate-300 mb-4" />
-              <h3 className={`${jakarta.className} text-2xl font-bold text-slate-500`}>Pedimos desculpas</h3>
-              <p className="text-slate-500">Não há comunidades cadastradas no momento.</p>
-            </div>
-          ) : (
-            <div className="space-y-24 md:space-y-36">
-              {comunidades.map((comunidade, index) => {
-                const isPar = index % 2 === 0;
+      {/* ══════════════════════════════════════
+          LISTAGEM DE COMUNIDADES
+      ══════════════════════════════════════ */}
+      <section id="comunidades">
+        {loading && (
+          <div className="flex flex-col items-center justify-center py-40" style={{ backgroundColor: '#001f2e' }}>
+            <Loader2 className="animate-spin w-12 h-12 mb-4" style={{ color: '#F9C400' }} />
+            <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              A viajar até às comunidades...
+            </p>
+          </div>
+        )}
 
-                return (
-                  <div key={comunidade.id} className={`flex flex-col gap-10 lg:gap-16 items-center ${isPar ? 'lg:flex-row' : 'lg:flex-row-reverse'}`}>
-                    
-                    {/* BLOCO DA IMAGEM */}
-                    <AnimatedSection animation={isPar ? "fade-right" : "fade-left"} className="w-full lg:w-1/2">
-                      <div className="relative aspect-[4/3] md:aspect-[4/5] w-full rounded-[2.5rem] overflow-hidden shadow-xl border border-slate-100 group">
-                        <Image 
-                          src={comunidade.imagem_url} 
-                          alt={comunidade.titulo} 
-                          fill 
-                          className="object-cover group-hover:scale-105 transition-transform duration-700" 
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-700" />
-                        
-                      </div>
-                    </AnimatedSection>
+        {!loading && comunidades.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-40 px-6 text-center"
+            style={{ backgroundColor: '#001f2e' }}>
+            <Compass size={64} style={{ color: 'rgba(255,255,255,0.05)' }} className="mb-6" />
+            <h3 className={`${jakarta.className} text-3xl font-black mb-3`} style={{ color: 'rgba(255,255,255,0.2)' }}>
+              Nenhuma comunidade cadastrada
+            </h3>
+          </div>
+        )}
 
-                    {/* BLOCO DO TEXTO */}
-                    <AnimatedSection animation={isPar ? "fade-left" : "fade-right"} className="w-full lg:w-1/2 text-left">
-                      
-                      <h2 className={`${jakarta.className} text-3xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight mb-6`}>
-                        {comunidade.titulo}
-                      </h2>
-                      
-                      <p className="text-base md:text-lg text-slate-600 leading-relaxed mb-8 font-medium">
-                        {comunidade.descricao_curta}
-                      </p>
-                      
-                      <div className="flex items-center gap-4">
-                        <Link 
-                          href={`/comunidades/${comunidade.id}`} 
-                          className="inline-flex items-center gap-3 bg-[#00577C] text-white px-8 py-4 rounded-full font-black text-xs uppercase tracking-widest shadow-lg hover:bg-[#004a6b] hover:shadow-xl hover:-translate-y-1 transition-all group"
-                        >
-                          Conhecer a comunidade
-                          <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                        </Link>
-                      </div>
-
-                      {/* Micro Detalhes Decorativos */}
-                      <div className="grid grid-cols-2 gap-4 mt-10 pt-6 border-t border-slate-100">
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-full bg-green-50 border border-green-100 flex items-center justify-center text-[#009640] shrink-0">
-                            <TreePine size={20} />
-                          </div>
-                          <div>
-                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Comunidade</p>
-                            <p className="text-sm font-black text-slate-700 leading-none mt-0.5">Preservada</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-[#00577C] shrink-0">
-                            <MapPin size={20} />
-                          </div>
-                          <div>
-                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Mapa</p>
-                            <p className="text-sm font-black text-slate-700 leading-none mt-0.5">Interativo</p>
-                          </div>
-                        </div>
-                      </div>
-
-                    </AnimatedSection>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+        {!loading && comunidades.length > 0 && (
+          <div>
+            {comunidades.map((comunidade, index) => (
+              <ComunidadeCard key={comunidade.id} comunidade={comunidade} index={index} />
+            ))}
+          </div>
+        )}
       </section>
 
-      {/* FOOTER INSTITUCIONAL */}
-      <footer className="py-12 md:py-20 px-5 md:px-8 border-t border-slate-100 bg-white text-left">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-10 md:gap-16 mb-12 md:mb-20 text-left">
-            <div className="space-y-6 md:space-y-8 text-left">
-               <img src="/logop.png" alt="Prefeitura SGA" className="h-16 md:h-20 object-contain" />
-               <p className="text-xs md:text-sm text-slate-400 font-bold uppercase tracking-widest leading-relaxed">São Geraldo do Araguaia <br/> "Cidade Amada, seguindo em frente"</p>
+      {/* ── FOOTER MINIMAL DARK ── */}
+      <footer className="py-10 px-6 md:px-12 border-t"
+        style={{ backgroundColor: '#000f18', borderColor: 'rgba(0,87,124,0.15)' }}>
+        <div className="max-w-[1400px] mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-14 mb-14">
+
+            <div className="space-y-5">
+              <div className="relative h-10 w-32">
+                <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain brightness-[100] invert opacity-25" />
+              </div>
+              <p className="text-[10px] font-black uppercase tracking-widest leading-relaxed"
+                style={{ color: 'rgba(255,255,255,0.15)' }}>
+                São Geraldo do Araguaia<br />"Cidade Amada, seguindo em frente"
+              </p>
             </div>
-            
-            <div className="space-y-4 md:space-y-6 text-left">
-              <h5 className="font-black text-slate-900 text-[10px] md:text-xs uppercase tracking-widest border-b border-slate-100 pb-3 md:pb-4">Gestão Executiva</h5>
-              <ul className="text-xs md:text-sm text-slate-500 space-y-2 md:space-y-3 font-medium">
-                <li>Prefeito: <br/><b>Jefferson Douglas de Jesus Oliveira</b></li>
-                <li>Vice-Prefeito: <br/><b>Marcos Antônio Candido de Lucena</b></li>
+
+            <div className="space-y-4">
+              <h5 className="font-black text-[9px] uppercase tracking-widest pb-3 border-b"
+                style={{ color: 'rgba(255,255,255,0.2)', borderColor: 'rgba(255,255,255,0.06)' }}>
+                Gestão Executiva
+              </h5>
+              <ul className="text-xs space-y-2 font-medium" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                <li>Prefeito:<br /><b className="text-white/40">Jefferson Douglas de Jesus Oliveira</b></li>
+                <li>Vice-Prefeito:<br /><b className="text-white/40">Marcos Antônio Candido de Lucena</b></li>
               </ul>
             </div>
 
-            <div className="space-y-4 md:space-y-6 text-left">
-              <h5 className="font-black text-slate-900 text-[10px] md:text-xs uppercase tracking-widest border-b border-slate-100 pb-3 md:pb-4">Turismo (SEMTUR)</h5>
-              <ul className="text-xs md:text-sm text-slate-500 space-y-2 md:space-y-3 font-medium">
-                <li>Secretária: <br/><b>Micheli Stephany de Souza</b></li>
-                <li>Contato: <b>(94) 98145-2067</b></li>
-                <li>Email: <b>setursaga@gmail.com</b></li>
+            <div className="space-y-4">
+              <h5 className="font-black text-[9px] uppercase tracking-widest pb-3 border-b"
+                style={{ color: 'rgba(255,255,255,0.2)', borderColor: 'rgba(255,255,255,0.06)' }}>
+                Turismo (SEMTUR)
+              </h5>
+              <ul className="text-xs space-y-2 font-medium" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                <li>Secretária:<br /><b className="text-white/40">Micheli Stephany de Souza</b></li>
+                <li>Contato: <b className="text-white/40">(94) 98145-2067</b></li>
+                <li>Email: <b className="text-white/40">setursaga@gmail.com</b></li>
               </ul>
             </div>
 
-            <div className="space-y-4 md:space-y-6 text-left">
-              <h5 className="font-black text-slate-900 text-[10px] md:text-xs uppercase tracking-widest border-b border-slate-100 pb-3 md:pb-4">Equipe Técnica</h5>
-              <ul className="text-xs md:text-sm text-slate-500 space-y-2 font-medium">
+            <div className="space-y-4">
+              <h5 className="font-black text-[9px] uppercase tracking-widest pb-3 border-b"
+                style={{ color: 'rgba(255,255,255,0.2)', borderColor: 'rgba(255,255,255,0.06)' }}>
+                Equipe Técnica
+              </h5>
+              <ul className="text-xs space-y-2 font-medium" style={{ color: 'rgba(255,255,255,0.25)' }}>
                 <li>• Adriana da Luz Lima</li>
                 <li>• Carmelita Luz da Silva</li>
                 <li>• Diego Silva Costa</li>
               </ul>
             </div>
           </div>
-          
-          <div className="text-center pt-8 md:pt-10 border-t border-slate-50">
-            <p className="text-[9px] md:text-[10px] font-black text-slate-300 uppercase tracking-[0.4em] leading-relaxed">© 2026 Secretaria Municipal de Turismo - São Geraldo do Araguaia (PA)</p>
+
+          <div className="pt-8 border-t text-center"
+            style={{ borderColor: 'rgba(255,255,255,0.04)' }}>
+            <p className="text-[9px] font-black uppercase tracking-[0.4em]"
+              style={{ color: 'rgba(255,255,255,0.1)' }}>
+              © 2026 Secretaria Municipal de Turismo — São Geraldo do Araguaia (PA)
+            </p>
           </div>
         </div>
       </footer>

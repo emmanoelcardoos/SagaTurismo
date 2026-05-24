@@ -28,6 +28,11 @@ import CPFInput from '@/components/ui/CPFInput';
 import FileUploader from '@/components/ui/FileUploader';
 import { cadastrarResidente, type CadastroResponse } from '@/lib/api';
 
+// ── IMPORTS DAS ANIMAÇÕES LOTTIE ──
+import Lottie from 'lottie-react';
+import idCardAnimation from '@/public/ID card.json';
+import incorrectAnimation from '@/public/incorrect.json';
+
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
   weight: ['600', '700', '800'],
@@ -340,15 +345,15 @@ export default function CadastroPage() {
     );
   }
 
-  // ── ECRÃ VERMELHO: RECUSA REAL DA IA ──
+  // ── ECRÃ VERMELHO: RECUSA REAL DA IA COM ANIMAÇÃO LOTTIE ──
   if (rejeicaoIA) {
     return (
       <main className={`${inter.className} min-h-screen bg-slate-50 text-slate-900`}>
         <Header />
         <section className="flex min-h-screen items-center justify-center px-4 py-28 sm:px-5">
           <div className="w-full max-w-2xl rounded-[2rem] border border-slate-200 bg-white p-6 text-center shadow-2xl sm:p-8 animate-in zoom-in-95 duration-300">
-            <div className={`mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-red-50`}>
-              <XCircle className="h-12 w-12 text-red-500" />
+            <div className="mx-auto mb-4 w-32 h-32 md:w-40 md:h-40">
+              <Lottie animationData={incorrectAnimation} loop={false} />
             </div>
             <span className={`mb-5 inline-flex rounded-full px-4 py-2 text-xs font-black uppercase tracking-[0.18em] bg-red-50 text-red-700`}>
               Solicitação Retida
@@ -372,7 +377,23 @@ export default function CadastroPage() {
   }
 
   return (
-    <main className={`${inter.className} min-h-screen bg-white text-slate-900 text-left`}>
+    <main className={`${inter.className} min-h-screen bg-white text-slate-900 text-left relative`}>
+      
+      {/* ── OVERLAY DE LOADING: ANIMAÇÃO DA IA A PENSAR ── */}
+      {loading && (
+        <div className="fixed inset-0 z-[100] bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-300">
+          <div className="w-64 h-64 md:w-80 md:h-80 -mt-10">
+            <Lottie animationData={idCardAnimation} loop={true} />
+          </div>
+          <h2 className={`${jakarta.className} text-2xl md:text-3xl font-black text-[#00577C] mt-4`}>
+            A analisar documentação...
+          </h2>
+          <p className="text-slate-500 mt-3 font-medium text-sm md:text-base max-w-md">
+            A nossa Inteligência Artificial está a processar os seus dados de forma segura. Isto levará apenas alguns segundos.
+          </p>
+        </div>
+      )}
+
       <Header />
 
       {/* HERO SECTION CLEAN & RESPONSIVA */}
@@ -611,10 +632,6 @@ export default function CadastroPage() {
                   )}
 
                   <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="flex flex-wrap items-center gap-2 text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400">
-                      <span className="flex items-center gap-1"><ShieldCheck className="h-3 w-3 md:h-4 md:w-4 text-[#00577C]" /> Dados Protegidos</span>
-                      <span className="hidden sm:block">·</span><span>Análise por IA</span><span className="hidden sm:block">·</span><span>Conexão Encriptada</span>
-                    </div>
 
                     <button
                       type="submit"
