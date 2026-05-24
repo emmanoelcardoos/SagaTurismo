@@ -645,6 +645,10 @@ export default function HomePage() {
               className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md mt-2`}>
               Cartão Residente
             </Link>
+            <Link href="/parceiros"
+              className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md mt-2`}>
+              Parceiros
+            </Link>
           </div>
         )}
       </header>

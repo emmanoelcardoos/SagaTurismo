@@ -3,12 +3,13 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image'; // <-- adicionado
 import { 
   Loader2, MapPin, ShieldCheck, Bed, QrCode, CheckCircle2, 
   Users, Calendar, Clock, Copy, AlertCircle, 
   CreditCard, Lock, ShieldAlert, Home, Check, ChevronRight,
-  Wallet, ChevronLeft, UserPlus, isMobileMenuOpen, setIsMobileMenuOpen, Menu, X, CalendarDays
-} from 'lucide-react';
+  Wallet, ChevronLeft, UserPlus, Menu, X, CalendarDays
+} from 'lucide-react'; // <-- removidos isMobileMenuOpen e setIsMobileMenuOpen
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
 
@@ -154,6 +155,9 @@ function CheckoutHotelContent() {
   
   // Estado Dinâmico Acompanhantes
   const [hospedesExtras, setHospedesExtras] = useState<Acompanhante[]>([]);
+
+  // ── NOVO: Estado do menu mobile ──
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const numAcompanhantes = Math.max(0, adultosParam - quartosParam);
@@ -413,7 +417,6 @@ function CheckoutHotelContent() {
         <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6">
           <Link href="/" className="flex items-center gap-3">
              <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
-                {/* Removido o filtro invertido para manter as cores originais da logo */}
                 <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain" />
              </div>
           </Link>
@@ -450,7 +453,7 @@ function CheckoutHotelContent() {
       </header>
 
       {/* BREADCRUMB DINÂMICO (AGRUPADO PARA NÃO TRANSBORDAR) */}
-      <div className="bg-white border-b border-slate-200 mt-[65px] md:mt-[80px]">
+      <div className="bg-white border-b border-slate-200 mt-[65px] md:mt-[0px]">
         <div className="mx-auto max-w-7xl px-4 md:px-8 py-4 md:py-5 flex items-center justify-center gap-2 md:gap-4 overflow-x-auto whitespace-nowrap">
           
           <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-colors ${passoAtual === 1 ? 'bg-[#00577C]/10 text-[#00577C]' : passoAtual > 1 ? 'text-[#009640]' : 'text-slate-400'}`}>
@@ -500,7 +503,7 @@ function CheckoutHotelContent() {
                   </div>
                   <div className="p-6 flex flex-col justify-center text-left">
                      <div className="flex items-center gap-2 text-[10px] font-black uppercase text-[#009640] mb-3 bg-green-50 border border-green-100 w-fit px-3 py-1.5 rounded-lg shadow-sm">
-                        <ShieldCheck size={14}/> Alojamento Oficial Autorizado
+                        <ShieldCheck size={14}/> Obrigado por escolher um alojamento local!
                      </div>
                      <h2 className={`${jakarta.className} text-xl md:text-2xl font-black text-slate-900 mb-2 leading-tight`}>{hotel?.nome}</h2>
                      <p className="text-slate-500 flex items-center gap-1.5 text-xs font-bold">
@@ -758,10 +761,6 @@ function CheckoutHotelContent() {
                  </div>
 
                  <div className="pt-8 border-t-2 border-slate-100 flex flex-col gap-4">
-                    <div className="flex items-center justify-between">
-                       <p className="text-xs font-black uppercase text-slate-400 tracking-widest">Total a Pagar</p>
-                       <div className="bg-green-50 px-3 py-1 rounded-full flex items-center gap-1.5 text-[#009640] text-[10px] font-black uppercase"><Check size={12} strokeWidth={3}/> Sincronizado</div>
-                    </div>
                     <p className={`${jakarta.className} text-4xl md:text-5xl font-black text-[#00577C] tabular-nums leading-none`}>
                       {loadingPreco ? 'Calculando...' : formatarMoeda(valorTotalReserva)}
                     </p>
