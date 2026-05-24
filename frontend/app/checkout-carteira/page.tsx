@@ -419,7 +419,7 @@ function CheckoutCarteiraContent() {
                  <div className="space-y-4 pb-6 border-b border-slate-100">
                     <div>
                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1"><User size={12}/> Titular da Conta Aprovado</p>
-                       <p className="font-bold text-slate-800 text-sm">{dadosCidadão?.nome || 'Validando dados...'}</p>
+                        <p className="font-bold text-slate-800 text-sm">{dadosCidadão?.nome || 'Nome não disponível'}</p>
                     </div>
                     {dadosCidadão?.email && (
                       <div>
