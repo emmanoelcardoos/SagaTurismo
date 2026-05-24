@@ -69,11 +69,11 @@ function SectionCard({ children, className = "" }: { children: React.ReactNode; 
 function SectionHeader({ step, title, icon }: { step: number; title: string; icon: React.ReactNode }) {
   return (
     <div className="flex items-center gap-4 mb-8">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#0085FF] text-white text-sm font-black shadow-md">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#00577C] text-white text-sm font-black shadow-md">
         {step}
       </div>
       <div className="flex items-center gap-2">
-        <span className="text-[#0085FF] bg-blue-50 p-2 rounded-xl hidden sm:block">{icon}</span>
+        <span className="text-[#00577C] bg-blue-50 p-2 rounded-xl hidden sm:block">{icon}</span>
         <h2 className={`${jakarta.className} text-xl md:text-2xl font-black text-slate-900 tracking-tight`}>{title}</h2>
       </div>
     </div>
@@ -94,18 +94,18 @@ function BarraTempoReserva() {
     <div className="mb-8 overflow-hidden rounded-[2rem] border-2 border-blue-50 bg-blue-50/50 shadow-sm">
       <div className="p-5 md:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-left">
         <div>
-          <p className="font-black text-base text-[#0085FF] flex items-center gap-2">
+          <p className="font-black text-base text-[#00577C] flex items-center gap-2">
              <ShieldCheck size={18} className="text-[#009640]"/> Disponibilidade Garantida
           </p>
           <p className="text-xs md:text-sm font-bold text-slate-500 mt-1">Conclua o pagamento nos próximos minutos para garantir este pacote.</p>
         </div>
         <div className="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 shadow-sm border border-blue-100 w-fit">
-          <Clock size={18} className="text-[#0085FF] animate-pulse" />
-          <span className="text-xl md:text-2xl font-black text-[#0085FF] tabular-nums">{String(min).padStart(2, "0")}:{String(seg).padStart(2, "0")}</span>
+          <Clock size={18} className="text-[#00577C] animate-pulse" />
+          <span className="text-xl md:text-2xl font-black text-[#00577C] tabular-nums">{String(min).padStart(2, "0")}:{String(seg).padStart(2, "0")}</span>
         </div>
       </div>
       <div className="h-2 w-full bg-slate-200">
-        <div className="h-full bg-[#0085FF] transition-all duration-1000 ease-linear" style={{ width: `${percent}%` }} />
+        <div className="h-full bg-[#00577C] transition-all duration-1000 ease-linear" style={{ width: `${percent}%` }} />
       </div>
     </div>
   );
@@ -366,7 +366,7 @@ function CheckoutPacoteContent() {
   const taxaHospedeAdicional = valorHospedagemDin > valorBaseMatematico ? valorHospedagemDin - valorBaseMatematico : 0;
   const exibirTaxaExtra = taxaHospedeAdicional > 0.05;
 
-  if (loadingInitial) return <div className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="animate-spin text-[#0085FF]" size={40} /></div>;
+  if (loadingInitial) return <div className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="animate-spin text-[#00577C]" size={40} /></div>;
 
   return (
     <main className={`${inter.className} min-h-screen bg-[#F5F7FA] text-slate-900 pb-20`}>
@@ -413,12 +413,12 @@ function CheckoutPacoteContent() {
       </header>
 
       {/* PROGRESS BAR ESTILO PREMIUM */}
-      <div className="bg-white border-b border-slate-200 mt-[65px] md:mt-[80px]">
+      <div className="bg-white border-b border-slate-200 mt-[0px] md:mt-[0px]">
         <div className="mx-auto max-w-7xl px-4 md:px-8 py-4 md:py-5">
           <div className="flex items-center justify-center md:justify-start gap-2 md:gap-4 text-[9px] md:text-[10px] uppercase tracking-[0.2em] font-black text-slate-400">
             <span className="hidden sm:inline-block">Pacote</span> <ChevronRight size={14} className="hidden sm:inline-block"/> 
             <span>Escolha</span> <ChevronRight size={14}/> 
-            <span className="text-[#0085FF] bg-blue-50 px-3 py-1.5 rounded-full flex items-center gap-2"><Lock size={12}/> Pagamento</span> <ChevronRight size={14}/> 
+            <span className="text-[#00577C] bg-blue-50 px-3 py-1.5 rounded-full flex items-center gap-2"><Lock size={12}/> Pagamento</span> <ChevronRight size={14}/> 
             <span>Sucesso</span>
           </div>
         </div>
@@ -459,34 +459,34 @@ function CheckoutPacoteContent() {
                   
                   {/* Titular */}
                   <div className="space-y-4">
-                    <p className="text-xs font-black text-[#0085FF] uppercase tracking-wider mb-2">Responsável Principal (Titular)</p>
+                    <p className="text-xs font-black text-[#00577C] uppercase tracking-wider mb-2">Responsável Principal (Titular)</p>
                     <div className="grid gap-5 md:gap-6 sm:grid-cols-2">
                       <div className="sm:col-span-2">
                         <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Nome Completo (Conforme Documento) *</label>
                         <div className="relative">
                           <User className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-                          <input required value={nome} onChange={e => setNome(e.target.value)} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 pl-12 pr-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF] focus:bg-white hover:border-slate-200 transition-all" placeholder="Nome do responsável pela reserva" />
+                          <input required value={nome} onChange={e => setNome(e.target.value)} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 pl-12 pr-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white hover:border-slate-200 transition-all" placeholder="Nome do responsável pela reserva" />
                         </div>
                       </div>
                       <div>
                         <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">CPF *</label>
                         <div className="relative">
                           <FileText className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-                          <input required value={cpf} onChange={e => setCpf(mascaraCPF(e.target.value))} maxLength={14} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 pl-12 pr-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF] focus:bg-white hover:border-slate-200 transition-all" placeholder="000.000.000-00" />
+                          <input required value={cpf} onChange={e => setCpf(mascaraCPF(e.target.value))} maxLength={14} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 pl-12 pr-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white hover:border-slate-200 transition-all" placeholder="000.000.000-00" />
                         </div>
                       </div>
                       <div>
                         <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Telemóvel / WhatsApp *</label>
                         <div className="relative">
                           <Smartphone className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-                          <input required value={telefone} onChange={e => setTelefone(mascaraTelefone(e.target.value))} maxLength={15} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 pl-12 pr-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF] focus:bg-white hover:border-slate-200 transition-all" placeholder="(99) 99999-9999" />
+                          <input required value={telefone} onChange={e => setTelefone(mascaraTelefone(e.target.value))} maxLength={15} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 pl-12 pr-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white hover:border-slate-200 transition-all" placeholder="(99) 99999-9999" />
                         </div>
                       </div>
                       <div className="sm:col-span-2">
                         <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">E-mail para Receber o Voucher *</label>
                         <div className="relative">
                           <Mail className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-                          <input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 pl-12 pr-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF] focus:bg-white hover:border-slate-200 transition-all" placeholder="seu@email.com" />
+                          <input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 pl-12 pr-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white hover:border-slate-200 transition-all" placeholder="seu@email.com" />
                         </div>
                       </div>
                     </div>
@@ -502,18 +502,18 @@ function CheckoutPacoteContent() {
 
                       {hospedesExtras.map((h, i) => (
                         <div key={i} className="p-5 border border-slate-100 rounded-2xl bg-slate-50/50 space-y-4 animate-in fade-in duration-300">
-                          <span className="inline-flex bg-[#0085FF] text-white text-[9px] font-black uppercase px-2.5 py-1 rounded-md tracking-wider">
+                          <span className="inline-flex bg-[#00577C] text-white text-[9px] font-black uppercase px-2.5 py-1 rounded-md tracking-wider">
                             Acompanhante #{i + 1}
                           </span>
                           
                           <div className="grid gap-4 sm:grid-cols-2">
                             <div className="sm:col-span-2">
                               <label className="block text-[9px] font-black uppercase text-slate-400 mb-1.5 ml-1">Nome Completo *</label>
-                              <input required value={h.nome} onChange={e => handleAcompanhanteChange(i, 'nome', e.target.value.toUpperCase())} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF]" placeholder="Nome do integrante" />
+                              <input required value={h.nome} onChange={e => handleAcompanhanteChange(i, 'nome', e.target.value.toUpperCase())} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C]" placeholder="Nome do integrante" />
                             </div>
                             <div>
                               <label className="block text-[9px] font-black uppercase text-slate-400 mb-1.5 ml-1">CPF *</label>
-                              <input required value={h.cpf} onChange={e => handleAcompanhanteChange(i, 'cpf', mascaraCPF(e.target.value))} maxLength={14} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF]" placeholder="000.000.000-00" />
+                              <input required value={h.cpf} onChange={e => handleAcompanhanteChange(i, 'cpf', mascaraCPF(e.target.value))} maxLength={14} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C]" placeholder="000.000.000-00" />
                             </div>
                             <div className="relative">
                               <label className="block text-[9px] font-black uppercase text-slate-400 mb-1.5 ml-1">Data de Nascimento *</label>
@@ -524,7 +524,7 @@ function CheckoutPacoteContent() {
                                   inputMode="numeric"
                                   value={h.data_nascimento} 
                                   onChange={e => handleAcompanhanteChange(i, 'data_nascimento', mascaraData(e.target.value))} 
-                                  className="w-full rounded-xl border border-slate-200 bg-white pl-4 pr-10 py-3 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF]" 
+                                  className="w-full rounded-xl border border-slate-200 bg-white pl-4 pr-10 py-3 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C]" 
                                   placeholder="DD/MM/AAAA" 
                                 />
                                 <Calendar size={16} className="absolute right-3.5 text-slate-400 pointer-events-none" />
@@ -544,28 +544,28 @@ function CheckoutPacoteContent() {
                     <div className="sm:col-span-2 grid grid-cols-[1fr_100px] gap-4">
                       <div>
                         <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Morada *</label>
-                        <input required value={rua} onChange={e => setRua(e.target.value)} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF] focus:bg-white transition-all" placeholder="Rua / Avenida" />
+                        <input required value={rua} onChange={e => setRua(e.target.value)} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="Rua / Avenida" />
                       </div>
                       <div>
                         <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Nº *</label>
-                        <input required value={numero} onChange={e => setNumero(e.target.value)} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 text-center outline-none focus:border-[#0085FF] focus:bg-white transition-all" placeholder="Nº" />
+                        <input required value={numero} onChange={e => setNumero(e.target.value)} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 text-center outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="Nº" />
                       </div>
                     </div>
                     <div>
                       <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Bairro *</label>
-                      <input required value={bairro} onChange={e => setBairro(e.target.value)} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF] focus:bg-white transition-all" placeholder="Bairro" />
+                      <input required value={bairro} onChange={e => setBairro(e.target.value)} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="Bairro" />
                     </div>
                     <div>
                       <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">CEP *</label>
-                      <input required value={cep} onChange={e => setCep(mascaraCEP(e.target.value))} maxLength={9} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF] focus:bg-white transition-all" placeholder="00000-000" />
+                      <input required value={cep} onChange={e => setCep(mascaraCEP(e.target.value))} maxLength={9} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="00000-000" />
                     </div>
                     <div>
                       <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Cidade *</label>
-                      <input required value={cidade} onChange={e => setCidade(e.target.value)} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF] focus:bg-white transition-all" placeholder="Sua Cidade" />
+                      <input required value={cidade} onChange={e => setCidade(e.target.value)} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="Sua Cidade" />
                     </div>
                     <div>
                       <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Estado (UF) *</label>
-                      <input required value={estado} onChange={e => setEstado(e.target.value.toUpperCase())} maxLength={2} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 text-center outline-none focus:border-[#0085FF] focus:bg-white transition-all" placeholder="EX: PA" />
+                      <input required value={estado} onChange={e => setEstado(e.target.value.toUpperCase())} maxLength={2} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 text-center outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="EX: PA" />
                     </div>
                   </div>
                 </SectionCard>
@@ -578,18 +578,18 @@ function CheckoutPacoteContent() {
                     <button type="button" onClick={() => setMetodoPagamento('pix')} className={`flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border-2 transition-all ${metodoPagamento === 'pix' ? 'border-[#009640] bg-[#009640]/5 text-[#009640] shadow-sm' : 'border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200'}`}>
                       <QrCode size={32} /> <span className="text-[10px] md:text-xs font-black uppercase tracking-widest">PIX Rápido</span>
                     </button>
-                    <button type="button" onClick={() => setMetodoPagamento('cartao')} className={`flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border-2 transition-all ${metodoPagamento === 'cartao' ? 'border-[#0085FF] bg-blue-50/50 text-[#0085FF] shadow-sm' : 'border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200'}`}>
+                    <button type="button" onClick={() => setMetodoPagamento('cartao')} className={`flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border-2 transition-all ${metodoPagamento === 'cartao' ? 'border-[#00577C] bg-[#00577C]/5 text-[#00577C] shadow-sm' : 'border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200'}`}>
                       <CreditCard size={32} /> <span className="text-[10px] md:text-xs font-black uppercase tracking-widest">Cartão de Crédito</span>
                     </button>
                   </div>
 
                   {metodoPagamento === 'cartao' && (
-                    <div className="space-y-5 bg-white border-2 border-[#0085FF]/10 p-6 md:p-8 rounded-[2rem] shadow-inner mb-8 animate-in slide-in-from-top-4 duration-300">
+                    <div className="space-y-5 bg-white border-2 border-[#00577C]/10 p-6 md:p-8 rounded-[2rem] shadow-inner mb-8 animate-in slide-in-from-top-4 duration-300">
                       <div>
                         <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Nome Impresso no Cartão *</label>
                         <div className="relative">
                           <User className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-                          <input required value={nomeCartao} onChange={e => setNomeCartao(e.target.value.toUpperCase())} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 pl-12 pr-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF] focus:bg-white hover:border-slate-200 transition-all uppercase" placeholder="JOAO S SANTOS" />
+                          <input required value={nomeCartao} onChange={e => setNomeCartao(e.target.value.toUpperCase())} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 pl-12 pr-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white hover:border-slate-200 transition-all uppercase" placeholder="JOAO S SANTOS" />
                         </div>
                       </div>
 
@@ -597,31 +597,31 @@ function CheckoutPacoteContent() {
                         <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Número do Cartão *</label>
                         <div className="relative">
                           <CreditCard className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-                          <input required value={numeroCartao} onChange={e => setNumeroCartao(mascaraCartao(e.target.value))} maxLength={19} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 pl-12 pr-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF] focus:bg-white hover:border-slate-200 transition-all tabular-nums tracking-widest" placeholder="0000 0000 0000 0000" />
+                          <input required value={numeroCartao} onChange={e => setNumeroCartao(mascaraCartao(e.target.value))} maxLength={19} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 pl-12 pr-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white hover:border-slate-200 transition-all tabular-nums tracking-widest" placeholder="0000 0000 0000 0000" />
                         </div>
                       </div>
 
                       <div className="grid grid-cols-[1fr_1fr_1.5fr] gap-3">
                         <div>
                           <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Mês *</label>
-                          <input required value={mesCartao} maxLength={2} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-2 py-4 text-sm font-bold text-slate-800 text-center outline-none focus:border-[#0085FF] focus:bg-white transition-all" placeholder="MM" onChange={e => setMesCartao(e.target.value.replace(/\D/g,''))} />
+                          <input required value={mesCartao} maxLength={2} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-2 py-4 text-sm font-bold text-slate-800 text-center outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="MM" onChange={e => setMesCartao(e.target.value.replace(/\D/g,''))} />
                         </div>
                         <div>
                           <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Ano *</label>
-                          <input required value={anoCartao} maxLength={4} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-2 py-4 text-sm font-bold text-slate-800 text-center outline-none focus:border-[#0085FF] focus:bg-white transition-all" placeholder="AAAA" onChange={e => setAnoCartao(e.target.value.replace(/\D/g,''))} />
+                          <input required value={anoCartao} maxLength={4} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-2 py-4 text-sm font-bold text-slate-800 text-center outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="AAAA" onChange={e => setAnoCartao(e.target.value.replace(/\D/g,''))} />
                         </div>
                         <div>
                           <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">CVV *</label>
                           <div className="relative">
                             <Lock className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-                            <input required type="password" value={cvvCartao} maxLength={4} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 pl-11 pr-4 py-4 text-sm font-bold text-slate-800 text-center outline-none focus:border-[#0085FF] focus:bg-white transition-all tracking-widest" placeholder="CVV" onChange={e => setCvvCartao(e.target.value.replace(/\D/g,''))} />
+                            <input required type="password" value={cvvCartao} maxLength={4} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 pl-11 pr-4 py-4 text-sm font-bold text-slate-800 text-center outline-none focus:border-[#00577C] focus:bg-white transition-all tracking-widest" placeholder="CVV" onChange={e => setCvvCartao(e.target.value.replace(/\D/g,''))} />
                           </div>
                         </div>
                       </div>
 
                       <div>
                         <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Opção de Parcelamento *</label>
-                        <select value={parcelas} onChange={e => setParcelas(Number(e.target.value))} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF] focus:bg-white transition-all cursor-pointer">
+                        <select value={parcelas} onChange={e => setParcelas(Number(e.target.value))} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-all cursor-pointer">
                           {[...Array(12)].map((_, i) => <option key={i+1} value={i+1}>{i+1}x de {formatarMoeda(totalPagamento/(i+1))} {!i && ' (À Vista)'}</option>)}
                         </select>
                       </div>
@@ -657,9 +657,9 @@ function CheckoutPacoteContent() {
           {/* ── COLUNA DIREITA ── */}
           <aside className="w-full h-fit lg:self-start order-first lg:order-last relative space-y-6">
             <SectionCard>
-              <div className="h-2 w-full bg-gradient-to-r from-[#0085FF] via-[#F9C400] to-[#009640]" />
+              <div className="h-2 w-full bg-gradient-to-r from-[#00577C] via-[#F9C400] to-[#009640]" />
               <div className="p-6 md:p-8 border-b border-slate-100 text-left bg-slate-50">
-                <p className="text-[10px] font-black uppercase text-[#0085FF] tracking-widest mb-2 flex items-center gap-2"><CheckCircle2 size={14}/> Resumo da Reserva</p>
+                <p className="text-[10px] font-black uppercase text-[#00577C] tracking-widest mb-2 flex items-center gap-2"><CheckCircle2 size={14}/> Resumo da Reserva</p>
                 <h3 className={`${jakarta.className} text-xl md:text-2xl font-black text-slate-900 leading-tight`}>{pacote?.titulo}</h3>
               </div>
 
@@ -678,7 +678,7 @@ function CheckoutPacoteContent() {
                  {hotelSel && (
                     <div className="flex items-start gap-4">
                        <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
-                         <Bed size={20} className="text-[#0085FF]"/>
+                         <Bed size={20} className="text-[#00577C]"/>
                        </div>
                        <div className="flex-1 pt-1">
                           <p className="text-sm font-black text-slate-800 leading-none mb-1.5">{hotelSel.nome}</p>
@@ -740,13 +740,13 @@ function CheckoutPacoteContent() {
                           <Check size={12} strokeWidth={3}/> Sincronizado
                        </div>
                     </div>
-                    <p className={`${jakarta.className} text-4xl md:text-5xl font-black text-[#0085FF] tabular-nums leading-none`}>
+                    <p className={`${jakarta.className} text-4xl md:text-5xl font-black text-[#00577C] tabular-nums leading-none`}>
                       {loadingPreco ? '...' : formatarMoeda(totalPagamento)}
                     </p>
                  </div>
               </div>
 
-              <div className="p-6 md:p-8 bg-[#0085FF] text-white flex items-center gap-4">
+              <div className="p-6 md:p-8 bg-[#00577C] text-white flex items-center gap-4">
                  <ShieldAlert size={28} className="text-[#F9C400] shrink-0" />
                  <p className="text-[10px] md:text-xs font-bold text-blue-100 uppercase tracking-wider leading-relaxed text-left">Este é um roteiro oficial gerido e garantido pela Secretaria de Turismo de São Geraldo do Araguaia.</p>
               </div>
@@ -761,7 +761,7 @@ function CheckoutPacoteContent() {
 
 export default function CheckoutPacotePage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#F5F7FA]"><Loader2 className="animate-spin text-[#0085FF] w-12 h-12" /></div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#F5F7FA]"><Loader2 className="animate-spin text-[#00577C] w-12 h-12" /></div>}>
       <CheckoutPacoteContent />
     </Suspense>
   );

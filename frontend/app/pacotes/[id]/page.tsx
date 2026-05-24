@@ -242,7 +242,19 @@ function PacoteDetalheContent() {
   // ── MATEMÁTICA DO PACOTE ──
   const valorGuia = guiaSelecionado ? parseValor(guiaSelecionado.preco_diaria) * (totalNoites + 1) : 0;
   const valorAtracoes = atracoesInclusas.reduce((acc, curr) => acc + parseValor(curr.preco_entrada), 0) * adultos;
-  const valorTotalFinal = totalHospedagem + valorGuia + valorAtracoes;
+  // ── MATEMÁTICA DO PACOTE BLINDADA (COM UPGRADE DE QUARTO) ──
+  const valorBasePacote = parseValor(pacote?.preco);
+  
+  // Calcula a diferença de preço entre o Luxo e o Standard
+  const diferencaDiaria = hotelSelecionado 
+    ? Math.max(0, parseValor(hotelSelecionado.quarto_luxo_preco) - parseValor(hotelSelecionado.quarto_standard_preco)) 
+    : 0;
+
+  // Aplica o acréscimo se o cliente escolher luxo (multiplicado pelas noites e quartos)
+  const acrescimoUpgrade = tipoQuarto === 'luxo' ? (diferencaDiaria * totalNoites * quartos) : 0;
+  
+  // O valor final é o Preço do Agente + Opcional de Upgrade do Cliente
+  const valorTotalFinal = valorBasePacote + acrescimoUpgrade;
 
   // ── GALERIA ──
   const galeriaCombinada = [
@@ -661,20 +673,6 @@ function PacoteDetalheContent() {
               )}
 
               {/* RESUMO DOS VALORES */}
-              <div className="space-y-2.5 md:space-y-3 mb-6 md:mb-8 text-xs md:text-sm font-semibold pt-2">
-                <div className="flex justify-between items-center text-slate-600">
-                  <span className="flex items-center gap-2"><Bed size={14} className="text-[#00577C] shrink-0" /> Hospedagem ({totalNoites} nts)</span>
-                  <span className="text-slate-800 tabular-nums">{calculandoPreco ? '...' : formatarMoeda(totalHospedagem)}</span>
-                </div>
-                <div className="flex justify-between items-center text-slate-600">
-                  <span className="flex items-center gap-2"><Compass size={14} className="text-[#009640] shrink-0" /> Guia de Turismo</span>
-                  <span className="text-slate-800 tabular-nums">{formatarMoeda(valorGuia)}</span>
-                </div>
-                <div className="flex justify-between items-center text-slate-600">
-                  <span className="flex items-center gap-2"><Ticket size={14} className="text-[#F9C400] shrink-0" /> Entradas e Taxas</span>
-                  <span className="text-slate-800 tabular-nums">{formatarMoeda(valorAtracoes)}</span>
-                </div>
-              </div>
 
               <button
                 disabled={!hotelDisponivel || calculandoPreco}

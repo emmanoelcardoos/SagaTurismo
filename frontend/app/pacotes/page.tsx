@@ -74,13 +74,7 @@ export default function PacotesPage() {
 
       if (data) {
         const processados = data.map((p: any) => {
-          let total = 0;
-          p.pacote_itens?.forEach((item: any) => {
-            if (item.hoteis) total += parseValor(item.hoteis.quarto_standard_preco || item.hoteis.preco_medio);
-            if (item.guias) total += parseValor(item.guias.preco_diaria);
-            if (item.atracoes) total += parseValor(item.atracoes.preco_entrada);
-          });
-          return { ...p, valor_total: total };
+          return { ...p, valor_total: parseValor(p.preco) };
         });
         setPacotes(processados);
       }
