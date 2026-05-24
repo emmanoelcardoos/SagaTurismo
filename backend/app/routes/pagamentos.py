@@ -308,21 +308,33 @@ async def processar_pagamento(pedido: PedidoPagamento):
                         lista_atracoes_calculadas.append({"id": atr_id, "valor": v_individual_atr})
 
             # 5. NOVO: Matemática Inversa - O Preço do Pacote é o Preço Final
-            valor_total = float(dados_pacote.get("preco") or 0.0) # Preço que o agente digitou (ex: 600)
+            # 5. MATEMÁTICA PROTEGIDA: O Preço do Pacote é Soberano
+            valor_total = float(dados_pacote.get("preco") or 200.0) # Assume o preço estrito do pacote
+            
             custo_terceiros = v_hospedagem_total + v_guia_total + v_atracoes_total
             lucro_agente = valor_total - custo_terceiros
 
-            # Se o agente vender mais barato que o preço de custo, o sistema bloqueia para não dar prejuízo!
-            if lucro_agente < 0:
-                raise HTTPException(status_code=400, detail=f"O preço de venda (R$ {valor_total}) é menor que o custo base (R$ {custo_terceiros}). Ajuste o valor.")
+            # Ajuste de Split para o Agente (Se a flutuação engolir a margem, o split do agente fica zerado 
+            # e a prefeitura cobre o residual da conta master provisoriamente para não rejeitar o cartão)
+            lucro_agente_split = lucro_agente if lucro_agente > 0 else 0.0
 
-            if parceiro_agente_id and lucro_agente > 0:
-                # Busca o PagBank ID na tabela de agencias (e não parceiros!)
-                res_agente = supabase.table("agencias").select("pagbank_recebedor_id").eq("id", parceiro_agente_id).single().execute()
-                if res_agente.data:
-                    rec_id_agente = res_agente.data.get("pagbank_recebedor_id")
+            if parceiro_agente_id and lucro_agente_split > 0:
+                res_agente = supabase.table("agencias").select("pagbank_recebedor_id").eq("id", parceiro_agente_id).execute()
+                if res_agente.data and len(res_agente.data) > 0:
+                    rec_id_agente = res_agente.data[0].get("pagbank_recebedor_id")
                     if rec_id_agente and str(rec_id_agente).startswith("ACC_"):
-                        recebedores_split.append({ "account": {"id": rec_id_agente}, "amount": {"value": int((lucro_agente * fator_liquido) * 100)} })
+                        recebedores_split.append({ 
+                            "account": {"id": rec_id_agente}, 
+                            "amount": {"value": int((lucro_agente_split * fator_liquido) * 100)} 
+                        })
+
+            if parceiro_agente_id:
+                    repasses_db.append({
+                        "pedido_id": pedido_id_gerado, "parceiro_id": parceiro_agente_id, "tipo_parceiro": "agencia",
+                        "valor_bruto": lucro_agente, # Pode ser negativo ou positivo no relatório da prefeitura para fins de auditoria
+                        "taxa_plataforma": round(max(lucro_agente, 0) * (taxa_prefeitura_pct / 100.0), 2),
+                        "valor_liquido": round(lucro_agente * fator_liquido, 2), "status_repasse": "processando"
+                    })
 
 
         # Lógica Fina de Split
