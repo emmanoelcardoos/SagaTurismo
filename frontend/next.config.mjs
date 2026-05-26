@@ -22,6 +22,10 @@ const nextConfig = {
         protocol: 'https',
         hostname: '*.supabase.co', // Permite qualquer imagem vinda do Storage da sua Supabase
       },
+      {
+        protocol: 'https',
+        hostname: 'live.staticflickr.com', // 👈 isto resolve
+      },
     ],
   },
 };

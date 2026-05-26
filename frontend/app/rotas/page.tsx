@@ -18,10 +18,10 @@ type RotaTuristica = {
   titulo: string;
   descricao_curta: string;
   imagem_url: string;
-  ordem: number;
+  ordem: number | null;
 };
 
-// ── SISTEMA DE TEMAS ──
+// ── SISTEMA DE TEMAS (CÍCLICO E COMPLETO) ──
 const themes = [
   {
     cor: '#00577C',
@@ -48,8 +48,6 @@ const themes = [
     detalhes: { duracao: '3–5 horas', dificuldade: 'Fácil', grupo: 'Sem limite de pessoas' },
   },
 ];
-
-const getTheme = (ordem: number) => themes[(ordem - 1) % themes.length];
 
 // ── MOTOR DE SCROLL ──
 function useScrollAnimation(threshold = 0.08) {
@@ -88,16 +86,16 @@ function Reveal({ children, className = '', anim = 'up', delay = 0 }: {
 }
 
 // ══════════════════════════════════════
-// CARD DE ROTA
+// CARD DE ROTA (USANDO ÍNDICE PARA O TEMA)
 // ══════════════════════════════════════
-function RotaCard({ rota, index }: { rota: RotaTuristica; index: number }) {
-  const theme = getTheme(rota.ordem);
-  const isPar = index % 2 === 0;
-  const num = String(rota.ordem).padStart(2, '0');
+function RotaCard({ rota, themeIndex }: { rota: RotaTuristica; themeIndex: number }) {
+  const theme = themes[themeIndex % themes.length]; // tema cíclico baseado na posição
+  const isPar = themeIndex % 2 === 0;
+  const num = String(rota.ordem || themeIndex + 1).padStart(2, '0');
 
   return (
     <article className="relative group">
-      {index > 0 && (
+      {themeIndex > 0 && (
         <div className="h-px w-full mb-0"
           style={{ background: `linear-gradient(to right, transparent, ${theme.cor}25, transparent)` }} />
       )}
@@ -105,7 +103,7 @@ function RotaCard({ rota, index }: { rota: RotaTuristica; index: number }) {
       <div className={`relative flex flex-col ${isPar ? 'lg:flex-row' : 'lg:flex-row-reverse'} min-h-[85vh] overflow-hidden`}
         style={{ backgroundColor: theme.bgDark }}>
 
-        {/* ── METADE IMAGEM (ERRO CORRIGIDO AQUI) ── */}
+        {/* ── METADE IMAGEM ── */}
         <div className="relative w-full lg:w-[55%] h-[50vh] lg:h-auto overflow-hidden">
           <Image
             src={rota.imagem_url || 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09'}
@@ -247,7 +245,7 @@ export default function RotasPage() {
       style={{ backgroundColor: '#001f2e' }}>
 
       {/* ── HEADER FLUTUANTE ── */}
-       <header className="relative z-50 w-full bg-white border-b border-slate-200 py-4">
+      <header className="relative z-50 w-full bg-white border-b border-slate-200 py-4">
         <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6">
           <Link href="/" className="flex items-center gap-3">
              <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
@@ -319,7 +317,7 @@ export default function RotasPage() {
             </h1>
 
             <p className="text-white/50 text-base md:text-xl max-w-lg leading-relaxed mb-10">
-              Percursos oficiais desenhados para que descubras a essência do Araguaia — rios, serras e florestas — ao teu próprio ritmo e com toda a segurança.
+              Percursos desenhados para que descubras a essência da nossa terra — rios, serras e florestas — ao teu próprio ritmo.
             </p>
 
             <div className="flex flex-wrap gap-4 items-center">
@@ -370,18 +368,6 @@ export default function RotasPage() {
               <p className="text-white/40 text-base md:text-lg leading-relaxed">
                 Cada rota foi construída com base no conhecimento de guias nativos que conhecem cada pedra, cada som e cada história guardada por este território. Percursos que equilibram aventura, segurança e respeito pelo ecossistema.
               </p>
-              <div className="mt-8 pt-6 border-t border-white/5 flex items-center gap-6">
-                <div className="w-px h-10 bg-white/10" />
-                <div>
-                  <p className={`${jakarta.className} text-3xl font-black`} style={{ color: '#F9C400' }}>3</p>
-                  <p className="text-[9px] font-black uppercase tracking-widest text-white/25 mt-0.5">Biomas distintos</p>
-                </div>
-                <div className="w-px h-10 bg-white/10" />
-                <div>
-                  <p className={`${jakarta.className} text-3xl font-black`} style={{ color: '#009640' }}>100%</p>
-                  <p className="text-[9px] font-black uppercase tracking-widest text-white/25 mt-0.5">Com guias credenciados</p>
-                </div>
-              </div>
             </Reveal>
           </div>
         </div>
@@ -395,7 +381,7 @@ export default function RotasPage() {
           <div className="flex flex-col items-center justify-center py-40" style={{ backgroundColor: '#001f2e' }}>
             <Loader2 className="animate-spin w-12 h-12 mb-4" style={{ color: '#009640' }} />
             <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.2)' }}>
-              Carregando roteiros...
+              Carregando rotas...
             </p>
           </div>
         )}
@@ -405,7 +391,7 @@ export default function RotasPage() {
             style={{ backgroundColor: '#001f2e' }}>
             <Compass size={64} style={{ color: 'rgba(255,255,255,0.05)' }} className="mb-6" />
             <h3 className={`${jakarta.className} text-3xl font-black mb-3`} style={{ color: 'rgba(255,255,255,0.2)' }}>
-              Nenhuma rota cadastrada
+              Nenhuma rota foi encontrada
             </h3>
             <p className="text-sm" style={{ color: 'rgba(255,255,255,0.15)' }}>
               Volte em breve para novidades.
@@ -416,7 +402,7 @@ export default function RotasPage() {
         {!loading && rotas.length > 0 && (
           <div>
             {rotas.map((rota, index) => (
-              <RotaCard key={rota.id} rota={rota} index={index} />
+              <RotaCard key={rota.id} rota={rota} themeIndex={index} />
             ))}
           </div>
         )}
@@ -442,7 +428,7 @@ export default function RotasPage() {
                       <span className="italic" style={{ color: '#F9C400' }}>já organizado?</span>
                     </h3>
                     <p className="text-white/50 text-sm leading-relaxed max-w-md">
-                      Roteiros com hospedagem, alimentação e guia incluídos. Só precisas de aparecer e viver.
+                      Roteiros com hospedagem e guia incluídos. Só precisas de aparecer e viver.
                     </p>
                   </div>
                   <Link href="/pacotes"
@@ -459,7 +445,7 @@ export default function RotasPage() {
                   <div>
                     <p className="font-black text-[9px] uppercase tracking-[0.3em] mb-3"
                       style={{ color: 'rgba(0,31,46,0.4)' }}>
-                      Residente de SGA?
+                      És residente?
                     </p>
                     <h3 className={`${jakarta.className} text-3xl font-black leading-[0.9] mb-3`}
                       style={{ color: '#001f2e' }}>
@@ -467,7 +453,7 @@ export default function RotasPage() {
                       <span className="italic">Residente</span>
                     </h3>
                     <p className="text-sm leading-relaxed" style={{ color: 'rgba(0,31,46,0.5)' }}>
-                      50% de desconto na entrada do parque para moradores. Registo simples e gratuito.
+                      50% de desconto na entrada da Cachoeira Três Quedas para moradores.
                     </p>
                   </div>
                   <Link href="/cadastro"
