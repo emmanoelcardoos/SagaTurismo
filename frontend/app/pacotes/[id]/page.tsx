@@ -48,7 +48,7 @@ const getArraySeguro = (item: any): string[] => {
   return [];
 };
 
-// ── TIPAGENS RÍGIDAS ──
+// ── TIPAGENS (com as novas colunas) ──
 type Hotel = {
   id: string; nome: string; tipo: string; imagem_url: string; descricao: string;
   quarto_standard_nome?: string; quarto_standard_preco: any; quarto_standard_comodidades?: string[];
@@ -61,9 +61,13 @@ type Atracao = { id: string; nome: string; preco_entrada: any; tipo: string; };
 type Pacote = {
   id: string; titulo: string; descricao_curta: string; roteiro_detalhado: string;
   imagens_galeria: string[]; imagem_principal: string; dias: number; noites: number;
-  horarios_info: string;
+  horarios_info: string; preco: number;
   pacote_itens: { hoteis: Hotel | null; guias: Guia | null; atracoes: Atracao | null; }[];
   avaliacoes_info?: any; politicas?: any; contatos?: any;
+  periodo_inicio: string | null;
+  periodo_fim: string | null;
+  dias_inicio_semana: number[] | null;
+  duracao_fixa: boolean;
 };
 
 // ── COMPONENTE DE CONTEÚDO ENVOLTO NO SUSPENSE ──
@@ -80,7 +84,7 @@ function PacoteDetalheContent() {
   const [guiasDisponiveis, setGuiasDisponiveis] = useState<Guia[]>([]);
   const [atracoesInclusas, setAtracoesInclusas] = useState<Atracao[]>([]);
 
-  // Seleções do Usuário
+  // Seleções do Utilizador
   const [hotelSelecionado, setHotelSelecionado] = useState<Hotel | null>(null);
   const [tipoQuarto, setTipoQuarto] = useState<'standard' | 'luxo'>('standard');
   const [guiaSelecionado, setGuiaSelecionado] = useState<Guia | null>(null);
@@ -96,7 +100,7 @@ function PacoteDetalheContent() {
   const [criancas, setCriancas] = useState(0);
   const [quartos, setQuartos] = useState(1);
 
-  // ── ESTADOS DINÂMICOS DA RAILWAY ──
+  // ── ESTADOS DINÂMICOS DA RAILWAY (apenas para calcular disponibilidade de hotel) ──
   const [totalHospedagem, setTotalHospedagem] = useState(0);
   const [totalNoites, setTotalNoites] = useState(1);
   const [hotelDisponivel, setHotelDisponivel] = useState(true);
@@ -158,9 +162,18 @@ function PacoteDetalheContent() {
 
         if (hoteis.length > 0) {
           setHotelSelecionado(hoteis[0]);
-          setTotalHospedagem(parseValor(hoteis[0].quarto_standard_preco));
         }
         if (guias.length > 0) setGuiaSelecionado(guias[0]);
+
+        // Parâmetros da URL (checkin/checkout)
+        const ci = searchParams.get('checkin');
+        const co = searchParams.get('checkout');
+        if (ci && ci !== 'null') setCheckin(new Date(ci));
+        if (co && co !== 'null') setCheckout(new Date(co));
+        const ad = searchParams.get('adultos');
+        if (ad) setAdultos(Number(ad));
+        const qu = searchParams.get('quartos');
+        if (qu) setQuartos(Number(qu));
       } catch (err) {
         console.error("Falha ao carregar pacote:", err);
         router.push('/pacotes');
@@ -168,93 +181,106 @@ function PacoteDetalheContent() {
         setLoading(false);
       }
     }
-
-    const ci = searchParams.get('checkin');
-    const co = searchParams.get('checkout');
-    const ad = searchParams.get('adultos');
-    const qu = searchParams.get('quartos');
-
-    if (ci && ci !== 'null') setCheckin(new Date(ci));
-    if (co && co !== 'null') setCheckout(new Date(co));
-    if (ad) setAdultos(Number(ad));
-    if (qu) setQuartos(Number(qu));
-
     if (id) fetchData();
   }, [id, router, searchParams]);
 
-  // 3. CONSULTAR API DA RAILWAY PARA PREÇO DINÂMICO DO HOTEL (ATUALIZADA)
+  // 3. Consultar API da Railway apenas para verificar disponibilidade do hotel (preço não usado no total final)
   useEffect(() => {
-    if (!hotelSelecionado) return;
-
-    if (!checkin || !checkout) {
-      const precoBase = tipoQuarto === 'luxo' ? hotelSelecionado.quarto_luxo_preco : hotelSelecionado.quarto_standard_preco;
-      setTotalHospedagem(parseValor(precoBase) * quartos);
-      setTotalNoites(1);
+    if (!hotelSelecionado || !checkin || !checkout) {
       setHotelDisponivel(true);
       return;
     }
 
-    async function atualizarPrecosDinamicos() {
+    async function verificarDisponibilidadeHotel() {
       setCalculandoPreco(true);
       const checkinStr = `${checkin!.getFullYear()}-${String(checkin!.getMonth() + 1).padStart(2, '0')}-${String(checkin!.getDate()).padStart(2, '0')}`;
       const checkoutStr = `${checkout!.getFullYear()}-${String(checkout!.getMonth() + 1).padStart(2, '0')}-${String(checkout!.getDate()).padStart(2, '0')}`;
 
       try {
-        // ◄── CORREÇÃO: &adultos=${adultos} adicionado ao fetch dinâmico do pacote
         const response = await fetch(`https://sagaturismo-production.up.railway.app/api/v1/public/hoteis/${hotelSelecionado!.id}/calcular-preco?tipo_quarto=${tipoQuarto}&checkin=${checkinStr}&checkout=${checkoutStr}&quantidade=${quartos}&adultos=${adultos}`);
         const data = await response.json();
 
         if (data.sucesso) {
-          setTotalHospedagem(data.valor_total);
-          setTotalNoites(data.noites);
           setHotelDisponivel(data.disponivel);
+          setTotalNoites(data.noites); // não usado no preço final, apenas para referência
         } else {
           setHotelDisponivel(false);
         }
       } catch (err) {
-        console.error("Erro ao sincronizar valores dinâmicos do calendário:", err);
+        console.error("Erro ao verificar disponibilidade do hotel:", err);
+        setHotelDisponivel(false);
       } finally {
         setCalculandoPreco(false);
       }
     }
+    verificarDisponibilidadeHotel();
+  }, [checkin, checkout, quartos, adultos, tipoQuarto, hotelSelecionado]);
 
-    atualizarPrecosDinamicos();
-  }, [checkin, checkout, quartos, adultos, tipoQuarto, hotelSelecionado]); // ◄── Dependência de 'adultos' inserida!
+  // ── LÓGICA DO CALENDÁRIO COM REGRAS DO PACOTE ──
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
 
-
-  // ── LÓGICA DO CALENDÁRIO ──
-  const diasDoMes = (ano: number, mes: number) => new Date(ano, mes + 1, 0).getDate();
-  const primeiroDiaDoMes = (ano: number, mes: number) => new Date(ano, mes, 1).getDay();
-  const formatarDataIso = (data: Date) =>
-    `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`;
+  const isDataInicioValida = (data: Date): boolean => {
+    if (!pacote) return false;
+    if (data < hoje) return false;
+    if (pacote.periodo_inicio) {
+      const inicioPeriodo = new Date(pacote.periodo_inicio);
+      inicioPeriodo.setHours(0,0,0,0);
+      if (data < inicioPeriodo) return false;
+    }
+    if (pacote.periodo_fim) {
+      const fimPeriodo = new Date(pacote.periodo_fim);
+      fimPeriodo.setHours(0,0,0,0);
+      if (data > fimPeriodo) return false;
+    }
+    if (pacote.dias_inicio_semana && pacote.dias_inicio_semana.length > 0) {
+      const diaSemana = data.getDay();
+      if (!pacote.dias_inicio_semana.includes(diaSemana)) return false;
+    }
+    if (pacote.duracao_fixa && pacote.periodo_fim && pacote.dias) {
+      const checkoutCalc = new Date(data);
+      checkoutCalc.setDate(data.getDate() + pacote.dias - 1);
+      const fimPeriodo = new Date(pacote.periodo_fim);
+      fimPeriodo.setHours(0,0,0,0);
+      if (checkoutCalc > fimPeriodo) return false;
+    }
+    return true;
+  };
 
   const handleDateClick = (data: Date) => {
-    if (!checkin || (checkin && checkout)) {
-      setCheckin(data);
-      setCheckout(null);
-    } else if (data > checkin) {
-      setCheckout(data);
+    if (!isDataInicioValida(data)) return;
+    setCheckin(data);
+    if (pacote && pacote.dias) {
+      const novoCheckout = new Date(data);
+      novoCheckout.setDate(data.getDate() + pacote.dias);
+      setCheckout(novoCheckout);
     } else {
-      setCheckin(data);
+      const novoCheckout = new Date(data);
+      novoCheckout.setDate(data.getDate() + 1);
+      setCheckout(novoCheckout);
     }
   };
 
-  // ── MATEMÁTICA DO PACOTE ──
-  const valorGuia = guiaSelecionado ? parseValor(guiaSelecionado.preco_diaria) * (totalNoites + 1) : 0;
-  const valorAtracoes = atracoesInclusas.reduce((acc, curr) => acc + parseValor(curr.preco_entrada), 0) * adultos;
-  // ── MATEMÁTICA DO PACOTE BLINDADA (COM UPGRADE DE QUARTO) ──
-  const valorBasePacote = parseValor(pacote?.preco);
-  
-  // Calcula a diferença de preço entre o Luxo e o Standard
+  const anoCorrente = mesAtualCalendario?.getFullYear() || new Date().getFullYear();
+  const mesCorrente = mesAtualCalendario?.getMonth() || new Date().getMonth();
+  const diasDoMes = (ano: number, mes: number) => new Date(ano, mes + 1, 0).getDate();
+  const primeiroDiaDoMes = (ano: number, mes: number) => new Date(ano, mes, 1).getDay();
+  const diasMes = diasDoMes(anoCorrente, mesCorrente);
+  const primeiroDia = primeiroDiaDoMes(anoCorrente, mesCorrente);
+
+  const algumaDataValidaNoMes = Array.from({ length: diasMes }).some((_, i) => {
+    const data = new Date(anoCorrente, mesCorrente, i + 1);
+    return isDataInicioValida(data);
+  });
+
+  // ── MATEMÁTICA DO PACOTE (CORRIGIDA) ──
+  const valorPorPessoa = parseValor(pacote?.preco);          // preço base por pessoa
   const diferencaDiaria = hotelSelecionado 
     ? Math.max(0, parseValor(hotelSelecionado.quarto_luxo_preco) - parseValor(hotelSelecionado.quarto_standard_preco)) 
     : 0;
-
-  // Aplica o acréscimo se o cliente escolher luxo (multiplicado pelas noites e quartos)
-  const acrescimoUpgrade = tipoQuarto === 'luxo' ? (diferencaDiaria * totalNoites * quartos) : 0;
-  
-  // O valor final é o Preço do Agente + Opcional de Upgrade do Cliente
-  const valorTotalFinal = valorBasePacote + acrescimoUpgrade;
+  // As noites do pacote são fixas (pacote.noites)
+  const acrescimoUpgrade = tipoQuarto === 'luxo' ? (diferencaDiaria * pacote.noites * quartos) : 0;
+  const valorTotalFinal = (valorPorPessoa * adultos) + acrescimoUpgrade;
 
   // ── GALERIA ──
   const galeriaCombinada = [
@@ -267,9 +293,12 @@ function PacoteDetalheContent() {
   const proximaFoto = (e: React.MouseEvent) => { e.stopPropagation(); setFotoExpandidaIndex((prev) => (prev! + 1) % galeriaCombinada.length); };
   const fotoAnterior = (e: React.MouseEvent) => { e.stopPropagation(); setFotoExpandidaIndex((prev) => (prev! - 1 + galeriaCombinada.length) % galeriaCombinada.length); };
 
+  const formatarDataIso = (data: Date) =>
+    `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`;
+
   const handleReserva = () => {
     if (!checkin || !checkout) {
-      alert("Por favor, selecione as datas no calendário antes de prosseguir.");
+      alert("Por favor, seleccione uma data de início válida no calendário.");
       document.getElementById('motor-reservas')?.scrollIntoView({ behavior: 'smooth' });
       return;
     }
@@ -278,7 +307,6 @@ function PacoteDetalheContent() {
       return;
     }
 
-    // ◄── INJETAMOS O &preco AQUI NO FINAL DA URL ──►
     router.push(`/checkout?pacote=${pacote?.id}&hotel=${hotelSelecionado?.id}&quarto=${tipoQuarto}&guia=${guiaSelecionado?.id}&checkin=${formatarDataIso(checkin)}&checkout=${formatarDataIso(checkout)}&adultos=${adultos}&quartos=${quartos}&preco=${valorTotalFinal}`);
   };
 
@@ -288,13 +316,6 @@ function PacoteDetalheContent() {
       <p className="font-bold uppercase tracking-widest text-[10px] md:text-xs">A preparar portal de reservas...</p>
     </div>
   );
-
-  const anoCorrente = mesAtualCalendario.getFullYear();
-  const mesCorrente = mesAtualCalendario.getMonth();
-  const diasMes = diasDoMes(anoCorrente, mesCorrente);
-  const primeiroDia = primeiroDiaDoMes(anoCorrente, mesCorrente);
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
 
   const imagensStandard = hotelSelecionado && getArraySeguro(hotelSelecionado.quarto_standard_imagens).length > 0 
     ? getArraySeguro(hotelSelecionado.quarto_standard_imagens) 
@@ -306,12 +327,11 @@ function PacoteDetalheContent() {
   return (
     <main className={`${inter.className} min-h-screen bg-[#F5F7FA] text-slate-900 pb-24 lg:pb-0`}>
 
-      {/* ── HEADER ── */}
-       <header className="relative z-50 w-full bg-white border-b border-slate-200 py-4">
+      {/* ── HEADER ── (mesmo código, omitido por brevidade) ── */}
+      <header className="relative z-50 w-full bg-white border-b border-slate-200 py-4">
         <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6">
           <Link href="/" className="flex items-center gap-3">
              <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
-                {/* Removido o filtro invertido para manter as cores originais da logo */}
                 <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain" />
              </div>
           </Link>
@@ -352,8 +372,6 @@ function PacoteDetalheContent() {
         <Image src={pacote.imagem_principal || FALLBACK_IMAGE} alt={pacote.titulo || 'Pacote'} fill className="object-cover" priority />
         <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/20 to-transparent" />
         <div className="absolute bottom-6 md:bottom-10 left-5 md:left-16 right-5 text-left">
-          <div className="flex items-center gap-2 mb-2 md:mb-3">
-          </div>
           <h1 className={`${jakarta.className} text-3xl sm:text-4xl md:text-6xl font-black text-white leading-tight drop-shadow-lg line-clamp-2 md:line-clamp-none`}>{pacote.titulo}</h1>
         </div>
       </div>
@@ -380,7 +398,7 @@ function PacoteDetalheContent() {
             </div>
           </section>
 
-          {/* ── 1. ACOMODAÇÃO E QUARTOS ── */}
+          {/* ── 1. ACOMODAÇÃO E QUARTOS ── (mantido igual) ── */}
           <section className="bg-white rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-10 shadow-sm border border-slate-200 text-left overflow-hidden relative">
             <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none"><Bed size={150}/></div>
             <h3 className={`${jakarta.className} text-xl md:text-2xl font-black text-slate-900 mb-8 flex items-center gap-3 relative z-10`}>
@@ -539,7 +557,7 @@ function PacoteDetalheContent() {
             </div>
           </section>
 
-          {/* ── 3. AVALIAÇÕES E POLÍTICAS ── */}
+          {/* ── 3. POLÍTICAS ── */}
           <section className="bg-white rounded-[2rem] md:rounded-[2.5rem] border border-slate-200 shadow-sm p-6 md:p-10 text-left">
              <h3 className={`${jakarta.className} text-xl md:text-2xl font-black text-slate-900 mb-6 md:mb-8`}>Políticas do Pacote</h3>
              <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-x-8 gap-y-5 text-sm">
@@ -553,14 +571,11 @@ function PacoteDetalheContent() {
                 <div className="text-slate-600 font-medium">O roteiro pode sofrer alterações de ordem sem aviso prévio caso as condições climáticas não garantam a segurança.</div>
              </div>
           </section>
-
         </div>
 
         {/* ── COLUNA DIREITA — MOTOR DE RESERVAS ── */}
         <div id="motor-reservas" className="w-full lg:w-[400px] shrink-0 h-fit lg:self-start text-left relative z-40">
-          
           <aside className="w-full space-y-6 h-fit">
-
             <div className="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[3rem] shadow-xl border border-slate-200 overflow-hidden">
 
               <div className="border-b border-slate-100 pb-5 mb-5 text-center bg-slate-50 rounded-2xl p-4 border border-slate-200">
@@ -570,11 +585,12 @@ function PacoteDetalheContent() {
                     {calculandoPreco ? '...' : formatarMoeda(valorTotalFinal)}
                   </p>
                 </div>
+                <p className="text-[9px] text-slate-400 mt-1">Por pessoa: {formatarMoeda(valorPorPessoa)} × {adultos} adulto(s)</p>
               </div>
 
-              {/* CALENDÁRIO INLINE */}
+              {/* CALENDÁRIO */}
               <div className="mb-6">
-                <p className="text-[10px] font-black uppercase tracking-widest text-[#00577C] mb-3 md:mb-4">Selecione as Datas</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#00577C] mb-3 md:mb-4">Selecione a data de início</p>
                 <div className="bg-slate-50 border border-slate-200 rounded-2xl md:rounded-[2rem] p-4 md:p-5 shadow-inner">
                   <div className="flex items-center justify-between mb-3 md:mb-4">
                     <button onClick={() => setMesAtualCalendario(new Date(anoCorrente, mesCorrente - 1))} className="p-1 md:p-2 hover:bg-slate-200 rounded-full transition-colors"><ChevronLeft size={18} className="md:w-5 md:h-5" /></button>
@@ -589,32 +605,40 @@ function PacoteDetalheContent() {
                     {Array.from({ length: diasMes }).map((_, i) => {
                       const dia = i + 1;
                       const dataAtual = new Date(anoCorrente, mesCorrente, dia);
-                      const isPassado = dataAtual < hoje;
+                      const isValida = isDataInicioValida(dataAtual);
                       const isCheckin = checkin && dataAtual.getTime() === checkin.getTime();
                       const isCheckout = checkout && dataAtual.getTime() === checkout.getTime();
                       const isInBetween = checkin && checkout && dataAtual > checkin && dataAtual < checkout;
                       const isHovered = hoverDate && checkin && !checkout && dataAtual > checkin && dataAtual <= hoverDate;
 
                       let bgClass = "bg-transparent hover:bg-slate-200 text-slate-800";
-                      if (isPassado) bgClass = "bg-transparent text-slate-300 cursor-not-allowed line-through";
+                      if (!isValida) bgClass = "bg-transparent text-slate-300 cursor-not-allowed line-through";
                       else if (isCheckin || isCheckout) bgClass = "bg-[#00577C] text-white shadow-md rounded-md md:rounded-lg scale-105 z-10";
                       else if (isInBetween || isHovered) bgClass = "bg-[#00577C]/10 text-[#00577C] rounded-none";
 
                       return (
                         <button
-                          key={dia} disabled={isPassado} onClick={() => handleDateClick(dataAtual)}
-                          onMouseEnter={() => setHoverDate(dataAtual)} onMouseLeave={() => setHoverDate(null)}
+                          key={dia}
+                          disabled={!isValida}
+                          onClick={() => handleDateClick(dataAtual)}
+                          onMouseEnter={() => setHoverDate(dataAtual)}
+                          onMouseLeave={() => setHoverDate(null)}
                           className={`w-full aspect-square flex flex-col items-center justify-center transition-all ${bgClass}`}
                         >
-                          <span className={`text-[10px] md:text-sm ${isCheckin || isCheckout ? 'font-black' : 'font-semibold'}`}>{dia}</span>
+                          <span className={`text-[10px] md:text-sm ${(isCheckin || isCheckout) ? 'font-black' : 'font-semibold'}`}>{dia}</span>
                         </button>
                       );
                     })}
                   </div>
+                  {!algumaDataValidaNoMes && (
+                    <p className="text-xs text-center text-amber-600 mt-4 p-2 bg-amber-50 rounded-xl">
+                      Nenhuma data disponível neste mês. Verifique os dias e períodos permitidos para este pacote.
+                    </p>
+                  )}
                 </div>
               </div>
 
-              {/* ── NOVA SEÇÃO: CONFIGURAÇÃO DE HÓSPEDES E QUARTOS (RESOLVE O MISTÉRIO 2) ── */}
+              {/* CONFIGURAÇÃO DE HÓSPEDES E QUARTOS */}
               <div className="space-y-3 py-4 border-t border-b border-slate-100 mb-6">
                 <p className="text-[10px] font-black uppercase tracking-widest text-[#00577C] mb-1">Configuração do Grupo</p>
                 <div className="flex items-center justify-between">
@@ -635,7 +659,6 @@ function PacoteDetalheContent() {
                 </div>
               </div>
 
-              {/* AVISO DE LOTAÇÃO */}
               {checkin && checkout && !hotelDisponivel && !calculandoPreco && (
                 <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-2xl flex items-start gap-3 border border-red-100">
                    <AlertCircle size={16} className="shrink-0 mt-0.5" />
@@ -643,26 +666,24 @@ function PacoteDetalheContent() {
                 </div>
               )}
 
-              {/* RESUMO DOS VALORES */}
-
               <button
-                disabled={!hotelDisponivel || calculandoPreco}
+                disabled={!hotelDisponivel || calculandoPreco || !checkin}
                 onClick={handleReserva}
-                className={`${jakarta.className} flex items-center justify-center gap-3 w-full py-4 md:py-5 rounded-xl md:rounded-2xl font-black text-base md:text-lg transition-transform shadow-xl ${!hotelDisponivel ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none' : 'bg-[#00577C] hover:bg-[#004a6b] text-white hover:-translate-y-1'}`}
+                className={`${jakarta.className} flex items-center justify-center gap-3 w-full py-4 md:py-5 rounded-xl md:rounded-2xl font-black text-base md:text-lg transition-transform shadow-xl ${(!hotelDisponivel || !checkin) ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none' : 'bg-[#00577C] hover:bg-[#004a6b] text-white hover:-translate-y-1'}`}
               >
-                {calculandoPreco ? 'A calcular...' : !hotelDisponivel ? 'Esgotado' : <><>Prosseguir para Checkout</> <ChevronRightIcon size={18} className="md:w-5 md:h-5" /></>}
+                {calculandoPreco ? 'A calcular...' : (!checkin ? 'Selecione uma data' : (!hotelDisponivel ? 'Esgotado' : 'Prosseguir para Checkout'))}
+                {checkin && hotelDisponivel && !calculandoPreco && <ChevronRightIcon size={18} />}
               </button>
 
               <p className="flex mt-4 text-center text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest items-center justify-center gap-1.5">
                 <ShieldCheck size={12} className="text-[#00577C] md:w-3.5 md:h-3.5" /> Plataforma Oficial SagaTurismo
               </p>
             </div>
-
           </aside>
         </div>
       </div>
 
-      {/* ── GALERIA ── */}
+      {/* ── GALERIA, LIGHTBOX, FOOTER (mantidos iguais) ── */}
       {galeriaCombinada.length > 0 && (
         <div className="mx-auto w-full max-w-7xl px-4 md:px-5 pb-16 md:pb-20 relative z-10 text-left md:-mt-6">
           <section className="bg-white rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-12 shadow-sm md:shadow-xl border border-slate-100">
@@ -685,7 +706,6 @@ function PacoteDetalheContent() {
         </div>
       )}
 
-      {/* ── LIGHTBOX ── */}
       {fotoExpandidaIndex !== null && galeriaCombinada.length > 0 && (
         <div
           className="fixed inset-0 z-[200] bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-4 md:p-5 animate-in fade-in duration-200"
@@ -714,48 +734,47 @@ function PacoteDetalheContent() {
         </div>
       )}
 
-      {/* ── BARRA DE AÇÃO MOBILE (STICKY BOTTOM) ── */}
       <div className="fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-slate-200 p-4 lg:hidden shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
          <div className="flex items-center justify-between gap-4 max-w-lg mx-auto">
             <div className="text-left">
                <p className="text-[9px] font-black text-slate-400 uppercase leading-none mb-1">Total do Pacote</p>
                <p className={`${jakarta.className} text-xl font-black text-[#009640] tabular-nums leading-none`}>{calculandoPreco ? '...' : formatarMoeda(valorTotalFinal)}</p>
             </div>
-            <button disabled={!hotelDisponivel || calculandoPreco} onClick={handleReserva} className={`text-white px-5 py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg flex items-center gap-2 ${!hotelDisponivel ? 'bg-slate-300 cursor-not-allowed shadow-none' : 'bg-[#00577C]'}`}>
-               {calculandoPreco ? '...' : !hotelDisponivel ? 'Esgotado' : <><>Reservar</> <ArrowRight size={14}/></>}
+            <button disabled={!hotelDisponivel || calculandoPreco || !checkin} onClick={handleReserva} className={`text-white px-5 py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg flex items-center gap-2 ${(!hotelDisponivel || !checkin) ? 'bg-slate-300 cursor-not-allowed shadow-none' : 'bg-[#00577C]'}`}>
+               {calculandoPreco ? '...' : (!checkin ? 'Data' : (!hotelDisponivel ? 'Esgotado' : 'Reservar'))}
+               {checkin && hotelDisponivel && !calculandoPreco && <ArrowRight size={14}/>}
             </button>
          </div>
       </div>
 
-      {/* ── FOOTER ── */}
       {/* FOOTER */}
-            <footer className="py-20 px-8 border-t border-slate-200 bg-white text-left">
-              <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
-                <div className="flex flex-col items-center md:items-start gap-4">
-                  <div className="flex items-center gap-6">
-                    <Image src="/logop.png" alt="SagaTurismo" width={160} height={50} className="object-contain" />
-                    <div className="w-px h-12 bg-slate-200 hidden md:block" />
-                    <Image src="/prefeitura.png" alt="Prefeitura de São Geraldo do Araguaia" width={140} height={50} className="object-contain" />
-                  </div>
-                  <div className="text-left space-y-1">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                      © 2026 Secretaria Municipal de Turismo - SGA | Todos os direitos reservados
-                    </p>
-                    <p className="text-[10px] font-bold text-slate-400/80">
-                      CNPJ: 10.249.241/0001-22
-                    </p>
-                  </div>
-                </div>
-      
-                <div className="flex gap-10">
-                  <div className="text-left border-l-2 border-slate-100 pl-9">
-                    <p className="text-[10px] font-black text-[#00577C] uppercase mb-1">Contato Oficial</p>
-                    <p className="text-xs font-bold text-slate-500 tracking-tight">setursaga@gmail.com</p>
-                  </div>
-                  <ShieldCheck size={40} className="text-[#009640] opacity-30" />
-                </div>
-              </div>
-            </footer>
+      <footer className="py-20 px-8 border-t border-slate-200 bg-white text-left">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
+          <div className="flex flex-col items-center md:items-start gap-4">
+            <div className="flex items-center gap-6">
+              <Image src="/logop.png" alt="SagaTurismo" width={160} height={50} className="object-contain" />
+              <div className="w-px h-12 bg-slate-200 hidden md:block" />
+              <Image src="/prefeitura.png" alt="Prefeitura de São Geraldo do Araguaia" width={140} height={50} className="object-contain" />
+            </div>
+            <div className="text-left space-y-1">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                © 2026 Secretaria Municipal de Turismo - SGA | Todos os direitos reservados
+              </p>
+              <p className="text-[10px] font-bold text-slate-400/80">
+                CNPJ: 10.249.241/0001-22
+              </p>
+            </div>
+          </div>
+
+          <div className="flex gap-10">
+            <div className="text-left border-l-2 border-slate-100 pl-9">
+              <p className="text-[10px] font-black text-[#00577C] uppercase mb-1">Contato Oficial</p>
+              <p className="text-xs font-bold text-slate-500 tracking-tight">setursaga@gmail.com</p>
+            </div>
+            <ShieldCheck size={40} className="text-[#009640] opacity-30" />
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }

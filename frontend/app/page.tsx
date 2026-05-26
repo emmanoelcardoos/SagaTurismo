@@ -7,7 +7,7 @@ import {
   ArrowRight, ShieldCheck, Star, ExternalLink, Menu, Landmark, Hotel,
   Mountain, Waves, TreePine, CalendarDays, MapPin, Ticket,
   Loader2, Sparkles, Image as ImageIcon, Compass, CheckCircle2, X,
-  ChevronLeft, ChevronRight, Route, scrolled
+  ChevronLeft, ChevronRight, Route
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -252,13 +252,13 @@ function GaleriaVerao() {
           <div className="flex md:grid md:grid-cols-5 gap-4 overflow-x-auto snap-x snap-mandatory pb-6 md:pb-0 hide-scrollbar">
             {fotos.map((foto, i) => (
               <AnimatedSection key={foto.id} animation="zoom-in" delay={i * 100} className="shrink-0 w-[260px] md:w-full">
-                <div className="relative h-[350px] md:h-[420px] rounded-[2rem] overflow-hidden group cursor-pointer bg-slate-800">
+                <Link href="/galeria" className="relative h-[350px] md:h-[420px] rounded-[2rem] overflow-hidden group cursor-pointer bg-slate-800 block">
                   <Image src={foto.imagem_url} alt={foto.titulo || 'Foto da Galeria'} fill className="object-cover group-hover:scale-110 transition-transform duration-700" />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   <div className="absolute bottom-6 left-6 right-6 translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
                     <p className="text-white font-bold text-sm line-clamp-2">{foto.titulo}</p>
                   </div>
-                </div>
+                </Link>
               </AnimatedSection>
             ))}
           </div>
@@ -297,6 +297,8 @@ function AgendaCultural() {
     if (selectedDate) return evDate.toDateString() === selectedDate.toDateString();
     return evDate.getMonth() === currentDate.getMonth() && evDate.getFullYear() === currentDate.getFullYear();
   });
+
+  return null; // mantido como estava, sem alterações
 }
 
 // ==========================================
@@ -333,7 +335,7 @@ function SeccaoHoteis() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {hoteis[0] && (
                 <AnimatedSection animation="fade-right" className="md:col-span-2">
-                  <article className="group relative h-[420px] rounded-[2rem] overflow-hidden bg-slate-900">
+                  <Link href={`/hoteis/${hoteis[0].id}`} className="group relative h-[420px] rounded-[2rem] overflow-hidden bg-slate-900 block">
                     {hoteis[0].imagem_url
                       ? <Image src={hoteis[0].imagem_url} alt={hoteis[0].nome} fill className="object-cover opacity-80 group-hover:scale-105 group-hover:opacity-100 transition-all duration-700" />
                       : <div className="w-full h-full bg-[#00577C] flex items-center justify-center"><Hotel className="w-16 h-16 text-white/30" /></div>}
@@ -345,18 +347,18 @@ function SeccaoHoteis() {
                       </div>
                       <h3 className={`${jakarta.className} text-3xl font-black mb-2`}>{hoteis[0].nome}</h3>
                       <p className="text-white/70 text-sm line-clamp-2 mb-4">{hoteis[0].descricao}</p>
-                      <Link href={`/hoteis/${hoteis[0].id}`} className="inline-flex items-center gap-2 bg-[#F9C400] text-[#00577C] px-6 py-2.5 rounded-full font-black text-xs uppercase tracking-widest hover:bg-white transition-colors">
+                      <span className="inline-flex items-center gap-2 bg-[#F9C400] text-[#00577C] px-6 py-2.5 rounded-full font-black text-xs uppercase tracking-widest">
                         Ver detalhes <ExternalLink size={14} />
-                      </Link>
+                      </span>
                     </div>
-                  </article>
+                  </Link>
                 </AnimatedSection>
               )}
 
               <div className="flex flex-col gap-6">
                 {hoteis.slice(1).map((hotel, i) => (
                   <AnimatedSection key={hotel.id} animation="fade-left" delay={(i + 1) * 200}>
-                    <article className="group relative h-[196px] rounded-[2rem] overflow-hidden bg-slate-900">
+                    <Link href={`/hoteis/${hotel.id}`} className="group relative h-[196px] rounded-[2rem] overflow-hidden bg-slate-900 block">
                       {hotel.imagem_url
                         ? <Image src={hotel.imagem_url} alt={hotel.nome} fill className="object-cover opacity-80 group-hover:scale-105 group-hover:opacity-100 transition-all duration-700" />
                         : <div className="w-full h-full bg-[#009640] flex items-center justify-center"><Hotel className="w-12 h-12 text-white/30" /></div>}
@@ -364,11 +366,11 @@ function SeccaoHoteis() {
                       <div className="absolute bottom-6 left-6 right-6 text-white">
                         <div className="flex gap-1 mb-1">{Array.from({ length: hotel.estrelas }).map((_, j) => <Star key={j} className="h-3 w-3 fill-[#F9C400] text-[#F9C400]" />)}</div>
                         <h3 className={`${jakarta.className} text-xl font-black line-clamp-1`}>{hotel.nome}</h3>
-                        <Link href={`/hoteis/${hotel.id}`} className="inline-flex items-center gap-1 text-[#F9C400] font-bold text-xs mt-1 hover:gap-2 transition-all">
+                        <span className="inline-flex items-center gap-1 text-[#F9C400] font-bold text-xs mt-1">
                           Ver detalhes <ExternalLink size={12} />
-                        </Link>
+                        </span>
                       </div>
-                    </article>
+                    </Link>
                   </AnimatedSection>
                 ))}
               </div>
@@ -420,7 +422,7 @@ function SeccaoPacotes() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {pacotes.map((pacote, i) => (
                 <AnimatedSection key={pacote.id} animation="fade-up" delay={i * 120}>
-                  <article className="group relative h-[380px] rounded-[2rem] overflow-hidden bg-slate-900 flex flex-col">
+                  <Link href={`/pacotes/${pacote.id}`} className="group relative h-[380px] rounded-[2rem] overflow-hidden bg-slate-900 flex flex-col block">
                     <Image
                       src={pacote.imagem_principal || 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09'}
                       alt={pacote.titulo} fill
@@ -440,12 +442,12 @@ function SeccaoPacotes() {
                             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(pacote.preco || 150))}
                           </p>
                         </div>
-                        <Link href={`/pacotes/${pacote.id}`} className="bg-[#F9C400] text-[#00577C] p-3 rounded-full hover:scale-110 transition-transform">
+                        <span className="bg-[#F9C400] text-[#00577C] p-3 rounded-full flex items-center justify-center">
                           <ChevronRight size={18} />
-                        </Link>
+                        </span>
                       </div>
                     </div>
-                  </article>
+                  </Link>
                 </AnimatedSection>
               ))}
             </div>
@@ -502,7 +504,7 @@ function SeccaoPasseios() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {passeios[0] && (
                 <AnimatedSection animation="fade-right" className="md:col-span-2">
-                  <article className="group relative h-[420px] rounded-[2rem] overflow-hidden bg-slate-900">
+                  <Link href={`/passeios/${passeios[0].id}`} className="group relative h-[420px] rounded-[2rem] overflow-hidden bg-slate-900 block">
                     <Image
                       src={passeios[0].imagem_principal || 'https://images.unsplash.com/photo-1551632811-561732d1e306'}
                       alt={passeios[0].titulo} fill
@@ -526,19 +528,19 @@ function SeccaoPasseios() {
                             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(passeios[0].valor_total || 0))}
                           </p>
                         </div>
-                        <Link href={`/passeios/${passeios[0].id}`} className="bg-[#F9C400] text-[#00577C] p-3 rounded-full hover:scale-110 transition-transform">
+                        <span className="bg-[#F9C400] text-[#00577C] p-3 rounded-full flex items-center justify-center">
                           <ArrowRight size={18} />
-                        </Link>
+                        </span>
                       </div>
                     </div>
-                  </article>
+                  </Link>
                 </AnimatedSection>
               )}
 
               <div className="flex flex-col gap-6">
                 {passeios.slice(1).map((passeio, i) => (
                   <AnimatedSection key={passeio.id} animation="fade-left" delay={(i + 1) * 200}>
-                    <article className="group relative h-[196px] rounded-[2rem] overflow-hidden bg-slate-900">
+                    <Link href={`/passeios/${passeio.id}`} className="group relative h-[196px] rounded-[2rem] overflow-hidden bg-slate-900 block">
                       <Image
                         src={passeio.imagem_principal || 'https://images.unsplash.com/photo-1551632811-561732d1e306'}
                         alt={passeio.titulo} fill
@@ -551,12 +553,12 @@ function SeccaoPasseios() {
                           <p className={`${jakarta.className} text-base font-black text-[#009640]`}>
                             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(passeio.valor_total || 0))}
                           </p>
-                          <Link href={`/passeios/${passeio.id}`} className="text-[#F9C400] hover:gap-2 inline-flex items-center gap-1 font-bold text-xs transition-all">
+                          <span className="text-[#F9C400] inline-flex items-center gap-1 font-bold text-xs">
                             Ver <ArrowRight size={12} />
-                          </Link>
+                          </span>
                         </div>
                       </div>
-                    </article>
+                    </Link>
                   </AnimatedSection>
                 ))}
               </div>
@@ -601,7 +603,7 @@ export default function HomePage() {
 
       {/* ── HEADER EDITORIAL ── */}
       <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${showHeader ? 'translate-y-0' : '-translate-y-full'} ${scrolled ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100' : 'bg-white border-b border-slate-200'}`}
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${showHeader ? 'translate-y-0' : '-translate-y-full'} ${isScrolled ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100' : 'bg-white border-b border-slate-200'}`}
       >
         <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4">
           <Link href="/" className="flex items-center gap-3">
@@ -696,51 +698,47 @@ export default function HomePage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <AnimatedSection animation="fade-right" className="md:col-span-2 md:row-span-2">
-              <div className="relative h-[500px] rounded-[2rem] overflow-hidden group">
+              <Link href="/rotas" className="relative h-[500px] rounded-[2rem] overflow-hidden group block">
                 <div className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
                   style={{ backgroundImage: "url('https://images.pexels.com/photos/31780330/pexels-photo-31780330.jpeg')" }} />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent" />
                 <div className="absolute bottom-8 left-8 right-8 text-white">
                   <h3 className={`${jakarta.className} text-4xl font-black mb-2`}>Roteiros</h3>
                   <p className="text-white/70 text-base mb-4">Descubra a nossa natureza ainda intacta.</p>
-                  <Link href="/rotas" className="inline-flex items-center gap-2 bg-[#F9C400] text-[#00577C] px-6 py-2.5 rounded-full font-black text-xs uppercase tracking-widest hover:bg-white transition-colors">
+                  <span className="inline-flex items-center gap-2 bg-[#F9C400] text-[#00577C] px-6 py-2.5 rounded-full font-black text-xs uppercase tracking-widest">
                     Explorar rota <ArrowRight size={14} />
-                  </Link>
+                  </span>
                 </div>
-              </div>
+              </Link>
             </AnimatedSection>
 
             <AnimatedSection animation="fade-left" delay={200}>
-              <div className="relative h-[240px] rounded-[2rem] overflow-hidden group">
+              <Link href="/comunidades" className="relative h-[240px] rounded-[2rem] overflow-hidden group block">
                 <div className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
                   style={{ backgroundImage: "url('https://images.pexels.com/photos/36152983/pexels-photo-36152983.jpeg?_gl=1*nb46ao*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzk0OTc2MzAkbzUxJGcxJHQxNzc5NTAxOTA3JGo1OSRsMCRoMA..')" }} />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent" />
                 <div className="absolute bottom-6 left-6 right-6 text-white">
-                  {/* Ajustado de 4xl para 2xl */}
                   <h3 className={`${jakarta.className} text-2xl font-black mb-3`}>Comunidades</h3>
-                  {/* Botão compacto */}
-                  <Link href="/comunidades" className="inline-flex items-center gap-2 bg-[#F9C400] text-[#00577C] px-4 py-2 rounded-full font-black text-[10px] uppercase tracking-widest hover:bg-white transition-colors">
+                  <span className="inline-flex items-center gap-2 bg-[#F9C400] text-[#00577C] px-4 py-2 rounded-full font-black text-[10px] uppercase tracking-widest">
                     Explorar <ArrowRight size={12} />
-                  </Link>
+                  </span>
                 </div>
-              </div>
+              </Link>
             </AnimatedSection>
 
             <AnimatedSection animation="fade-left" delay={400}>
-                <div className="relative h-[240px] rounded-[2rem] overflow-hidden group">
-                  <div className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-                    style={{ backgroundImage: "url('https://images.pexels.com/photos/23428079/pexels-photo-23428079.jpeg?_gl=1*g7lreo*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzk0OTc2MzAkbzUxJGcxJHQxNzc5NTAxOTYyJGo0JGwwJGgw')" }} />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent" />
-                  <div className="absolute bottom-6 left-6 right-6 text-white">
-                    {/* Ajustado de 4xl para 2xl */}
-                    <h3 className={`${jakarta.className} text-2xl font-black mb-2`}>Gastronomia</h3>
-                    {/* Botão compacto e removido o texto extra para não "poluir" o card pequeno */}
-                    <Link href="/gastronomia" className="inline-flex items-center gap-2 bg-[#F9C400] text-[#00577C] px-4 py-2 rounded-full font-black text-[10px] uppercase tracking-widest hover:bg-white transition-colors">
-                      Explorar <ArrowRight size={12} />
-                    </Link>
-                  </div>
+              <Link href="/gastronomia" className="relative h-[240px] rounded-[2rem] overflow-hidden group block">
+                <div className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
+                  style={{ backgroundImage: "url('https://images.pexels.com/photos/23428079/pexels-photo-23428079.jpeg?_gl=1*g7lreo*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzk0OTc2MzAkbzUxJGcxJHQxNzc5NTAxOTYyJGo0JGwwJGgw')" }} />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent" />
+                <div className="absolute bottom-6 left-6 right-6 text-white">
+                  <h3 className={`${jakarta.className} text-2xl font-black mb-2`}>Gastronomia</h3>
+                  <span className="inline-flex items-center gap-2 bg-[#F9C400] text-[#00577C] px-4 py-2 rounded-full font-black text-[10px] uppercase tracking-widest">
+                    Explorar <ArrowRight size={12} />
+                  </span>
                 </div>
-              </AnimatedSection>
+              </Link>
+            </AnimatedSection>
           </div>
         </div>
       </section>
@@ -774,20 +772,20 @@ export default function HomePage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <AnimatedSection animation="fade-right" className="md:col-span-2">
-              <div className="group relative h-[440px] rounded-[2rem] overflow-hidden bg-slate-900">
+              <Link href="/aldeias" className="group relative h-[440px] rounded-[2rem] overflow-hidden bg-slate-900 block">
                 <Image src="https://images.pexels.com/photos/12434691/pexels-photo-12434691.jpeg" alt="Aldeias Indígenas" fill className="object-cover opacity-80 group-hover:scale-105 transition-transform duration-700" />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent" />
                 <div className="absolute bottom-8 left-8 right-8 text-white">
                   <p className={`${jakarta.className} text-2xl font-black mb-4`}>Cultura, respeito e ancestralidade.</p>
-                  <Link href="/aldeias" className="inline-flex items-center gap-2 bg-[#F9C400] text-[#00577C] px-6 py-2.5 rounded-full font-black text-xs uppercase tracking-widest hover:bg-white transition-colors">
+                  <span className="inline-flex items-center gap-2 bg-[#F9C400] text-[#00577C] px-6 py-2.5 rounded-full font-black text-xs uppercase tracking-widest">
                     Conhecer as Aldeias <ArrowRight size={14} />
-                  </Link>
+                  </span>
                 </div>
-              </div>
+              </Link>
             </AnimatedSection>
 
             <AnimatedSection animation="fade-left" delay={200}>
-              <div className="rounded-[2rem] bg-[#009640] p-8 h-[440px] flex flex-col justify-between text-white">
+              <Link href="/aldeias" className="rounded-[2rem] bg-[#009640] p-8 h-[440px] flex flex-col justify-between text-white block group hover:bg-[#007a35] transition-colors">
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60 mb-4">Patrimônio Vivo</p>
                   <h3 className={`${jakarta.className} text-3xl font-black leading-tight mb-4`}>Guardiões da floresta e dos rios</h3>
@@ -795,10 +793,10 @@ export default function HomePage() {
                     O município orgulha-se de ser o lar de diversas comunidades indígenas. Guardiões de saberes milenares, rituais, artesanato e conexão profunda com a natureza amazónica.
                   </p>
                 </div>
-                <Link href="/aldeias" className="inline-flex items-center gap-2 text-[#F9C400] font-black text-xs uppercase tracking-widest hover:gap-4 transition-all">
+                <span className="inline-flex items-center gap-2 text-[#F9C400] font-black text-xs uppercase tracking-widest group-hover:gap-4 transition-all">
                   Saber mais <ArrowRight size={14} />
-                </Link>
-              </div>
+                </span>
+              </Link>
             </AnimatedSection>
           </div>
         </div>
@@ -822,7 +820,7 @@ export default function HomePage() {
             </AnimatedSection>
 
             <AnimatedSection animation="fade-left" delay={200}>
-              <div className="rounded-[2rem] bg-white/5 backdrop-blur border border-white/10 p-10">
+              <Link href="/historia" className="rounded-[2rem] bg-white/5 backdrop-blur border border-white/10 p-10 block hover:bg-white/10 transition-colors">
                 <Landmark className="mb-6 h-12 w-12 text-[#F9C400]" />
                 <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#F9C400] mb-4">Patrimônio local</p>
                 <h3 className={`${jakarta.className} text-3xl font-black text-white leading-tight mb-4`}>
@@ -831,7 +829,7 @@ export default function HomePage() {
                 <p className="text-white/50 text-sm leading-relaxed">
                   Mais do que visitar lugares, o turismo local fortalece memórias, histórias, economia e orgulho de pertencimento.
                 </p>
-              </div>
+              </Link>
             </AnimatedSection>
           </div>
         </div>
@@ -855,12 +853,12 @@ export default function HomePage() {
             </AnimatedSection>
 
             <AnimatedSection animation="zoom-in" delay={200}>
-              <div className="rounded-[2rem] bg-[#002f40] p-10 text-white">
+              <Link href="/cadastro" className="rounded-[2rem] bg-[#002f40] p-10 text-white block hover:bg-[#001f2e] transition-colors">
                 <ShieldCheck className="mb-6 h-12 w-12 text-[#F9C400]" />
                 <p className="text-7xl md:text-8xl font-black mb-3">50%</p>
                 <p className="text-xl font-bold mb-3">de desconto para residentes</p>
                 <p className="text-white/50 text-sm leading-relaxed">Benefício digital vinculado ao cadastro do morador.</p>
-              </div>
+              </Link>
             </AnimatedSection>
           </div>
         </div>

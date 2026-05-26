@@ -158,7 +158,7 @@ export default function GastronomiaPage() {
               Cultura & <span className="text-[#F9C400]">Gastronomia</span>
             </h1>
             <p className="text-base sm:text-lg md:text-xl text-white/80 font-medium leading-relaxed drop-shadow-md max-w-2xl mx-auto">
-              Descubra os temperos da Amazónia, a frescura dos pescados ribeirinhos e as receitas que passam de geração em geração.
+              Descubra os nossos temperos, a frescura dos nossos pescados e as receitas que passam de geração em geração.
             </p>
           </AnimatedSection>
         </div>

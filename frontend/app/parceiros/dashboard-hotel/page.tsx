@@ -183,19 +183,11 @@ export default function DashboardHotelPage() {
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Quartos Reservados</p>
                 <p className={`${jakarta.className} text-4xl font-black text-[#00577C]`}>{(metricas?.total_vendas || 0).toString().padStart(2, '0')}</p>
              </div>
-             <div className="mt-6 bg-slate-50 p-4 rounded-xl border border-slate-100">
-               <div className="flex justify-between text-[10px] font-bold text-slate-500 mb-2"><span>Performance</span><span className="text-[#00577C]">Alta</span></div>
-               <div className="w-full bg-slate-200 rounded-full h-1.5"><div className="bg-[#00577C] h-1.5 rounded-full w-[85%]"></div></div>
-             </div>
           </div>
           <div className="bg-white rounded-[2rem] border border-slate-200 p-8 shadow-sm flex flex-col justify-between group">
              <div>
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Check-ins Pendentes</p>
                 <p className={`${jakarta.className} text-4xl font-black text-[#d9a000]`}>{(metricas?.clientes_a_chegar || 0).toString().padStart(2, '0')}</p>
-             </div>
-             <div className="mt-6">
-               <div className="flex justify-between text-[10px] font-bold text-slate-500 mb-2"><span>Capacidade Ocupada</span><span className="text-[#d9a000]">{percentagemChegadas}%</span></div>
-               <div className="w-full bg-slate-100 rounded-full h-2"><div className="bg-[#F9C400] h-2 rounded-full transition-all" style={{ width: `${percentagemChegadas}%` }}></div></div>
              </div>
           </div>
         </div>
@@ -229,7 +221,7 @@ export default function DashboardHotelPage() {
                     <th className="py-5 px-6">Origem / Categoria</th>
                     <th className="py-5 px-6">Estadia (Datas)</th>
                     <th className="py-5 px-6 text-right">Valor Total da Reserva</th>
-                    <th className="py-5 px-6 text-right">Teu Repasse Líquido</th>
+                    <th className="py-5 px-6 text-right">Valor Liquido</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-bold text-slate-700 bg-white">
@@ -264,8 +256,8 @@ export default function DashboardHotelPage() {
                         </td>
                         <td className="py-5 px-6 text-xs">
                            <div className="flex flex-col gap-0.5 font-semibold">
-                             <span className="text-[#009640]">In: {formatarData(r.data_checkin)}</span>
-                             <span className="text-slate-400">Out: {formatarData(r.data_checkout || '')}</span>
+                             <span className="text-[#009640]">Entrada: {formatarData(r.data_checkin)}</span>
+                             <span className="text-slate-400">Saída: {formatarData(r.data_checkout || '')}</span>
                            </div>
                         </td>
                         <td className="py-5 px-6 text-right text-slate-500 font-medium tabular-nums">

@@ -436,31 +436,6 @@ export default function RestaurantePage() {
                       <p className="text-slate-500 text-sm leading-relaxed font-medium">
                         {item.desc}
                       </p>
-
-                      {/* Expandable details */}
-                      <div className={`overflow-hidden transition-all duration-500 ${activeMenuItem === i ? 'max-h-40 mt-5' : 'max-h-0'}`}>
-                        <div className="pt-4 border-t border-slate-100 flex items-center gap-3">
-                          <div className="w-2 h-2 rounded-full bg-[#009640]" />
-                          <p className="text-sm text-slate-500 font-medium">Disponível todos os dias • Servido no restaurante</p>
-                        </div>
-                        {whatsappNumber && (
-                          <a
-                            href={`https://wa.me/${whatsappNumber}?text=Olá! Gostaria de reservar uma mesa para experimentar: ${item.prato}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={e => e.stopPropagation()}
-                            className={`${jakarta.className} mt-4 inline-flex items-center gap-2 bg-[#25D366] text-white px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform`}
-                          >
-                            <MessageCircle size={13} />
-                            Reservar este prato
-                          </a>
-                        )}
-                      </div>
-
-                      <div className={`mt-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-colors ${activeMenuItem === i ? 'text-[#00577C]' : 'text-slate-300 group-hover:text-slate-400'}`}>
-                        <span>{activeMenuItem === i ? 'Fechar' : 'Ver mais'}</span>
-                        <ArrowRight size={12} className={`transition-transform ${activeMenuItem === i ? 'rotate-90' : ''}`} />
-                      </div>
                     </div>
                   </div>
                 </Reveal>

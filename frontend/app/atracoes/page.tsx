@@ -309,14 +309,16 @@ export default function AtracoesPage() {
         <div className="absolute inset-0 z-0 pointer-events-none"
           style={{ background: 'linear-gradient(to right, #001f2eaa 0%, transparent 65%)' }} />
 
-        <div className="absolute left-6 md:left-12 top-[20%] bottom-[20%] w-px pointer-events-none z-10 hidden md:block"
+        <div className="absolute left-6 md:left-12 top-[20%] bottom-[20%] w-1px pointer-events-none z-10 hidden md:block"
           style={{ background: 'linear-gradient(to bottom, transparent, #F9C40045, transparent)' }} />
+
+
 
         <div className="relative z-10 max-w-[1400px] w-full mx-auto">
           <Reveal anim="up">
-            <p className="font-black uppercase tracking-[0.35em] text-[20px] md:text-[20px] mb-5 flex items-center gap-3"
+            <p className="font-black uppercase tracking-[0.35em] text-[10px] md:text-[20px] mb-5 flex items-center gap-3"
               style={{ color: '#f7f7f7' }}>
-              <span className="w-10 h-10px" style={{ backgroundColor: '#F9C400' }} />
+              <span className="w-10 h-20px" style={{ backgroundColor: '#F9C400' }} />
               Conheça as nossas
             </p>
 

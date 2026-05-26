@@ -199,7 +199,7 @@ export default function RotaDetailPage() {
             <Link href="/rotas" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Rotas Turísticas</Link>
             <Link href="/eventos" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Agenda Cultural</Link>
             <Link href="/pacotes" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Pacotes</Link>
-            <Link href="/rotas" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Roteiros</Link>
+            <Link href="/rotas" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Rotas</Link>
             <Link href="/biodiversidade" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Biodiversidade</Link>
             <Link href="/gastronomia" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Gastronomia</Link>
             <Link href="/comunidades" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Comunidades</Link>
@@ -222,7 +222,7 @@ export default function RotaDetailPage() {
         <div className="absolute inset-0 z-0 pointer-events-none"
           style={{ background: `linear-gradient(to right, ${theme.bgDark}99 0%, transparent 60%)` }} />
 
-        <div className="absolute left-6 md:left-12 top-1/4 bottom-1/4 w-[1px] pointer-events-none z-10 hidden md:block"
+        <div className="absolute left-6 md:left-12 top-1/4 bottom-1/4 pointer-events-none z-10 hidden md:block"
           style={{ background: `linear-gradient(to bottom, transparent, ${theme.corAccent}50, transparent)` }} />
 
         <div className={`${jakarta.className} absolute right-8 md:right-12 top-1/2 -translate-y-1/2 text-[200px] md:text-[280px] font-black leading-none select-none pointer-events-none z-0`}
@@ -231,11 +231,6 @@ export default function RotaDetailPage() {
         </div>
 
         <div className="relative z-10 max-w-[1400px] w-full mx-auto">
-          <p className="font-black uppercase tracking-[0.35em] text-[9px] md:text-[10px] mb-5 flex items-center gap-3"
-            style={{ color: theme.corAccent }}>
-            <span className="w-8 h-[1px]" style={{ backgroundColor: theme.corAccent }} />
-            Rota {numOrdem} · São Geraldo do Araguaia
-          </p>
 
           <h1 className={`${jakarta.className} text-[clamp(3rem,9vw,7.5rem)] font-black text-white leading-[0.88] mb-6 max-w-3xl`}>
             {rota.titulo}
