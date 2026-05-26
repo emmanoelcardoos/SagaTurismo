@@ -206,7 +206,9 @@ async def processar_pagamento(pedido: PedidoPagamento):
             
             rec_id = res_hotel_info.data.get("pagbank_recebedor_id")
             if rec_id and str(rec_id).startswith("ACC_"):
-                recebedores_split.append({ "account": {"id": rec_id}, "amount": {"value": int((valor_total * fator_liquido) * 100)} })
+                # Proteção contra falha de arredondamento de centavos
+                valor_repasse = int(round(valor_total * fator_liquido, 2) * 100)
+                recebedores_split.append({ "account": {"id": rec_id}, "amount": {"value": valor_repasse} })
 
         elif pedido.tipo_item == "passeio":
             id_passeio = passeio_id_sanitizado or item_id_sanitizado
@@ -229,7 +231,8 @@ async def processar_pagamento(pedido: PedidoPagamento):
                 if res_g.data:
                     rec_id = res_g.data.get("pagbank_recebedor_id")
                     if rec_id and str(rec_id).startswith("ACC_"):
-                        recebedores_split.append({ "account": {"id": rec_id}, "amount": {"value": int((valor_total * fator_liquido) * 100)} })
+                        valor_repasse = int(round(valor_total * fator_liquido, 2) * 100)
+                        recebedores_split.append({ "account": {"id": rec_id}, "amount": {"value": valor_repasse} })
 
         elif pedido.tipo_item == "pacote":
             if not pacote_id_sanitizado:
@@ -266,7 +269,8 @@ async def processar_pagamento(pedido: PedidoPagamento):
                         v_atracoes_total += v_individual_atr
                         rec_id = res_atr.data.get("pagbank_recebedor_id")
                         if rec_id and str(rec_id).startswith("ACC_"):
-                            recebedores_split.append({ "account": {"id": rec_id}, "amount": {"value": int((v_individual_atr * fator_liquido) * 100)} })
+                            valor_repasse = int(round(v_individual_atr * fator_liquido, 2) * 100)
+                            recebedores_split.append({ "account": {"id": rec_id}, "amount": {"value": valor_repasse} })
                         lista_atracoes_calculadas.append({"id": atr_id, "valor": v_individual_atr})
 
             # 3. Calcula o Custo do Hotel e o Upgrade Estático (Igual ao Frontend)
@@ -274,13 +278,13 @@ async def processar_pagamento(pedido: PedidoPagamento):
             acrescimo_upgrade = 0.0
 
             if pacote_hotel_id and quarto_tipo_id_sanitizado:
-                # O custo que o Hotel RECEBE continua a respeitar o calendário dinâmico dele:
+                # Custo dinâmico que o Hotel RECEBE
                 v_hospedagem_total = calcular_preco_hotel_dinamico(
                     pacote_hotel_id, quarto_tipo_id_sanitizado, pedido.data_checkin, pedido.data_checkout,
                     quantidade_quartos=pedido.quantidade, quantidade_pessoas=pedido.adultos
                 )
                 
-                # Mas o UPGRADE cobrado do cliente segue a diferença ESTÁTICA (para bater os R$ 259 cravados)
+                # UPGRADE cobrado do cliente segue a diferença ESTÁTICA
                 res_std = supabase.table("tipos_quarto").select("id, preco_quarto").eq("hotel_id", pacote_hotel_id).order("preco_quarto").limit(1).execute()
                 res_escolhido = supabase.table("tipos_quarto").select("preco_quarto, nome_quarto").eq("id", quarto_tipo_id_sanitizado).single().execute()
                 
@@ -293,7 +297,7 @@ async def processar_pagamento(pedido: PedidoPagamento):
                         d_ci = datetime.strptime(pedido.data_checkin, "%Y-%m-%d")
                         d_co = datetime.strptime(pedido.data_checkout, "%Y-%m-%d")
                         noites_finais = max(1, (d_co - d_ci).days)
-                        acrescimo_upgrade = diferenca_diaria * noites_finais * pedido.quantidade # quantidade = quartos
+                        acrescimo_upgrade = diferenca_diaria * noites_finais * pedido.quantidade
                         
                 if res_escolhido.data: nome_quarto_real_texto = res_escolhido.data["nome_quarto"]
 
@@ -301,7 +305,8 @@ async def processar_pagamento(pedido: PedidoPagamento):
                 if res_h_info.data:
                     rec_id = res_h_info.data.get("pagbank_recebedor_id")
                     if rec_id and str(rec_id).startswith("ACC_"):
-                        recebedores_split.append({ "account": {"id": rec_id}, "amount": {"value": int((v_hospedagem_total * fator_liquido) * 100)} })
+                        valor_repasse = int(round(v_hospedagem_total * fator_liquido, 2) * 100)
+                        recebedores_split.append({ "account": {"id": rec_id}, "amount": {"value": valor_repasse} })
 
             # Calcula Guia
             d_ci = datetime.strptime(pedido.data_checkin, "%Y-%m-%d")
@@ -315,7 +320,8 @@ async def processar_pagamento(pedido: PedidoPagamento):
                     v_guia_total = float(res_g.data["preco_diaria"]) * (noites_finais + 1)
                     rec_id = res_g.data.get("pagbank_recebedor_id")
                     if rec_id and str(rec_id).startswith("ACC_"):
-                        recebedores_split.append({ "account": {"id": rec_id}, "amount": {"value": int((v_guia_total * fator_liquido) * 100)} })
+                        valor_repasse = int(round(v_guia_total * fator_liquido, 2) * 100)
+                        recebedores_split.append({ "account": {"id": rec_id}, "amount": {"value": valor_repasse} })
 
             # Matemática Agência
             preco_base_pacote = float(dados_pacote.get("preco") or 0.0)
@@ -330,14 +336,12 @@ async def processar_pagamento(pedido: PedidoPagamento):
                 if res_agente.data and len(res_agente.data) > 0:
                     rec_id_agente = res_agente.data[0].get("pagbank_recebedor_id")
                     if rec_id_agente and str(rec_id_agente).startswith("ACC_"):
-                        recebedores_split.append({ 
-                            "account": {"id": rec_id_agente}, 
-                            "amount": {"value": int((lucro_agente_split * fator_liquido) * 100)} 
-                        })
+                        valor_repasse = int(round(lucro_agente_split * fator_liquido, 2) * 100)
+                        recebedores_split.append({ "account": {"id": rec_id_agente}, "amount": {"value": valor_repasse} })
 
         # Lógica Fina de Split
         soma_splits_centavos = sum(r["amount"]["value"] for r in recebedores_split)
-        valor_total_centavos = int(valor_total * 100)
+        valor_total_centavos = int(round(valor_total, 2) * 100)
 
         if recebedores_split and (soma_splits_centavos < valor_total_centavos):
             splits_array = [{
@@ -347,7 +351,8 @@ async def processar_pagamento(pedido: PedidoPagamento):
         else:
             splits_array = []
 
-        # HACK SANDBOX
+        # HACK SANDBOX: Mantenho para prevenir o erro de conta inexistente nos testes
+        # Se quiseres testar o PagBank a rejeitar ou aceitar o Split REAL, podes comentar a linha abaixo.
         if "sandbox" in PAGBANK_API_URL:
             splits_array = []
 
@@ -443,19 +448,19 @@ async def processar_pagamento(pedido: PedidoPagamento):
                 "tax_id": tax_id_limpo,
                 "phones": [{"country": "55", "area": ddd, "number": numero_tel, "type": "MOBILE"}]
             },
-            "items": [{"name": nome_item_checkout, "quantity": 1, "unit_amount": int(valor_total * 100)}],
+            "items": [{"name": nome_item_checkout, "quantity": 1, "unit_amount": int(round(valor_total, 2) * 100)}],
             "notification_urls": ["https://sagaturismo-production.up.railway.app/api/v1/webhooks/pagbank"]
         }
 
         if pedido.metodo_pagamento == "pix":
-            payload_pagbank["qr_codes"] = [{"amount": {"value": int(valor_total * 100)}}]
+            payload_pagbank["qr_codes"] = [{"amount": {"value": int(round(valor_total, 2) * 100)}}]
             if splits_array: 
                 payload_pagbank["qr_codes"][0]["splits"] = splits_array
         else:
             charge = {
                 "reference_id": codigo_pedido,
                 "description": nome_item_checkout,
-                "amount": {"value": int(valor_total * 100), "currency": "BRL"},
+                "amount": {"value": int(round(valor_total, 2) * 100), "currency": "BRL"},
                 "payment_method": {
                     "type": "CREDIT_CARD",
                     "installments": pedido.parcelas,
