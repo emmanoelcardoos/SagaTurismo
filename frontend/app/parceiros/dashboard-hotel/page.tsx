@@ -7,9 +7,10 @@ import Image from 'next/image';
 import { 
   Loader2, LogOut, Wallet, ShoppingBag, Users2, 
   Bed, ClipboardList, ShieldCheck, 
-  ArrowUpRight, Calendar, Search, UserCircle
+  ArrowUpRight, Calendar, Search, UserCircle, Tag
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
+import { supabase } from '@/lib/supabase'; // ◄── Importação do Supabase adicionada
 
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['600', '700', '800'] });
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
@@ -25,12 +26,9 @@ type ReservaHotel = {
   tipo_item: string;
   data_checkin: string;
   data_checkout?: string;
-  
-  // Fallbacks estruturais de compatibilidade da tabela
   quantidade?: number;
   quantidade_quartos?: number;
   quantidade_pessoas?: number;
-  
   valor_total: number;
   valor_liquido: number;
   status: string;
@@ -60,40 +58,60 @@ export default function DashboardHotelPage() {
     }
   }, [router]);
 
-  // 2. CONSUMO DE DADOS DA API
+  // 2. CONSUMO DE DADOS DIRETO DO SUPABASE (ARQUITETURA MODERNA)
   useEffect(() => {
     if (!parceiroId) return;
 
-    async function carregarDados() {
+    async function carregarDadosSupabase() {
       try {
-        const [resMetricas, resReservas] = await Promise.all([
-          fetch(`https://sagaturismo-production.up.railway.app/api/v1/parceiros/${parceiroId}/dashboard`),
-          fetch(`https://sagaturismo-production.up.railway.app/api/v1/parceiros/${parceiroId}/reservas`)
-        ]);
+        // Busca todos os pedidos onde o hotel_id seja este parceiro e já estejam pagos
+        const { data: pedidosData, error: pedidosError } = await supabase
+          .from('pedidos')
+          .select('*')
+          .eq('hotel_id', parceiroId)
+          .eq('status_pagamento', 'pago')
+          .order('criado_em', { ascending: false });
 
-        const dataMetricas = await resMetricas.json();
-        const dataReservas = await resReservas.json();
+        if (pedidosError) throw pedidosError;
 
-        let listaReservas: ReservaHotel[] = [];
-        if (Array.isArray(dataReservas)) listaReservas = dataReservas;
-        else if (dataReservas?.reservas) listaReservas = dataReservas.reservas;
-        else if (dataReservas?.dados) listaReservas = dataReservas.dados;
+        // Busca a tabela de repasses para saber a fatia exata deste hotel
+        const { data: repassesData, error: repassesError } = await supabase
+          .from('repasses_financeiros')
+          .select('pedido_id, valor_liquido')
+          .eq('parceiro_id', parceiroId)
+          .eq('tipo_parceiro', 'hotel');
 
-        setReservas(listaReservas);
+        if (repassesError) throw repassesError;
+
+        // Combina os dados: Pega a reserva e insere o "valor_liquido" correto do repasse nela
+        const reservasProcessadas: ReservaHotel[] = (pedidosData || []).map(pedido => {
+          const repasse = (repassesData || []).find(r => r.pedido_id === pedido.id);
+          return {
+            ...pedido,
+            valor_liquido: repasse ? repasse.valor_liquido : 0
+          };
+        });
+
+        setReservas(reservasProcessadas);
+
+        // Calcula as métricas matemáticas do painel
+        const hoje = new Date().toISOString().split('T')[0];
+        const aChegar = reservasProcessadas.filter(r => r.data_checkin && r.data_checkin >= hoje).length;
+        const fatTotal = reservasProcessadas.reduce((acc, r) => acc + (Number(r.valor_liquido) || 0), 0);
 
         setMetricas({
-          faturamento: dataMetricas?.metricas?.faturamento_total ?? listaReservas.reduce((acc, r) => acc + (Number(r.valor_liquido) || 0), 0),
-          total_vendas: dataMetricas?.metricas?.total_vendas ?? listaReservas.length,
-          clientes_a_chegar: dataMetricas?.metricas?.clientes_a_chegar ?? listaReservas.length, 
+          faturamento: fatTotal,
+          total_vendas: reservasProcessadas.length,
+          clientes_a_chegar: aChegar,
         });
 
       } catch (error) {
-        console.error("Erro API:", error);
+        console.error("Erro ao carregar dados do Supabase:", error);
       } finally {
         setLoading(false);
       }
     }
-    carregarDados();
+    carregarDadosSupabase();
   }, [parceiroId]);
 
   const handleLogout = () => {
@@ -199,7 +217,7 @@ export default function DashboardHotelPage() {
             <div className="py-24 px-5 text-center flex flex-col items-center justify-center bg-white">
                <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4"><ClipboardList size={28} className="text-slate-300" /></div>
                <p className={`${jakarta.className} text-xl font-bold text-slate-800 mb-2`}>Nenhuma atividade registrada</p>
-               <p className="text-sm text-slate-500 max-w-md">As vendas processadas pela API aparecerão listadas neste espaço.</p>
+               <p className="text-sm text-slate-500 max-w-md">As vendas processadas aparecerão listadas neste espaço.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -208,9 +226,9 @@ export default function DashboardHotelPage() {
                   <tr className="bg-slate-50/50 border-b border-slate-100 text-[10px] font-black uppercase text-slate-400 tracking-widest">
                     <th className="py-5 px-6">ID Localizador</th>
                     <th className="py-5 px-6">Hóspede Principal</th>
-                    <th className="py-5 px-6">Ocupação Declarada</th>
+                    <th className="py-5 px-6">Origem / Categoria</th>
                     <th className="py-5 px-6">Estadia (Datas)</th>
-                    <th className="py-5 px-6 text-right">Valor Total</th>
+                    <th className="py-5 px-6 text-right">Valor Total da Reserva</th>
                     <th className="py-5 px-6 text-right">Teu Repasse Líquido</th>
                   </tr>
                 </thead>
@@ -227,10 +245,22 @@ export default function DashboardHotelPage() {
                           <p className="text-[10px] text-slate-400 font-medium mt-0.5">{r.telefone_cliente || 'Sem contato'}</p>
                         </td>
                         <td className="py-5 px-6">
-                           <span className="bg-slate-100 text-slate-600 px-3 py-1.5 rounded-lg text-xs flex items-center gap-2 w-fit border border-slate-200">
-                             <UserCircle size={16} className="text-[#00577C]" /> 
-                             {qPessoas} Pax · {qQuartos} Quarto(s)
-                           </span>
+                          {/* ◄── A MAGIA DA ORIGEM: Pacote vs Reserva Direta ──► */}
+                          <div className="flex flex-col gap-2">
+                             {r.tipo_item === 'pacote' ? (
+                               <span className="bg-amber-100 text-amber-800 px-3 py-1.5 rounded-lg text-[10px] uppercase font-black tracking-widest flex items-center gap-1.5 w-fit border border-amber-200">
+                                 <Tag size={12} strokeWidth={3} /> Venda p/ Agência
+                               </span>
+                             ) : (
+                               <span className="bg-blue-100 text-blue-800 px-3 py-1.5 rounded-lg text-[10px] uppercase font-black tracking-widest flex items-center gap-1.5 w-fit border border-blue-200">
+                                 Reserva Direta
+                               </span>
+                             )}
+                             <span className="text-slate-500 text-[11px] font-bold flex items-center gap-1.5 mt-1">
+                               <UserCircle size={14} className="text-slate-400" /> 
+                               {qPessoas} Pax · {qQuartos} Quarto
+                             </span>
+                          </div>
                         </td>
                         <td className="py-5 px-6 text-xs">
                            <div className="flex flex-col gap-0.5 font-semibold">
