@@ -287,7 +287,7 @@ export default function ComunidadesPage() {
           HERO CINEMATOGRÁFICO
       ══════════════════════════════════════ */}
       <section className="relative h-screen flex flex-col items-start justify-end
-        pb-20 md:pb-28 px-6 md:px-12 overflow-hidden"
+        pb-20 md:pb-30 px-0 md:px-0 overflow-hidden"
         style={{ backgroundColor: '#002f40' }}>
 
         <div className="absolute inset-0 z-0 scale-110"
@@ -310,7 +310,7 @@ export default function ComunidadesPage() {
         <div className="absolute inset-0 z-0 pointer-events-none"
           style={{ background: 'linear-gradient(to right, #001f2eaa 0%, transparent 65%)' }} />
 
-        <div className="absolute left-6 md:left-12 top-[20%] bottom-[20%] w-px pointer-events-none z-10 hidden md:block"
+        <div className="absolute left-6 md:left-12 top-[20%] bottom-[100%] w-px pointer-events-none z-10 hidden md:block"
           style={{ background: 'linear-gradient(to bottom, transparent, #F9C40045, transparent)' }} />
 
         <div className="relative z-10 max-w-[1400px] w-full mx-auto">

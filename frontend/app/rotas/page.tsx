@@ -305,7 +305,7 @@ export default function RotasPage() {
         <div className="absolute inset-0 z-0 pointer-events-none"
           style={{ background: 'linear-gradient(to right, #001f2eaa 0%, transparent 65%)' }} />
 
-        <div className="absolute left-6 md:left-12 top-[20%] bottom-[20%] w-px pointer-events-none z-10 hidden md:block"
+        <div className="absolute left-6 md:left-12 top-[20%] bottom-[1000%] w-px pointer-events-none z-10 hidden md:block"
           style={{ background: 'linear-gradient(to bottom, transparent, #F9C40045, transparent)' }} />
 
         <div className="relative z-10 max-w-[1400px] w-full mx-auto">

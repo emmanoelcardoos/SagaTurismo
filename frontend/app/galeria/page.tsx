@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState, useRef, ReactNode } from 'react';
-import { Loader2, X, Maximize2, Camera, ChevronLeft, ChevronRight, MapPin, ArrowRight, Menu } from 'lucide-react';
+import { Loader2, X, Maximize2, Camera, ChevronLeft, ChevronRight, MapPin, ArrowRight, Menu, ShieldCheck } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
 
@@ -397,15 +397,31 @@ export default function GaleriaPage() {
       </section>
 
       {/* ── FOOTER PREMIUM ── */}
-      <footer className="py-20 px-6 bg-[#001f3f]">
-        <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
+      {/* FOOTER INSTITUCIONAL */}
+      <footer className="py-20 px-8 border-t border-slate-200 bg-white text-left">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
           <div className="flex flex-col items-center md:items-start gap-4">
-            <Image src="/logop.png" alt="Prefeitura SGA" width={160} height={60} className="brightness-0 invert opacity-60" />
-            <p className={`${jakarta.className} text-[9px] font-black text-white/30 uppercase tracking-[0.4em]`}>Cidade Amada · Pará · Brasil</p>
+            <div className="flex items-center gap-6">
+              <Image src="/logop.png" alt="SagaTurismo" width={160} height={50} className="object-contain" />
+              <div className="w-px h-12 bg-slate-200 hidden md:block" />
+              <Image src="/prefeitura.png" alt="Prefeitura de São Geraldo do Araguaia" width={140} height={50} className="object-contain" />
+            </div>
+            <div className="text-left space-y-1">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                © 2026 Secretaria Municipal de Turismo - SGA | Todos os direitos reservados
+              </p>
+              <p className="text-[10px] font-bold text-slate-400/80">
+                CNPJ: 10.249.241/0001-22
+              </p>
+            </div>
           </div>
-          <div className="flex gap-4">
-             <Link href="/roteiro" className={`${jakarta.className} bg-white/5 text-white/60 px-6 py-3 rounded-full text-[10px] font-bold uppercase hover:bg-[#F9C400] hover:text-[#002f40] transition-all tracking-widest`}>Rota Turística</Link>
-             <Link href="/cadastro" className={`${jakarta.className} bg-[#F9C400] text-[#002f40] px-6 py-3 rounded-full text-[10px] font-bold uppercase hover:bg-white hover:text-[#002f40] transition-all tracking-widest shadow-xl`}>Cartão Digital</Link>
+
+          <div className="flex gap-10">
+            <div className="text-left border-l-2 border-slate-100 pl-9">
+              <p className="text-[10px] font-black text-[#00577C] uppercase mb-1">Contato Oficial</p>
+              <p className="text-xs font-bold text-slate-500 tracking-tight">setursaga@gmail.com</p>
+            </div>
+            <ShieldCheck size={40} className="text-[#009640] opacity-30" />
           </div>
         </div>
       </footer>

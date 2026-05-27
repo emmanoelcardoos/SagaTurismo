@@ -7,7 +7,7 @@ import {
   ArrowRight, ShieldCheck, Star, ExternalLink, Menu, Landmark, Hotel,
   Mountain, Waves, TreePine, CalendarDays, MapPin, Ticket,
   Loader2, Sparkles, Image as ImageIcon, Compass, CheckCircle2, X,
-  ChevronLeft, ChevronRight, Route
+  ChevronLeft, ChevronRight, Route, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -15,7 +15,6 @@ import { supabase } from '@/lib/supabase';
 // ── FONTES ──
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['600', '700', '800'] });
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'] });
-
 
 // ==========================================
 // MOTOR DE ANIMAÇÕES DE SCROLL (DESIGN EDITORIAL)
@@ -149,7 +148,6 @@ function DestaquesVerao() {
   return (
     <section className="py-24 bg-[#FDFCF7] border-t border-slate-100 overflow-hidden">
       <div className="max-w-[1400px] mx-auto px-6">
-        {/* Título editorial */}
         <AnimatedSection animation="fade-up" className="mb-16">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div>
@@ -169,7 +167,6 @@ function DestaquesVerao() {
         {loading ? (
           <div className="flex justify-center py-12"><Loader2 className="animate-spin w-10 h-10 text-[#00577C]" /></div>
         ) : (
-          /* Bento Grid — mesmo padrão do design editorial */
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {destaques[0] && (
               <AnimatedSection animation="fade-right" className="md:col-span-2 md:row-span-2">
@@ -269,7 +266,7 @@ function GaleriaVerao() {
 }
 
 // ==========================================
-// COMPONENTE: AGENDA CULTURAL
+// COMPONENTE: AGENDA CULTURAL (mantido)
 // ==========================================
 function AgendaCultural() {
   const [eventos, setEventos] = useState<Evento[]>([]);
@@ -331,7 +328,6 @@ function SeccaoHoteis() {
           <div className="flex justify-center py-12"><Loader2 className="animate-spin w-10 h-10 text-[#00577C]" /></div>
         ) : (
           <>
-            {/* Bento grid: primeiro card maior, dois menores */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {hoteis[0] && (
                 <AnimatedSection animation="fade-right" className="md:col-span-2">
@@ -500,7 +496,6 @@ function SeccaoPasseios() {
           <div className="flex justify-center py-12"><Loader2 className="animate-spin w-10 h-10 text-[#00577C]" /></div>
         ) : (
           <>
-            {/* Bento: primeiro card grande à esquerda */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {passeios[0] && (
                 <AnimatedSection animation="fade-right" className="md:col-span-2">
@@ -585,6 +580,27 @@ export default function HomePage() {
   const [lastScrollY, setLastScrollY] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  // Efeito de scroll suave automático ao carregar a página (forçar leve scroll)
+  // Scroll automático suave e elegante
+useEffect(() => {
+  const timer = setTimeout(() => {
+    const start = window.scrollY;
+    const target = start + 50;
+    const duration = 1500; // 1.5 segundos
+    const startTime = performance.now();
+
+    const animate = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const easeOut = 1 - (1 - progress) ** 2;
+      window.scrollTo(0, start + (target - start) * easeOut);
+      if (progress < 1) requestAnimationFrame(animate);
+    };
+    requestAnimationFrame(animate);
+  }, 600);
+  return () => clearTimeout(timer);
+}, []);
+
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
@@ -655,14 +671,16 @@ export default function HomePage() {
         )}
       </header>
 
-      {/* ── HERO SECTION PREMIUM (imagem estática — sem Supabase) ── */}
-      <section className="relative h-[100vh] md:h-screen flex flex-col items-start 
-        justify-end        // 👈 agora funciona tanto mobile quanto desktop (joga para o fundo)
-        pb-20 px-10 overflow-hidden bg-[#002f40] 
-        max-md:pb-10 max-md:px-5"   // 👈 removido max-md:items-center
+      {/* ── HERO SECTION PREMIUM (sem indicador de scroll) ── */}
+      <section className="relative min-h-screen flex flex-col 
+        justify-end md:justify-end        
+        pb-20 md:pb-20 px-6 md:px-10 overflow-hidden bg-[#002f40]
+        max-md:justify-center             
+        max-md:items-center               
+        max-md:pb-8 max-md:px-5"
       > 
         <video 
-          src="/serra_3mb.mp4" 
+          src="/serra.mp4" 
           autoPlay 
           loop 
           muted 
@@ -671,12 +689,12 @@ export default function HomePage() {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-[#002f40] via-[#002f40]/10 to-transparent" />
 
-        <div className="relative z-10 max-w-[1400px] mx-auto w-full">
-          <h1 className={`${jakarta.className} text-6xl md:text-8xl font-black text-white leading-[0.9] mb-8 max-md:text-4xl max-md:leading-[1.1] max-md:mb-4`}>
+        <div className="relative z-10 max-w-[1400px] mx-auto w-full text-center md:text-left max-md:text-center">
+          <h1 className={`${jakarta.className} text-5xl md:text-8xl font-black text-white leading-[0.9] mb-8 max-md:text-4xl max-md:leading-tight max-md:mb-6`}>
             Conheça<br />
             <span className="italic text-[#F9C400]">São Geraldo do Araguaia</span>
           </h1>
-          <div className="flex flex-col sm:flex-row gap-4 max-md:gap-3">
+          <div className="flex flex-col sm:flex-row gap-4 max-md:gap-3 max-md:justify-center">
             <Link href="/rotas" className="inline-block bg-white text-[#00577C] px-10 py-4 rounded-full font-black text-xs uppercase tracking-widest hover:bg-[#F9C400] transition-colors max-md:px-6 max-md:py-3 max-md:text-center">
               Aventure-se
             </Link>
