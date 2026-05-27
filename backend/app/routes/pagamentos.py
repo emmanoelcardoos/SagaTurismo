@@ -353,8 +353,8 @@ async def processar_pagamento(pedido: PedidoPagamento):
 
         # HACK SANDBOX: Mantenho para prevenir o erro de conta inexistente nos testes
         # Se quiseres testar o PagBank a rejeitar ou aceitar o Split REAL, podes comentar a linha abaixo.
-        if "sandbox" in PAGBANK_API_URL:
-            splits_array = []
+        #if "sandbox" in PAGBANK_API_URL:
+          #  splits_array = []
 
         pedido_db = {
             "codigo_pedido": codigo_pedido,
