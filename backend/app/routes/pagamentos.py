@@ -343,7 +343,8 @@ async def processar_pagamento(pedido: PedidoPagamento):
         soma_splits_centavos = sum(r["amount"]["value"] for r in recebedores_split)
         valor_total_centavos = int(round(valor_total, 2) * 100)
 
-        if recebedores_split and (soma_splits_centavos < valor_total_centavos):
+        # ◄── CORREÇÃO AQUI: <= (menor ou igual) ──►
+        if recebedores_split and (soma_splits_centavos <= valor_total_centavos):
             splits_array = [{
                 "method": "FIXED",
                 "receivers": recebedores_split
@@ -351,10 +352,9 @@ async def processar_pagamento(pedido: PedidoPagamento):
         else:
             splits_array = []
 
-        # HACK SANDBOX: Mantenho para prevenir o erro de conta inexistente nos testes
-        # Se quiseres testar o PagBank a rejeitar ou aceitar o Split REAL, podes comentar a linha abaixo.
-        #if "sandbox" in PAGBANK_API_URL:
-          #  splits_array = []
+        # HACK SANDBOX: Comentado para forçar o envio do Split para testes
+        # if "sandbox" in PAGBANK_API_URL:
+        #    splits_array = []
 
         pedido_db = {
             "codigo_pedido": codigo_pedido,
@@ -477,6 +477,12 @@ async def processar_pagamento(pedido: PedidoPagamento):
             if limite_juros_hotel > 1: charge["payment_method"]["installment_no_interest"] = limite_juros_hotel
 
             payload_pagbank["charges"] = [charge]
+
+        # ◄── ADIÇÃO: Imprimir o Payload no Log da Railway ──►
+        import json
+        print("\n=== PAYLOAD ENVIADO PARA O PAGBANK ===")
+        print(json.dumps(payload_pagbank, indent=2))
+        print("======================================\n")
 
         async with httpx.AsyncClient() as client:
             headers = {"Authorization": f"Bearer {PAGBANK_TOKEN}", "Content-Type": "application/json"}
