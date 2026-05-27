@@ -27,31 +27,56 @@ def validar_endereco_com_ia(imagem_bytes: bytes, lista_nomes: list, mime_type: s
 
         # MUDANÇA 3: Injetamos o texto dinâmico no prompt
         prompt = (
-            f"Você é o Auditor Chefe da Prefeitura de São Geraldo do Araguaia - PA.\n"
+            f"You are the Chief Auditor of the City Hall of São Geraldo do Araguaia - PA.\n"
             f"{texto_contexto}\n\n"
 
-            "## REGRAS DE VALIDAÇÃO (Tolerância Zero)\n\n"
+            "## VALIDATION RULES (Zero Tolerance)\n\n"
 
-            "### REGRA 1 — MUNICÍPIO (Crítico)\n"
-            "Veja se no documento apresentado há explicitamente o nome de São Geraldo do Araguaia ou Covilhã - Portugal, ou alguma referência clara aos municípios. Documentos de outros municípios são automaticamente inválidos. \n\n"
-            "Devolva neste formato json:"## FORMATO DE RESPOSTA (APENAS JSON)\n"
+            "### RULE 1 — MUNICIPALITY (Critical)\n"
+            "The document MUST prove a connection with São Geraldo do Araguaia - PA.\n"
+            "Look for the city name or the official ZIP code: 68570-000.\n"
+            "Reject if the city is different. If it is not legible, reject it.\n\n"
+
+            "### RULE 2 — DOCUMENT TYPE\n"
+            "✅ ACCEPTED:\n"
+            "- Utility Bills: Electricity (Equatorial), Water (Cosanpa, Saneatins, Odebrecht, ...), Property Tax (IPTU), Fixed Internet.\n"
+            "- Educational Link: Enrollment declaration from a school/college in the municipality.\n"
+            "- Employment Link: Payslip or employment contract with a company in the municipality.\n"
+            "- Healthcare Link: Declaration/Health Center Card (UBS) or SUS card from the municipality.\n\n"
+
+            "🚫 SUMMARILY REJECTED:\n"
+            "- Generic payment slips (credit card bills, online purchases, remote-learning colleges from other cities).\n"
+            "- Informal rental agreements (without notarization).\n"
+            "- Handwritten declarations or documents without the institution's logo.\n"
+            "- Identity documents (ID, CPF, Driver’s License) used as proof of address.\n\n"
+
+            "### RULE 3 — OWNERSHIP AND FAMILY RELATIONSHIP\n"
+            f"{texto_titularidade}\n"
+            "EXCEPTION (Family Relationship): If the document is a valid utility bill and is under another person's name, but there is a strong SURNAME match with someone on the list, consider the ownership valid (approved_family_relationship).\n"
+            "If it is not under the applicant's name and the surnames are completely different from everyone on the list, reject it.\n\n"
+
+            "### RULE 4 — DATE AND LEGIBILITY\n"
+            "The document must be issued within the last 90 days (or belong to the current academic year for educational documents).\n"
+            "Blurred, cropped, or undated documents must be rejected.\n\n"
+
+            "## RESPONSE FORMAT (JSON ONLY)\n"
             "{\n"
-            "  \"valido\": true | false,\n"
-            "  \"status\": \"aprovado_direto\" | \"aprovado_parentesco\" | \"aprovado_ensino\" | \"aprovado_trabalho\" | \"aprovado_saude\" | \"rejeitado\",\n"
-            "  \"dados_extraidos\": {\n"
-            "    \"nome_no_documento\": \"string\",\n"
-            "    \"endereco_completo\": \"string\",\n"
-            "    \"data_emissao\": \"string\",\n"
-            "    \"tipo_identificado\": \"string\"\n"
+            "  \"valid\": true | false,\n"
+            "  \"status\": \"approved_directly\" | \"approved_family_relationship\" | \"approved_education\" | \"approved_employment\" | \"approved_healthcare\" | \"rejected\",\n"
+            "  \"extracted_data\": {\n"
+            "    \"name_on_document\": \"string\",\n"
+            "    \"full_address\": \"string\",\n"
+            "    \"issue_date\": \"string\",\n"
+            "    \"identified_type\": \"string\"\n"
             "  },\n"
-            "  \"checklist_auditoria\": {\n"
-            "    \"cidade_correta\": true | false,\n"
-            "    \"tipo_aceito\": true | false,\n"
-            "    \"nome_ou_parentesco_confere\": true | false,\n"
-            "    \"data_recente\": true | false\n"
+            "  \"audit_checklist\": {\n"
+            "    \"correct_city\": true | false,\n"
+            "    \"accepted_type\": true | false,\n"
+            "    \"name_or_family_relationship_matches\": true | false,\n"
+            "    \"recent_date\": true | false\n"
             "  },\n"
-            "  \"motivo\": \"Explicação direta do veredito.\"\n"
-        
+            "  \"reason\": \"Direct explanation of the verdict.\"\n"
+            "}"
         )
 
         response = client.models.generate_content(
