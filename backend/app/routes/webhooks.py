@@ -9,7 +9,9 @@ from app.services.email_service import (
     enviar_carteiras_por_email,
     enviar_voucher_hotel,
     enviar_voucher_pacote,
-    enviar_voucher_passeio
+    enviar_voucher_passeio,
+    enviar_notificacao_hotel_pacote,  # ◄── Nova automação para o Hotel
+    enviar_balanco_secretaria         # ◄── Nova automação para a Prefeitura
 )
 
 router = APIRouter()
@@ -61,11 +63,17 @@ async def webhook_pagbank(request: Request):
         status_sucesso = ["PAID", "AUTHORIZED", "COMPLETED", "APPROVED"]
         
         if status_normalizado in status_sucesso:
+            # 1. Atualiza o pedido para Pago
             supabase.table("pedidos").update({
                 "status_pagamento": "pago"
             }).eq("codigo_pedido", reference_id).execute()
             
-            print(f"[WEBHOOK] SUCESSO: O pagamento de {reference_id} foi confirmado.")
+            # 2. ◄── NOVA SINCRONIZAÇÃO: Atualiza os repasses financeiros para 'pago' ──►
+            supabase.table("repasses_financeiros").update({
+                "status_repasse": "pago"
+            }).eq("pedido_id", pedido.get("id")).execute()
+            
+            print(f"[WEBHOOK] SUCESSO: O pagamento de {reference_id} e os repasses foram confirmados.")
 
             tipo = pedido.get("tipo_item")
             email_cliente = pedido.get("email_cliente")
@@ -94,10 +102,8 @@ async def webhook_pagbank(request: Request):
                     nome_real_destino = nome_cliente
 
                     for res in residentes_encontrados:
-                        # Usando a palavra "ativo" no masculino para o Supabase não bloquear
                         supabase.table("rd_residentes").update({"status": "ativo"}).eq("id", res["id"]).execute()
                         
-                        # ◄── PUXA O E-MAIL E NOME REAIS DA BASE DE DADOS!
                         if res.get("email"):
                             email_real_destino = res["email"]
                         if res.get("nome_completo"):
@@ -166,23 +172,23 @@ async def webhook_pagbank(request: Request):
                 pacote_id = pedido.get("item_id")
                 nome_pacote = "Pacote de Expedição SagaTurismo"
                 nome_hotel = "Alojamento Oficial Incluso"
+                email_hotel_destino = None  # ◄── Armazenará o email do hotel
                 nome_guia = "Guia Credenciado Atribuído"
                 ponto_encontro = "Centro de Atendimento ao Turista (CAT) de São Geraldo do Araguaia."
 
                 try:
-                    # Busca o pacote com segurança
                     res_p = supabase.table("pacotes").select("titulo, roteiro_detalhado").eq("id", pacote_id).execute()
                     if res_p.data and len(res_p.data) > 0:
                         nome_pacote = res_p.data[0].get("titulo", nome_pacote)
 
-                    # Busca o hotel com segurança
+                    # Busca o hotel com segurança e captura o e-mail cadastrado dele
                     hotel_id_pedido = pedido.get("hotel_id")
                     if hotel_id_pedido:
-                        res_h = supabase.table("hoteis").select("nome").eq("id", hotel_id_pedido).execute()
+                        res_h = supabase.table("hoteis").select("nome, email").eq("id", hotel_id_pedido).execute()
                         if res_h.data and len(res_h.data) > 0: 
                             nome_hotel = res_h.data[0].get("nome")
+                            email_hotel_destino = res_h.data[0].get("email")
 
-                    # Busca o guia com segurança (na tabela 'guias' e não 'parceiros')
                     guia_id_pedido = pedido.get("guia_id")
                     if guia_id_pedido:
                         res_g = supabase.table("guias").select("nome").eq("id", guia_id_pedido).execute()
@@ -201,12 +207,48 @@ async def webhook_pagbank(request: Request):
                     "ponto_encontro": ponto_encontro
                 }
 
+                # Envia o voucher normal do Cliente
                 try:
                     caminho_pdf = gerar_pdf_voucher(pedido, dados_pacote)
                     enviar_voucher_pacote(email_cliente, nome_cliente, dados_pacote, caminho_pdf)
                     print(f"[WEBHOOK] Voucher do Pacote c/ PDF enviado para {email_cliente}")
                 except Exception as e_mail:
                     print(f"[WEBHOOK] Erro ao disparar voucher do pacote: {e_mail}")
+
+                # ◄── NOVIDADE: DISPARO DE E-MAILS DE PARCEIROS (ITEM 4) ──►
+                try:
+                    # 1. Lógica matemática de diárias
+                    d_in = datetime.strptime(pedido.get("data_checkin"), "%Y-%m-%d")
+                    d_out = datetime.strptime(pedido.get("data_checkout"), "%Y-%m-%d")
+                    m_diarias = max(1, (d_out - d_in).days)
+                    n_pessoas = pedido.get("quantidade_pessoas", 2)
+
+                    # 2. Enviar e-mail de alerta para o Hotel
+                    if email_hotel_destino:
+                        enviar_notificacao_hotel_pacote(
+                            email_hotel=email_hotel_destino,
+                            nome_hotel=nome_hotel,
+                            nome_hospede=nome_cliente,
+                            data_checkin=pedido.get("data_checkin"),
+                            nome_pacote=nome_pacote,
+                            diarias=m_diarias,
+                            pessoas=n_pessoas
+                        )
+                    else:
+                        print(f"[WEBHOOK AVISO] Hotel {nome_hotel} não possui e-mail cadastrado para notificações.")
+
+                    # 3. Enviar e-mail de balanço para a Secretaria de Turismo
+                    email_secretaria = os.environ.get("EMAIL_SECRETARIA", "turismo@saogeraldo.pa.gov.br")
+                    enviar_balanco_secretaria(
+                        email_secretaria=email_secretaria,
+                        nome_pacote=nome_pacote,
+                        valor_venda=pedido.get("valor_total", 0.0),
+                        nome_cliente=nome_cliente,
+                        codigo_pedido=reference_id
+                    )
+
+                except Exception as e_parceiros:
+                    print(f"[WEBHOOK PARCEIROS] Falha ao processar notificações de e-mail: {e_parceiros}")
 
             # ────────────────────────────────────────────────────────
             # CASO D: COMPRA DE PASSEIO AVULSO
@@ -228,7 +270,6 @@ async def webhook_pagbank(request: Request):
                         g_id = res_pass.data[0].get("guia_id") or pedido.get("guia_id")
                         
                         if g_id:
-                            # Procura o guia na tabela correta ('guias' e não 'parceiros')
                             res_g = supabase.table("guias").select("nome, whatsapp").eq("id", g_id).execute()
                             if res_g.data and len(res_g.data) > 0:
                                 nome_guia = res_g.data[0].get("nome", nome_guia)

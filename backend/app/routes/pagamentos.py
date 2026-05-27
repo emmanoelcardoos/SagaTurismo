@@ -205,7 +205,7 @@ async def processar_pagamento(pedido: PedidoPagamento):
             if res_q_info.data: nome_quarto_real_texto = res_q_info.data["nome_quarto"]
             
             rec_id = res_hotel_info.data.get("pagbank_recebedor_id")
-            if rec_id and str(rec_id).startswith("ACC_"):
+            if rec_id and str(rec_id).startswith("ACC"):
                 # Proteção contra falha de arredondamento de centavos
                 valor_repasse = int(round(valor_total * fator_liquido, 2) * 100)
                 recebedores_split.append({ "account": {"id": rec_id}, "amount": {"value": valor_repasse} })
@@ -230,7 +230,7 @@ async def processar_pagamento(pedido: PedidoPagamento):
                 res_g = supabase.table("guias").select("pagbank_recebedor_id").eq("id", guia_proprietario_id).single().execute()
                 if res_g.data:
                     rec_id = res_g.data.get("pagbank_recebedor_id")
-                    if rec_id and str(rec_id).startswith("ACC_"):
+                    if rec_id and str(rec_id).startswith("ACC"):
                         valor_repasse = int(round(valor_total * fator_liquido, 2) * 100)
                         recebedores_split.append({ "account": {"id": rec_id}, "amount": {"value": valor_repasse} })
 
@@ -268,7 +268,7 @@ async def processar_pagamento(pedido: PedidoPagamento):
                         v_individual_atr = float(res_atr.data["preco_entrada"]) * pedido.adultos
                         v_atracoes_total += v_individual_atr
                         rec_id = res_atr.data.get("pagbank_recebedor_id")
-                        if rec_id and str(rec_id).startswith("ACC_"):
+                        if rec_id and str(rec_id).startswith("ACC"):
                             valor_repasse = int(round(v_individual_atr * fator_liquido, 2) * 100)
                             recebedores_split.append({ "account": {"id": rec_id}, "amount": {"value": valor_repasse} })
                         lista_atracoes_calculadas.append({"id": atr_id, "valor": v_individual_atr})
@@ -304,7 +304,7 @@ async def processar_pagamento(pedido: PedidoPagamento):
                 res_h_info = supabase.table("hoteis").select("pagbank_recebedor_id").eq("id", pacote_hotel_id).single().execute()
                 if res_h_info.data:
                     rec_id = res_h_info.data.get("pagbank_recebedor_id")
-                    if rec_id and str(rec_id).startswith("ACC_"):
+                    if rec_id and str(rec_id).startswith("ACC"):
                         valor_repasse = int(round(v_hospedagem_total * fator_liquido, 2) * 100)
                         recebedores_split.append({ "account": {"id": rec_id}, "amount": {"value": valor_repasse} })
 
@@ -319,7 +319,7 @@ async def processar_pagamento(pedido: PedidoPagamento):
                 if res_g.data:
                     v_guia_total = float(res_g.data["preco_diaria"]) * (noites_finais + 1)
                     rec_id = res_g.data.get("pagbank_recebedor_id")
-                    if rec_id and str(rec_id).startswith("ACC_"):
+                    if rec_id and str(rec_id).startswith("ACC"):
                         valor_repasse = int(round(v_guia_total * fator_liquido, 2) * 100)
                         recebedores_split.append({ "account": {"id": rec_id}, "amount": {"value": valor_repasse} })
 
@@ -335,7 +335,7 @@ async def processar_pagamento(pedido: PedidoPagamento):
                 res_agente = supabase.table("agencias").select("pagbank_recebedor_id").eq("id", parceiro_agente_id).execute()
                 if res_agente.data and len(res_agente.data) > 0:
                     rec_id_agente = res_agente.data[0].get("pagbank_recebedor_id")
-                    if rec_id_agente and str(rec_id_agente).startswith("ACC_"):
+                    if rec_id_agente and str(rec_id_agente).startswith("ACC"):
                         valor_repasse = int(round(lucro_agente_split * fator_liquido, 2) * 100)
                         recebedores_split.append({ "account": {"id": rec_id_agente}, "amount": {"value": valor_repasse} })
 
