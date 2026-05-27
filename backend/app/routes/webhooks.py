@@ -9,9 +9,7 @@ from app.services.email_service import (
     enviar_carteiras_por_email,
     enviar_voucher_hotel,
     enviar_voucher_pacote,
-    enviar_voucher_passeio,
-    enviar_notificacao_hotel_pacote,  # ◄── Nova automação para o Hotel
-    enviar_balanco_secretaria         # ◄── Nova automação para a Prefeitura
+    enviar_voucher_passeio
 )
 
 router = APIRouter()
@@ -63,24 +61,24 @@ async def webhook_pagbank(request: Request):
         status_sucesso = ["PAID", "AUTHORIZED", "COMPLETED", "APPROVED"]
         
         if status_normalizado in status_sucesso:
-            # 1. Atualiza o pedido para Pago
+            # 1. Atualiza o status do pedido
             supabase.table("pedidos").update({
                 "status_pagamento": "pago"
             }).eq("codigo_pedido", reference_id).execute()
             
-            # 2. ◄── NOVA SINCRONIZAÇÃO: Atualiza os repasses financeiros para 'pago' ──►
+            # 2. Atualiza os repasses financeiros para o painel dos parceiros
             supabase.table("repasses_financeiros").update({
                 "status_repasse": "pago"
             }).eq("pedido_id", pedido.get("id")).execute()
             
-            print(f"[WEBHOOK] SUCESSO: O pagamento de {reference_id} e os repasses foram confirmados.")
+            print(f"[WEBHOOK] SUCESSO: O pagamento de {reference_id} foi confirmado.")
 
             tipo = pedido.get("tipo_item")
             email_cliente = pedido.get("email_cliente")
             nome_cliente = pedido.get("nome_cliente")
             
             # ────────────────────────────────────────────────────────
-            # CASO A: CARTEIRA DIGITAL DE RESIDENTE (E-MAIL CORRIGIDO)
+            # CASO A: CARTEIRA DIGITAL DE RESIDENTE
             # ────────────────────────────────────────────────────────
             if tipo == "carteira":
                 token_id = pedido.get("item_id") 
@@ -166,13 +164,12 @@ async def webhook_pagbank(request: Request):
                     print(f"[WEBHOOK] Erro ao disparar voucher do hotel: {e_mail}")
 
             # ────────────────────────────────────────────────────────
-            # CASO C: COMPRA DE PACOTE TURÍSTICO COMPÓSITO
+            # CASO C: COMPRA DE PACOTE TURÍSTICO
             # ────────────────────────────────────────────────────────
             elif tipo == "pacote":
                 pacote_id = pedido.get("item_id")
                 nome_pacote = "Pacote de Expedição SagaTurismo"
                 nome_hotel = "Alojamento Oficial Incluso"
-                email_hotel_destino = None  # ◄── Armazenará o email do hotel
                 nome_guia = "Guia Credenciado Atribuído"
                 ponto_encontro = "Centro de Atendimento ao Turista (CAT) de São Geraldo do Araguaia."
 
@@ -181,13 +178,11 @@ async def webhook_pagbank(request: Request):
                     if res_p.data and len(res_p.data) > 0:
                         nome_pacote = res_p.data[0].get("titulo", nome_pacote)
 
-                    # Busca o hotel com segurança e captura o e-mail cadastrado dele
                     hotel_id_pedido = pedido.get("hotel_id")
                     if hotel_id_pedido:
-                        res_h = supabase.table("hoteis").select("nome, email").eq("id", hotel_id_pedido).execute()
+                        res_h = supabase.table("hoteis").select("nome").eq("id", hotel_id_pedido).execute()
                         if res_h.data and len(res_h.data) > 0: 
                             nome_hotel = res_h.data[0].get("nome")
-                            email_hotel_destino = res_h.data[0].get("email")
 
                     guia_id_pedido = pedido.get("guia_id")
                     if guia_id_pedido:
@@ -207,48 +202,12 @@ async def webhook_pagbank(request: Request):
                     "ponto_encontro": ponto_encontro
                 }
 
-                # Envia o voucher normal do Cliente
                 try:
                     caminho_pdf = gerar_pdf_voucher(pedido, dados_pacote)
                     enviar_voucher_pacote(email_cliente, nome_cliente, dados_pacote, caminho_pdf)
                     print(f"[WEBHOOK] Voucher do Pacote c/ PDF enviado para {email_cliente}")
                 except Exception as e_mail:
                     print(f"[WEBHOOK] Erro ao disparar voucher do pacote: {e_mail}")
-
-                # ◄── NOVIDADE: DISPARO DE E-MAILS DE PARCEIROS (ITEM 4) ──►
-                try:
-                    # 1. Lógica matemática de diárias
-                    d_in = datetime.strptime(pedido.get("data_checkin"), "%Y-%m-%d")
-                    d_out = datetime.strptime(pedido.get("data_checkout"), "%Y-%m-%d")
-                    m_diarias = max(1, (d_out - d_in).days)
-                    n_pessoas = pedido.get("quantidade_pessoas", 2)
-
-                    # 2. Enviar e-mail de alerta para o Hotel
-                    if email_hotel_destino:
-                        enviar_notificacao_hotel_pacote(
-                            email_hotel=email_hotel_destino,
-                            nome_hotel=nome_hotel,
-                            nome_hospede=nome_cliente,
-                            data_checkin=pedido.get("data_checkin"),
-                            nome_pacote=nome_pacote,
-                            diarias=m_diarias,
-                            pessoas=n_pessoas
-                        )
-                    else:
-                        print(f"[WEBHOOK AVISO] Hotel {nome_hotel} não possui e-mail cadastrado para notificações.")
-
-                    # 3. Enviar e-mail de balanço para a Secretaria de Turismo
-                    email_secretaria = os.environ.get("EMAIL_SECRETARIA", "turismo@saogeraldo.pa.gov.br")
-                    enviar_balanco_secretaria(
-                        email_secretaria=email_secretaria,
-                        nome_pacote=nome_pacote,
-                        valor_venda=pedido.get("valor_total", 0.0),
-                        nome_cliente=nome_cliente,
-                        codigo_pedido=reference_id
-                    )
-
-                except Exception as e_parceiros:
-                    print(f"[WEBHOOK PARCEIROS] Falha ao processar notificações de e-mail: {e_parceiros}")
 
             # ────────────────────────────────────────────────────────
             # CASO D: COMPRA DE PASSEIO AVULSO
