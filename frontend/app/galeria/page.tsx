@@ -88,7 +88,7 @@ function HeroCarrossel({ fotos }: { fotos: Foto[] }) {
           <Image src={foto.imagem_url} alt={foto.titulo} fill className="object-cover" priority={idx === 0} />
           
           {/* Gradiente sútil APENAS na parte de baixo para garantir a leitura do texto */}
-          <div className="absolute inset-x-0 bottom-0 h-[60%] bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 h-[100%] bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
         </div>
       ))}
 
