@@ -714,7 +714,7 @@ useEffect(() => {
             <AnimatedSection animation="fade-right" className="md:col-span-2 md:row-span-2">
               <Link href="/rotas" className="relative h-[500px] rounded-[2rem] overflow-hidden group block">
                 <div className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-                  style={{ backgroundImage: "url('https://images.pexels.com/photos/31780330/pexels-photo-31780330.jpeg')" }} />
+                  style={{ backgroundImage: "url('https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/IMG_1803.PNG')" }} />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent" />
                 <div className="absolute bottom-8 left-8 right-8 text-white">
                   <h3 className={`${jakarta.className} text-4xl font-black mb-2`}>Roteiros</h3>
@@ -743,7 +743,7 @@ useEffect(() => {
             <AnimatedSection animation="fade-left" delay={400}>
               <Link href="/gastronomia" className="relative h-[240px] rounded-[2rem] overflow-hidden group block">
                 <div className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-                  style={{ backgroundImage: "url('https://images.pexels.com/photos/23428079/pexels-photo-23428079.jpeg?_gl=1*g7lreo*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzk0OTc2MzAkbzUxJGcxJHQxNzc5NTAxOTYyJGo0JGwwJGgw')" }} />
+                  style={{ backgroundImage: "url('https://images.pexels.com/photos/3727208/pexels-photo-3727208.jpeg?_gl=1*1xsyb3f*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzk5NjEyMzQkbzY3JGcxJHQxNzc5OTYxMjczJGoyMSRsMCRoMA..')" }} />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent" />
                 <div className="absolute bottom-6 left-6 right-6 text-white">
                   <h3 className={`${jakarta.className} text-2xl font-black mb-2`}>Gastronomia</h3>
@@ -776,7 +776,7 @@ useEffect(() => {
       <SeccaoPasseios />
 
       {/* ── ALDEIAS INDÍGENAS ── */}
-      <section className="py-24 bg-white overflow-hidden">
+      {/* <section className="py-24 bg-white overflow-hidden">
         <div className="max-w-[1400px] mx-auto px-6">
           <AnimatedSection animation="fade-up" className="mb-16">
             <h2 className={`${jakarta.className} text-5xl md:text-7xl font-black text-slate-900 leading-[0.9]`}>

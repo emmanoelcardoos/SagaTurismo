@@ -14,7 +14,7 @@ export default function LoginPage() {
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     // Senha correta
-    if (password === 'caverna123') {
+    if (password === 'paocommanteiga') {
       document.cookie = "projeto_autorizado=true; path=/; max-age=3600; SameSite=Strict";
       window.location.href = '/';
     } else {
