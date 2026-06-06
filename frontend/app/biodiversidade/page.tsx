@@ -110,7 +110,7 @@ function HeroBiodiversidade() {
   }, []);
 
   return (
-    <section className="relative h-screen flex flex-col items-start justify-end pb-24 px-6 md:px-12 overflow-hidden bg-[#021a0d]">
+    <section className="relative h-[80vh] flex flex-col items-start justify-end pb-24 px-6 md:px-12 overflow-hidden bg-[#021a0d]">
       {/* Parallax image */}
       <div className="absolute inset-0 z-0" style={{ transform: `translateY(${scrollY * 0.3}px)` }}>
         <Image
@@ -124,16 +124,9 @@ function HeroBiodiversidade() {
       <div className="absolute inset-0 bg-gradient-to-t from-[#021a0d] via-[#021a0d]/30 to-transparent z-0" />
       <div className="absolute inset-0 bg-gradient-to-r from-[#021a0d]/60 to-transparent z-0" />
 
-      {/* Linha decorativa lateral */}
-      <div className="absolute left-6 md:left-12 top-1/3 bottom-1/4 w-[1px] bg-gradient-to-b from-transparent via-[#F9C400]/50 to-transparent z-10" />
-
       {/* Conteúdo */}
       <div className="relative z-10 max-w-[1400px] w-full mx-auto">
         <div className="flex flex-col items-start">
-          <p className="text-[#F9C400] font-black uppercase tracking-[0.35em] text-[9px] md:text-[10px] mb-5 flex items-center gap-3">
-            <span className="w-8 h-[1px] bg-[#F9C400]" />
-            Parque Estadual Serra das Andorinhas/Martírios
-          </p>
 
           <h1 className={`${jakarta.className} text-[clamp(3.5rem,8vw,9rem)] font-black text-white leading-[0.88] mb-6`}>
             Bio<br />
@@ -143,15 +136,6 @@ function HeroBiodiversidade() {
           <p className="text-white/60 text-base md:text-xl max-w-lg mb-10 font-medium leading-relaxed">
             Onde a Amazônia encontra o Cerrado.
           </p>
-
-          <div className="flex flex-wrap gap-4">
-            <a href="#parque" className="inline-flex items-center gap-3 bg-[#009640] text-white px-8 py-4 rounded-full font-black text-[10px] uppercase tracking-widest hover:bg-[#007a33] transition-colors">
-              Explorar o Parque <ArrowRight size={14} />
-            </a>
-            <a href="#fauna" className="inline-flex items-center gap-3 border border-white/20 text-white px-8 py-4 rounded-full font-black text-[10px] uppercase tracking-widest hover:bg-white/10 transition-colors">
-              Ver Fauna & Flora
-            </a>
-          </div>
         </div>
       </div>
 
@@ -208,7 +192,7 @@ function SecParque() {
           {/* Card grande — serras */}
           <Reveal anim="right" className="md:col-span-7">
             <div className="group relative h-[460px] rounded-[2rem] overflow-hidden bg-[#051a09]">
-              <Image src="https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?w=1200&q=80" alt="Floresta da Serra" fill className="object-cover opacity-60 group-hover:scale-105 group-hover:opacity-80 transition-all duration-1000" />
+              <Image src="https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/Serra_Das_Andorinhas_02.JPG" alt="Floresta da Serra" fill className="object-cover opacity-60 group-hover:scale-105 group-hover:opacity-80 transition-all duration-1000" />
               <div className="absolute inset-0 bg-gradient-to-t from-[#021a0d]/90 via-transparent to-transparent" />
               <div className="absolute bottom-8 left-8 right-8 text-white">
                 <Mountain size={24} className="text-[#F9C400] mb-3" />
@@ -222,7 +206,7 @@ function SecParque() {
           <div className="md:col-span-5 flex flex-col gap-5">
             <Reveal anim="left" delay={100}>
               <div className="group relative h-[220px] rounded-[2rem] overflow-hidden bg-[#00577C]">
-                <Image src="https://images.pexels.com/photos/31780330/pexels-photo-31780330.jpeg?w=800" alt="Rio Araguaia" fill className="object-cover opacity-50 group-hover:opacity-70 transition-all duration-700" />
+                <Image src="https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/ponte-99.jfif.jpeg" alt="Rio Araguaia" fill className="object-cover opacity-50 group-hover:opacity-70 transition-all duration-700" />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#00577C]/90 to-transparent" />
                 <div className="absolute bottom-6 left-6 right-6 text-white">
                   <Waves size={20} className="text-[#F9C400] mb-2" />
@@ -234,7 +218,7 @@ function SecParque() {
 
             <Reveal anim="left" delay={200}>
               <div className="group relative h-[220px] rounded-[2rem] overflow-hidden bg-[#1a4a2a]">
-                <Image src="https://images.unsplash.com/photo-1504701954957-2010ec3bcec1?w=800&q=80" alt="Floresta densa" fill className="object-cover opacity-50 group-hover:opacity-70 transition-all duration-700" />
+                <Image src="https://images.pexels.com/photos/18064280/pexels-photo-18064280.jpeg?_gl=1*1642x6g*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3ODA3NTAwOTQkbzY5JGcxJHQxNzgwNzUwMzAxJGoyOSRsMCRoMA.." alt="Floresta densa" fill className="object-cover opacity-50 group-hover:opacity-70 transition-all duration-700" />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#1a4a2a]/90 to-transparent" />
                 <div className="absolute bottom-6 left-6 right-6 text-white">
                   <Leaf size={20} className="text-[#F9C400] mb-2" />
@@ -261,7 +245,7 @@ function SecBiomas() {
 
         {/* Amazônia */}
         <div className="relative group overflow-hidden bg-[#021a0d] flex items-end p-10 md:p-16 min-h-[50vh] md:min-h-0">
-          <Image src="https://images.unsplash.com/photo-1536147116438-62679a5e01f2?w=900&q=80" alt="Floresta Amazônica" fill className="object-cover opacity-40 group-hover:scale-105 group-hover:opacity-55 transition-all duration-1000" />
+          <Image src="https://images.pexels.com/photos/4642462/pexels-photo-4642462.jpeg?_gl=1*170nnnw*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3ODA3NTAwOTQkbzY5JGcxJHQxNzgwNzUwNTU2JGozNyRsMCRoMA.." alt="Floresta Amazônica" fill className="object-cover opacity-40 group-hover:scale-105 group-hover:opacity-55 transition-all duration-1000" />
           <div className="absolute inset-0 bg-gradient-to-t from-[#021a0d]/95 via-[#021a0d]/30 to-transparent" />
           <Reveal anim="right" className="relative z-10">
             <h3 className={`${jakarta.className} text-5xl md:text-6xl font-black text-white leading-[0.9] mb-4`}>
@@ -280,7 +264,7 @@ function SecBiomas() {
 
         {/* Cerrado */}
         <div className="relative group overflow-hidden bg-[#1a0e02] flex items-end p-10 md:p-16 min-h-[50vh] md:min-h-0">
-          <Image src="https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=900&q=80" alt="Cerrado" fill className="object-cover opacity-40 group-hover:scale-105 group-hover:opacity-55 transition-all duration-1000" />
+          <Image src="https://images.pexels.com/photos/9101309/pexels-photo-9101309.jpeg?_gl=1*rgl0ww*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3ODA3NTAwOTQkbzY5JGcxJHQxNzgwNzUwNTk4JGo1OSRsMCRoMA.." alt="Cerrado" fill className="object-cover opacity-40 group-hover:scale-105 group-hover:opacity-55 transition-all duration-1000" />
           <div className="absolute inset-0 bg-gradient-to-t from-[#1a0e02]/95 via-[#1a0e02]/30 to-transparent" />
           <Reveal anim="left" delay={150} className="relative z-10">
             <h3 className={`${jakarta.className} text-5xl md:text-6xl font-black text-white leading-[0.9] mb-4`}>
@@ -300,9 +284,6 @@ function SecBiomas() {
 
       {/* Linha de transição central */}
       <div className="hidden md:block absolute top-0 left-1/2 -translate-x-1/2 w-[1px] h-full bg-gradient-to-b from-transparent via-white/20 to-transparent z-20 pointer-events-none" />
-      <div className="hidden md:block absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 bg-white/10 backdrop-blur border border-white/20 rounded-full px-4 py-2">
-        <p className="text-white font-black text-[8px] uppercase tracking-widest">Zona de Transição</p>
-      </div>
     </section>
   );
 }
@@ -323,15 +304,12 @@ function SecCachoeiras() {
           <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-8">
             <div>
               <p className="text-[#F9C400] font-black text-[9px] uppercase tracking-[0.35em] mb-4 flex items-center gap-3">
-                <span className="w-6 h-[1px] bg-[#F9C400]" /> Parque Estadual
+                <span className="w-6 h-[1px] bg-[#F9C400]" /> Parque Estadual Serra das Andorinhas-Martírios
               </p>
               <h2 className={`${jakarta.className} text-5xl md:text-8xl font-black text-white leading-[0.88]`}>
                 11<br /><span className="italic text-[#F9C400]">Cachoeiras</span>
               </h2>
             </div>
-            <p className="text-white/40 max-w-xs text-sm leading-relaxed">
-              Cada cachoeira é um mundo à parte — formações rochosas únicas, piscinas naturais e trilhas de dificuldades variadas para todos os perfis de visitantes.
-            </p>
           </div>
         </Reveal>
 

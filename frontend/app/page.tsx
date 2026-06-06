@@ -580,27 +580,6 @@ export default function HomePage() {
   const [lastScrollY, setLastScrollY] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Efeito de scroll suave automático ao carregar a página (forçar leve scroll)
-  // Scroll automático suave e elegante
-useEffect(() => {
-  const timer = setTimeout(() => {
-    const start = window.scrollY;
-    const target = start + 50;
-    const duration = 1500; // 1.5 segundos
-    const startTime = performance.now();
-
-    const animate = (now: number) => {
-      const elapsed = now - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const easeOut = 1 - (1 - progress) ** 2;
-      window.scrollTo(0, start + (target - start) * easeOut);
-      if (progress < 1) requestAnimationFrame(animate);
-    };
-    requestAnimationFrame(animate);
-  }, 600);
-  return () => clearTimeout(timer);
-}, []);
-
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
@@ -668,7 +647,7 @@ useEffect(() => {
       </header>
 
       {/* ── HERO SECTION PREMIUM (sem indicador de scroll) ── */}
-      <section className="relative min-h-screen flex flex-col 
+      <section className="relative h-[95vh] flex flex-col 
         justify-end md:justify-end        
         pb-20 md:pb-20 px-6 md:px-10 overflow-hidden bg-[#002f40]
         max-md:justify-center             
@@ -774,47 +753,6 @@ useEffect(() => {
 
       {/* ── PASSEIOS ── */}
       <SeccaoPasseios />
-
-      {/* ── ALDEIAS INDÍGENAS ── */}
-      {/* <section className="py-24 bg-white overflow-hidden">
-        <div className="max-w-[1400px] mx-auto px-6">
-          <AnimatedSection animation="fade-up" className="mb-16">
-            <h2 className={`${jakarta.className} text-5xl md:text-7xl font-black text-slate-900 leading-[0.9]`}>
-              Povos<br /><span className="italic text-[#009640]">Originários</span>
-            </h2>
-          </AnimatedSection>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <AnimatedSection animation="fade-right" className="md:col-span-2">
-              <Link href="/aldeias" className="group relative h-[440px] rounded-[2rem] overflow-hidden bg-slate-900 block">
-                <Image src="https://images.pexels.com/photos/12434691/pexels-photo-12434691.jpeg" alt="Aldeias Indígenas" fill className="object-cover opacity-80 group-hover:scale-105 transition-transform duration-700" />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent" />
-                <div className="absolute bottom-8 left-8 right-8 text-white">
-                  <p className={`${jakarta.className} text-2xl font-black mb-4`}>Cultura, respeito e ancestralidade.</p>
-                  <span className="inline-flex items-center gap-2 bg-[#F9C400] text-[#00577C] px-6 py-2.5 rounded-full font-black text-xs uppercase tracking-widest">
-                    Conhecer as Aldeias <ArrowRight size={14} />
-                  </span>
-                </div>
-              </Link>
-            </AnimatedSection>
-
-            <AnimatedSection animation="fade-left" delay={200}>
-              <Link href="/aldeias" className="rounded-[2rem] bg-[#009640] p-8 h-[440px] flex flex-col justify-between text-white block group hover:bg-[#007a35] transition-colors">
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60 mb-4">Patrimônio Vivo</p>
-                  <h3 className={`${jakarta.className} text-3xl font-black leading-tight mb-4`}>Guardiões da floresta e dos rios</h3>
-                  <p className="text-white/70 text-sm leading-relaxed">
-                    O município orgulha-se de ser o lar de diversas comunidades indígenas. Guardiões de saberes milenares, rituais, artesanato e conexão profunda com a natureza amazónica.
-                  </p>
-                </div>
-                <span className="inline-flex items-center gap-2 text-[#F9C400] font-black text-xs uppercase tracking-widest group-hover:gap-4 transition-all">
-                  Saber mais <ArrowRight size={14} />
-                </span>
-              </Link>
-            </AnimatedSection>
-          </div>
-        </div>
-      </section>
 
       {/* ── HISTÓRIA ── */}
       <section id="historia" className="py-24 bg-[#002f40] overflow-hidden">

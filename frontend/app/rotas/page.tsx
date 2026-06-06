@@ -5,7 +5,8 @@ import Image from 'next/image';
 import { useEffect, useState, useRef, ReactNode } from 'react';
 import {
   Menu, X, ArrowRight, ArrowLeft, Loader2, Compass,
-  TreePine, Waves, Mountain, ChevronDown, MapPin, Clock, Users
+  TreePine, Waves, Mountain, ChevronDown, MapPin, Clock, Users,
+  ShieldCheck
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -13,39 +14,41 @@ import { supabase } from '@/lib/supabase';
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '700', '800'] });
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
 
+// ── TIPO ROTA (com as novas colunas) ──
 type RotaTuristica = {
   id: string;
   titulo: string;
   descricao_curta: string;
   imagem_url: string;
   ordem: number | null;
+  duracao: string | null;
+  dificuldade: string | null;
+  grupo: string | null;
+  guia: string | null;
 };
 
-// ── SISTEMA DE TEMAS (CÍCLICO E COMPLETO) ──
+// ── SISTEMA DE TEMAS (apenas cores e ícones – detalhes vêm da base de dados) ──
 const themes = [
   {
     cor: '#00577C',
     corAccent: '#F9C400',
     bgDark: '#001f2e',
-    label: 'Rota das Águas',
     icon: <Waves size={16} />,
-    detalhes: { duracao: '4–6 horas', dificuldade: 'Moderada', grupo: 'Sem limite de pessoas' },
+    label: 'Rota das Águas',
   },
   {
     cor: '#009640',
     corAccent: '#F9C400',
     bgDark: '#051a09',
-    label: 'Rota da Mata',
     icon: <TreePine size={16} />,
-    detalhes: { duracao: '6–8 horas', dificuldade: 'Difícil', grupo: 'Sem limite de pessoas' },
+    label: 'Rota da Mata',
   },
   {
     cor: '#8b5e0a',
     corAccent: '#F9C400',
     bgDark: '#1a0e02',
-    label: 'Rota da Serra',
     icon: <Mountain size={16} />,
-    detalhes: { duracao: '3–5 horas', dificuldade: 'Fácil', grupo: 'Sem limite de pessoas' },
+    label: 'Rota da Serra',
   },
 ];
 
@@ -86,12 +89,18 @@ function Reveal({ children, className = '', anim = 'up', delay = 0 }: {
 }
 
 // ══════════════════════════════════════
-// CARD DE ROTA (USANDO ÍNDICE PARA O TEMA)
+// CARD DE ROTA (USANDO DADOS REAIS DO BANCO)
 // ══════════════════════════════════════
 function RotaCard({ rota, themeIndex }: { rota: RotaTuristica; themeIndex: number }) {
-  const theme = themes[themeIndex % themes.length]; // tema cíclico baseado na posição
+  const theme = themes[themeIndex % themes.length];
   const isPar = themeIndex % 2 === 0;
   const num = String(rota.ordem || themeIndex + 1).padStart(2, '0');
+
+  // Valores reais vindo da base de dados (com fallback)
+  const duracao = rota.duracao || 'Não informada';
+  const dificuldade = rota.dificuldade || 'Não informada';
+  const grupo = rota.grupo || 'Sem limite';
+  const guia = rota.guia || 'Recomendado';
 
   return (
     <article className="relative group">
@@ -121,13 +130,6 @@ function RotaCard({ rota, themeIndex }: { rota: RotaTuristica; themeIndex: numbe
           <div className="absolute inset-0 pointer-events-none lg:hidden"
             style={{ background: `linear-gradient(to top, ${theme.bgDark} 0%, transparent 60%)` }} />
 
-          <div className="absolute top-6 left-6 z-10 w-14 h-14 rounded-2xl flex items-center justify-center shadow-2xl"
-            style={{ backgroundColor: theme.corAccent }}>
-            <span className={`${jakarta.className} text-xl font-black`} style={{ color: theme.bgDark }}>
-              {num}
-            </span>
-          </div>
-
           <div className="absolute top-6 right-6 z-10 flex items-center gap-2 px-4 py-2 rounded-full border text-[9px] font-black uppercase tracking-widest"
             style={{
               backgroundColor: theme.cor + '20',
@@ -153,13 +155,6 @@ function RotaCard({ rota, themeIndex }: { rota: RotaTuristica; themeIndex: numbe
           </div>
 
           <Reveal anim={isPar ? 'left' : 'right'} delay={100}>
-            <div className="flex items-center gap-4 mb-7">
-              <span className="w-8 h-[2px] rounded-full" style={{ backgroundColor: theme.cor }} />
-              <span className="text-[9px] font-black uppercase tracking-[0.3em]" style={{ color: theme.cor }}>
-                Roteiro {num}
-              </span>
-            </div>
-
             <h2 className={`${jakarta.className} text-5xl md:text-6xl xl:text-7xl font-black text-white leading-[0.88] mb-6`}>
               {rota.titulo}
             </h2>
@@ -170,9 +165,9 @@ function RotaCard({ rota, themeIndex }: { rota: RotaTuristica; themeIndex: numbe
 
             <div className="flex flex-wrap gap-3 mb-10">
               {[
-                { icon: <Clock size={12} />, valor: theme.detalhes.duracao },
-                { icon: <MapPin size={12} />, valor: theme.detalhes.dificuldade },
-                { icon: <Users size={12} />, valor: theme.detalhes.grupo },
+                { icon: <Clock size={12} />, valor: duracao },
+                { icon: <MapPin size={12} />, valor: dificuldade },
+                { icon: <Users size={12} />, valor: grupo },
               ].map((m, i) => (
                 <span key={i}
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold border"
@@ -218,7 +213,10 @@ export default function RotasPage() {
   useEffect(() => {
     async function fetchRotas() {
       const { data, error } = await supabase
-        .from('rotas').select('*').eq('ativo', true).order('ordem', { ascending: true });
+        .from('rotas')
+        .select('id, titulo, descricao_curta, imagem_url, ordem, duracao, dificuldade, grupo, guia')
+        .eq('ativo', true)
+        .order('ordem', { ascending: true });
       if (data) setRotas(data);
       if (error) console.error('Erro ao buscar rotas:', error);
       setLoading(false);
@@ -287,7 +285,7 @@ export default function RotasPage() {
       {/* ══════════════════════════════════════
           HERO CINEMATOGRÁFICO
       ══════════════════════════════════════ */}
-      <section className="relative h-screen flex flex-col items-start justify-end
+      <section className="relative h-[80vh] flex flex-col items-start justify-end
         pb-20 md:pb-28 px-6 md:px-12 overflow-hidden"
         style={{ backgroundColor: '#002f40' }}>
 
@@ -310,21 +308,15 @@ export default function RotasPage() {
 
         <div className="relative z-10 max-w-[1400px] w-full mx-auto">
           <Reveal anim="up">
-
             <h1 className={`${jakarta.className} text-[clamp(4rem,11vw,9rem)] font-black text-white leading-[0.88] mb-6`}>
               Rotas<br />
               <span className="italic" style={{ color: '#F9C400' }}>Turísticas</span>
             </h1>
-
             <p className="text-white/50 text-base md:text-xl max-w-lg leading-relaxed mb-10">
               Percursos desenhados para que descubras a essência da nossa terra — rios, serras e florestas — ao teu próprio ritmo.
             </p>
-
-            <div className="flex flex-wrap gap-4 items-center">
-            </div>
           </Reveal>
         </div>
-
 
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10">
           <ChevronDown size={18} className="animate-bounce" style={{ color: 'rgba(249,196,0,0.35)' }} />
@@ -360,8 +352,7 @@ export default function RotasPage() {
           <div className="grid grid-cols-1 md:grid-cols-12 gap-10 md:gap-16 items-end">
             <Reveal anim="right" className="md:col-span-6">
               <h2 className={`${jakarta.className} text-5xl md:text-7xl font-black text-white leading-[0.88]`}>
-                Descubra e encante-se com a nossa terra.<br />
-                
+                Descubra e encante-se com a nossa terra.
               </h2>
             </Reveal>
             <Reveal anim="left" delay={150} className="md:col-span-6">
@@ -468,64 +459,31 @@ export default function RotasPage() {
         </section>
       )}
 
-      {/* ── FOOTER MINIMAL DARK ── */}
-      <footer className="py-10 px-6 md:px-12 border-t"
-        style={{ backgroundColor: '#000f18', borderColor: 'rgba(0,87,124,0.15)' }}>
-        <div className="max-w-[1400px] mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-14 mb-14">
-
-            <div className="space-y-5">
-              <div className="relative h-10 w-32">
-                <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain brightness-[100] invert opacity-25" />
-              </div>
-              <p className="text-[10px] font-black uppercase tracking-widest leading-relaxed"
-                style={{ color: 'rgba(255,255,255,0.15)' }}>
-                São Geraldo do Araguaia<br />"Cidade Amada, seguindo em frente"
+      {/* FOOTER INSTITUCIONAL */}
+      <footer className="py-20 px-8 border-t border-slate-200 bg-white text-left">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
+          <div className="flex flex-col items-center md:items-start gap-4">
+            <div className="flex items-center gap-6">
+              <Image src="/logop.png" alt="SagaTurismo" width={160} height={50} className="object-contain" />
+              <div className="w-px h-12 bg-slate-200 hidden md:block" />
+              <Image src="/prefeitura.png" alt="Prefeitura de São Geraldo do Araguaia" width={140} height={50} className="object-contain" />
+            </div>
+            <div className="text-left space-y-1">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                © 2026 Secretaria Municipal de Turismo - SGA | Todos os direitos reservados
               </p>
-            </div>
-
-            <div className="space-y-4">
-              <h5 className="font-black text-[9px] uppercase tracking-widest pb-3 border-b"
-                style={{ color: 'rgba(255,255,255,0.2)', borderColor: 'rgba(255,255,255,0.06)' }}>
-                Gestão Executiva
-              </h5>
-              <ul className="text-xs space-y-2 font-medium" style={{ color: 'rgba(255,255,255,0.25)' }}>
-                <li>Prefeito:<br /><b className="text-white/40">Jefferson Douglas de Jesus Oliveira</b></li>
-                <li>Vice-Prefeito:<br /><b className="text-white/40">Marcos Antônio Candido de Lucena</b></li>
-              </ul>
-            </div>
-
-            <div className="space-y-4">
-              <h5 className="font-black text-[9px] uppercase tracking-widest pb-3 border-b"
-                style={{ color: 'rgba(255,255,255,0.2)', borderColor: 'rgba(255,255,255,0.06)' }}>
-                Turismo (SEMTUR)
-              </h5>
-              <ul className="text-xs space-y-2 font-medium" style={{ color: 'rgba(255,255,255,0.25)' }}>
-                <li>Secretária:<br /><b className="text-white/40">Micheli Stephany de Souza</b></li>
-                <li>Contato: <b className="text-white/40">(94) 98145-2067</b></li>
-                <li>Email: <b className="text-white/40">setursaga@gmail.com</b></li>
-              </ul>
-            </div>
-
-            <div className="space-y-4">
-              <h5 className="font-black text-[9px] uppercase tracking-widest pb-3 border-b"
-                style={{ color: 'rgba(255,255,255,0.2)', borderColor: 'rgba(255,255,255,0.06)' }}>
-                Equipe Técnica
-              </h5>
-              <ul className="text-xs space-y-2 font-medium" style={{ color: 'rgba(255,255,255,0.25)' }}>
-                <li>• Adriana da Luz Lima</li>
-                <li>• Carmelita Luz da Silva</li>
-                <li>• Diego Silva Costa</li>
-              </ul>
+              <p className="text-[10px] font-bold text-slate-400/80">
+                CNPJ: 10.249.241/0001-22
+              </p>
             </div>
           </div>
 
-          <div className="pt-8 border-t text-center"
-            style={{ borderColor: 'rgba(255,255,255,0.04)' }}>
-            <p className="text-[9px] font-black uppercase tracking-[0.4em]"
-              style={{ color: 'rgba(255,255,255,0.1)' }}>
-              © 2026 Secretaria Municipal de Turismo — São Geraldo do Araguaia (PA)
-            </p>
+          <div className="flex gap-10">
+            <div className="text-left border-l-2 border-slate-100 pl-9">
+              <p className="text-[10px] font-black text-[#00577C] uppercase mb-1">Contato Oficial</p>
+              <p className="text-xs font-bold text-slate-500 tracking-tight">setursaga@gmail.com</p>
+            </div>
+            <ShieldCheck size={40} className="text-[#009640] opacity-30" />
           </div>
         </div>
       </footer>

@@ -197,17 +197,13 @@ export default function GastronomiaPage() {
                         <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-700" />
                         
                         <div className="absolute bottom-6 left-6 bg-[#F9C400] px-4 py-2 rounded-full flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#00577C] shadow-md">
-                          <Flame size={14}/> Sabor Local
+                          <Flame size={14}/> Restaurante Local
                         </div>
                       </div>
                     </AnimatedSection>
 
                     {/* BLOCO DO TEXTO */}
                     <AnimatedSection animation={isPar ? "fade-left" : "fade-right"} className="w-full lg:w-1/2 text-left">
-                      <div className="flex items-center gap-3 mb-4">
-                        <span className="w-8 h-1 rounded-full bg-[#009640]" />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-[#009640]">Cozinha local {String(index + 1).padStart(2, '0')}</span>
-                      </div>
                       
                       <h2 className={`${jakarta.className} text-3xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight mb-6`}>
                         {prato.titulo}
@@ -222,31 +218,9 @@ export default function GastronomiaPage() {
                           href={`/gastronomia/${prato.id}`} 
                           className="inline-flex items-center gap-3 bg-[#00577C] text-white px-8 py-4 rounded-full font-black text-xs uppercase tracking-widest shadow-lg hover:bg-[#004a6b] hover:shadow-xl hover:-translate-y-1 transition-all group"
                         >
-                            Ver Detalhes do restaurante
+                            Conhecer o restaurante
                           <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                         </Link>
-                      </div>
-
-                      {/* Micro Detalhes Decorativos */}
-                      <div className="grid grid-cols-2 gap-4 mt-10 pt-6 border-t border-slate-100">
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-[#00577C] shrink-0">
-                            <Fish size={20} />
-                          </div>
-                          <div>
-                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Origem</p>
-                            <p className="text-sm font-black text-slate-700 leading-none mt-0.5">Ribeirinha</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-full bg-yellow-50 border border-yellow-100 flex items-center justify-center text-[#d9a000] shrink-0">
-                            <MapPin size={20} />
-                          </div>
-                          <div>
-                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Mapa</p>
-                            <p className="text-sm font-black text-slate-700 leading-none mt-0.5">Restaurantes</p>
-                          </div>
-                        </div>
                       </div>
 
                     </AnimatedSection>

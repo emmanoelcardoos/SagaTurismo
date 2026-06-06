@@ -163,7 +163,7 @@ export default function ComunidadeDetailPage() {
       </header>
 
       {/* ── HERO BANNER CINEMATOGRÁFICO ── */}
-      <section className="relative h-screen w-full flex items-end pb-24 px-6 md:px-12 overflow-hidden bg-[#001f2e]">
+      <section className="relative h-[85vh] w-full flex items-end pb-24 px-6 md:px-12 overflow-hidden bg-[#001f2e]">
         <Image src={comunidade.imagem_url} alt={comunidade.titulo} fill className="object-cover opacity-60" priority />
         <div className="absolute inset-0 bg-gradient-to-t from-[#001f2e] via-[#001f2e]/40 to-transparent" />
         
@@ -175,9 +175,6 @@ export default function ComunidadeDetailPage() {
             <p className="text-white/70 text-lg md:text-xl font-medium max-w-2xl leading-relaxed mb-8">
               {comunidade.descricao_curta}
             </p>
-            <Link href="/comunidades" className="inline-flex items-center gap-2 text-white/50 hover:text-white transition-colors text-xs font-bold uppercase tracking-widest">
-              <ArrowLeft size={16} /> Voltar à lista
-            </Link>
           </Reveal>
         </div>
       </section>

@@ -7,7 +7,8 @@ import { useParams, notFound } from 'next/navigation';
 import {
   ArrowLeft, ArrowRight, MapPin, Leaf, TreePine, Compass,
   Mountain, Waves, Sun, Wind, Camera, Users, Shield, Clock,
-  ChevronDown, Menu, X, Loader2
+  ChevronDown, Menu, X, Loader2,
+  ShieldCheck
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -308,16 +309,6 @@ export default function RotaDetailPage() {
 
             <Reveal anim="right" className="md:col-span-4">
               <div className="sticky top-32">
-                <div className="flex items-center gap-4 mb-6">
-                  <span className="w-8 h-[2px] rounded-full" style={{ backgroundColor: theme.cor }} />
-                  <span className="font-black text-[9px] uppercase tracking-[0.3em]" style={{ color: theme.cor }}>
-                    Sobre a rota
-                  </span>
-                </div>
-                <p className={`${jakarta.className} text-[120px] md:text-[160px] font-black leading-none select-none`}
-                  style={{ color: theme.cor, opacity: 0.15 }} aria-hidden="true">
-                  {numOrdem}
-                </p>
 
                 <div className="mt-8 flex flex-col gap-3">
                   {['Galeria', 'Como chegar', 'Reservar'].map((s, i) => (
@@ -443,10 +434,7 @@ export default function RotaDetailPage() {
                     style={{ backgroundColor: theme.corAccent, color: theme.bgDark }}>
                     Ver passeios disponíveis <ArrowRight size={14} />
                   </Link>
-                  <a href="tel:+5594981452067"
-                    className="flex items-center justify-center gap-3 py-4 rounded-full font-black text-[10px] uppercase tracking-widest border transition-colors border-white/20 text-white hover:bg-white/10">
-                    Ligar para a SEMTUR
-                  </a>
+                  
                 </div>
               </div>
             </Reveal>
@@ -454,85 +442,33 @@ export default function RotaDetailPage() {
         </div>
       </section>
 
-      {/* ══════════════════════════════════════
-          NAVEGAÇÃO ENTRE ROTAS
-      ══════════════════════════════════════ */}
-      {(rotaAnterior || rotaProxima) && (
-        <section className="border-t py-16 md:py-20" style={{ backgroundColor: theme.bgDark, borderColor: theme.cor + '20' }}>
-          <div className="max-w-[1400px] mx-auto px-6 md:px-12">
-            <Reveal anim="fade">
-              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-center mb-10" style={{ color: theme.cor }}>
-                Outras rotas para explorar
-              </p>
-            </Reveal>
-            <div className={`grid gap-5 ${rotaAnterior && rotaProxima ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1 max-w-md mx-auto'}`}>
-
-              {rotaAnterior && (
-                <Reveal anim="right">
-                  <Link href={`/rotas/${rotaAnterior.id}`}
-                    className="group relative h-[200px] rounded-[2rem] overflow-hidden flex items-end p-7 block"
-                    style={{ backgroundColor: theme.cor }}>
-                    <Image src={rotaAnterior.imagem_url} alt={rotaAnterior.titulo} fill
-                      className="object-cover opacity-50 group-hover:opacity-70 group-hover:scale-105 transition-all duration-700" />
-                    <div className="absolute inset-0" style={{ background: `linear-gradient(to top, ${theme.bgDark}dd, transparent)` }} />
-                    <div className="relative z-10 text-white">
-                      <p className="text-[8px] font-black uppercase tracking-widest text-white/30 flex items-center gap-2 mb-1">
-                        <ArrowLeft size={10} /> Rota anterior
-                      </p>
-                      <p className={`${jakarta.className} text-xl font-black`}>{rotaAnterior.titulo}</p>
-                    </div>
-                  </Link>
-                </Reveal>
-              )}
-
-              {rotaProxima && (
-                <Reveal anim="left" delay={rotaAnterior ? 120 : 0}>
-                  <Link href={`/rotas/${rotaProxima.id}`}
-                    className="group relative h-[200px] rounded-[2rem] overflow-hidden flex items-end p-7 block"
-                    style={{ backgroundColor: theme.cor }}>
-                    <Image src={rotaProxima.imagem_url} alt={rotaProxima.titulo} fill
-                      className="object-cover opacity-50 group-hover:opacity-70 group-hover:scale-105 transition-all duration-700" />
-                    <div className="absolute inset-0" style={{ background: `linear-gradient(to top, ${theme.bgDark}dd, transparent)` }} />
-                    <div className="relative z-10 text-white text-right ml-auto">
-                      <p className="text-[8px] font-black uppercase tracking-widest text-white/30 flex items-center justify-end gap-2 mb-1">
-                        Próxima rota <ArrowRight size={10} />
-                      </p>
-                      <p className={`${jakarta.className} text-xl font-black`}>{rotaProxima.titulo}</p>
-                    </div>
-                  </Link>
-                </Reveal>
-              )}
-            </div>
-
-            <Reveal anim="up" delay={200} className="mt-8 text-center">
-              <Link href="/rotas"
-                className="inline-flex items-center gap-3 border font-black text-[10px] uppercase tracking-widest px-8 py-4 rounded-full transition-colors"
-                style={{ borderColor: theme.cor + '40', color: 'rgba(255,255,255,0.4)' }}
-                onMouseOver={e => { (e.currentTarget as HTMLAnchorElement).style.color = 'white'; }}
-                onMouseOut={e => { (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.4)'; }}>
-                Ver todas as rotas <ArrowRight size={13} />
-              </Link>
-            </Reveal>
-          </div>
-        </section>
-      )}
 
       {/* ── FOOTER MINIMAL ── */}
-      <footer className="py-10 px-6 md:px-12 border-t" style={{ backgroundColor: theme.bgDark, borderColor: theme.cor + '15' }}>
-        <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="relative h-9 w-28">
-            <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain brightness-[100] invert opacity-30" />
+      <footer className="py-20 px-8 border-t border-slate-200 bg-white text-left">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
+          <div className="flex flex-col items-center md:items-start gap-4">
+            <div className="flex items-center gap-6">
+              <Image src="/logop.png" alt="SagaTurismo" width={160} height={50} className="object-contain" />
+              <div className="w-px h-12 bg-slate-200 hidden md:block" />
+              <Image src="/prefeitura.png" alt="Prefeitura de São Geraldo do Araguaia" width={140} height={50} className="object-contain" />
+            </div>
+            <div className="text-left space-y-1">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                © 2026 Secretaria Municipal de Turismo - SGA | Todos os direitos reservados
+              </p>
+              <p className="text-[10px] font-bold text-slate-400/80">
+                CNPJ: 10.249.241/0001-22
+              </p>
+            </div>
           </div>
-          <p className="text-[9px] font-black uppercase tracking-[0.4em] text-center" style={{ color: 'rgba(255,255,255,0.15)' }}>
-            © 2026 Secretaria Municipal de Turismo — São Geraldo do Araguaia (PA)
-          </p>
-          <Link href="/rotas"
-            className="text-[9px] font-black uppercase tracking-widest flex items-center gap-2 transition-colors"
-            style={{ color: 'rgba(255,255,255,0.2)' }}
-            onMouseOver={e => { (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.5)'; }}
-            onMouseOut={e => { (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.2)'; }}>
-            <ArrowLeft size={10} /> Todas as rotas
-          </Link>
+
+          <div className="flex gap-10">
+            <div className="text-left border-l-2 border-slate-100 pl-9">
+              <p className="text-[10px] font-black text-[#00577C] uppercase mb-1">Contato Oficial</p>
+              <p className="text-xs font-bold text-slate-500 tracking-tight">setursaga@gmail.com</p>
+            </div>
+            <ShieldCheck size={40} className="text-[#009640] opacity-30" />
+          </div>
         </div>
       </footer>
     </main>

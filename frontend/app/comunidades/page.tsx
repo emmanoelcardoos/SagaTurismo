@@ -123,15 +123,7 @@ function ComunidadeCard({ comunidade, index }: { comunidade: Comunidade; index: 
             </span>
           </div>
 
-          <div className="absolute top-6 right-6 z-10 flex items-center gap-2 px-4 py-2 rounded-full border text-[9px] font-black uppercase tracking-widest"
-            style={{
-              backgroundColor: theme.cor + '20',
-              borderColor: theme.cor + '50',
-              color: theme.corAccent,
-            }}>
-            {theme.icon}
-            {theme.label}
-          </div>
+          
         </div>
 
         {/* ── METADE TEXTO ── */}
@@ -167,7 +159,7 @@ function ComunidadeCard({ comunidade, index }: { comunidade: Comunidade; index: 
                     backgroundColor: theme.cor + '12',
                     color: 'rgba(255,255,255,0.6)',
                   }}>
-                  <span style={{ color: theme.corAccent }}>{m.icon}</span>
+
                   {m.valor}
                 </span>
               ))}
@@ -286,7 +278,7 @@ export default function ComunidadesPage() {
       {/* ══════════════════════════════════════
           HERO CINEMATOGRÁFICO
       ══════════════════════════════════════ */}
-      <section className="relative h-screen flex flex-col items-start justify-end
+      <section className="relative h-[85vh] flex flex-col items-start justify-end
         pb-20 md:pb-30 px-0 md:px-0 overflow-hidden"
         style={{ backgroundColor: '#002f40' }}>
 
@@ -325,16 +317,7 @@ export default function ComunidadesPage() {
         </div>
 
         <div className="absolute bottom-10 right-6 md:right-12 z-10 hidden md:flex flex-col items-end gap-5">
-          <div className="text-right">
-            <p className={`${jakarta.className} text-4xl font-black leading-none`} style={{ color: '#F9C400' }}>
-              {loading ? '—' : comunidades.length}
-            </p>
-            <p className="text-[9px] font-black uppercase tracking-widest mt-1 text-white/25">Comunidades</p>
-          </div>
-          <div className="text-right">
-            <p className={`${jakarta.className} text-4xl font-black leading-none`} style={{ color: '#009640' }}>100%</p>
-            <p className="text-[9px] font-black uppercase tracking-widest mt-1 text-white/25">Raízes Vivas</p>
-          </div>
+
         </div>
 
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10">
@@ -350,7 +333,7 @@ export default function ComunidadesPage() {
           <div className="flex flex-col items-center justify-center py-40" style={{ backgroundColor: '#001f2e' }}>
             <Loader2 className="animate-spin w-12 h-12 mb-4" style={{ color: '#F9C400' }} />
             <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.4)' }}>
-              A viajar até às comunidades...
+              Viajando até as comunidades...
             </p>
           </div>
         )}

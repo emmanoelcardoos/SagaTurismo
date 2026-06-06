@@ -143,7 +143,7 @@ export default function EventosPage() {
       </header>
 
       {/* ── HERO SECTION (CLEAN) ── */}
-      <section className="relative h-[90vh] flex items-center justify-center overflow-hidden">
+      <section className="relative h-[85vh] flex items-center justify-center overflow-hidden">
         <video 
           src="/serra.mp4" 
           autoPlay loop muted playsInline 

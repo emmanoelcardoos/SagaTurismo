@@ -155,12 +155,6 @@ function AtracaoCard({ atracao, index }: { atracao: Atracao; index: number }) {
           </div>
 
           <Reveal anim={isPar ? 'left' : 'right'} delay={100}>
-            <div className="flex items-center gap-4 mb-7">
-              <span className="w-8 h-[2px] rounded-full" style={{ backgroundColor: theme.cor }} />
-              <span className="text-[9px] font-black uppercase tracking-[0.3em]" style={{ color: theme.cor }}>
-                Destino {num}
-              </span>
-            </div>
 
             <h2 className={`${jakarta.className} text-5xl md:text-6xl xl:text-7xl font-black text-white leading-[0.88] mb-6`}>
               {atracao.nome}
@@ -291,7 +285,7 @@ export default function AtracoesPage() {
       {/* ══════════════════════════════════════
           HERO CINEMATOGRÁFICO
       ══════════════════════════════════════ */}
-      <section className="relative h-screen flex flex-col items-start justify-end
+      <section className="relative h-[85vh] flex flex-col items-start justify-end
         pb-20 md:pb-28 px-6 md:px-12 overflow-hidden"
         style={{ backgroundColor: '#002f40' }}>
 
@@ -362,40 +356,6 @@ export default function AtracoesPage() {
           </Reveal>
         ))}
       </div>
-
-      {/* ══════════════════════════════════════
-          INTRO EDITORIAL
-      ══════════════════════════════════════ */}
-      <section className="py-24 md:py-32 px-6 md:px-12" style={{ backgroundColor: '#001f2e' }}>
-        <div className="max-w-[1400px] mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-10 md:gap-16 items-end">
-            <Reveal anim="right" className="md:col-span-6">
-              <h2 className={`${jakarta.className} text-5xl md:text-7xl font-black text-white leading-[0.88]`}>
-                Explore as belezas naturais da nossa terra<br />
-              </h2>
-            </Reveal>
-            <Reveal anim="left" delay={150} className="md:col-span-6">
-              <p className="text-white/40 text-base md:text-lg leading-relaxed">
-                Cada atração guarda uma história única e uma paisagem de tirar o fôlego. Venha conhecer as águas calmas, as quedas majestosas e a herança histórica que tornam esta região num verdadeiro paraíso natural.
-              </p>
-              <div className="mt-8 pt-6 border-t border-white/5 flex items-center gap-6">
-                <div>
-                  <p className={`${jakarta.className} text-3xl font-black text-white`}>
-                    {loading ? '—' : atracoes.length}
-                  </p>
-                  <p className="text-[9px] font-black uppercase tracking-widest text-white/25 mt-0.5">Locais</p>
-                </div>
-                <div className="w-px h-10 bg-white/10" />
-                <div>
-                  <p className={`${jakarta.className} text-3xl font-black`} style={{ color: '#F9C400' }}>3</p>
-                  <p className="text-[9px] font-black uppercase tracking-widest text-white/25 mt-0.5">Biomas distintos</p>
-                </div>
-                <div className="w-px h-10 bg-white/10" />
-              </div>
-            </Reveal>
-          </div>
-        </div>
-      </section>
 
       {/* ══════════════════════════════════════
           LISTAGEM DE ATRAÇÕES

@@ -185,7 +185,7 @@ export default function AtracaoDetailPage() {
       {/* ══════════════════════════════════════
           HERO — IMAGEM FULL SCREEN + PARALLAX
       ══════════════════════════════════════ */}
-      <section className="relative h-[85vh] md:h-screen flex flex-col items-start justify-end pb-20 md:pb-28 px-6 md:px-12 overflow-hidden">
+      <section className="relative h-[70vh] md:h-screen flex flex-col items-start justify-end pb-20 md:pb-28 px-6 md:px-12 overflow-hidden">
         
         <div className="absolute inset-0 z-0 scale-110" style={{ transform: `translateY(${scrollY * 0.3}px) scale(1.1)` }}>
           <Image src={atracao.imagem_url} alt={atracao.nome} fill className="object-cover" priority />
@@ -199,23 +199,6 @@ export default function AtracaoDetailPage() {
           <h1 className={`${jakarta.className} text-[clamp(3rem,9vw,7.5rem)] font-black text-white leading-[0.88] mb-6 max-w-3xl`}>
             {atracao.nome}
           </h1>
-
-          <div className="flex items-center gap-3 mb-10">
-            <span className="flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-bold"
-              style={{ borderColor: theme.cor + '50', backgroundColor: theme.cor + '15', color: theme.corAccent }}>
-              {theme.icon} {atracao.preco_entrada ? `Preço: ${atracao.preco_entrada}` : 'Entrada Gratuita'}
-            </span>
-            <span className="flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-bold"
-              style={{ borderColor: 'rgba(255,255,255,0.2)', backgroundColor: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.7)' }}>
-              <Camera size={14} /> Local Fotogénico
-            </span>
-          </div>
-
-          <div className="flex flex-wrap gap-4 items-center">
-             <Link href="/atracoes" className="inline-flex items-center gap-3 px-8 py-4 rounded-full font-black text-[10px] uppercase tracking-widest border transition-all hover:bg-white/10" style={{ borderColor: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.5)' }}>
-               <ArrowLeft size={12} /> Voltar
-             </Link>
-          </div>
         </div>
 
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2">

@@ -337,7 +337,7 @@ export default function RestaurantePage() {
                     {/* Decorative tag */}
                     <div className={`${jakarta.className} absolute -bottom-5 -right-5 bg-[#F9C400] text-[#002f40] px-6 py-4 rounded-2xl shadow-xl font-black text-xs uppercase tracking-widest`}>
                       <p className="text-[10px] opacity-60">A equipe</p>
-                      <p>Com amor & dedicação</p>
+                      <p>A nossa familia</p>
                     </div>
                     {/* Decorative circle */}
                     <div className="absolute -top-6 -left-6 w-24 h-24 rounded-full border-4 border-[#009640]/30 pointer-events-none" />
@@ -402,7 +402,7 @@ export default function RestaurantePage() {
                 <div className="flex items-center justify-center gap-3 mb-5">
                   <span className="w-8 h-0.5 rounded-full bg-[#009640]" />
                   <span className={`${jakarta.className} text-[10px] font-black uppercase tracking-[0.3em] text-[#009640]`}>
-                    Cardápio digital
+                    Menú Digital
                   </span>
                   <span className="w-8 h-0.5 rounded-full bg-[#009640]" />
                 </div>
@@ -459,12 +459,9 @@ export default function RestaurantePage() {
                     </span>
                   </div>
                   <h2 className={`${jakarta.className} text-4xl md:text-6xl font-black text-slate-900`}>
-                    Momentos & Pratos
+                    Nossos Momentos & Pratos
                   </h2>
                 </div>
-                <p className="text-slate-400 text-sm font-medium max-w-xs md:text-right">
-                  Clique em qualquer foto para ampliar e navegar pela galeria.
-                </p>
               </div>
             </Reveal>
             <Gallery images={galeria} />
