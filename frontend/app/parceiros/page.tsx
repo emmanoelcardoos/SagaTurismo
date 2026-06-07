@@ -304,15 +304,6 @@ export default function ParceirosPage() {
         </div>
       </section>
 
-      {/* ── FAIXA DE VALORES ── */}
-      <div className="bg-[#F9C400] py-4 px-6 flex flex-wrap justify-center gap-6 md:gap-12">
-        {['Sem taxas intermediárias', 'Gestão pública e transparente', 'Renda fica na comunidade', 'Acesso igual para todos'].map(v => (
-          <div key={v} className={`${jakarta.className} flex items-center gap-2 text-[12px] font-black text-[#002f40]`}>
-            <span className="w-2 h-2 rounded-full bg-[#1a6b2f] inline-block" />
-            {v}
-          </div>
-        ))}
-      </div>
 
       {/* ── PORQUÊ SER PARCEIRO ── */}
       <section className="py-16 md:py-28 px-5 bg-white text-center overflow-hidden">

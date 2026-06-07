@@ -152,10 +152,10 @@ export default function EventosPage() {
         <div className="relative z-10 text-center px-6 max-w-5xl">
           <Reveal>
             <h1 className={`${jakarta.className} text-6xl md:text-9xl font-black text-white leading-[0.85] tracking-tighter mb-8`}>
-              calendário<br /><span className="text-[#F9C400]">DE EVENTOS</span>
+              Próximos<br /><span className="text-[#F9C400]">EVENTOS</span>
             </h1>
             <p className="text-lg md:text-xl text-white/70 font-medium max-w-2xl mx-auto">
-              Dos festivais de verão às tradições ribeirinhas. Descubra o que está a acontecer em São Geraldo do Araguaia.
+              Dos festivais de verão às tradições ribeirinhas. Descubra o que acontece em São Geraldo do Araguaia.
             </p>
           </Reveal>
         </div>

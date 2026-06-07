@@ -628,7 +628,7 @@ export default function HomePage() {
 
         {isMobileMenuOpen && (
           <div className="absolute top-full left-0 w-full bg-white border-b border-slate-200 p-6 flex flex-col gap-4 shadow-2xl lg:hidden z-50">
-            {['Hoteis', 'Pacotes', 'Atracoes', 'Passeios', 'Aldeias', 'Eventos', 'Biodiversidade', 'Gastronomia', 'Comunidades', 'Informacoes'].map(item => (
+            {['Hoteis', 'Pacotes', 'Atracoes', 'Passeios', 'Aldeias', 'Biodiversidade', 'Informacoes', 'Parceiros'].map(item => (
               <Link key={item} href={`/${item.toLowerCase()}`}
                 className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>
                 {item}
@@ -637,10 +637,6 @@ export default function HomePage() {
             <Link href="/cadastro"
               className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md mt-2`}>
               Cartão Residente
-            </Link>
-            <Link href="/parceiros"
-              className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md mt-2`}>
-              Parceiros
             </Link>
           </div>
         )}

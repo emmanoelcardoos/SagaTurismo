@@ -452,10 +452,10 @@ export default function CadastroPage() {
         <section className="relative overflow-hidden pt-28 pb-16 md:pt-36 md:pb-24 text-left bg-slate-900">
           <div className="absolute inset-0 z-0 pointer-events-none">
             <Image 
-              src="https://images.pexels.com/photos/17835411/pexels-photo-17835411.jpeg?_gl=1*i2axa5*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzc0ODA1MTIkbzI3JGcxJHQxNzc3NDg0NTE1JGo0OCRsMCRoMA.." 
+              src="https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/IMG_1803.PNG" 
               alt="SGA" 
               fill 
-              className="object-cover opacity-60"
+              className="object-cover "
               priority 
             />
             <div className="absolute inset-0 bg-gradient-to-t from-[#002f40] via-[#002f40]/80 to-[#002f40]/20 md:bg-gradient-to-r md:from-[#002f40]/95 md:via-[#002f40]/50 md:to-transparent" />
@@ -468,11 +468,11 @@ export default function CadastroPage() {
               </div>
               
               <h1 className={`${jakarta.className} text-3xl sm:text-5xl md:text-6xl font-black text-white leading-tight mb-4 md:mb-6`}>
-                Cartão Digital de <span className="text-[#F9C400]">Residente.</span>
+                Cartão <span className="text-[#F9C400]">Residente.</span>
               </h1>
               
               <p className="max-w-xl text-sm sm:text-base md:text-lg text-white/90 font-medium leading-relaxed">
-                Garanta seu benefício exclusivo de 50% de desconto no turismo local. Preencha seus dados e envie sua documentação para análise.
+                Garanta seu benefício exclusivo de 50% de desconto. Preencha seus dados e envie sua documentação para análise.
               </p>
             </div>
           </div>

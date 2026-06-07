@@ -275,26 +275,6 @@ export default function GaleriaPage() {
         </div>
       )}
 
-      {/* ── ESTATÍSTICAS ── */}
-      {!loading && fotos.length > 0 && (
-        <section className="bg-white border-b border-slate-100 py-10 px-6">
-          <div className="max-w-[1400px] mx-auto flex flex-wrap justify-start gap-12 md:gap-24">
-            {[
-              { valor: fotos.length, label: 'Registros Fotográficos' },
-              { valor: categorias.length, label: 'Categorias Culturais' },
-              { valor: [...new Set(fotos.map(f => f.ano))].length, label: 'Anos Documentados' },
-            ].map(({ valor, label }) => (
-              <div key={label}>
-                <p className={`${jakarta.className} text-4xl md:text-5xl font-black text-[#00577C] leading-none`}>
-                  {String(valor).padStart(2, '0')}
-                </p>
-                <p className={`${jakarta.className} text-slate-400 text-[10px] font-black uppercase tracking-widest mt-2`}>{label}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
       {/* ── GALERIA IMERSIVA (BENTO / MASONRY STYLE) ── */}
       <section className="max-w-[1400px] mx-auto px-6 py-20">
         
