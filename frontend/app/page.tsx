@@ -751,6 +751,7 @@ export default function HomePage() {
       <SeccaoPasseios />
 
       {/* ── HISTÓRIA ── */}
+{/* 
       <section id="historia" className="py-24 bg-[#002f40] overflow-hidden">
         <div className="max-w-[1400px] mx-auto px-6">
           <div className="grid md:grid-cols-2 gap-12 items-center">
@@ -782,6 +783,8 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+*/}
+
 
       {/* ── CARTÃO RESIDENTE ── */}
       <section className="py-24 bg-[#F9C400] overflow-hidden">

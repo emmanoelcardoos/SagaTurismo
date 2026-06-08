@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo, useRef, ReactNode } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -13,7 +13,6 @@ import { supabase } from '@/lib/supabase';
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '700', '800'] });
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'] });
 
-// ── TIPAGENS ──
 type Pacote = {
   id: string;
   titulo: string;
@@ -26,7 +25,6 @@ type Pacote = {
   ativo: boolean;
 };
 
-// ── UTILITÁRIOS ──
 const parseValor = (valor: any): number => {
   if (!valor) return 0;
   if (typeof valor === 'number') return isNaN(valor) ? 0 : valor;
@@ -42,38 +40,6 @@ const formatarMoeda = (valor: number) =>
 
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?q=80&w=1740";
 
-// ── COMPONENTE DE ANIMAÇÃO REVEAL ──
-function useScrollAnimation(threshold = 0.08) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [isVisible, setIsVisible] = useState(false);
-  useEffect(() => {
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) { setIsVisible(true); observer.unobserve(entry.target); }
-    }, { threshold });
-    if (ref.current) observer.observe(ref.current);
-    return () => { if (ref.current) observer.unobserve(ref.current); };
-  }, [threshold]);
-  return { ref, isVisible };
-}
-
-function Reveal({ children, className = "", anim = "up", delay = 0 }: { children: ReactNode; className?: string; anim?: "up" | "left" | "right" | "zoom" | "fade"; delay?: number }) {
-  const { ref, isVisible } = useScrollAnimation();
-  const hidden: Record<string, string> = {
-    up: "opacity-0 translate-y-14",
-    left: "opacity-0 translate-x-14",
-    right: "opacity-0 -translate-x-14",
-    zoom: "opacity-0 scale-90",
-    fade: "opacity-0",
-  };
-  return (
-    <div ref={ref}
-      className={`transition-all duration-1000 ease-out will-change-transform ${isVisible ? "opacity-100 translate-y-0 translate-x-0 scale-100" : hidden[anim]} ${className}`}
-      style={{ transitionDelay: `${delay}ms` }}>
-      {children}
-    </div>
-  );
-}
-
 export default function PacotesPage() {
   const [pacotes, setPacotes] = useState<Pacote[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,7 +49,6 @@ export default function PacotesPage() {
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
   const [currentHeroSlide, setCurrentHeroSlide] = useState(0);
 
-  // ── ESTADOS DE FILTRO ──
   const [termoBusca, setTermoBusca] = useState('');
   const [categoriasSelecionadas, setCategoriasSelecionadas] = useState<string[]>([]);
 
@@ -96,7 +61,6 @@ export default function PacotesPage() {
         .select('*')
         .eq('ativo', true)
         .order('preco', { ascending: true });
-
       if (error) console.error('Erro ao buscar pacotes:', error);
       if (data) setPacotes(data);
       setLoading(false);
@@ -104,7 +68,6 @@ export default function PacotesPage() {
     fetchPacotes();
   }, []);
 
-  // Carrossel automático
   useEffect(() => {
     if (pacotes.length <= 1) return;
     const timer = setInterval(() => {
@@ -165,11 +128,6 @@ export default function PacotesPage() {
     </div>
   );
 
-  // Imagem atual do carrossel
-  const currentImage = pacotes.length > 0 && currentHeroSlide < pacotes.length
-    ? pacotes[currentHeroSlide]?.imagem_principal
-    : null;
-
   return (
     <main className={`${inter.className} min-h-screen flex flex-col bg-[#FDFCF7] text-slate-900`}>
 
@@ -198,7 +156,6 @@ export default function PacotesPage() {
           </button>
         </div>
 
-        {/* Menu Mobile */}
         {isMobileMenuOpen && (
           <div className="absolute top-full left-0 w-full bg-white border-b border-slate-200 p-6 flex flex-col gap-4 shadow-2xl lg:hidden z-50">
             <Link href="/rotas" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Rotas Turísticas</Link>
@@ -213,11 +170,9 @@ export default function PacotesPage() {
         )}
       </header>
 
-      {/* CONTEÚDO PRINCIPAL */}
       <div className="flex-1">
-        {/* HERO SECTION COM CARROSSEL */}
+        {/* HERO COM CARROSSEL */}
         <section className="relative h-[70vh] min-h-[500px] flex flex-col items-center justify-center overflow-hidden">
-          {/* Imagem de fundo com carrossel */}
           {pacotes.length > 0 && pacotes.map((pacote, idx) => (
             <div
               key={pacote.id}
@@ -234,10 +189,8 @@ export default function PacotesPage() {
             </div>
           ))}
           
-          {/* Gradiente sobreposto */}
           <div className="absolute inset-0 bg-gradient-to-b from-[#002f40]/80 via-[#00577C]/50 to-[#001f2e]/90 z-0 pointer-events-none" />
           
-          {/* Indicadores do carrossel (opcional) */}
           {pacotes.length > 1 && (
             <div className="absolute bottom-6 left-0 right-0 z-20 flex justify-center gap-2">
               {pacotes.map((_, idx) => (
@@ -247,55 +200,49 @@ export default function PacotesPage() {
                   className={`w-2 h-2 rounded-full transition-all duration-300 ${
                     idx === currentHeroSlide ? 'w-8 bg-[#F9C400]' : 'bg-white/40 hover:bg-white/60'
                   }`}
-                  aria-label={`Ir para slide ${idx + 1}`}
                 />
               ))}
             </div>
           )}
 
-          {/* Conteúdo textual */}
           <div className="relative z-10 text-center px-5 max-w-5xl mx-auto">
-            <Reveal anim="zoom">
-              <h1 className={`${jakarta.className} text-4xl sm:text-6xl font-black text-white leading-tight mb-4`}>
-                Experiência Completa. <br />
-              </h1>
-              <p className="text-white/80 text-base md:text-lg max-w-2xl mx-auto mb-8 leading-relaxed">
-                Pacotes prontos com hospedagem, guia e passeios incluídos.
-              </p>
-            </Reveal>
+            <h1 className={`${jakarta.className} text-4xl sm:text-6xl font-black text-white leading-tight mb-4`}>
+              Experiência Completa. <br />
+              <span className="text-[#F9C400]">Roteiros Oficiais.</span>
+            </h1>
+            <p className="text-white/80 text-base md:text-lg max-w-2xl mx-auto mb-8 leading-relaxed">
+              Pacotes prontos com hospedagem, guia e passeios incluídos. Tudo organizado para você viver o Araguaia sem preocupações.
+            </p>
 
-            {/* Search Bar */}
-            <Reveal anim="up" delay={100}>
-              <div className="bg-white rounded-2xl shadow-2xl flex flex-col md:flex-row p-1.5 max-w-4xl mx-auto">
-                <div className="flex-1 flex items-center gap-3 px-4 py-3 border-b md:border-b-0 md:border-r border-slate-100">
-                  <MapPin className="text-[#00577C] shrink-0" size={18} />
-                  <div className="text-left">
-                    <p className="text-[9px] font-black uppercase text-slate-400">Destino</p>
-                    <p className="font-bold text-sm text-slate-800">São Geraldo do Araguaia - PA</p>
-                  </div>
+            <div className="bg-white rounded-2xl shadow-2xl flex flex-col md:flex-row p-1.5 max-w-4xl mx-auto">
+              <div className="flex-1 flex items-center gap-3 px-4 py-3 border-b md:border-b-0 md:border-r border-slate-100">
+                <MapPin className="text-[#00577C] shrink-0" size={18} />
+                <div className="text-left">
+                  <p className="text-[9px] font-black uppercase text-slate-400">Destino</p>
+                  <p className="font-bold text-sm text-slate-800">São Geraldo do Araguaia - PA</p>
                 </div>
-                <div className="flex-1 flex items-center gap-3 px-4 py-3">
-                  <Search className="text-[#00577C] shrink-0" size={18} />
-                  <div className="flex-1 text-left">
-                    <p className="text-[9px] font-black uppercase text-slate-400">O que procura?</p>
-                    <input 
-                      type="text" 
-                      placeholder="Ex: Aventura, Natureza, Cultura..." 
-                      value={termoBusca}
-                      onChange={(e) => setTermoBusca(e.target.value)}
-                      className="w-full font-bold text-sm text-slate-800 outline-none placeholder:text-slate-300"
-                    />
-                  </div>
-                </div>
-                <button className="bg-[#F9C400] hover:bg-[#e5b500] text-[#002f40] px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-md">
-                  Buscar
-                </button>
               </div>
-            </Reveal>
+              <div className="flex-1 flex items-center gap-3 px-4 py-3">
+                <Search className="text-[#00577C] shrink-0" size={18} />
+                <div className="flex-1 text-left">
+                  <p className="text-[9px] font-black uppercase text-slate-400">O que procura?</p>
+                  <input 
+                    type="text" 
+                    placeholder="Ex: Aventura, Natureza, Cultura..." 
+                    value={termoBusca}
+                    onChange={(e) => setTermoBusca(e.target.value)}
+                    className="w-full font-bold text-sm text-slate-800 outline-none placeholder:text-slate-300"
+                  />
+                </div>
+              </div>
+              <button className="bg-[#F9C400] hover:bg-[#e5b500] text-[#002f40] px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-md">
+                Buscar
+              </button>
+            </div>
           </div>
         </section>
 
-        {/* CONTEÚDO COM FILTROS E LISTAGEM */}
+        {/* CONTEÚDO COM FILTROS E LISTAGEM - SIDEBAR RESTAURADO */}
         <section className="mx-auto max-w-7xl px-5 md:px-6 py-12 relative z-20">
           <div className="flex lg:hidden items-center justify-between mb-6">
             <h2 className={`${jakarta.className} text-2xl font-black text-slate-800`}>Pacotes</h2>
@@ -305,7 +252,7 @@ export default function PacotesPage() {
           </div>
 
           <div className="flex flex-col lg:flex-row gap-8 items-start">
-            {/* SIDEBAR DESKTOP */}
+            {/* SIDEBAR DESKTOP - EXACTAMENTE COMO NA VERSÃO ORIGINAL */}
             <aside className="hidden lg:block w-72 shrink-0 space-y-6 h-fit lg:self-start">
               <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
                 <div className="flex items-center justify-between mb-6">
@@ -319,13 +266,12 @@ export default function PacotesPage() {
                 <FiltrosConteudo />
               </div>
               <div className="bg-[#e6f4ea] border border-[#009640]/20 rounded-2xl p-6 text-center shadow-sm">
-                <ShieldCheck className="mx-auto mb-3 text-[#009640]" size={36} />
-                <p className="text-sm font-black text-[#009640] mb-1">Turismo Seguro</p>
-                <p className="text-xs text-green-800 font-medium leading-relaxed">Pacotes verificados pela Secretaria de Turismo de SGA.</p>
+                <p className="text-sm font-black text-[#009640] mb-1">AVISO</p>
+                <p className="text-xs text-green-800 font-medium leading-relaxed">Todos os pacotes disponîveis são verificados pela Secretaria de Turismo de São Geraldo do Araguaia e são criados por agentes de viagens.</p>
               </div>
             </aside>
 
-            {/* LISTA DE PACOTES */}
+            {/* LISTA DE PACOTES (SEM ANIMAÇÕES) */}
             <div className="flex-1 w-full space-y-6 md:space-y-8">
               {loading ? (
                 <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-slate-200 shadow-sm">
@@ -339,59 +285,59 @@ export default function PacotesPage() {
                   <button onClick={limparFiltros} className="mt-4 text-[#00577C] font-bold underline">Limpar Filtros</button>
                 </div>
               ) : (
-                pacotesFiltrados.map((pacote, idx) => (
-                  <Reveal key={pacote.id} anim="up" delay={idx * 80}>
-                    <article className="bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col md:flex-row overflow-hidden group">
-                      <div className="relative w-full h-56 md:w-80 md:h-auto shrink-0 overflow-hidden bg-slate-100">
-                        <Image 
-                          src={pacote.imagem_principal || FALLBACK_IMAGE} 
-                          alt={pacote.titulo} 
-                          fill 
-                          className="object-cover transition-transform duration-700 group-hover:scale-105" 
-                        />
-                        <div className="absolute top-4 left-4 bg-[#F9C400] text-[#00577C] px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-lg">
-                          {pacote.categoria || 'Pacote'}
-                        </div>
+                pacotesFiltrados.map((pacote) => (
+                  <article key={pacote.id} className="bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col md:flex-row overflow-hidden group">
+                    <div className="relative w-full h-56 md:w-80 md:h-auto shrink-0 overflow-hidden bg-slate-100">
+                      <Image 
+                        src={pacote.imagem_principal || FALLBACK_IMAGE} 
+                        alt={pacote.titulo} 
+                        fill 
+                        className="object-cover transition-transform duration-700 group-hover:scale-105" 
+                      />
+                      <div className="absolute top-4 left-4 bg-[#F9C400] text-[#00577C] px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-lg">
+                        {pacote.categoria || 'Pacote'}
+                      </div>
+                    </div>
+
+                    <div className="p-6 md:p-8 flex flex-col flex-1">
+                      <div className="flex items-center gap-2 text-xs font-bold text-[#009640] mb-3 bg-green-50 px-3 py-1.5 rounded-lg w-fit">
+                        <CheckCircle2 size={14} /> Pacote Verificado
+                      </div>
+                      <h3 className={`${jakarta.className} text-xl md:text-2xl font-black text-[#00577C] leading-tight mb-2 hover:underline`}>
+                        <Link href={`/pacotes/${pacote.id}`}>{pacote.titulo}</Link>
+                      </h3>
+                      <p className="text-slate-500 text-sm leading-relaxed line-clamp-2 mb-5 font-medium">
+                        {pacote.descricao_curta}
+                      </p>
+
+                      <div className="flex flex-wrap items-center gap-3 text-slate-500 mb-6">
+                        <span className="flex items-center gap-1.5 text-[10px] font-bold bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100">
+                          <CalendarClock size={14} className="text-[#00577C]" /> {pacote.dias} Dias
+                        </span>
+                        <span className="flex items-center gap-1.5 text-[10px] font-bold bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100">
+                          <Bed size={14} className="text-[#00577C]" /> Hotel
+                        </span>
+                        <span className="flex items-center gap-1.5 text-[10px] font-bold bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100">
+                          <Compass size={14} className="text-[#00577C]" /> Guia
+                        </span>
                       </div>
 
-                      <div className="p-6 md:p-8 flex flex-col flex-1">
-                        
-                        <h3 className={`${jakarta.className} text-xl md:text-2xl font-black text-[#00577C] leading-tight mb-2 hover:underline`}>
-                          <Link href={`/pacotes/${pacote.id}`}>{pacote.titulo}</Link>
-                        </h3>
-                        <p className="text-slate-500 text-sm leading-relaxed line-clamp-2 mb-5 font-medium">
-                          {pacote.descricao_curta}
-                        </p>
-
-                        <div className="flex flex-wrap items-center gap-3 text-slate-500 mb-6">
-                          <span className="flex items-center gap-1.5 text-[10px] font-bold bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100">
-                            <CalendarClock size={14} className="text-[#00577C]" /> {pacote.dias} Dias
-                          </span>
-                          <span className="flex items-center gap-1.5 text-[10px] font-bold bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100">
-                            <Bed size={14} className="text-[#00577C]" /> Hotel
-                          </span>
-                          <span className="flex items-center gap-1.5 text-[10px] font-bold bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100">
-                            <Compass size={14} className="text-[#00577C]" /> Guia
-                          </span>
+                      <div className="mt-auto pt-5 border-t border-slate-100 flex flex-col sm:flex-row sm:items-end justify-between gap-5">
+                        <div>
+                          <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-1">Estimativa por pessoa</p>
+                          <p className={`${jakarta.className} text-3xl font-black text-[#009640] tabular-nums`}>
+                            {formatarMoeda(parseValor(pacote.preco))}
+                          </p>
                         </div>
-
-                        <div className="mt-auto pt-5 border-t border-slate-100 flex flex-col sm:flex-row sm:items-end justify-between gap-5">
-                          <div>
-                            <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-1">Estimativa por pessoa</p>
-                            <p className={`${jakarta.className} text-3xl font-black text-[#009640] tabular-nums`}>
-                              {formatarMoeda(parseValor(pacote.preco))}
-                            </p>
-                          </div>
-                          <Link 
-                            href={`/pacotes/${pacote.id}`} 
-                            className="w-full sm:w-auto bg-[#00577C] hover:bg-[#004a6b] text-white px-8 py-3.5 rounded-xl font-black text-xs uppercase tracking-widest shadow-md flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5"
-                          >
-                            Ver Detalhes <ChevronRight size={16} />
-                          </Link>
-                        </div>
+                        <Link 
+                          href={`/pacotes/${pacote.id}`} 
+                          className="w-full sm:w-auto bg-[#00577C] hover:bg-[#004a6b] text-white px-8 py-3.5 rounded-xl font-black text-xs uppercase tracking-widest shadow-md flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5"
+                        >
+                          Ver Detalhes <ChevronRight size={16} />
+                        </Link>
                       </div>
-                    </article>
-                  </Reveal>
+                    </div>
+                  </article>
                 ))
               )}
             </div>
@@ -453,4 +399,3 @@ export default function PacotesPage() {
     </main>
   );
 }
-

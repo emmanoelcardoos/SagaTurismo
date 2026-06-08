@@ -8,7 +8,7 @@ import {
   Loader2, ArrowLeft, ShieldCheck, MapPin, 
   Bed, Compass, Ticket, QrCode, CheckCircle2, 
   User, Mail, FileText, Smartphone, Copy, AlertCircle,
-  CreditCard, Home, Clock, Lock, ShieldAlert, ChevronRight, Wallet, Check, CalendarDays, Users, Calendar, isMobileMenuOpen, setIsMobileMenuOpen, Menu, X
+  CreditCard, Home, Clock, Lock, ShieldAlert, ChevronRight, Wallet, Check, CalendarDays, Users, Calendar, Menu, X
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -111,6 +111,9 @@ function BarraTempoReserva() {
   );
 }
 
+// ── NOVAS TIPAGENS PARA O WIZARD ──
+type Step = 1 | 2 | 3 | 4;
+
 function CheckoutPacoteContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -134,6 +137,7 @@ function CheckoutPacoteContent() {
   const [loadingInitial, setLoadingInitial] = useState(true);
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // API Railway Valores Dinâmicos
   const [valorHospedagemDin, setValorHospedagemDin] = useState<number>(0);
@@ -188,10 +192,15 @@ function CheckoutPacoteContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [erroApi, setErroApi] = useState('');
   const [qrCodeData, setQrCodeData] = useState<{ link: string; texto: string; id_pedido: string } | null>(null);
-  const [pixExpirado, setPixExpirado] = useState(false);
-  const [copiado, setCopiado] = useState(false);
 
-  // ── INJEÇÃO SILENCIOSA DO PAGBANK SDK ──
+  // ── WIZARD PASSOS ──
+  const [passoAtual, setPassoAtual] = useState<Step>(1);
+  // Determina os índices dinâmicos dos passos
+  const passoFaturacao = 2 + hospedesExtras.length;
+  const passoPagamento = 3 + hospedesExtras.length;
+  const totalPassos = passoPagamento;
+
+  // ── INJEÇÃO DO SDK PAGSEGURO ──
   useEffect(() => {
     if (typeof window !== 'undefined' && !window.PagSeguro) {
       const script = document.createElement('script');
@@ -266,10 +275,50 @@ function CheckoutPacoteContent() {
   }, [hotelId, quartoTipo, checkinData, checkoutData, quartosParam, adultosParam]);
 
   // Totais do Carrinho
-  // ── PREÇO SOBERANO DA URL ──
   const totalPagamento = precoParam;
-  const precoAtracoes = atracoes.reduce((acc, curr) => acc + parseValor(curr.preco_entrada), 0) * adultosParam;
-  
+
+  // ── LÓGICA DE VALIDAÇÃO E NAVEGAÇÃO HORIZONTAL ──
+  const handleAvançarPasso = () => {
+    setErroApi('');
+    
+    // Validações do Passo 1 (Titular)
+    if (passoAtual === 1) {
+      if (!nome || !cpf || !telefone || !email) {
+        setErroApi('Por favor, preencha todos os campos do Titular.'); return;
+      }
+      if (cpf.length < 14) {
+        setErroApi('CPF do titular incompleto/inválido.'); return;
+      }
+    }
+
+    // Validações dos Passos Intermédios (Acompanhantes)
+    if (passoAtual > 1 && passoAtual < passoFaturacao) {
+      const indexAcompanhante = passoAtual - 2;
+      const h = hospedesExtras[indexAcompanhante];
+      if (!h.nome || h.cpf.length < 14 || h.data_nascimento.length < 10) {
+        setErroApi(`Preencha todos os dados corretamente para o Acompanhante #${indexAcompanhante + 1}.`);
+        return;
+      }
+    }
+
+    // Validações do Passo Faturação
+    if (passoAtual === passoFaturacao) {
+      if (!rua || !numero || !bairro || !cep || !cidade || !estado) {
+        setErroApi('Por favor, preencha todos os campos de endereço de faturação.'); return;
+      }
+      if (cep.length < 9) {
+        setErroApi('CEP incompleto/inválido.'); return;
+      }
+    }
+
+    setPassoAtual(prev => (prev + 1) as Step);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleVoltarPasso = () => {
+    setErroApi('');
+    setPassoAtual(prev => (Math.max(1, prev - 1) as Step));
+  };
 
   const handlePagamento = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -363,22 +412,16 @@ function CheckoutPacoteContent() {
     } catch (err: any) { setErroApi(err.message); } finally { setIsSubmitting(false); }
   };
 
-  const precoBaseDiaria = quartoTipo === 'luxo' ? parseValor(hotelSel?.quarto_luxo_preco) : parseValor(hotelSel?.quarto_standard_preco);
-  const valorBaseMatematico = precoBaseDiaria * numNoites * quartosParam;
-  const taxaHospedeAdicional = valorHospedagemDin > valorBaseMatematico ? valorHospedagemDin - valorBaseMatematico : 0;
-  const exibirTaxaExtra = taxaHospedeAdicional > 0.05;
-
   if (loadingInitial) return <div className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="animate-spin text-[#00577C]" size={40} /></div>;
 
   return (
     <main className={`${inter.className} min-h-screen bg-[#F5F7FA] text-slate-900 pb-20`}>
 
-      {/* HEADER */}
+      {/* ── HEADER ── */}
       <header className="relative z-50 w-full bg-white border-b border-slate-200 py-4">
         <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6">
           <Link href="/" className="flex items-center gap-3">
              <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
-                {/* Removido o filtro invertido para manter as cores originais da logo */}
                 <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain" />
              </div>
           </Link>
@@ -414,14 +457,36 @@ function CheckoutPacoteContent() {
         )}
       </header>
 
-      {/* PROGRESS BAR ESTILO PREMIUM */}
-      <div className="bg-white border-b border-slate-200 mt-[0px] md:mt-[0px]">
-        <div className="mx-auto max-w-7xl px-4 md:px-8 py-4 md:py-5">
-          <div className="flex items-center justify-center md:justify-start gap-2 md:gap-4 text-[9px] md:text-[10px] uppercase tracking-[0.2em] font-black text-slate-400">
-            <span className="hidden sm:inline-block">Pacote</span> <ChevronRight size={14} className="hidden sm:inline-block"/> 
-            <span>Escolha</span> <ChevronRight size={14}/> 
-            <span className="text-[#00577C] bg-blue-50 px-3 py-1.5 rounded-full flex items-center gap-2"><Lock size={12}/> Pagamento</span> <ChevronRight size={14}/> 
-            <span>Sucesso</span>
+      {/* ── BREADCRUMB DINÂMICO (SLIDER INDICADOR) ── */}
+      <div className="bg-white border-b border-slate-200">
+        <div className="mx-auto max-w-7xl px-4 md:px-8 py-4 md:py-5 flex items-center justify-center gap-2 md:gap-4 overflow-x-auto whitespace-nowrap">
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-colors ${passoAtual === 1 ? 'bg-[#00577C]/10 text-[#00577C]' : passoAtual > 1 ? 'text-[#009640]' : 'text-slate-400'}`}>
+            {passoAtual > 1 ? <CheckCircle2 size={16}/> : <span className="font-black text-xs">1</span>}
+            <span className="text-[10px] md:text-xs font-black uppercase tracking-wider">Titular</span>
+          </div>
+          
+          {hospedesExtras.length > 0 && (
+            <>
+              <div className={`h-px w-6 md:w-10 ${passoAtual > 1 ? 'bg-[#009640]' : 'bg-slate-200'}`} />
+              <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-colors ${passoAtual > 1 && passoAtual < passoFaturacao ? 'bg-[#00577C]/10 text-[#00577C]' : passoAtual >= passoFaturacao ? 'text-[#009640]' : 'text-slate-400'}`}>
+                {passoAtual >= passoFaturacao ? <CheckCircle2 size={16}/> : <Users size={14}/>}
+                <span className="text-[10px] md:text-xs font-black uppercase tracking-wider">Hóspedes</span>
+              </div>
+            </>
+          )}
+          
+          <div className={`h-px w-6 md:w-10 ${passoAtual >= passoFaturacao ? 'bg-[#009640]' : 'bg-slate-200'}`} />
+          
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-colors ${passoAtual === passoFaturacao ? 'bg-[#00577C]/10 text-[#00577C]' : passoAtual > passoFaturacao ? 'text-[#009640]' : 'text-slate-400'}`}>
+            {passoAtual > passoFaturacao ? <CheckCircle2 size={16}/> : <span className="font-black text-xs">{hospedesExtras.length > 0 ? '3' : '2'}</span>}
+            <span className="text-[10px] md:text-xs font-black uppercase tracking-wider">Faturação</span>
+          </div>
+
+          <div className={`h-px w-6 md:w-10 ${passoAtual === passoPagamento ? 'bg-[#009640]' : 'bg-slate-200'}`} />
+
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-colors ${passoAtual === passoPagamento ? 'bg-[#00577C]/10 text-[#00577C]' : 'text-slate-400'}`}>
+            <span className="font-black text-xs">{hospedesExtras.length > 0 ? '4' : '3'}</span>
+            <span className="text-[10px] md:text-xs font-black uppercase tracking-wider">Pagamento</span>
           </div>
         </div>
       </div>
@@ -431,94 +496,71 @@ function CheckoutPacoteContent() {
 
         <div className="grid gap-8 lg:grid-cols-[1fr_400px] items-start">
           
-          {/* COLUNA ESQUERDA */}
-          <div className="space-y-6 md:space-y-8">
-            
-            {/* CARD DO PACOTE */}
-            <SectionCard>
-               <div className="flex flex-col md:flex-row h-full">
-                  <div className="relative h-56 md:h-auto md:w-72 shrink-0 overflow-hidden bg-slate-100">
-                    {pacote?.imagem_principal && <img src={pacote.imagem_principal} alt={pacote.titulo} className="h-full w-full object-cover" />}
-                  </div>
-                  <div className="p-6 md:p-8 flex flex-col justify-center text-left">
-                     <div className="flex items-center gap-2 text-[10px] font-black uppercase text-[#009640] mb-3 md:mb-4 bg-green-50 border border-green-100 w-fit px-3 py-1.5 rounded-lg shadow-sm">
-                        <ShieldCheck size={14}/> Pacote Oficial Autorizado
-                     </div>
-                     <h2 className={`${jakarta.className} text-2xl md:text-3xl font-black text-slate-900 mb-3 leading-tight`}>{pacote?.titulo}</h2>
-                     <p className="text-slate-500 flex items-center gap-2 text-sm font-bold bg-slate-50 w-fit px-3 py-1.5 rounded-lg border border-slate-100">
-                       <MapPin size={16} className="text-[#009640]"/> São Geraldo do Araguaia - PA
-                     </p>
-                  </div>
-               </div>
-            </SectionCard>
-
-            {!qrCodeData ? (
-              <form onSubmit={handlePagamento} className="space-y-6 md:space-y-8">
+          {/* ── COLUNA ESQUERDA: WIZARD (SLIDER) ── */}
+          <div className="w-full min-w-0">
+            <div className="overflow-hidden w-full relative">
+              <div className="flex transition-transform duration-500 ease-in-out items-start" style={{ transform: `translateX(-${(passoAtual - 1) * 100}%)` }}>
                 
-                {/* 1. DADOS DOS PASSAGEIROS (TITULAR + DINÂMICO ACOMPANHANTES) */}
-                <SectionCard className="p-6 md:p-10 text-left">
-                  <SectionHeader step={1} title="Dados de Identificação" icon={<Users size={20} />} />
-                  
-                  {/* Titular */}
-                  <div className="space-y-4">
-                    <p className="text-xs font-black text-[#00577C] uppercase tracking-wider mb-2">Responsável Principal (Titular)</p>
-                    <div className="grid gap-5 md:gap-6 sm:grid-cols-2">
-                      <div className="sm:col-span-2">
-                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Nome Completo (Conforme Documento) *</label>
-                        <div className="relative">
-                          <User className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-                          <input required value={nome} onChange={e => setNome(e.target.value)} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 pl-12 pr-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white hover:border-slate-200 transition-all" placeholder="Nome do responsável pela reserva" />
+                {/* PASSO 1: IDENTIFICAÇÃO (TITULAR) */}
+                <div className={`w-full shrink-0 px-[2px] transition-all duration-500 ${passoAtual === 1 ? 'opacity-100 h-auto' : 'opacity-0 h-0 overflow-hidden pointer-events-none'}`}>
+                  <SectionCard className="p-6 md:p-10 text-left h-full">
+                    <SectionHeader step={1} title="Dados do Titular" icon={<Users size={20} />} />
+                    <div className="space-y-4">
+                      <p className="text-xs font-black text-[#00577C] uppercase tracking-wider mb-2">Hóspede Principal</p>
+                      <div className="grid gap-5 md:gap-6 sm:grid-cols-2">
+                        <div className="sm:col-span-2">
+                          <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Nome Completo *</label>
+                          <div className="relative">
+                            <User className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                            <input required value={nome} onChange={e => setNome(e.target.value)} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 pl-12 pr-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-colors" placeholder="Nome completo do titular" />
+                          </div>
                         </div>
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">CPF *</label>
-                        <div className="relative">
-                          <FileText className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-                          <input required value={cpf} onChange={e => setCpf(mascaraCPF(e.target.value))} maxLength={14} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 pl-12 pr-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white hover:border-slate-200 transition-all" placeholder="000.000.000-00" />
+                        <div>
+                          <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">CPF *</label>
+                          <div className="relative">
+                            <FileText className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                            <input required value={cpf} onChange={e => setCpf(mascaraCPF(e.target.value))} maxLength={14} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 pl-12 pr-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-colors" placeholder="000.000.000-00" />
+                          </div>
                         </div>
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Telemóvel / WhatsApp *</label>
-                        <div className="relative">
-                          <Smartphone className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-                          <input required value={telefone} onChange={e => setTelefone(mascaraTelefone(e.target.value))} maxLength={15} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 pl-12 pr-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white hover:border-slate-200 transition-all" placeholder="(99) 99999-9999" />
+                        <div>
+                          <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">WhatsApp *</label>
+                          <div className="relative">
+                            <Smartphone className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                            <input required value={telefone} onChange={e => setTelefone(mascaraTelefone(e.target.value))} maxLength={15} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 pl-12 pr-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-colors" placeholder="(99) 99999-9999" />
+                          </div>
                         </div>
-                      </div>
-                      <div className="sm:col-span-2">
-                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">E-mail para Receber o Voucher *</label>
-                        <div className="relative">
-                          <Mail className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-                          <input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 pl-12 pr-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white hover:border-slate-200 transition-all" placeholder="seu@email.com" />
+                        <div className="sm:col-span-2">
+                          <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">E-mail *</label>
+                          <div className="relative">
+                            <Mail className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                            <input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 pl-12 pr-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-colors" placeholder="seu@email.com" />
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </SectionCard>
+                </div>
 
-                  {/* Blocos de Acompanhantes Dinâmicos Mobile-First */}
-                  {hospedesExtras.length > 0 && (
-                    <div className="mt-8 pt-8 border-t-2 border-dashed border-slate-100 space-y-8">
-                      <div>
-                        <p className="text-xs font-black text-slate-800 uppercase tracking-wider">Membros Adicionais do Pacote</p>
-                        <p className="text-[11px] font-bold text-slate-400 mt-1 uppercase">Obrigatório para homologação nominal da comitiva e emissão dos vouchers.</p>
-                      </div>
-
-                      {hospedesExtras.map((h, i) => (
-                        <div key={i} className="p-5 border border-slate-100 rounded-2xl bg-slate-50/50 space-y-4 animate-in fade-in duration-300">
-                          <span className="inline-flex bg-[#00577C] text-white text-[9px] font-black uppercase px-2.5 py-1 rounded-md tracking-wider">
-                            Acompanhante #{i + 1}
-                          </span>
-                          
-                          <div className="grid gap-4 sm:grid-cols-2">
+                {/* PASSOS DINÂMICOS: ACOMPANHANTES */}
+                {hospedesExtras.map((h, i) => {
+                  const passoDoAcompanhante = 2 + i;
+                  return (
+                    <div key={i} className={`w-full shrink-0 px-[2px] transition-all duration-500 ${passoAtual === passoDoAcompanhante ? 'opacity-100 h-auto' : 'opacity-0 h-0 overflow-hidden pointer-events-none'}`}>
+                      <SectionCard className="p-6 md:p-10 text-left h-full">
+                        <SectionHeader step={passoDoAcompanhante} title={`Acompanhante #${i + 1}`} icon={<Users size={20} />} />
+                        <div className="space-y-4">
+                          <p className="text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Obrigatório para homologação nominal da estadia junto aos parceiros hoteleiros.</p>
+                          <div className="grid gap-5 md:gap-6 sm:grid-cols-2">
                             <div className="sm:col-span-2">
-                              <label className="block text-[9px] font-black uppercase text-slate-400 mb-1.5 ml-1">Nome Completo *</label>
-                              <input required value={h.nome} onChange={e => handleAcompanhanteChange(i, 'nome', e.target.value.toUpperCase())} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C]" placeholder="Nome do integrante" />
+                              <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Nome Completo *</label>
+                              <input required value={h.nome} onChange={e => handleAcompanhanteChange(i, 'nome', e.target.value.toUpperCase())} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-colors" placeholder="Nome completo do acompanhante" />
                             </div>
                             <div>
-                              <label className="block text-[9px] font-black uppercase text-slate-400 mb-1.5 ml-1">CPF *</label>
-                              <input required value={h.cpf} onChange={e => handleAcompanhanteChange(i, 'cpf', mascaraCPF(e.target.value))} maxLength={14} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C]" placeholder="000.000.000-00" />
+                              <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">CPF *</label>
+                              <input required value={h.cpf} onChange={e => handleAcompanhanteChange(i, 'cpf', mascaraCPF(e.target.value))} maxLength={14} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-colors" placeholder="000.000.000-00" />
                             </div>
                             <div className="relative">
-                              <label className="block text-[9px] font-black uppercase text-slate-400 mb-1.5 ml-1">Data de Nascimento *</label>
+                              <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Data Nasc. *</label>
                               <div className="relative flex items-center">
                                 <input 
                                   required 
@@ -526,137 +568,157 @@ function CheckoutPacoteContent() {
                                   inputMode="numeric"
                                   value={h.data_nascimento} 
                                   onChange={e => handleAcompanhanteChange(i, 'data_nascimento', mascaraData(e.target.value))} 
-                                  className="w-full rounded-xl border border-slate-200 bg-white pl-4 pr-10 py-3 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C]" 
+                                  className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 pl-4 pr-10 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-colors" 
                                   placeholder="DD/MM/AAAA" 
                                 />
-                                <Calendar size={16} className="absolute right-3.5 text-slate-400 pointer-events-none" />
+                                <Calendar size={18} className="absolute right-4 text-slate-400 pointer-events-none" />
                               </div>
                             </div>
                           </div>
                         </div>
-                      ))}
+                      </SectionCard>
                     </div>
-                  )}
-                </SectionCard>
+                  );
+                })}
 
-                {/* 2. ENDEREÇO */}
-                <SectionCard className="p-6 md:p-10 text-left">
-                  <SectionHeader step={2} title="Endereço de Faturação" icon={<Home size={20} />} />
-                  <div className="grid gap-5 md:gap-6 sm:grid-cols-2">
-                    <div className="sm:col-span-2 grid grid-cols-[1fr_100px] gap-4">
-                      <div>
-                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Morada *</label>
-                        <input required value={rua} onChange={e => setRua(e.target.value)} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="Rua / Avenida" />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Nº *</label>
-                        <input required value={numero} onChange={e => setNumero(e.target.value)} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 text-center outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="Nº" />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Bairro *</label>
-                      <input required value={bairro} onChange={e => setBairro(e.target.value)} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="Bairro" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">CEP *</label>
-                      <input required value={cep} onChange={e => setCep(mascaraCEP(e.target.value))} maxLength={9} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="00000-000" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Cidade *</label>
-                      <input required value={cidade} onChange={e => setCidade(e.target.value)} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="Sua Cidade" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Estado (UF) *</label>
-                      <input required value={estado} onChange={e => setEstado(e.target.value.toUpperCase())} maxLength={2} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 text-center outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="EX: PA" />
-                    </div>
-                  </div>
-                </SectionCard>
-
-                {/* 3. PAGAMENTO */}
-                <SectionCard className="p-6 md:p-10 text-left">
-                  <SectionHeader step={3} title="Método de Pagamento" icon={<Wallet size={20} />} />
-                  
-                  <div className="grid grid-cols-2 gap-4 mb-8">
-                    <button type="button" onClick={() => setMetodoPagamento('pix')} className={`flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border-2 transition-all ${metodoPagamento === 'pix' ? 'border-[#009640] bg-[#009640]/5 text-[#009640] shadow-sm' : 'border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200'}`}>
-                      <QrCode size={32} /> <span className="text-[10px] md:text-xs font-black uppercase tracking-widest">PIX Rápido</span>
-                    </button>
-                    <button type="button" onClick={() => setMetodoPagamento('cartao')} className={`flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border-2 transition-all ${metodoPagamento === 'cartao' ? 'border-[#00577C] bg-[#00577C]/5 text-[#00577C] shadow-sm' : 'border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200'}`}>
-                      <CreditCard size={32} /> <span className="text-[10px] md:text-xs font-black uppercase tracking-widest">Cartão de Crédito</span>
-                    </button>
-                  </div>
-
-                  {metodoPagamento === 'cartao' && (
-                    <div className="space-y-5 bg-white border-2 border-[#00577C]/10 p-6 md:p-8 rounded-[2rem] shadow-inner mb-8 animate-in slide-in-from-top-4 duration-300">
-                      <div>
-                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Nome Impresso no Cartão *</label>
-                        <div className="relative">
-                          <User className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-                          <input required value={nomeCartao} onChange={e => setNomeCartao(e.target.value.toUpperCase())} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 pl-12 pr-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white hover:border-slate-200 transition-all uppercase" placeholder="JOAO S SANTOS" />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Número do Cartão *</label>
-                        <div className="relative">
-                          <CreditCard className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-                          <input required value={numeroCartao} onChange={e => setNumeroCartao(mascaraCartao(e.target.value))} maxLength={19} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 pl-12 pr-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white hover:border-slate-200 transition-all tabular-nums tracking-widest" placeholder="0000 0000 0000 0000" />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-[1fr_1fr_1.5fr] gap-3">
+                {/* PASSO: FATURAÇÃO */}
+                <div className={`w-full shrink-0 px-[2px] transition-all duration-500 ${passoAtual === passoFaturacao ? 'opacity-100 h-auto' : 'opacity-0 h-0 overflow-hidden pointer-events-none'}`}>
+                  <SectionCard className="p-6 md:p-10 text-left h-full">
+                    <SectionHeader step={passoFaturacao} title="Endereço de Faturação" icon={<Home size={20} />} />
+                    <div className="grid gap-5 md:gap-6 sm:grid-cols-2">
+                      <div className="sm:col-span-2 grid grid-cols-[1fr_100px] gap-4">
                         <div>
-                          <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Mês *</label>
-                          <input required value={mesCartao} maxLength={2} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-2 py-4 text-sm font-bold text-slate-800 text-center outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="MM" onChange={e => setMesCartao(e.target.value.replace(/\D/g,''))} />
+                          <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Rua / Avenida *</label>
+                          <input required value={rua} onChange={e => setRua(e.target.value)} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-colors" />
                         </div>
                         <div>
-                          <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Ano *</label>
-                          <input required value={anoCartao} maxLength={4} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-2 py-4 text-sm font-bold text-slate-800 text-center outline-none focus:border-[#00577C] focus:bg-white transition-all" placeholder="AAAA" onChange={e => setAnoCartao(e.target.value.replace(/\D/g,''))} />
+                          <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Número *</label>
+                          <input required value={numero} onChange={e => setNumero(e.target.value)} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 text-center outline-none focus:border-[#00577C] focus:bg-white transition-colors" />
                         </div>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Bairro *</label>
+                        <input required value={bairro} onChange={e => setBairro(e.target.value)} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-colors" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">CEP *</label>
+                        <input required value={cep} onChange={e => setCep(mascaraCEP(e.target.value))} maxLength={9} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-colors" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Cidade *</label>
+                        <input required value={cidade} onChange={e => setCidade(e.target.value)} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-colors" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Estado (UF) *</label>
+                        <input required value={estado} onChange={e => setEstado(e.target.value.toUpperCase())} maxLength={2} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 text-center outline-none focus:border-[#00577C] focus:bg-white transition-colors" />
+                      </div>
+                    </div>
+                  </SectionCard>
+                </div>
+
+                {/* PASSO: PAGAMENTO */}
+                <div className={`w-full shrink-0 px-[2px] transition-all duration-500 ${passoAtual === passoPagamento ? 'opacity-100 h-auto' : 'opacity-0 h-0 overflow-hidden pointer-events-none'}`}>
+                  <SectionCard className="p-6 md:p-10 text-left h-full">
+                    <SectionHeader step={passoPagamento} title="Método de Pagamento" icon={<Wallet size={20} />} />
+                    
+                    <div className="grid grid-cols-2 gap-4 mb-8">
+                      <button type="button" onClick={() => setMetodoPagamento('pix')} className={`flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border-2 transition-all ${metodoPagamento === 'pix' ? 'border-[#009640] bg-green-50 text-[#009640]' : 'border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200'}`}>
+                        <QrCode size={32} /> <span className="text-[10px] font-black uppercase tracking-widest">PIX Rápido</span>
+                      </button>
+                      <button type="button" onClick={() => setMetodoPagamento('cartao')} className={`flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border-2 transition-all ${metodoPagamento === 'cartao' ? 'border-[#00577C] bg-[#00577C]/5 text-[#00577C]' : 'border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200'}`}>
+                        <CreditCard size={32} /> <span className="text-[10px] font-black uppercase tracking-widest">Cartão Crédito</span>
+                      </button>
+                    </div>
+
+                    {metodoPagamento === 'cartao' && (
+                      <div className="space-y-5 bg-white border-2 border-[#00577C]/10 p-6 md:p-8 rounded-[2rem] shadow-inner mb-8">
                         <div>
-                          <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">CVV *</label>
+                          <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Nome Impresso no Cartão *</label>
                           <div className="relative">
-                            <Lock className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-                            <input required type="password" value={cvvCartao} maxLength={4} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 pl-11 pr-4 py-4 text-sm font-bold text-slate-800 text-center outline-none focus:border-[#00577C] focus:bg-white transition-all tracking-widest" placeholder="CVV" onChange={e => setCvvCartao(e.target.value.replace(/\D/g,''))} />
+                            <User className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                            <input required value={nomeCartao} onChange={e => setNomeCartao(e.target.value.toUpperCase())} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 pl-12 pr-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-colors uppercase" placeholder="NOME COMO NO CARTÃO" />
                           </div>
                         </div>
+                        <div>
+                          <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Número do Cartão *</label>
+                          <div className="relative">
+                            <CreditCard className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                            <input required value={numeroCartao} onChange={e => setNumeroCartao(mascaraCartao(e.target.value))} maxLength={19} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 pl-12 pr-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-colors tabular-nums tracking-widest" placeholder="0000 0000 0000 0000" />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-[1fr_1fr_1.5fr] gap-3">
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Mês *</label>
+                            <input required value={mesCartao} maxLength={2} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-2 py-4 text-sm font-bold text-slate-800 text-center outline-none focus:border-[#00577C] focus:bg-white transition-colors" placeholder="MM" onChange={e => setMesCartao(e.target.value.replace(/\D/g,''))} />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Ano *</label>
+                            <input required value={anoCartao} maxLength={4} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-2 py-4 text-sm font-bold text-slate-800 text-center outline-none focus:border-[#00577C] focus:bg-white transition-colors" placeholder="AAAA" onChange={e => setAnoCartao(e.target.value.replace(/\D/g,''))} />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">CVV *</label>
+                            <div className="relative">
+                              <Lock className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                              <input required type="password" value={cvvCartao} maxLength={4} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 pl-11 pr-4 py-4 text-sm font-bold text-slate-800 text-center outline-none focus:border-[#00577C] focus:bg-white transition-colors" placeholder="CVV" onChange={e => setCvvCartao(e.target.value.replace(/\D/g,''))} />
+                            </div>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Opção de Parcelamento *</label>
+                          <select value={parcelas} onChange={e => setParcelas(Number(e.target.value))} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-colors cursor-pointer">
+                            {[...Array(12)].map((_, i) => <option key={i+1} value={i+1}>{i+1}x de {formatarMoeda(totalPagamento/(i+1))} {!i && ' (À Vista)'}</option>)}
+                          </select>
+                        </div>
                       </div>
+                    )}
 
-                      <div>
-                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Opção de Parcelamento *</label>
-                        <select value={parcelas} onChange={e => setParcelas(Number(e.target.value))} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] focus:bg-white transition-all cursor-pointer">
-                          {[...Array(12)].map((_, i) => <option key={i+1} value={i+1}>{i+1}x de {formatarMoeda(totalPagamento/(i+1))} {!i && ' (À Vista)'}</option>)}
-                        </select>
+                    {erroApi && (
+                      <div className="mb-8 p-5 bg-red-50 text-red-700 rounded-2xl font-bold text-sm flex items-center gap-3 border border-red-100 animate-in shake">
+                         <AlertCircle size={24} className="shrink-0"/> {erroApi}
                       </div>
-                    </div>
-                  )}
+                    )}
+                    
+                    <button type="submit" disabled={isSubmitting || loadingPreco || !pacoteDisponivel} className="w-full py-6 rounded-[1.5rem] font-black text-xl text-white shadow-xl bg-[#00577C] hover:bg-[#004a6b] transition-all active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed">
+                      {isSubmitting ? <><Loader2 className="animate-spin" size={24}/> Processando...</> : loadingPreco ? 'A Sincronizar Calendário...' : !pacoteDisponivel ? 'Esgotado' : <><Lock size={22}/> Confirmar Reserva Segura</>}
+                    </button>
+                  </SectionCard>
+                </div>
 
-                  {erroApi && (
-                    <div className="mb-8 p-5 bg-red-50 text-red-700 rounded-2xl font-bold text-sm flex items-center gap-3 border border-red-100 shadow-sm animate-in shake">
-                       <AlertCircle size={24} className="shrink-0"/> {erroApi}
-                    </div>
-                  )}
-                  
-                  <button type="submit" disabled={isSubmitting || loadingPreco || !pacoteDisponivel} className="w-full py-6 rounded-[1.5rem] font-black text-xl text-white shadow-xl bg-slate-900 hover:bg-black transition-all active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed">
-                    {isSubmitting ? <><Loader2 className="animate-spin" size={24}/> Processando...</> : loadingPreco ? 'A Sincronizar Calendário...' : !pacoteDisponivel ? 'Esgotado' : <><Lock size={22}/> Confirmar Reserva Segura</>}
+              </div>
+            </div>
+
+            {/* Botões de navegação (fora do slider, abaixo) */}
+            <div className="mt-6 space-y-4 w-full">
+              <div className="flex flex-col sm:flex-row items-center gap-4 w-full">
+                {passoAtual > 1 && (
+                  <button 
+                    type="button" 
+                    onClick={handleVoltarPasso} 
+                    className="w-full sm:w-auto px-6 py-5 rounded-[1.5rem] font-black text-slate-500 bg-white border-2 border-slate-200 hover:bg-slate-50 hover:text-slate-700 transition-all flex items-center justify-center gap-2"
+                  >
+                    <ChevronLeft size={20} /> Voltar
                   </button>
-                </SectionCard>
-              </form>
-            ) : (
-              <SectionCard className="p-8 md:p-16 text-center border-green-100">
-                 <div className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6"><CheckCircle2 size={48} className="text-[#009640]"/></div>
-                 <h2 className={`${jakarta.className} text-3xl md:text-4xl font-black text-slate-900 mb-4`}>Pedido Criado!</h2>
-                 <p className="text-slate-500 mb-10 text-lg">Conclua o pagamento via PIX para garantir sua reserva imediatamente.</p>
-                 <div className="w-64 h-64 bg-slate-50 mx-auto rounded-[3rem] p-6 border-4 border-dashed border-slate-200 mb-8 flex items-center justify-center shadow-inner relative">
-                    <img src={qrCodeData.link} alt="QR Code" className="w-full h-full mix-blend-multiply relative z-10" />
-                 </div>
-                 <button onClick={() => {navigator.clipboard.writeText(qrCodeData.texto); alert('Código PIX Copiado!')}} className="w-full py-5 rounded-2xl bg-[#009640] hover:bg-[#007a33] text-white font-black text-lg flex items-center justify-center gap-3 shadow-xl mb-8">
-                    <Copy size={20}/> Copiar Código PIX
-                 </button>
-              </SectionCard>
-            )}
+                )}
+                
+                {passoAtual < passoPagamento ? (
+                  <button 
+                    type="button" 
+                    onClick={handleAvançarPasso} 
+                    className="w-full flex-1 py-5 rounded-[1.5rem] font-black text-xl text-white shadow-xl bg-[#00577C] hover:bg-[#004a6b] transition-all active:scale-[0.98] flex items-center justify-center gap-3"
+                  >
+                    Avançar <ChevronRight size={24} />
+                  </button>
+                ) : (
+                  // Botão de pagamento já está dentro do passo de pagamento – este bloco será usado apenas se o passo atual não for o pagamento? Não, o botão de submit está dentro do passo de pagamento. Mas para manter o fluxo, deixamos aqui apenas um placeholder.
+                  // Na verdade, no passo de pagamento já existe o botão de submit. O botão "Avançar" não aparece quando passoAtual === passoPagamento porque o passo de pagamento já tem o botão. Este trecho só é usado quando passoAtual < passoPagamento.
+                  <></>
+                )}
+              </div>
+            </div>
+
           </div>
 
-          {/* ── COLUNA DIREITA ── */}
+          {/* ── COLUNA DIREITA: RESUMO (INALTERADA) ── */}
           <aside className="w-full h-fit lg:self-start order-first lg:order-last relative space-y-6">
             <SectionCard>
               <div className="h-2 w-full bg-gradient-to-r from-[#00577C] via-[#F9C400] to-[#009640]" />
@@ -710,27 +772,10 @@ function CheckoutPacoteContent() {
                  )}
                  
                  <div className="pt-4 border-t border-dashed border-slate-200 space-y-2 text-sm">
-                    {exibirTaxaExtra ? (
-                      <>
-                        <div className="pt-4 border-t border-dashed border-slate-200 space-y-2 text-sm">
-                          <div className="flex justify-between text-slate-600">
-                            <span>Total de Inclusões</span>
-                            <span className="font-bold">Incluído no pacote</span>
-                          </div>
-                          <div className="flex justify-between text-slate-600">
-                            <span>Taxas Municipais Governamentais</span>
-                            <span className="font-bold text-[#009640]">Isento</span>
-                          </div>
-                      </div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="flex justify-between text-slate-600">
-                           <span>Taxas Fundo Ambiental</span>
-                           <span className="font-bold text-[#009640]">Isento</span>
-                        </div>
-                      </>
-                    )}
+                    <div className="flex justify-between text-slate-600">
+                       <span>Taxas Municipais</span>
+                       <span className="font-bold text-[#009640]">Isento</span>
+                    </div>
                  </div>
 
                  <div className="pt-8 border-t-2 border-slate-100 flex flex-col gap-4">

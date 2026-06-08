@@ -76,20 +76,20 @@ const flora = [
 ];
 
 // ==========================================
-// DADOS — 11 CACHOEIRAS
+// DADOS — 11 CACHOEIRAS COM IMAGENS
 // ==========================================
 const cachoeiras = [
-  { nome: "Cachoeira Três Quedas", altura: "42m", dificuldade: "Fácil", descricao: "A mais emblemática do parque, conhecida pelas três quedas de água.", destaque: true },
-  { nome: "Cachoeira Quarta Queda", altura: "28m", dificuldade: "Fácil", descricao: "Queda delicada em fio cristalino, envolta em samambaias e bromélias.", destaque: true },
-  { nome: "Poço Esmeralda", altura: "15m", dificuldade: "Fácil", descricao: "Localizada acima das Cachoeiras Três Quedas, a Cachoeira Quarta Queda é um convite para trilha e aventura.", destaque: true },
-  { nome: "Cachoeira Rapunzel", altura: "20m", dificuldade: "Difícil", descricao: "Cai sobre uma gruta de calcário, criando um ambiente místico único.", destaque: true},
-  { nome: "Cachoeira da Pacència", altura: "35m", dificuldade: "Moderada", descricao: "Vista panorâmica para o Rio Araguaia ao fundo do horizonte.", destaque: true },
-  { nome: "Cachoeira Urubu -Rei", altura: "18m", dificuldade: "Moderada", descricao: "Frequentada por gavião-real em seu habitat natural de nidificação.", destaque: true },
-  { nome: "Casacata do Urubu - Rei", altura: "12m", dificuldade: "Difícil", descricao: "Acessível apenas por trilha densa, recompensa com solidão total.", destaque: true },
-  { nome: "Cachoeira Antônio Crente", altura: "8m", dificuldade: "Fácil", descricao: "Piscina natural turquesa, ideal para banho em família.", destaque: true },
-  { nome: "Cachoeira Viagem Grande", altura: "55m", dificuldade: "Difícil", descricao: "A mais alta do parque, vista só de longe devido ao isolamento.", destaque: true },
-  { nome: "Cachoeira Riacho Fundo", altura: "10m", dificuldade: "Fácil", descricao: "Nasce entre afloramentos de quartzo com água de pureza excepcional.", destaque: true },
-  { nome: "Cachoeira Spanner", altura: "22m", dificuldade: "Moderada", descricao: "Encravada em densa mata de galeria, abrigo de orquídeas e bromélias.", destaque: true },
+  { nome: "Cachoeira Três Quedas", altura: "42m", dificuldade: "Fácil", descricao: "A mais emblemática do parque, conhecida pelas três quedas de água.", destaque: true, imagem: "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/IMG_1802.PNG" },
+  { nome: "Cachoeira Quarta Queda", altura: "28m", dificuldade: "Fácil", descricao: "Queda delicada em fio cristalino, envolta em samambaias e bromélias.", destaque: true, imagem: "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/IMG_1802.PNG" },
+  { nome: "Poço Esmeralda", altura: "15m", dificuldade: "Fácil", descricao: "Localizada acima das Cachoeiras Três Quedas, a Cachoeira Quarta Queda é um convite para trilha e aventura.", destaque: true, imagem: "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/IMG_1802.PNG" },
+  { nome: "Cachoeira Rapunzel", altura: "20m", dificuldade: "Difícil", descricao: "Cai sobre uma gruta de calcário, criando um ambiente místico único.", destaque: true, imagem: "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/IMG_1802.PNG" },
+  { nome: "Cachoeira da Paciência", altura: "35m", dificuldade: "Moderada", descricao: "Vista panorâmica para o Rio Araguaia ao fundo do horizonte.", destaque: true, imagem: "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/IMG_1802.PNG" },
+  { nome: "Cachoeira Urubu -Rei", altura: "18m", dificuldade: "Moderada", descricao: "Frequentada por gavião-real em seu habitat natural de nidificação.", destaque: true, imagem: "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/IMG_1802.PNG" },
+  { nome: "Casacata do Urubu - Rei", altura: "12m", dificuldade: "Difícil", descricao: "Acessível apenas por trilha densa, recompensa com solidão total.", destaque: true, imagem: "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/IMG_1802.PNG" },
+  { nome: "Cachoeira Antônio Crente", altura: "8m", dificuldade: "Fácil", descricao: "Piscina natural turquesa, ideal para banho em família.", destaque: true, imagem: "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/IMG_1802.PNG" },
+  { nome: "Cachoeira Viagem Grande", altura: "55m", dificuldade: "Difícil", descricao: "A mais alta do parque, vista só de longe devido ao isolamento.", destaque: true, imagem: "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/IMG_1802.PNG" },
+  { nome: "Cachoeira Riacho Fundo", altura: "10m", dificuldade: "Fácil", descricao: "Nasce entre afloramentos de quartzo com água de pureza excepcional.", destaque: true, imagem: "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/IMG_1802.PNG" },
+  { nome: "Cachoeira Spanner", altura: "22m", dificuldade: "Moderada", descricao: "Encravada em densa mata de galeria, abrigo de orquídeas e bromélias.", destaque: true, imagem: "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/IMG_1802.PNG" },
 ];
 
 const dificuldadeCor: Record<string, string> = {
@@ -289,10 +289,9 @@ function SecBiomas() {
 }
 
 // ==========================================
-// SECÇÃO: 11 CACHOEIRAS
+// SECÇÃO: 11 CACHOEIRAS (COM IMAGENS REAIS, SEM DIFICULDADE)
 // ==========================================
 function SecCachoeiras() {
-  const [ativa, setAtiva] = useState<number | null>(null);
   const destaques = cachoeiras.filter(c => c.destaque);
   const resto = cachoeiras.filter(c => !c.destaque);
 
@@ -313,21 +312,19 @@ function SecCachoeiras() {
           </div>
         </Reveal>
 
-        {/* 3 destaques — grandes */}
+        {/* 3 destaques — grandes com imagens */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
           {destaques.map((c, i) => (
             <Reveal key={c.nome} anim="up" delay={i * 120}>
-              <div className="group relative h-[380px] rounded-[2rem] overflow-hidden bg-[#003d5c] cursor-pointer"
-                onClick={() => setAtiva(ativa === i ? null : i)}>
-                <Image src={`https://images.unsplash.com/photo-${['1500534314209-a25ddb2bd429', '1443890923422-7819ed4101b0', '1506905925346-21bda4d32df4'][i]}?w=800&q=80`}
-                  alt={c.nome} fill className="object-cover opacity-60 group-hover:scale-108 group-hover:opacity-80 transition-all duration-1000" />
+              <div className="group relative h-[380px] rounded-[2rem] overflow-hidden bg-[#003d5c] cursor-pointer">
+                <Image
+                  src={c.imagem}
+                  alt={c.nome}
+                  fill
+                  className="object-cover opacity-6 group-hover:scale-105 group-hover:opacity-80 transition-all duration-1000"
+                />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#003d5c]/95 via-[#003d5c]/20 to-transparent" />
-                <div className="absolute top-5 right-5">
-                  <span className="text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full border"
-                    style={{ color: dificuldadeCor[c.dificuldade], borderColor: dificuldadeCor[c.dificuldade] + '60', backgroundColor: dificuldadeCor[c.dificuldade] + '20' }}>
-                    {c.dificuldade}
-                  </span>
-                </div>
+                {/* REMOVIDO O BADGE DE DIFICULDADE */}
                 <div className="absolute bottom-8 left-8 right-8 text-white">
                   <div className="flex items-center gap-2 mb-2">
                     <Droplets size={14} className="text-[#F9C400]" />
@@ -341,17 +338,14 @@ function SecCachoeiras() {
           ))}
         </div>
 
-        {/* Grid das restantes 8 */}
+        {/* Grid das restantes 8 (sem imagem, apenas informações) */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {resto.map((c, i) => (
             <Reveal key={c.nome} anim="up" delay={i * 60}>
               <div className="bg-white/5 border border-white/10 rounded-[1.5rem] p-6 hover:bg-white/10 transition-colors group cursor-pointer">
                 <div className="flex items-start justify-between mb-4">
                   <Droplets size={18} className="text-[#F9C400]" />
-                  <span className="text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-full"
-                    style={{ color: dificuldadeCor[c.dificuldade], backgroundColor: dificuldadeCor[c.dificuldade] + '20' }}>
-                    {c.dificuldade}
-                  </span>
+                  {/* REMOVIDO O BADGE DE DIFICULDADE */}
                 </div>
                 <p className="text-[#F9C400] font-black text-xl mb-1">{c.altura}</p>
                 <h4 className={`${jakarta.className} text-base font-black text-white mb-2 group-hover:text-[#F9C400] transition-colors`}>{c.nome}</h4>

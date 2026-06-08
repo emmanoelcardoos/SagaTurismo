@@ -21,6 +21,7 @@ const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] }
 
 // ── IMAGEM DE SEGURANÇA ──
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?q=80&w=1740";
+const FALLBACK_GUIA_IMAGE = "https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=1887";
 
 // ── UTILITÁRIOS ──
 const parseValor = (valor: any): number => {
@@ -48,7 +49,7 @@ const getArraySeguro = (item: any): string[] => {
   return [];
 };
 
-// ── TIPAGENS (com as novas colunas) ──
+// ── TIPAGENS ──
 type Hotel = {
   id: string; nome: string; tipo: string; imagem_url: string; descricao: string;
   quarto_standard_nome?: string; quarto_standard_preco: any; quarto_standard_comodidades?: string[];
@@ -56,7 +57,14 @@ type Hotel = {
   quarto_standard_imagens?: string[]; quarto_luxo_imagens?: string[];
   galeria: string[] | string;
 };
-type Guia = { id: string; nome: string; preco_diaria: any; especialidade: string; imagem_url: string; descricao: string; };
+type Guia = {
+  id: string;
+  nome: string;
+  preco_diaria: any;
+  especialidade: string;
+  imagem_url: string;
+  descricao_guia: string;
+};
 type Atracao = { id: string; nome: string; preco_entrada: any; tipo: string; };
 type Pacote = {
   id: string; titulo: string; descricao_curta: string; roteiro_detalhado: string;
@@ -70,7 +78,7 @@ type Pacote = {
   duracao_fixa: boolean;
 };
 
-// ── COMPONENTE DE CONTEÚDO ENVOLTO NO SUSPENSE ──
+// ── COMPONENTE DE CONTEÚDO ──
 function PacoteDetalheContent() {
   const { id } = useParams();
   const router = useRouter();
@@ -89,7 +97,7 @@ function PacoteDetalheContent() {
   const [tipoQuarto, setTipoQuarto] = useState<'standard' | 'luxo'>('standard');
   const [guiaSelecionado, setGuiaSelecionado] = useState<Guia | null>(null);
 
-  // Calendário Inteligente
+  // Calendário
   const [checkin, setCheckin] = useState<Date | null>(null);
   const [checkout, setCheckout] = useState<Date | null>(null);
   const [hoverDate, setHoverDate] = useState<Date | null>(null);
@@ -100,7 +108,6 @@ function PacoteDetalheContent() {
   const [criancas, setCriancas] = useState(0);
   const [quartos, setQuartos] = useState(1);
 
-  // ── ESTADOS DINÂMICOS DA RAILWAY (apenas para calcular disponibilidade de hotel) ──
   const [totalHospedagem, setTotalHospedagem] = useState(0);
   const [totalNoites, setTotalNoites] = useState(1);
   const [hotelDisponivel, setHotelDisponivel] = useState(true);
@@ -120,7 +127,6 @@ function PacoteDetalheContent() {
     setMounted(true);
   }, []);
 
-  // 1. Efeito de Scroll
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
@@ -133,7 +139,6 @@ function PacoteDetalheContent() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
-  // 2. Carregar Pacote e Sincronizar URL
   useEffect(() => {
     async function fetchData() {
       try {
@@ -160,12 +165,9 @@ function PacoteDetalheContent() {
         setGuiasDisponiveis(guias);
         setAtracoesInclusas(atracoes);
 
-        if (hoteis.length > 0) {
-          setHotelSelecionado(hoteis[0]);
-        }
+        if (hoteis.length > 0) setHotelSelecionado(hoteis[0]);
         if (guias.length > 0) setGuiaSelecionado(guias[0]);
 
-        // Parâmetros da URL (checkin/checkout)
         const ci = searchParams.get('checkin');
         const co = searchParams.get('checkout');
         if (ci && ci !== 'null') setCheckin(new Date(ci));
@@ -184,7 +186,6 @@ function PacoteDetalheContent() {
     if (id) fetchData();
   }, [id, router, searchParams]);
 
-  // 3. Consultar API da Railway apenas para verificar disponibilidade do hotel (preço não usado no total final)
   useEffect(() => {
     if (!hotelSelecionado || !checkin || !checkout) {
       setHotelDisponivel(true);
@@ -202,7 +203,7 @@ function PacoteDetalheContent() {
 
         if (data.sucesso) {
           setHotelDisponivel(data.disponivel);
-          setTotalNoites(data.noites); // não usado no preço final, apenas para referência
+          setTotalNoites(data.noites);
         } else {
           setHotelDisponivel(false);
         }
@@ -216,7 +217,7 @@ function PacoteDetalheContent() {
     verificarDisponibilidadeHotel();
   }, [checkin, checkout, quartos, adultos, tipoQuarto, hotelSelecionado]);
 
-  // ── LÓGICA DO CALENDÁRIO COM REGRAS DO PACOTE ──
+  // ── LÓGICA DO CALENDÁRIO ──
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
 
@@ -273,12 +274,11 @@ function PacoteDetalheContent() {
     return isDataInicioValida(data);
   });
 
-  // ── MATEMÁTICA DO PACOTE (CORRIGIDA) ──
-  const valorPorPessoa = parseValor(pacote?.preco);          // preço base por pessoa
+  // ── MATEMÁTICA DO PACOTE ──
+  const valorPorPessoa = parseValor(pacote?.preco);
   const diferencaDiaria = hotelSelecionado 
     ? Math.max(0, parseValor(hotelSelecionado.quarto_luxo_preco) - parseValor(hotelSelecionado.quarto_standard_preco)) 
     : 0;
-  // As noites do pacote são fixas (pacote.noites)
   const acrescimoUpgrade = tipoQuarto === 'luxo' ? (diferencaDiaria * pacote.noites * quartos) : 0;
   const valorTotalFinal = (valorPorPessoa * adultos) + acrescimoUpgrade;
 
@@ -306,7 +306,6 @@ function PacoteDetalheContent() {
       alert("Pedimos desculpa, mas o quarto selecionado está esgotado para estas datas. Por favor, escolha outro período ou acomodação.");
       return;
     }
-
     router.push(`/checkout?pacote=${pacote?.id}&hotel=${hotelSelecionado?.id}&quarto=${tipoQuarto}&guia=${guiaSelecionado?.id}&checkin=${formatarDataIso(checkin)}&checkout=${formatarDataIso(checkout)}&adultos=${adultos}&quartos=${quartos}&preco=${valorTotalFinal}`);
   };
 
@@ -324,10 +323,16 @@ function PacoteDetalheContent() {
     ? getArraySeguro(hotelSelecionado.quarto_luxo_imagens) 
     : ["https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?q=80&w=1740", "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?q=80&w=1740"];
 
-  return (
-    <main className={`${inter.className} min-h-screen bg-[#F5F7FA] text-slate-900 pb-24 lg:pb-0`}>
+  const guiaExibicao = guiaSelecionado || (guiasDisponiveis.length > 0 ? guiasDisponiveis[0] : null);
+  const guiaNome = guiaExibicao?.nome || 'Guia Credenciado';
+  const guiaImagem = guiaExibicao?.imagem_url || FALLBACK_GUIA_IMAGE;
+  const guiaEspecialidade = guiaExibicao?.especialidade || 'Especialista da Região';
+  const guiaDescricao = guiaExibicao?.descricao_guia || 'Guia experiente, conhecedor profundo da região, apaixonado por partilhar histórias e garantir uma experiência única e segura.';
 
-      {/* ── HEADER ── (mesmo código, omitido por brevidade) ── */}
+  return (
+    <div className={`${inter.className} min-h-screen flex flex-col bg-[#FDFCF7] text-slate-900`}>
+
+      {/* ── HEADER ── */}
       <header className="relative z-50 w-full bg-white border-b border-slate-200 py-4">
         <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6">
           <Link href="/" className="flex items-center gap-3">
@@ -351,8 +356,6 @@ function PacoteDetalheContent() {
             {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
-
-        {/* Menu Mobile */}
         {isMobileMenuOpen && (
           <div className="absolute top-full left-0 w-full bg-white border-b border-slate-200 p-6 flex flex-col gap-4 shadow-2xl lg:hidden z-50">
             <Link href="/rotas" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Rotas Turísticas</Link>
@@ -367,56 +370,94 @@ function PacoteDetalheContent() {
         )}
       </header>
 
-      {/* ── HERO SECTION ── */}
-      <div className="relative w-full h-[40vh] md:h-[50vh] bg-slate-900 mt-[0px] md:mt-[0px]">
-        <Image src={pacote.imagem_principal || FALLBACK_IMAGE} alt={pacote.titulo || 'Pacote'} fill className="object-cover" priority />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/20 to-transparent" />
-        <div className="absolute bottom-6 md:bottom-10 left-5 md:left-16 right-5 text-left">
-          <h1 className={`${jakarta.className} text-3xl sm:text-4xl md:text-6xl font-black text-white leading-tight drop-shadow-lg line-clamp-2 md:line-clamp-none`}>{pacote.titulo}</h1>
+      {/* ── CONTEÚDO PRINCIPAL ── */}
+      <div className="flex-1">
+        {/* HERO IMAGEM (estilo passeios) */}
+        <div className="w-full h-[40vh] md:h-[60vh] relative bg-[#002f40] overflow-hidden">
+          <Link href="/pacotes" className="absolute top-6 left-6 z-20 flex items-center gap-2 text-sm font-bold text-slate-800 bg-white/90 backdrop-blur-sm hover:bg-white px-4 py-2 rounded-full shadow-lg transition-colors">
+            <ArrowLeft size={16} /> Voltar
+          </Link>
+          <Image
+            src={pacote.imagem_principal || FALLBACK_IMAGE}
+            alt={pacote.titulo}
+            fill
+            className="object-cover opacity-80"
+            priority
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#002f40]/90 via-[#002f40]/40 to-transparent" />
         </div>
-      </div>
 
-      <div className={`sticky z-40 bg-white border-b border-slate-200 shadow-sm lg:hidden transition-all duration-300 ${showHeader ? 'top-[64px] md:top-[80px]' : 'top-0'}`}>
-      </div>
-
-      <div className="mx-auto w-full max-w-7xl px-4 md:px-5 py-8 md:py-12 flex flex-col lg:flex-row items-start gap-8 relative z-10">
-
-        <div className="flex-1 w-full min-w-0 flex flex-col gap-6 md:gap-8">
-
-          {/* ROTEIRO */}
-          <section className="bg-white rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-10 shadow-sm border border-slate-200 text-left">
-            <div className="flex items-center gap-4 text-xs md:text-sm font-semibold text-[#00577C] mb-6 border-b border-slate-100 pb-6">
-              <span className="flex items-center gap-2 bg-blue-50 px-4 py-2 rounded-full">
-                <Clock size={16} /> Duração: {pacote.dias} dias / {pacote.noites} noites
-              </span>
-            </div>
-
-            <div className="mb-4 text-left">
-              <h3 className={`${jakarta.className} text-xl md:text-2xl font-black text-slate-900 mb-6`}>Detalhes da Expedição</h3>
-              <p className="text-sm md:text-base text-slate-600 italic font-medium border-l-4 border-[#F9C400] pl-4 md:pl-5 mb-6 md:mb-8 bg-slate-50 py-3 pr-3 rounded-r-xl">{pacote.descricao_curta}</p>
-              <div className="text-slate-600 font-medium leading-relaxed whitespace-pre-line text-sm md:text-base">{pacote.roteiro_detalhado}</div>
-            </div>
-          </section>
-
-          {/* ── 1. ACOMODAÇÃO E QUARTOS ── (mantido igual) ── */}
-          <section className="bg-white rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-10 shadow-sm border border-slate-200 text-left overflow-hidden relative">
-            <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none"><Bed size={150}/></div>
-            <h3 className={`${jakarta.className} text-xl md:text-2xl font-black text-slate-900 mb-8 flex items-center gap-3 relative z-10`}>
-              <div className="w-10 h-10 md:w-12 md:h-12 bg-[#00577C] text-white rounded-xl md:rounded-2xl flex items-center justify-center shadow-md">
-                <Bed size={20} className="md:w-6 md:h-6" />
+        {/* GRID PRINCIPAL COM SOBREPOSIÇÃO (igual aos passeios) */}
+        <div className="mx-auto w-full max-w-7xl px-5 py-12 flex flex-col lg:flex-row items-start gap-12 relative z-10 -mt-20">
+          {/* COLUNA ESQUERDA (CONTEÚDO) */}
+          <div className="flex-1 w-full min-w-0 flex flex-col gap-10">
+            <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-xl border border-slate-100">
+              <div className="flex flex-wrap items-center gap-3 mb-5">
+                <span className="bg-[#F9C400] text-[#00577C] px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest shadow-sm">
+                  {pacote.categoria || 'Aventura'}
+                </span>
+                <span className="flex items-center gap-1.5 text-sm font-semibold text-slate-500">
+                  <MapPin size={15} className="text-[#009640]" /> São Geraldo do Araguaia, PA
+                </span>
               </div>
-              1. Acomodação Inclusa
-            </h3>
 
-            <div className="flex flex-col gap-6 relative z-10">
+              <h1 className={`${jakarta.className} text-4xl sm:text-5xl font-black text-slate-900 tracking-tight mb-8`}>
+                {pacote.titulo}
+              </h1>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-10 border-t border-b border-slate-100 py-8">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1 flex items-center gap-1.5">
+                    <CalendarIcon size={14} className="text-[#00577C]"/> Data
+                  </p>
+                  <p className="font-bold text-slate-800 capitalize leading-tight">Período disponível</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1 flex items-center gap-1.5">
+                    <Clock size={14} className="text-[#00577C]"/> Duração
+                  </p>
+                  <p className="font-bold text-slate-800 leading-tight">{pacote.dias} dias / {pacote.noites} noites</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1 flex items-center gap-1.5">
+                    <Users size={14} className="text-[#00577C]"/> Acomodação
+                  </p>
+                  <p className="font-bold text-slate-800 leading-tight">Hotel incluso</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1 flex items-center gap-1.5">
+                    <Compass size={14} className="text-[#00577C]"/> Guia
+                  </p>
+                  <p className="font-bold text-slate-800 leading-tight">Especializado</p>
+                </div>
+              </div>
+
+              <div className="mb-8">
+                <h3 className={`${jakarta.className} text-2xl font-black text-[#00577C] mb-4`}>Sobre a Experiência</h3>
+                <p className="text-lg text-slate-500 italic font-medium border-l-4 border-[#F9C400] pl-5 mb-6">{pacote.descricao_curta}</p>
+                <div className="text-slate-600 font-medium leading-relaxed whitespace-pre-line">
+                  {pacote.roteiro_detalhado}
+                </div>
+              </div>
+            </div>
+
+            {/* ACOMODAÇÃO (mantido) */}
+            <section className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-xl border border-slate-100 overflow-hidden relative">
+              <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none"><Bed size={150}/></div>
+              <h3 className={`${jakarta.className} text-2xl font-black text-slate-900 mb-6 flex items-center gap-3 relative z-10`}>
+                <div className="w-10 h-10 bg-[#00577C] text-white rounded-xl flex items-center justify-center"><Bed size={20} /></div>
+                Acomodação Inclusa
+              </h3>
+
               {hoteisDisponiveis.length > 1 && (
-                <div className="space-y-4 mb-2 border-b border-slate-100 pb-6">
+                <div className="space-y-4 mb-6">
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Selecione o hotel desejado:</p>
-                  <div className="flex flex-wrap gap-2 md:gap-3">
-                    {hoteisDisponiveis.map((hotel: any) => (
-                      <button 
-                        key={hotel.id} onClick={() => setHotelSelecionado(hotel)}
-                        className={`px-4 md:px-5 py-2.5 md:py-3 rounded-xl border-2 font-bold text-xs md:text-sm transition-colors ${hotelSelecionado?.id === hotel.id ? 'border-[#00577C] bg-blue-50/50 text-[#00577C]' : 'border-slate-100 text-slate-500 hover:border-slate-200'}`}
+                  <div className="flex flex-wrap gap-2">
+                    {hoteisDisponiveis.map((hotel) => (
+                      <button
+                        key={hotel.id}
+                        onClick={() => setHotelSelecionado(hotel)}
+                        className={`px-4 py-2 rounded-xl border-2 font-bold text-xs transition-colors ${hotelSelecionado?.id === hotel.id ? 'border-[#00577C] bg-blue-50/50 text-[#00577C]' : 'border-slate-100 text-slate-500 hover:border-slate-200'}`}
                       >
                         {hotel.nome}
                       </button>
@@ -426,326 +467,305 @@ function PacoteDetalheContent() {
               )}
 
               {hotelSelecionado && (
-                <div className="flex flex-col gap-6 md:gap-8">
-                  <h4 className={`${jakarta.className} text-lg md:text-xl font-bold text-slate-800`}>Acomodações no {hotelSelecionado.nome}</h4>
+                <div className="flex flex-col gap-6">
+                  <h4 className={`${jakarta.className} text-lg font-bold text-slate-800`}>Acomodações no {hotelSelecionado.nome}</h4>
                   
                   {/* Quarto Standard */}
-                  <div className={`border-2 rounded-2xl md:rounded-3xl overflow-hidden shadow-sm flex flex-col transition-all cursor-pointer ${tipoQuarto === 'standard' ? 'border-[#00577C] ring-4 ring-blue-50/50' : 'border-slate-200 hover:border-[#00577C]/30 bg-slate-50/50'}`} onClick={() => setTipoQuarto('standard')}>
-                     <div className="flex justify-between items-center p-4 md:p-5 bg-white border-b border-slate-100">
-                        <h4 className={`${jakarta.className} font-bold text-base md:text-lg text-[#00577C]`}>{hotelSelecionado.quarto_standard_nome || 'Quarto Standard'}</h4>
-                        <div className={`w-5 h-5 md:w-6 md:h-6 rounded-full border-2 flex items-center justify-center ${tipoQuarto === 'standard' ? 'border-[#00577C] bg-[#00577C]' : 'border-slate-300'}`}>
-                           {tipoQuarto === 'standard' && <Check size={12} className="text-white md:w-3.5 md:h-3.5" strokeWidth={4} />}
+                  <div className={`border-2 rounded-2xl overflow-hidden shadow-sm flex flex-col transition-all cursor-pointer ${tipoQuarto === 'standard' ? 'border-[#00577C] ring-4 ring-blue-50/50' : 'border-slate-200 bg-slate-50/50'}`} onClick={() => setTipoQuarto('standard')}>
+                    <div className="flex justify-between items-center p-4 bg-white border-b">
+                      <h5 className={`${jakarta.className} font-bold text-[#00577C]`}>{hotelSelecionado.quarto_standard_nome || 'Quarto Standard'}</h5>
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${tipoQuarto === 'standard' ? 'border-[#00577C] bg-[#00577C]' : 'border-slate-300'}`}>
+                        {tipoQuarto === 'standard' && <Check size={12} className="text-white" strokeWidth={4} />}
+                      </div>
+                    </div>
+                    <div className="flex flex-col xl:flex-row">
+                      <div className="w-full xl:w-2/5 p-4 border-r">
+                        <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden mb-4 group">
+                          <Image src={imagensStandard[imgIdxStandard]} alt="Standard" fill className="object-cover" />
+                          <button onClick={(e) => { e.stopPropagation(); setImgIdxStandard((prev) => (prev - 1 + imagensStandard.length) % imagensStandard.length); }} className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 bg-black/50 text-white rounded-full">‹</button>
+                          <button onClick={(e) => { e.stopPropagation(); setImgIdxStandard((prev) => (prev + 1) % imagensStandard.length); }} className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 bg-black/50 text-white rounded-full">›</button>
                         </div>
-                     </div>
-                     <div className="flex flex-col xl:flex-row bg-white">
-                        <div className="w-full xl:w-2/5 p-4 md:p-5 border-b xl:border-b-0 xl:border-r border-slate-100 flex flex-col">
-                           <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden mb-4 group">
-                              <Image src={imagensStandard[imgIdxStandard]} alt="Standard" fill className="object-cover" />
-                              <button onClick={(e) => { e.stopPropagation(); setImgIdxStandard((prev) => (prev - 1 + imagensStandard.length) % imagensStandard.length); }} className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 md:w-8 md:h-8 bg-black/50 text-white rounded-full flex items-center justify-center opacity-70 md:opacity-0 group-hover:opacity-100 transition-opacity"><ChevronLeft size={16}/></button>
-                              <button onClick={(e) => { e.stopPropagation(); setImgIdxStandard((prev) => (prev + 1) % imagensStandard.length); }} className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 md:w-8 md:h-8 bg-black/50 text-white rounded-full flex items-center justify-center opacity-70 md:opacity-0 group-hover:opacity-100 transition-opacity"><ChevronRightIcon size={16}/></button>
-                              <div className="absolute bottom-2 right-2 bg-black/70 text-white text-[9px] md:text-[10px] font-bold px-2 py-1 rounded flex items-center gap-1"><ImageIcon size={10}/> {imagensStandard.length}</div>
-                           </div>
-                           <div className="grid grid-cols-2 gap-2 md:gap-3 text-[10px] md:text-xs text-slate-600 font-medium mt-auto">
-                              <span className="flex items-center gap-1.5"><Wind size={12} className="md:w-3.5 md:h-3.5"/> Ar-condicionado</span>
-                              <span className="flex items-center gap-1.5"><Wifi size={12} className="md:w-3.5 md:h-3.5"/> Wi-Fi Grátis</span>
-                              <span className="flex items-center gap-1.5"><Bath size={12} className="md:w-3.5 md:h-3.5"/> Banheiro Priv.</span>
-                           </div>
+                        <div className="grid grid-cols-2 gap-2 text-xs text-slate-600">
+                          <span className="flex items-center gap-1"><Wind size={12} /> Ar-condicionado</span>
+                          <span className="flex items-center gap-1"><Wifi size={12} /> Wi-Fi Grátis</span>
+                          <span className="flex items-center gap-1"><Bath size={12} /> Banheiro Priv.</span>
                         </div>
-                        
-                        <div className="w-full xl:w-3/5 flex flex-col sm:flex-row">
-                           <div className="flex-1 p-4 md:p-5 border-b sm:border-b-0 sm:border-r border-slate-100 flex flex-col justify-center">
-                              <p className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest mb-3">Resumo da Inclusão</p>
-                              <ul className="space-y-2 md:space-y-3 mb-4 md:mb-6">
-                                 <li className="flex items-start gap-2 text-xs md:text-sm text-[#009640] font-bold"><CheckCircle2 size={16} className="shrink-0 mt-0.5 md:w-4 md:h-4" /> Cancelamento grátis (24h)</li>
-                                 <li className="flex items-start gap-2 text-xs md:text-sm text-[#00577C] font-bold"><Zap size={16} className="shrink-0 mt-0.5 md:w-4 md:h-4" /> Confirmação Imediata</li>
-                              </ul>
-                           </div>
-                           <div className="w-full sm:w-48 p-4 md:p-5 flex flex-col items-center sm:items-end justify-center bg-slate-50/50">
-                              <div className="mt-auto text-center sm:text-right w-full">
-                                <p className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Taxa Base / Noite</p>
-                                <p className={`${jakarta.className} text-xl md:text-2xl font-black text-slate-900 leading-none`}>{formatarMoeda(parseValor(hotelSelecionado.quarto_standard_preco))}</p>
-                              </div>
-                           </div>
+                      </div>
+                      <div className="flex-1 p-4 flex flex-col justify-between">
+                        <p className="text-[9px] font-black uppercase text-slate-400">Cancelamento grátis (24h)</p>
+                        <div className="mt-auto text-right">
+                          <p className="text-[9px] font-black uppercase text-slate-400">Taxa Base / Noite</p>
+                          <p className={`${jakarta.className} text-2xl font-black text-slate-900`}>{formatarMoeda(parseValor(hotelSelecionado.quarto_standard_preco))}</p>
                         </div>
-                     </div>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Quarto Luxo */}
-                  <div className={`border-2 rounded-2xl md:rounded-3xl overflow-hidden shadow-sm flex flex-col relative transition-all cursor-pointer ${tipoQuarto === 'luxo' ? 'border-[#F9C400] ring-4 ring-yellow-50/50' : 'border-slate-200 hover:border-[#F9C400]/50 bg-slate-50/50'}`} onClick={() => setTipoQuarto('luxo')}>
-                     <div className="absolute top-0 right-0 bg-[#00577C] text-white text-[9px] md:text-[10px] font-black uppercase tracking-widest px-3 md:px-4 py-1.5 rounded-bl-xl shadow-sm z-10 flex items-center gap-1.5">
-                        <Award size={12} className="md:w-3.5 md:h-3.5"/> Premium
-                     </div>
-                     <div className="flex justify-between items-center p-4 md:p-5 bg-white border-b border-slate-100">
-                        <h4 className={`${jakarta.className} font-bold text-base md:text-lg text-[#00577C]`}>{hotelSelecionado.quarto_luxo_nome || 'Suíte Luxo Premium'}</h4>
-                        <div className={`w-5 h-5 md:w-6 md:h-6 rounded-full border-2 flex items-center justify-center ${tipoQuarto === 'luxo' ? 'border-[#00577C] bg-[#00577C]' : 'border-slate-300'}`}>
-                           {tipoQuarto === 'luxo' && <Check size={12} className="text-white md:w-3.5 md:h-3.5" strokeWidth={4} />}
+                  <div className={`border-2 rounded-2xl overflow-hidden shadow-sm flex flex-col relative transition-all cursor-pointer ${tipoQuarto === 'luxo' ? 'border-[#F9C400] ring-4 ring-yellow-50/50' : 'border-slate-200 bg-slate-50/50'}`} onClick={() => setTipoQuarto('luxo')}>
+                    <div className="absolute top-0 right-0 bg-[#00577C] text-white text-[9px] font-black px-3 py-1 rounded-bl-xl">Premium</div>
+                    <div className="flex justify-between items-center p-4 bg-white border-b">
+                      <h5 className={`${jakarta.className} font-bold text-[#00577C]`}>{hotelSelecionado.quarto_luxo_nome || 'Suíte Luxo'}</h5>
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${tipoQuarto === 'luxo' ? 'border-[#00577C] bg-[#00577C]' : 'border-slate-300'}`}>
+                        {tipoQuarto === 'luxo' && <Check size={12} className="text-white" strokeWidth={4} />}
+                      </div>
+                    </div>
+                    <div className="flex flex-col xl:flex-row">
+                      <div className="w-full xl:w-2/5 p-4 border-r">
+                        <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden mb-4 group">
+                          <Image src={imagensLuxo[imgIdxLuxo]} alt="Luxo" fill className="object-cover" />
+                          <button onClick={(e) => { e.stopPropagation(); setImgIdxLuxo((prev) => (prev - 1 + imagensLuxo.length) % imagensLuxo.length); }} className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 bg-black/50 text-white rounded-full">‹</button>
+                          <button onClick={(e) => { e.stopPropagation(); setImgIdxLuxo((prev) => (prev + 1) % imagensLuxo.length); }} className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 bg-black/50 text-white rounded-full">›</button>
                         </div>
-                     </div>
-                     <div className="flex flex-col xl:flex-row bg-white">
-                        <div className="w-full xl:w-2/5 p-4 md:p-5 border-b xl:border-b-0 xl:border-r border-slate-100 flex flex-col">
-                           <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden mb-4 group">
-                              <Image src={imagensLuxo[imgIdxLuxo]} alt="Quarto Luxo" fill className="object-cover" />
-                              <button onClick={(e) => { e.stopPropagation(); setImgIdxLuxo((prev) => (prev - 1 + imagensLuxo.length) % imagensLuxo.length); }} className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 md:w-8 md:h-8 bg-black/50 text-white rounded-full flex items-center justify-center opacity-70 md:opacity-0 group-hover:opacity-100 transition-opacity"><ChevronLeft size={16}/></button>
-                              <button onClick={(e) => { e.stopPropagation(); setImgIdxLuxo((prev) => (prev + 1) % imagensLuxo.length); }} className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 md:w-8 md:h-8 bg-black/50 text-white rounded-full flex items-center justify-center opacity-70 md:opacity-0 group-hover:opacity-100 transition-opacity"><ChevronRightIcon size={16}/></button>
-                              <div className="absolute bottom-2 right-2 bg-black/70 text-white text-[9px] md:text-[10px] font-bold px-2 py-1 rounded flex items-center gap-1"><ImageIcon size={10}/> {imagensLuxo.length}</div>
-                           </div>
-                           <div className="grid grid-cols-2 gap-2 md:gap-3 text-[10px] md:text-xs text-slate-600 font-medium mt-auto">
-                              <span className="flex items-center gap-1.5"><Wind size={12} className="md:w-3.5 md:h-3.5"/> Ar-condicionado</span>
-                              <span className="flex items-center gap-1.5"><Wifi size={12} className="md:w-3.5 md:h-3.5"/> Wi-Fi Premium</span>
-                              <span className="flex items-center gap-1.5"><Bath size={12} className="md:w-3.5 md:h-3.5"/> Banheira/Spa</span>
-                           </div>
+                        <div className="grid grid-cols-2 gap-2 text-xs text-slate-600">
+                          <span className="flex items-center gap-1"><Wind size={12} /> Ar-condicionado</span>
+                          <span className="flex items-center gap-1"><Wifi size={12} /> Wi-Fi Premium</span>
+                          <span className="flex items-center gap-1"><Bath size={12} /> Banheira/Spa</span>
                         </div>
-                        
-                        <div className="w-full xl:w-3/5 flex flex-col sm:flex-row">
-                           <div className="flex-1 p-4 md:p-5 border-b sm:border-b-0 sm:border-r border-slate-100 flex flex-col justify-center">
-                              <p className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest mb-3">Resumo da Inclusão</p>
-                              <ul className="space-y-2 md:space-y-3 mb-4 md:mb-6">
-                                 <li className="flex items-start gap-2 text-xs md:text-sm text-[#009640] font-bold"><CheckCircle2 size={16} className="shrink-0 mt-0.5 md:w-4 md:h-4" /> Cancelamento grátis (24h)</li>
-                                 <li className="flex items-start gap-2 text-xs md:text-sm text-[#00577C] font-bold"><Coffee size={16} className="shrink-0 mt-0.5 md:w-4 md:h-4" /> Pequeno-almoço incluso</li>
-                              </ul>
-                           </div>
-                           <div className="w-full sm:w-48 p-4 md:p-5 flex flex-col items-center sm:items-end justify-center bg-blue-50/10">
-                              <div className="mt-auto text-center sm:text-right w-full">
-                                <p className="text-[9px] md:text-[10px] font-black uppercase text-[#00577C] tracking-widest mb-1">Taxa Base / Noite</p>
-                                <p className={`${jakarta.className} text-xl md:text-2xl font-black text-[#00577C] leading-none`}>{formatarMoeda(parseValor(hotelSelecionado.quarto_luxo_preco))}</p>
-                              </div>
-                           </div>
+                      </div>
+                      <div className="flex-1 p-4 flex flex-col justify-between">
+                        <p className="text-[9px] font-black uppercase text-slate-400">Pequeno-almoço incluso</p>
+                        <div className="mt-auto text-right">
+                          <p className="text-[9px] font-black uppercase text-slate-400">Taxa Base / Noite</p>
+                          <p className={`${jakarta.className} text-2xl font-black text-[#00577C]`}>{formatarMoeda(parseValor(hotelSelecionado.quarto_luxo_preco))}</p>
                         </div>
-                     </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
-            </div>
-          </section>
+            </section>
 
-          {/* ── 2. GUIA OFICIAL ── */}
-          <section className="bg-white rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-10 shadow-sm border border-slate-200 text-left">
-            <h3 className={`${jakarta.className} text-xl md:text-2xl font-black text-slate-900 mb-8 flex items-center gap-3`}>
-              <div className="w-10 h-10 md:w-12 md:h-12 bg-[#009640] text-white rounded-xl md:rounded-2xl flex items-center justify-center shadow-md">
-                <UserCheck size={20} className="md:w-6 md:h-6" />
-              </div>
-              2. Guia Responsável pelo Roteiro
-            </h3>
-
-            <div className="flex flex-col gap-4">
-              {guiasDisponiveis.map((guia: any) => {
-                const selected = guiaSelecionado?.id === guia.id;
-                return (
-                  <label
-                    key={guia.id}
-                    className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 md:p-6 bg-white rounded-[1.5rem] md:rounded-[2rem] border-2 transition-all cursor-pointer gap-4 ${selected ? 'border-[#009640] shadow-md ring-4 ring-green-50/50' : 'border-slate-100 hover:border-slate-200'}`}
-                  >
-                    <div className="flex items-center gap-4 md:gap-5 text-left">
-                      <div className="relative w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl overflow-hidden shadow-sm border border-slate-100 shrink-0">
-                        <Image src={guia.imagem_url || FALLBACK_IMAGE} alt={guia.nome} fill className="object-cover" />
-                      </div>
-                      <div>
-                        <p className={`${jakarta.className} font-bold text-base md:text-lg text-slate-800 leading-tight mb-1`}>{guia.nome}</p>
-                        <p className="text-[10px] md:text-xs font-bold text-slate-500 flex items-center gap-1.5 text-left uppercase tracking-widest">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#009640]" />{guia.especialidade}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between sm:justify-end gap-5 w-full sm:w-auto border-t border-slate-100 sm:border-t-0 pt-3 sm:pt-0">
-                      <div className={`w-5 h-5 md:w-6 md:h-6 shrink-0 rounded-full border-2 flex items-center justify-center ${selected ? 'border-[#009640] bg-[#009640]' : 'border-slate-300'}`}>
-                         {selected && <Check size={12} className="text-white md:w-3.5 md:h-3.5" strokeWidth={4} />}
-                      </div>
-                    </div>
-                  </label>
-                );
-              })}
-            </div>
-          </section>
-
-          {/* ── 3. POLÍTICAS ── */}
-          <section className="bg-white rounded-[2rem] md:rounded-[2.5rem] border border-slate-200 shadow-sm p-6 md:p-10 text-left">
-             <h3 className={`${jakarta.className} text-xl md:text-2xl font-black text-slate-900 mb-6 md:mb-8`}>Políticas do Pacote</h3>
-             <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-x-8 gap-y-5 text-sm">
+            {/* POLÍTICAS (mantido) */}
+            <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-xl border border-slate-100">
+              <h3 className={`${jakarta.className} text-2xl font-black text-slate-900 mb-6`}>Políticas do Pacote</h3>
+              <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-x-8 gap-y-5 text-sm">
                 <div className="font-black text-slate-800">Cancelamento</div>
                 <div className="text-slate-600 font-medium">Reembolso integral se cancelado até 48 horas antes da data de check-in programada.</div>
-                <div className="md:col-span-2 h-px bg-slate-100 my-1 md:my-2"></div>
+                <div className="md:col-span-2 h-px bg-slate-100 my-2"></div>
                 <div className="font-black text-slate-800">Inclusões</div>
                 <div className="text-slate-600 font-medium">O pacote inclui os custos do guia diário, do quarto de hotel selecionado e outros serviços já inclusos.</div>
-                <div className="md:col-span-2 h-px bg-slate-100 my-1 md:my-2"></div>
+                <div className="md:col-span-2 h-px bg-slate-100 my-2"></div>
                 <div className="font-black text-slate-800">Clima e Segurança</div>
                 <div className="text-slate-600 font-medium">O roteiro pode sofrer alterações de ordem sem aviso prévio caso as condições climáticas não garantam a segurança.</div>
-             </div>
-          </section>
-        </div>
+              </div>
+            </div>
+          </div>
 
-        {/* ── COLUNA DIREITA — MOTOR DE RESERVAS ── */}
-        <div id="motor-reservas" className="w-full lg:w-[400px] shrink-0 h-fit lg:self-start text-left relative z-40">
-          <aside className="w-full space-y-6 h-fit">
-            <div className="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[3rem] shadow-xl border border-slate-200 overflow-hidden">
-
-              <div className="border-b border-slate-100 pb-5 mb-5 text-center bg-slate-50 rounded-2xl p-4 border border-slate-200">
-                <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-[#00577C] mb-1">Valor Total Estimado</p>
-                <div className="flex items-end justify-center gap-2">
-                  <p className={`${jakarta.className} text-3xl md:text-4xl font-black text-[#009640]`}>
-                    {calculandoPreco ? '...' : formatarMoeda(valorTotalFinal)}
-                  </p>
+          {/* COLUNA DIREITA (RESERVA + GUIA) */}
+          <div className="w-full lg:w-[420px] shrink-0 lg:self-start">
+            <div className="lg:sticky lg:top-32 space-y-6">
+              {/* CARD DE RESERVA (estilo passeios) */}
+              <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-200">
+                <div className="border-b border-slate-100 pb-6 mb-6 flex justify-between items-end">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-[#009640] mb-1">Por Pessoa</p>
+                    <p className={`${jakarta.className} text-4xl font-black text-slate-900`}>{formatarMoeda(valorPorPessoa)}</p>
+                  </div>
+                  <div className="text-right">
+                     <p className="text-[10px] font-black uppercase tracking-widest text-[#00577C] mb-1">Vagas</p>
+                     <p className="text-sm font-bold text-slate-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">{pacote.vagas_totais || 20} Restantes</p>
+                  </div>
                 </div>
-                <p className="text-[9px] text-slate-400 mt-1">Por pessoa: {formatarMoeda(valorPorPessoa)} × {adultos} adulto(s)</p>
+
+                <div className="space-y-3 mb-8">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-[#00577C]">1. Quantidade de Pessoas</p>
+                  <div className="flex items-center justify-between bg-slate-50 border border-slate-100 hover:border-slate-200 transition-colors rounded-2xl p-4">
+                     <div className="flex items-center gap-3">
+                        <Users size={20} className="text-[#00577C]"/>
+                        <span className="font-bold text-sm text-slate-800">Participantes</span>
+                     </div>
+                     <div className="flex items-center gap-4 bg-white border border-slate-200 rounded-xl p-1 shadow-sm">
+                        <button onClick={() => setAdultos(Math.max(1, adultos - 1))} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-50 text-[#00577C] font-black text-xl transition-all">-</button>
+                        <span className="font-black text-xl w-6 text-center text-[#00577C]">{adultos}</span>
+                        <button onClick={() => setAdultos(Math.min(pacote.vagas_totais || 20, adultos + 1))} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-50 text-[#00577C] font-black text-xl transition-all">+</button>
+                     </div>
+                  </div>
+                </div>
+
+                {/* CALENDÁRIO (compacto) */}
+                <div className="mb-6">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-[#00577C] mb-3">Selecione a data de início</p>
+                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 shadow-inner">
+                    <div className="flex items-center justify-between mb-3">
+                      <button onClick={() => setMesAtualCalendario(new Date(anoCorrente, mesCorrente - 1))} className="p-1 hover:bg-slate-200 rounded-full"><ChevronLeft size={16} /></button>
+                      <p className="font-bold text-slate-800 capitalize text-sm">{mesAtualCalendario.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}</p>
+                      <button onClick={() => setMesAtualCalendario(new Date(anoCorrente, mesCorrente + 1))} className="p-1 hover:bg-slate-200 rounded-full"><ChevronRight size={16} /></button>
+                    </div>
+                    <div className="grid grid-cols-7 gap-0.5 text-center text-xs">
+                      {['D','S','T','Q','Q','S','S'].map((d, i) => <span key={i} className="text-[9px] font-black text-slate-400">{d}</span>)}
+                    </div>
+                    <div className="grid grid-cols-7 gap-0.5 mt-1">
+                      {Array.from({ length: primeiroDia }).map((_, i) => <div key={`empty-${i}`} />)}
+                      {Array.from({ length: diasMes }).map((_, i) => {
+                        const dia = i + 1;
+                        const dataAtual = new Date(anoCorrente, mesCorrente, dia);
+                        const isValida = isDataInicioValida(dataAtual);
+                        const isCheckin = checkin && dataAtual.getTime() === checkin.getTime();
+                        const isCheckout = checkout && dataAtual.getTime() === checkout.getTime();
+                        const isInBetween = checkin && checkout && dataAtual > checkin && dataAtual < checkout;
+                        const isHovered = hoverDate && checkin && !checkout && dataAtual > checkin && dataAtual <= hoverDate;
+
+                        let bgClass = "bg-transparent hover:bg-slate-200 text-slate-800";
+                        if (!isValida) bgClass = "bg-transparent text-slate-300 cursor-not-allowed line-through";
+                        else if (isCheckin || isCheckout) bgClass = "bg-[#00577C] text-white shadow-md rounded-md scale-105 z-10";
+                        else if (isInBetween || isHovered) bgClass = "bg-[#00577C]/10 text-[#00577C] rounded-none";
+
+                        return (
+                          <button
+                            key={dia}
+                            disabled={!isValida}
+                            onClick={() => handleDateClick(dataAtual)}
+                            onMouseEnter={() => setHoverDate(dataAtual)}
+                            onMouseLeave={() => setHoverDate(null)}
+                            className={`w-8 h-8 text-xs font-semibold transition-all ${bgClass}`}
+                          >
+                            {dia}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {!algumaDataValidaNoMes && (
+                      <p className="text-[10px] text-center text-amber-600 mt-3 p-2 bg-amber-50 rounded-xl">Nenhuma data disponível neste mês.</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-3 py-4 border-t border-b border-slate-100 mb-6">
+                  <div className="flex items-center justify-between">
+                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Quartos Requeridos</span>
+                     <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg p-1">
+                        <button onClick={() => setQuartos(Math.max(1, quartos - 1))} className="w-6 h-6 flex justify-center items-center text-[#00577C] font-black">-</button>
+                        <span className="font-bold text-xs w-4 text-center">{quartos}</span>
+                        <button onClick={() => setQuartos(quartos + 1)} className="w-6 h-6 flex justify-center items-center text-[#00577C] font-black">+</button>
+                     </div>
+                  </div>
+                </div>
+
+                {checkin && checkout && !hotelDisponivel && !calculandoPreco && (
+                  <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-2xl flex items-start gap-3 border border-red-100">
+                     <AlertCircle size={16} className="shrink-0 mt-0.5" />
+                     <p className="text-[10px] md:text-xs font-bold leading-relaxed">Acomodação esgotada para as datas selecionadas.</p>
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-2 bg-[#009640]/10 p-6 rounded-2xl mb-6 border border-[#009640]/20">
+                  <div className="flex justify-between items-end">
+                    <div>
+                      <span className="text-[10px] font-black text-[#009640] uppercase block mb-1">Total Estimado</span>
+                      <span className="text-xs font-bold text-slate-600">{adultos} {adultos === 1 ? 'pessoa' : 'pessoas'}</span>
+                    </div>
+                    <span className={`${jakarta.className} text-3xl font-black text-[#009640]`}>{formatarMoeda(valorTotalFinal)}</span>
+                  </div>
+                </div>
+
+                <button
+                  disabled={!hotelDisponivel || calculandoPreco || !checkin}
+                  onClick={handleReserva}
+                  className={`${jakarta.className} flex items-center justify-center gap-3 w-full bg-[#00577C] hover:bg-[#004a6b] text-white py-5 rounded-2xl font-black text-lg transition-transform hover:-translate-y-1 shadow-xl ${(!hotelDisponivel || !checkin) ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : ''}`}
+                >
+                  {calculandoPreco ? 'A calcular...' : (!checkin ? 'Selecione uma data' : (!hotelDisponivel ? 'Esgotado' : 'Prosseguir para Checkout'))}
+                  {checkin && hotelDisponivel && !calculandoPreco && <ChevronRightIcon size={20} />}
+                </button>
+
+                <p className="mt-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center justify-center gap-1.5">
+                  <ShieldCheck size={13} className="text-[#00577C]" /> Reserva Oficial SagaTurismo
+                </p>
               </div>
 
-              {/* CALENDÁRIO */}
-              <div className="mb-6">
-                <p className="text-[10px] font-black uppercase tracking-widest text-[#00577C] mb-3 md:mb-4">Selecione a data de início</p>
-                <div className="bg-slate-50 border border-slate-200 rounded-2xl md:rounded-[2rem] p-4 md:p-5 shadow-inner">
-                  <div className="flex items-center justify-between mb-3 md:mb-4">
-                    <button onClick={() => setMesAtualCalendario(new Date(anoCorrente, mesCorrente - 1))} className="p-1 md:p-2 hover:bg-slate-200 rounded-full transition-colors"><ChevronLeft size={18} className="md:w-5 md:h-5" /></button>
-                    <p className="font-bold text-slate-800 capitalize text-xs md:text-sm">{mesAtualCalendario.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}</p>
-                    <button onClick={() => setMesAtualCalendario(new Date(anoCorrente, mesCorrente + 1))} className="p-1 md:p-2 hover:bg-slate-200 rounded-full transition-colors"><ChevronRight size={18} className="md:w-5 md:h-5" /></button>
-                  </div>
-                  <div className="grid grid-cols-7 gap-1 text-center mb-1 md:mb-2">
-                    {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((d, i) => <span key={i} className="text-[9px] md:text-[10px] font-black text-slate-400">{d}</span>)}
-                  </div>
-                  <div className="grid grid-cols-7 gap-y-0.5 md:gap-y-1 gap-x-0">
-                    {Array.from({ length: primeiroDia }).map((_, i) => <div key={`empty-${i}`} />)}
-                    {Array.from({ length: diasMes }).map((_, i) => {
-                      const dia = i + 1;
-                      const dataAtual = new Date(anoCorrente, mesCorrente, dia);
-                      const isValida = isDataInicioValida(dataAtual);
-                      const isCheckin = checkin && dataAtual.getTime() === checkin.getTime();
-                      const isCheckout = checkout && dataAtual.getTime() === checkout.getTime();
-                      const isInBetween = checkin && checkout && dataAtual > checkin && dataAtual < checkout;
-                      const isHovered = hoverDate && checkin && !checkout && dataAtual > checkin && dataAtual <= hoverDate;
-
-                      let bgClass = "bg-transparent hover:bg-slate-200 text-slate-800";
-                      if (!isValida) bgClass = "bg-transparent text-slate-300 cursor-not-allowed line-through";
-                      else if (isCheckin || isCheckout) bgClass = "bg-[#00577C] text-white shadow-md rounded-md md:rounded-lg scale-105 z-10";
-                      else if (isInBetween || isHovered) bgClass = "bg-[#00577C]/10 text-[#00577C] rounded-none";
-
-                      return (
-                        <button
-                          key={dia}
-                          disabled={!isValida}
-                          onClick={() => handleDateClick(dataAtual)}
-                          onMouseEnter={() => setHoverDate(dataAtual)}
-                          onMouseLeave={() => setHoverDate(null)}
-                          className={`w-full aspect-square flex flex-col items-center justify-center transition-all ${bgClass}`}
-                        >
-                          <span className={`text-[10px] md:text-sm ${(isCheckin || isCheckout) ? 'font-black' : 'font-semibold'}`}>{dia}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {!algumaDataValidaNoMes && (
-                    <p className="text-xs text-center text-amber-600 mt-4 p-2 bg-amber-50 rounded-xl">
-                      Nenhuma data disponível neste mês. Verifique os dias e períodos permitidos para este pacote.
-                    </p>
+              {/* BLOCO DO GUIA (igual ao passeio) */}
+              {guiasDisponiveis.length > 0 && (
+                <div className="bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-200">
+                  <h3 className={`${jakarta.className} text-xl font-black text-slate-900 mb-5 flex items-center gap-2`}>
+                    <UserCheck size={22} className="text-[#009640]" />
+                    Seu Guia
+                  </h3>
+                  
+                  {guiasDisponiveis.length > 1 && (
+                    <div className="mb-5 space-y-2">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Escolha o guia:</p>
+                      <div className="flex flex-col gap-2">
+                        {guiasDisponiveis.map((guia) => (
+                          <label
+                            key={guia.id}
+                            onClick={() => setGuiaSelecionado(guia)}
+                            className={`flex items-center justify-between p-3 rounded-xl border-2 cursor-pointer transition-all ${guiaSelecionado?.id === guia.id ? 'border-[#009640] bg-green-50/20' : 'border-slate-100 hover:border-slate-200'}`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="relative w-10 h-10 rounded-full overflow-hidden bg-slate-100">
+                                <Image src={guia.imagem_url || FALLBACK_GUIA_IMAGE} alt={guia.nome} fill className="object-cover" />
+                              </div>
+                              <div>
+                                <p className="font-bold text-sm text-slate-800">{guia.nome}</p>
+                                <p className="text-[10px] text-slate-500">{guia.especialidade}</p>
+                              </div>
+                            </div>
+                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${guiaSelecionado?.id === guia.id ? 'border-[#009640] bg-[#009640]' : 'border-slate-300'}`}>
+                              {guiaSelecionado?.id === guia.id && <Check size={12} className="text-white" strokeWidth={4} />}
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
                   )}
-                </div>
-              </div>
 
-              {/* CONFIGURAÇÃO DE HÓSPEDES E QUARTOS */}
-              <div className="space-y-3 py-4 border-t border-b border-slate-100 mb-6">
-                <p className="text-[10px] font-black uppercase tracking-widest text-[#00577C] mb-1">Configuração do Grupo</p>
-                <div className="flex items-center justify-between">
-                   <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Hóspedes (Adultos)</span>
-                   <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg p-1">
-                      <button type="button" onClick={() => setAdultos(Math.max(1, adultos - 1))} className="w-6 h-6 flex justify-center items-center text-[#00577C] font-black">-</button>
-                      <span className="font-bold text-xs w-4 text-center">{adultos}</span>
-                      <button type="button" onClick={() => setAdultos(adultos + 1)} className="w-6 h-6 flex justify-center items-center text-[#00577C] font-black">+</button>
-                   </div>
-                </div>
-                <div className="flex items-center justify-between">
-                   <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Quartos Requeridos</span>
-                   <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg p-1">
-                      <button type="button" onClick={() => setQuartos(Math.max(1, quartos - 1))} className="w-6 h-6 flex justify-center items-center text-[#00577C] font-black">-</button>
-                      <span className="font-bold text-xs w-4 text-center">{quartos}</span>
-                      <button type="button" onClick={() => setQuartos(quartos + 1)} className="w-6 h-6 flex justify-center items-center text-[#00577C] font-black">+</button>
-                   </div>
-                </div>
-              </div>
-
-              {checkin && checkout && !hotelDisponivel && !calculandoPreco && (
-                <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-2xl flex items-start gap-3 border border-red-100">
-                   <AlertCircle size={16} className="shrink-0 mt-0.5" />
-                   <p className="text-[10px] md:text-xs font-bold leading-relaxed">Acomodação esgotada para as datas selecionadas. Escolha outro período.</p>
+                  <div className="flex flex-col items-center text-center">
+                    <div className="relative w-24 h-24 rounded-full overflow-hidden shadow-lg border-2 border-[#009640] mb-4">
+                      <Image src={guiaImagem} alt={guiaNome} fill className="object-cover" />
+                    </div>
+                    <h4 className={`${jakarta.className} text-xl font-black text-slate-800`}>{guiaNome}</h4>
+                    <p className="text-xs font-bold text-[#009640] uppercase tracking-wider mt-1">{guiaEspecialidade}</p>
+                    <p className="text-slate-500 text-sm leading-relaxed mt-4 text-justify">
+                      {guiaDescricao}
+                    </p>
+                  </div>
                 </div>
               )}
-
-              <button
-                disabled={!hotelDisponivel || calculandoPreco || !checkin}
-                onClick={handleReserva}
-                className={`${jakarta.className} flex items-center justify-center gap-3 w-full py-4 md:py-5 rounded-xl md:rounded-2xl font-black text-base md:text-lg transition-transform shadow-xl ${(!hotelDisponivel || !checkin) ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none' : 'bg-[#00577C] hover:bg-[#004a6b] text-white hover:-translate-y-1'}`}
-              >
-                {calculandoPreco ? 'A calcular...' : (!checkin ? 'Selecione uma data' : (!hotelDisponivel ? 'Esgotado' : 'Prosseguir para Checkout'))}
-                {checkin && hotelDisponivel && !calculandoPreco && <ChevronRightIcon size={18} />}
-              </button>
-
-              <p className="flex mt-4 text-center text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest items-center justify-center gap-1.5">
-                <ShieldCheck size={12} className="text-[#00577C] md:w-3.5 md:h-3.5" /> Plataforma Oficial SagaTurismo
-              </p>
             </div>
-          </aside>
+          </div>
         </div>
       </div>
 
-      {/* ── GALERIA, LIGHTBOX, FOOTER (mantidos iguais) ── */}
+      {/* GALERIA (mantida) */}
       {galeriaCombinada.length > 0 && (
-        <div className="mx-auto w-full max-w-7xl px-4 md:px-5 pb-16 md:pb-20 relative z-10 text-left md:-mt-6">
-          <section className="bg-white rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-12 shadow-sm md:shadow-xl border border-slate-100">
-            <h3 className={`${jakarta.className} text-xl md:text-3xl font-black text-slate-900 mb-6 md:mb-8`}>Galeria de Imagens</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 md:gap-3">
+        <div className="mx-auto w-full max-w-7xl px-5 pb-20 relative z-10">
+          <div className="bg-white rounded-[2.5rem] p-6 md:p-12 shadow-xl border border-slate-100">
+            <h3 className={`${jakarta.className} text-3xl font-black text-slate-900 mb-8`}>Galeria de Imagens</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {galeriaCombinada.map((url, idx) => (
                 <div
                   key={idx}
                   onClick={() => setFotoExpandidaIndex(idx)}
-                  className="relative aspect-square rounded-xl md:rounded-2xl overflow-hidden shadow-sm md:shadow-md group bg-slate-200 cursor-pointer"
+                  className="relative aspect-square rounded-2xl overflow-hidden shadow-md group bg-slate-200 cursor-pointer"
                 >
-                  <Image src={url} alt={`Foto Galeria ${idx + 1}`} fill className="object-cover group-hover:scale-110 transition-transform duration-700" />
+                  <Image src={url} alt={`Galeria ${idx + 1}`} fill className="object-cover group-hover:scale-110 transition-transform duration-700" />
                   <div className="absolute inset-0 bg-[#00577C]/0 group-hover:bg-[#00577C]/40 transition-colors duration-300 flex items-center justify-center">
-                    <ZoomIn className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-8 h-8 md:w-10 md:h-10 scale-50 group-hover:scale-100" />
+                    <ZoomIn className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-10 h-10 scale-50 group-hover:scale-100" />
                   </div>
                 </div>
               ))}
             </div>
-          </section>
+          </div>
         </div>
       )}
 
+      {/* LIGHTBOX MODAL */}
       {fotoExpandidaIndex !== null && galeriaCombinada.length > 0 && (
         <div
-          className="fixed inset-0 z-[200] bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-4 md:p-5 animate-in fade-in duration-200"
+          className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-xl flex items-center justify-center p-5 animate-in fade-in duration-200"
           onClick={fecharGaleria}
         >
-          <button onClick={fecharGaleria} className="absolute top-4 right-4 md:top-6 md:right-6 p-2 md:p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors z-[110]">
-            <X size={20} className="md:w-6 md:h-6" />
-          </button>
-          <button onClick={fotoAnterior} className="absolute left-2 md:left-6 top-1/2 -translate-y-1/2 p-2 md:p-4 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors z-[110]">
-            <ChevronLeft size={24} className="md:w-8 md:h-8" />
-          </button>
-          <div
-            className="relative w-full max-w-6xl aspect-video rounded-lg md:rounded-xl overflow-hidden shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <button onClick={fecharGaleria} className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full z-[110]"><X size={24} /></button>
+          <button onClick={fotoAnterior} className="absolute left-6 top-1/2 -translate-y-1/2 p-4 bg-white/10 hover:bg-white/20 text-white rounded-full z-[110]"><ChevronLeft size={32} /></button>
+          <div className="relative w-full max-w-6xl aspect-video rounded-xl overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <Image src={galeriaCombinada[fotoExpandidaIndex]} alt={`Visualização ${fotoExpandidaIndex + 1}`} fill className="object-contain" />
           </div>
-          <button onClick={proximaFoto} className="absolute right-2 md:right-6 top-1/2 -translate-y-1/2 p-2 md:p-4 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors z-[110]">
-            <ChevronRight size={24} className="md:w-8 md:h-8" />
-          </button>
-          <div className="absolute bottom-6 md:bottom-10 left-0 right-0 text-center pointer-events-none">
-            <p className="text-white font-bold tracking-widest text-xs md:text-sm bg-black/60 inline-block px-4 md:px-5 py-1.5 md:py-2 rounded-full backdrop-blur-sm">
-              {fotoExpandidaIndex + 1} de {galeriaCombinada.length}
-            </p>
+          <button onClick={proximaFoto} className="absolute right-6 top-1/2 -translate-y-1/2 p-4 bg-white/10 hover:bg-white/20 text-white rounded-full z-[110]"><ChevronRight size={32} /></button>
+          <div className="absolute bottom-10 left-0 right-0 text-center pointer-events-none">
+            <p className="text-white font-bold tracking-widest text-sm bg-black/60 inline-block px-5 py-2 rounded-full backdrop-blur-sm">{fotoExpandidaIndex + 1} de {galeriaCombinada.length}</p>
           </div>
         </div>
       )}
-
-      <div className="fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-slate-200 p-4 lg:hidden shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
-         <div className="flex items-center justify-between gap-4 max-w-lg mx-auto">
-            <div className="text-left">
-               <p className="text-[9px] font-black text-slate-400 uppercase leading-none mb-1">Total do Pacote</p>
-               <p className={`${jakarta.className} text-xl font-black text-[#009640] tabular-nums leading-none`}>{calculandoPreco ? '...' : formatarMoeda(valorTotalFinal)}</p>
-            </div>
-            <button disabled={!hotelDisponivel || calculandoPreco || !checkin} onClick={handleReserva} className={`text-white px-5 py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg flex items-center gap-2 ${(!hotelDisponivel || !checkin) ? 'bg-slate-300 cursor-not-allowed shadow-none' : 'bg-[#00577C]'}`}>
-               {calculandoPreco ? '...' : (!checkin ? 'Data' : (!hotelDisponivel ? 'Esgotado' : 'Reservar'))}
-               {checkin && hotelDisponivel && !calculandoPreco && <ArrowRight size={14}/>}
-            </button>
-         </div>
-      </div>
 
       {/* FOOTER */}
       <footer className="py-20 px-8 border-t border-slate-200 bg-white text-left">
@@ -757,15 +777,10 @@ function PacoteDetalheContent() {
               <Image src="/prefeitura.png" alt="Prefeitura de São Geraldo do Araguaia" width={140} height={50} className="object-contain" />
             </div>
             <div className="text-left space-y-1">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                © 2026 Secretaria Municipal de Turismo - SGA | Todos os direitos reservados
-              </p>
-              <p className="text-[10px] font-bold text-slate-400/80">
-                CNPJ: 10.249.241/0001-22
-              </p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">© 2026 Secretaria Municipal de Turismo - SGA | Todos os direitos reservados</p>
+              <p className="text-[10px] font-bold text-slate-400/80">CNPJ: 10.249.241/0001-22</p>
             </div>
           </div>
-
           <div className="flex gap-10">
             <div className="text-left border-l-2 border-slate-100 pl-9">
               <p className="text-[10px] font-black text-[#00577C] uppercase mb-1">Contato Oficial</p>
@@ -775,14 +790,13 @@ function PacoteDetalheContent() {
           </div>
         </div>
       </footer>
-    </main>
+    </div>
   );
 }
 
-// ── EXPORT COM SUSPENSE ──
 export default function PacoteDetailPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-white"><Loader2 className="animate-spin text-[#00577C]" size={48} /></div>}>
+    <Suspense fallback={<div className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="animate-spin text-[#00577C]" size={48} /></div>}>
       <PacoteDetalheContent />
     </Suspense>
   );

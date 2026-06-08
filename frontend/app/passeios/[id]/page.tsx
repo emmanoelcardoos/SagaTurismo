@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef, ReactNode } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -17,6 +17,7 @@ const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] }
 
 // ── IMAGEM DE SEGURANÇA ──
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1551632811-561732d1e306?q=80&w=1740";
+const FALLBACK_GUIA_IMAGE = "https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=1887";
 
 // ── UTILITÁRIOS ──
 const parseValor = (valor: any): number => {
@@ -63,39 +64,17 @@ const gerarUrlMapa = (coordenadasStr: string) => {
   return `https://maps.google.com/maps?q=${encodeURIComponent(coordenadasStr)}&hl=pt-BR&z=15&output=embed`;
 };
 
-// ── COMPONENTE DE ANIMAÇÃO REVEAL ──
-function useScrollAnimation(threshold = 0.08) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [isVisible, setIsVisible] = useState(false);
-  useEffect(() => {
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) { setIsVisible(true); observer.unobserve(entry.target); }
-    }, { threshold });
-    if (ref.current) observer.observe(ref.current);
-    return () => { if (ref.current) observer.unobserve(ref.current); };
-  }, [threshold]);
-  return { ref, isVisible };
-}
+// ── TIPAGENS ──
+type Guia = {
+  id: string;
+  nome: string;
+  especialidade: string;
+  descricao_guia: string;  // ← coluna correta
+  imagem_url: string;
+  whatsapp?: string;
+  preco_diaria?: number;
+};
 
-function Reveal({ children, className = "", anim = "up", delay = 0 }: { children: ReactNode; className?: string; anim?: "up" | "left" | "right" | "zoom" | "fade"; delay?: number }) {
-  const { ref, isVisible } = useScrollAnimation();
-  const hidden: Record<string, string> = {
-    up: "opacity-0 translate-y-14",
-    left: "opacity-0 translate-x-14",
-    right: "opacity-0 -translate-x-14",
-    zoom: "opacity-0 scale-90",
-    fade: "opacity-0",
-  };
-  return (
-    <div ref={ref}
-      className={`transition-all duration-1000 ease-out will-change-transform ${isVisible ? "opacity-100 translate-y-0 translate-x-0 scale-100" : hidden[anim]} ${className}`}
-      style={{ transitionDelay: `${delay}ms` }}>
-      {children}
-    </div>
-  );
-}
-
-// ── TIPAGEM DO PASSEIO ──
 type Passeio = {
   id: string;
   titulo: string;
@@ -108,6 +87,7 @@ type Passeio = {
   ponto_encontro: string;
   coordenadas_google_maps: string;
   nome_guia: string;
+  guia_id: string | null;
   valor_total: any;
   vagas_disponiveis: number;
   categoria: string;
@@ -118,6 +98,7 @@ export default function PasseioDetalhePage() {
   const router = useRouter();
 
   const [passeio, setPasseio] = useState<Passeio | null>(null);
+  const [guiaInfo, setGuiaInfo] = useState<Guia | null>(null);
   const [loading, setLoading] = useState(true);
   const [pessoas, setPessoas] = useState(1);
   const [fotoExpandidaIndex, setFotoExpandidaIndex] = useState<number | null>(null);
@@ -154,6 +135,18 @@ export default function PasseioDetalhePage() {
           return;
         }
         setPasseio(data as Passeio);
+
+        // Buscar informações detalhadas do guia se existir guia_id
+        if (data.guia_id) {
+          const { data: guiaData, error: guiaError } = await supabase
+            .from('guias')
+            .select('*')
+            .eq('id', data.guia_id)
+            .single();
+          if (!guiaError && guiaData) {
+            setGuiaInfo(guiaData as Guia);
+          }
+        }
       } catch (err) {
         console.error("Falha ao carregar passeio:", err);
         router.push('/passeios');
@@ -191,10 +184,16 @@ export default function PasseioDetalhePage() {
     </div>
   );
 
+  // Nome do guia: prefere o da tabela guias, senão o nome vindo da tabela passeios
+  const guiaNome = guiaInfo?.nome || passeio.nome_guia || 'Guia Credenciado Local';
+  const guiaImagem = guiaInfo?.imagem_url || FALLBACK_GUIA_IMAGE;
+  const guiaDescricao = guiaInfo?.descricao_guia || 'Guia especializado na região, com vasta experiência em passeios e trilhas. Conhecimento profundo da fauna, flora e história local.';
+  const guiaEspecialidade = guiaInfo?.especialidade || 'Especialista da Região';
+
   return (
     <div className={`${inter.className} min-h-screen flex flex-col bg-[#FDFCF7] text-slate-900`}>
 
-      {/* ── HEADER (IGUAL AO DAS DEMAIS PÁGINAS) ── */}
+      {/* ── HEADER ── */}
       <header className="relative z-50 w-full bg-white border-b border-slate-200 py-4">
         <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6">
           <Link href="/" className="flex items-center gap-3">
@@ -251,192 +250,185 @@ export default function PasseioDetalhePage() {
           <div className="absolute inset-0 bg-gradient-to-t from-[#002f40]/90 via-[#002f40]/40 to-transparent" />
         </div>
 
-        {/* GRID PRINCIPAL COM EFEITO DE SOBREPOSIÇÃO */}
+        {/* GRID PRINCIPAL */}
         <div className="mx-auto w-full max-w-7xl px-5 py-12 flex flex-col lg:flex-row items-start gap-12 relative z-10 -mt-20">
           {/* COLUNA ESQUERDA (CONTEÚDO) */}
           <div className="flex-1 w-full min-w-0 flex flex-col gap-10">
-            <Reveal anim="up">
-              <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-xl border border-slate-100">
-                <div className="flex flex-wrap items-center gap-3 mb-5">
-                  <span className="bg-[#F9C400] text-[#00577C] px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest shadow-sm">
-                    {passeio.categoria || 'Aventura'}
-                  </span>
-                  <span className="flex items-center gap-1.5 text-sm font-semibold text-slate-500">
-                    <MapPin size={15} className="text-[#009640]" /> São Geraldo do Araguaia, PA
-                  </span>
+            <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-xl border border-slate-100">
+              <div className="flex flex-wrap items-center gap-3 mb-5">
+                <span className="bg-[#F9C400] text-[#00577C] px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest shadow-sm">
+                  {passeio.categoria || 'Aventura'}
+                </span>
+                <span className="flex items-center gap-1.5 text-sm font-semibold text-slate-500">
+                  <MapPin size={15} className="text-[#009640]" /> São Geraldo do Araguaia, PA
+                </span>
+              </div>
+
+              <h1 className={`${jakarta.className} text-4xl sm:text-5xl font-black text-slate-900 tracking-tight mb-8`}>
+                {passeio.titulo}
+              </h1>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-10 border-t border-b border-slate-100 py-8">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1 flex items-center gap-1.5">
+                    <CalendarIcon size={14} className="text-[#00577C]"/> Data
+                  </p>
+                  <p className="font-bold text-slate-800 capitalize leading-tight">{formatarDataLonga(passeio.data_passeio)}</p>
                 </div>
-
-                <h1 className={`${jakarta.className} text-4xl sm:text-5xl font-black text-slate-900 tracking-tight mb-8`}>
-                  {passeio.titulo}
-                </h1>
-
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-10 border-t border-b border-slate-100 py-8">
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1 flex items-center gap-1.5">
-                      <CalendarIcon size={14} className="text-[#00577C]"/> Data
-                    </p>
-                    <p className="font-bold text-slate-800 capitalize leading-tight">{formatarDataLonga(passeio.data_passeio)}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1 flex items-center gap-1.5">
-                      <Clock size={14} className="text-[#00577C]"/> Horário
-                    </p>
-                    <p className="font-bold text-slate-800 leading-tight">{passeio.horario_saida || 'A definir'}</p>
-                  </div>
-                  <div className="col-span-2">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1 flex items-center gap-1.5">
-                      <MapPin size={14} className="text-[#00577C]"/> Ponto de Encontro
-                    </p>
-                    <p className="font-bold text-slate-800 leading-tight">{passeio.ponto_encontro || 'Consultar o guia'}</p>
-                  </div>
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1 flex items-center gap-1.5">
+                    <Clock size={14} className="text-[#00577C]"/> Horário
+                  </p>
+                  <p className="font-bold text-slate-800 leading-tight">{passeio.horario_saida || 'A definir'}</p>
                 </div>
-
-                <div className="mb-8">
-                  <h3 className={`${jakarta.className} text-2xl font-black text-[#00577C] mb-4`}>Sobre a Experiência</h3>
-                  <p className="text-lg text-slate-500 italic font-medium border-l-4 border-[#009640] pl-5 mb-6">{passeio.descricao_curta}</p>
-                  <div className="text-slate-600 font-medium leading-relaxed whitespace-pre-line">
-                    {passeio.descricao_completa || "Junte-se a nós numa aventura inesquecível pelas belezas naturais e culturais da nossa região. Garantimos segurança, acompanhamento e momentos que ficarão na memória."}
-                  </div>
+                <div className="col-span-2">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1 flex items-center gap-1.5">
+                    <MapPin size={14} className="text-[#00577C]"/> Ponto de Encontro
+                  </p>
+                  <p className="font-bold text-slate-800 leading-tight">{passeio.ponto_encontro || 'Consultar o guia'}</p>
                 </div>
               </div>
-            </Reveal>
 
-            {/* GUIA OFICIAL */}
-            <Reveal anim="up" delay={100}>
-              <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-xl border border-slate-100">
-                <h3 className={`${jakarta.className} text-3xl font-black text-slate-900 mb-8 flex items-center gap-4`}>
-                  <div className="w-12 h-12 bg-[#009640] text-white rounded-2xl flex items-center justify-center shadow-lg">
-                    <UserCheck size={24} />
-                  </div>
-                  Guia Responsável
-                </h3>
-
-                <div className="flex items-center gap-5 p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
-                  <div className="relative w-16 h-16 rounded-2xl overflow-hidden shadow-sm border border-slate-100 shrink-0 bg-white flex items-center justify-center">
-                     <Compass size={32} className="text-[#009640]"/>
-                  </div>
-                  <div>
-                     <p className={`${jakarta.className} font-black text-lg text-slate-800 mb-1`}>{passeio.nome_guia || 'Guia Credenciado Local'}</p>
-                     <p className="text-xs font-bold text-slate-500 flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-[#009640]" />Especialista da Região
-                     </p>
-                  </div>
+              <div className="mb-8">
+                <h3 className={`${jakarta.className} text-2xl font-black text-[#00577C] mb-4`}>Sobre a Experiência</h3>
+                <p className="text-lg text-slate-500 italic font-medium border-l-4 border-[#009640] pl-5 mb-6">{passeio.descricao_curta}</p>
+                <div className="text-slate-600 font-medium leading-relaxed whitespace-pre-line">
+                  {passeio.descricao_completa || "Junte-se a nós numa aventura inesquecível pelas belezas naturais e culturais da nossa região. Garantimos segurança, acompanhamento e momentos que ficarão na memória."}
                 </div>
               </div>
-            </Reveal>
+            </div>
 
-            {/* GALERIA */}
+            {/* GALERIA (mantida) */}
             {galeriaCombinada.length > 0 && (
-              <Reveal anim="up" delay={150}>
-                <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-xl border border-slate-100">
-                  <h3 className={`${jakarta.className} text-3xl font-black text-slate-900 mb-8`}>Galeria de Imagens</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {galeriaCombinada.map((url, idx) => (
-                      <div
-                        key={idx}
-                        onClick={() => setFotoExpandidaIndex(idx)}
-                        className="relative aspect-square rounded-2xl overflow-hidden shadow-md group bg-slate-200 cursor-pointer"
-                      >
-                        <Image
-                          src={url}
-                          alt={`Foto Galeria ${idx + 1}`}
-                          fill
-                          className="object-cover group-hover:scale-110 transition-transform duration-700"
-                        />
-                        <div className="absolute inset-0 bg-[#00577C]/0 group-hover:bg-[#00577C]/40 transition-colors duration-300 flex items-center justify-center">
-                          <ZoomIn className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-10 h-10 scale-50 group-hover:scale-100" />
-                        </div>
+              <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-xl border border-slate-100">
+                <h3 className={`${jakarta.className} text-3xl font-black text-slate-900 mb-8`}>Galeria de Imagens</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {galeriaCombinada.map((url, idx) => (
+                    <div
+                      key={idx}
+                      onClick={() => setFotoExpandidaIndex(idx)}
+                      className="relative aspect-square rounded-2xl overflow-hidden shadow-md group bg-slate-200 cursor-pointer"
+                    >
+                      <Image
+                        src={url}
+                        alt={`Foto Galeria ${idx + 1}`}
+                        fill
+                        className="object-cover group-hover:scale-110 transition-transform duration-700"
+                      />
+                      <div className="absolute inset-0 bg-[#00577C]/0 group-hover:bg-[#00577C]/40 transition-colors duration-300 flex items-center justify-center">
+                        <ZoomIn className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-10 h-10 scale-50 group-hover:scale-100" />
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
-              </Reveal>
+              </div>
             )}
           </div>
 
-          {/* COLUNA DIREITA (RESERVA) */}
+          {/* COLUNA DIREITA (RESERVA + GUIA + MAPA) */}
           <div className="w-full lg:w-[420px] shrink-0 lg:self-start">
             <div className="lg:sticky lg:top-32 space-y-6">
-              <Reveal anim="left" delay={0}>
-                <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-200">
-                  <div className="border-b border-slate-100 pb-6 mb-6 flex justify-between items-end">
+
+              {/* CARD DE RESERVA */}
+              <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-200">
+                <div className="border-b border-slate-100 pb-6 mb-6 flex justify-between items-end">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-[#009640] mb-1">Por Pessoa</p>
+                    <p className={`${jakarta.className} text-4xl font-black text-slate-900`}>{formatarMoeda(valorUnitario)}</p>
+                  </div>
+                  <div className="text-right">
+                     <p className="text-[10px] font-black uppercase tracking-widest text-[#00577C] mb-1">Vagas</p>
+                     <p className="text-sm font-bold text-slate-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">{passeio.vagas_disponiveis || 20} Restantes</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3 mb-8">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-[#00577C]">1. Quantidade de Pessoas</p>
+                  <div className="flex items-center justify-between bg-slate-50 border border-slate-100 hover:border-slate-200 transition-colors rounded-2xl p-4">
+                     <div className="flex items-center gap-3">
+                        <Users size={20} className="text-[#00577C]"/>
+                        <span className="font-bold text-sm text-slate-800">Participantes</span>
+                     </div>
+                     <div className="flex items-center gap-4 bg-white border border-slate-200 rounded-xl p-1 shadow-sm">
+                        <button onClick={() => setPessoas(Math.max(1, pessoas - 1))} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-50 text-[#00577C] font-black text-xl transition-all">-</button>
+                        <span className="font-black text-xl w-6 text-center text-[#00577C]">{pessoas}</span>
+                        <button onClick={() => setPessoas(Math.min(passeio.vagas_disponiveis || 20, pessoas + 1))} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-50 text-[#00577C] font-black text-xl transition-all">+</button>
+                     </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2 bg-[#009640]/10 p-6 rounded-2xl mb-6 border border-[#009640]/20">
+                  <div className="flex justify-between items-end">
                     <div>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-[#009640] mb-1">Por Pessoa</p>
-                      <p className={`${jakarta.className} text-4xl font-black text-slate-900`}>{formatarMoeda(valorUnitario)}</p>
+                      <span className="text-[10px] font-black text-[#009640] uppercase block mb-1">Total Estimado</span>
+                      <span className="text-xs font-bold text-slate-600">{pessoas} {pessoas === 1 ? 'pessoa' : 'pessoas'}</span>
                     </div>
-                    <div className="text-right">
-                       <p className="text-[10px] font-black uppercase tracking-widest text-[#00577C] mb-1">Vagas</p>
-                       <p className="text-sm font-bold text-slate-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">{passeio.vagas_disponiveis || 20} Restantes</p>
-                    </div>
+                    <span className={`${jakarta.className} text-3xl font-black text-[#009640]`}>{formatarMoeda(valorTotalFinal)}</span>
                   </div>
+                </div>
 
-                  <div className="space-y-3 mb-8">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-[#00577C]">1. Quantidade de Pessoas</p>
-                    <div className="flex items-center justify-between bg-slate-50 border border-slate-100 hover:border-slate-200 transition-colors rounded-2xl p-4">
-                       <div className="flex items-center gap-3">
-                          <Users size={20} className="text-[#00577C]"/>
-                          <span className="font-bold text-sm text-slate-800">Participantes</span>
-                       </div>
-                       <div className="flex items-center gap-4 bg-white border border-slate-200 rounded-xl p-1 shadow-sm">
-                          <button onClick={() => setPessoas(Math.max(1, pessoas - 1))} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-50 text-[#00577C] font-black text-xl transition-all">-</button>
-                          <span className="font-black text-xl w-6 text-center text-[#00577C]">{pessoas}</span>
-                          <button onClick={() => setPessoas(Math.min(passeio.vagas_disponiveis || 20, pessoas + 1))} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-50 text-[#00577C] font-black text-xl transition-all">+</button>
-                       </div>
-                    </div>
+                <button
+                  onClick={handleReserva}
+                  className={`${jakarta.className} flex items-center justify-center gap-3 w-full bg-[#00577C] hover:bg-[#004a6b] text-white py-5 rounded-2xl font-black text-lg transition-transform hover:-translate-y-1 shadow-xl`}
+                >
+                  Reservar Passeio <ChevronRightIcon size={20} />
+                </button>
+
+                <p className="mt-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center justify-center gap-1.5">
+                  <ShieldCheck size={13} className="text-[#00577C]" /> Reserva Oficial SagaTurismo
+                </p>
+              </div>
+
+              {/* BLOCO DO GUIA (NOVO) */}
+              <div className="bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-200">
+                <h3 className={`${jakarta.className} text-xl font-black text-slate-900 mb-5 flex items-center gap-2`}>
+                  <UserCheck size={22} className="text-[#009640]" />
+                  Seu Guia
+                </h3>
+                <div className="flex flex-col items-center text-center">
+                  <div className="relative w-24 h-24 rounded-full overflow-hidden shadow-lg border-2 border-[#009640] mb-4">
+                    <Image
+                      src={guiaImagem}
+                      alt={guiaNome}
+                      fill
+                      className="object-cover"
+                    />
                   </div>
-
-                  <div className="flex flex-col gap-2 bg-[#009640]/10 p-6 rounded-2xl mb-6 border border-[#009640]/20">
-                    <div className="flex justify-between items-end">
-                      <div>
-                        <span className="text-[10px] font-black text-[#009640] uppercase block mb-1">Total Estimado</span>
-                        <span className="text-xs font-bold text-slate-600">{pessoas} {pessoas === 1 ? 'pessoa' : 'pessoas'}</span>
-                      </div>
-                      <span className={`${jakarta.className} text-3xl font-black text-[#009640]`}>{formatarMoeda(valorTotalFinal)}</span>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={handleReserva}
-                    className={`${jakarta.className} flex items-center justify-center gap-3 w-full bg-[#00577C] hover:bg-[#004a6b] text-white py-5 rounded-2xl font-black text-lg transition-transform hover:-translate-y-1 shadow-xl`}
-                  >
-                    Reservar Passeio <ChevronRightIcon size={20} />
-                  </button>
-
-                  <p className="mt-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center justify-center gap-1.5">
-                    <ShieldCheck size={13} className="text-[#00577C]" /> Reserva Oficial SagaTurismo
+                  <h4 className={`${jakarta.className} text-xl font-black text-slate-800`}>{guiaNome}</h4>
+                  <p className="text-xs font-bold text-[#009640] uppercase tracking-wider mt-1">{guiaEspecialidade}</p>
+                  <p className="text-slate-500 text-sm leading-relaxed mt-4 text-justify">
+                    {guiaDescricao}
                   </p>
                 </div>
-              </Reveal>
+              </div>
 
               {/* MAPA */}
               {passeio.coordenadas_google_maps && (
-                <Reveal anim="left" delay={100}>
-                  <div className="bg-white p-5 rounded-[2.5rem] shadow-xl border border-slate-200 overflow-hidden">
-                    <div className="flex justify-between items-center mb-4 px-2">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-[#00577C] flex items-center gap-2">
-                        <MapPin size={14} className="text-[#009640]" /> Ponto de Encontro
-                      </p>
-                      <Map className="text-slate-300" size={18}/>
-                    </div>
-                    <div className="w-full h-[200px] rounded-2xl overflow-hidden bg-slate-100 relative pointer-events-none sm:pointer-events-auto border border-slate-100">
-                      <iframe
-                        width="100%"
-                        height="100%"
-                        style={{ border: 0 }}
-                        loading="lazy"
-                        allowFullScreen
-                        src={gerarUrlMapa(passeio.coordenadas_google_maps)}
-                      />
-                    </div>
+                <div className="bg-white p-5 rounded-[2.5rem] shadow-xl border border-slate-200 overflow-hidden">
+                  <div className="flex justify-between items-center mb-4 px-2">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-[#00577C] flex items-center gap-2">
+                      <MapPin size={14} className="text-[#009640]" /> Ponto de Encontro
+                    </p>
+                    <Map className="text-slate-300" size={18}/>
                   </div>
-                </Reveal>
+                  <div className="w-full h-[200px] rounded-2xl overflow-hidden bg-slate-100 relative pointer-events-none sm:pointer-events-auto border border-slate-100">
+                    <iframe
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0 }}
+                      loading="lazy"
+                      allowFullScreen
+                      src={gerarUrlMapa(passeio.coordenadas_google_maps)}
+                    />
+                  </div>
+                </div>
               )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* LIGHTBOX MODAL */}
+      {/* LIGHTBOX MODAL (INALTERADO) */}
       {fotoExpandidaIndex !== null && galeriaCombinada.length > 0 && (
         <div
           className="fixed inset-0 z-[100] bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-5 animate-in fade-in duration-200"
@@ -465,7 +457,7 @@ export default function PasseioDetalhePage() {
         </div>
       )}
 
-      {/* FOOTER (CONSISTENTE) */}
+      {/* FOOTER (INALTERADO) */}
       <footer className="py-20 px-8 border-t border-slate-200 bg-white text-left">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
           <div className="flex flex-col items-center md:items-start gap-4">
