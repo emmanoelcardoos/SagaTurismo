@@ -4,9 +4,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState, useRef, ReactNode } from 'react';
 import {
-  Menu, X, ArrowRight, ArrowLeft, Loader2, Compass,
-  TreePine, Waves, Mountain, ChevronDown, MapPin, Users, Heart,
-  ShieldCheck
+  Menu, X, ArrowRight, Loader2, Compass,
+  ChevronDown, Users, ShieldCheck
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -23,23 +22,11 @@ type Comunidade = {
   ordem?: number;
 };
 
-// ── SISTEMA DE TEMAS (Cores da Terra, Água e Floresta) ──
+// ── TEMAS (cores suaves para fundo dos cards) ──
 const themes = [
-  {
-    cor: '#8b5e0a',
-    corAccent: '#F9C400',
-    bgDark: '#1a0e02',
-  },
-  {
-    cor: '#00577C',
-    corAccent: '#F9C400',
-    bgDark: '#001f2e',
-  },
-  {
-    cor: '#009640',
-    corAccent: '#F9C400',
-    bgDark: '#051a09',
-  },
+  { cor: '#8b5e0a', corAccent: '#F9C400', bgLight: '#FDFBF7' },
+  { cor: '#00577C', corAccent: '#F9C400', bgLight: '#F5F9FC' },
+  { cor: '#009640', corAccent: '#F9C400', bgLight: '#F4F9F5' },
 ];
 
 const getTheme = (index: number) => themes[index % themes.length];
@@ -81,101 +68,64 @@ function Reveal({ children, className = '', anim = 'up', delay = 0 }: {
 }
 
 // ══════════════════════════════════════
-// CARD EDITORIAL DE COMUNIDADE
+// CARD FULLSCREEN – IMAGEM NÍTIDA
 // ══════════════════════════════════════
 function ComunidadeCard({ comunidade, index }: { comunidade: Comunidade; index: number }) {
   const theme = getTheme(index);
   const isPar = index % 2 === 0;
-  const num = String(index + 1).padStart(2, '0');
 
   return (
-    <article className="relative group">
-      {index > 0 && (
-        <div className="h-px w-full mb-0"
-          style={{ background: `linear-gradient(to right, transparent, ${theme.cor}25, transparent)` }} />
-      )}
+    <article className="relative w-full min-h-screen flex flex-col lg:flex-row"
+      style={{ backgroundColor: theme.bgLight }}>
+      {/* ── METADE IMAGEM (sem gradientes) ── */}
+      <div className={`relative w-full h-[50vh] lg:h-screen lg:w-1/2 overflow-hidden`}>
+        <Image
+          src={comunidade.imagem_url || 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09'}
+          alt={comunidade.titulo}
+          fill
+          className="object-cover"
+          sizes="(max-width: 1024px) 100vw, 50vw"
+          priority={index === 0}
+        />
+      </div>
 
-      <div className={`relative flex flex-col ${isPar ? 'lg:flex-row' : 'lg:flex-row-reverse'} min-h-[85vh] overflow-hidden`}
-        style={{ backgroundColor: theme.bgDark }}>
-
-        {/* ── METADE IMAGEM ── */}
-        <div className="relative w-full lg:w-[55%] h-[50vh] lg:h-auto overflow-hidden">
-          <Image
-            src={comunidade.imagem_url || 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09'}
-            alt={comunidade.titulo}
-            fill
-            className="object-cover transition-transform duration-[1400ms] ease-out group-hover:scale-105 grayscale-[20%] group-hover:grayscale-0"
-          />
-
-          <div className="absolute inset-0 pointer-events-none"
-            style={{
-              background: isPar
-                ? `linear-gradient(to right, transparent 50%, ${theme.bgDark} 100%)`
-                : `linear-gradient(to left, transparent 50%, ${theme.bgDark} 100%)`,
-            }} />
-          <div className="absolute inset-0 pointer-events-none lg:hidden"
-            style={{ background: `linear-gradient(to top, ${theme.bgDark} 0%, transparent 60%)` }} />
-
-          <div className="absolute top-6 left-6 z-10 w-14 h-14 rounded-2xl flex items-center justify-center shadow-2xl"
-            style={{ backgroundColor: theme.corAccent }}>
-            <span className={`${jakarta.className} text-xl font-black`} style={{ color: theme.bgDark }}>
-              {num}
-            </span>
-          </div>
-
-          
+      {/* ── METADE TEXTO ── */}
+      <div className={`relative w-full lg:w-1/2 flex flex-col justify-center px-8 py-16 lg:px-20 lg:py-24 ${!isPar ? 'lg:order-first' : ''}`}>
+        {/* Número decorativo discreto */}
+        <div className={`${jakarta.className} absolute top-8 right-8 lg:top-12 lg:right-12 text-[120px] md:text-[160px] font-black leading-none select-none pointer-events-none`}
+          style={{ color: theme.cor, opacity: 0.05 }}
+          aria-hidden="true">
+          {String(index + 1).padStart(2, '0')}
         </div>
 
-        {/* ── METADE TEXTO ── */}
-        <div className={`relative z-10 w-full lg:w-[45%] flex flex-col justify-center
-          px-8 py-16 lg:py-24
-          ${isPar ? 'lg:pl-16 xl:pl-20 lg:pr-16' : 'lg:pr-16 xl:pr-20 lg:pl-16'}`}>
-
-          <div className={`${jakarta.className} absolute top-1/2 -translate-y-1/2
-            ${isPar ? '-right-4 lg:-right-6' : '-left-4 lg:-left-6'}
-            text-[180px] md:text-[220px] font-black leading-none select-none pointer-events-none`}
-            style={{ color: theme.cor, opacity: 0.08 }}
-            aria-hidden="true">
-            {num}
+        <Reveal anim={isPar ? 'left' : 'right'} delay={200}>
+          <div className="flex items-center gap-3 mb-8 text-sm font-bold uppercase tracking-[0.25em]"
+            style={{ color: theme.cor }}>
+            <Users size={22} strokeWidth={2.5} />
+            <span>Comunidade {String(index + 1).padStart(2, '0')}</span>
           </div>
 
-          <Reveal anim={isPar ? 'left' : 'right'} delay={100}>
+          <h2 className={`${jakarta.className} text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black text-slate-800 leading-[0.95] mb-8`}>
+            {comunidade.titulo}
+          </h2>
 
-            <h2 className={`${jakarta.className} text-5xl md:text-6xl xl:text-7xl font-black text-white leading-[0.88] mb-6`}>
-              {comunidade.titulo}
-            </h2>
-
-            <p className="text-white/60 text-base md:text-lg leading-relaxed mb-10 max-w-md font-medium italic">
-              "{comunidade.descricao_curta}"
+          <blockquote className="border-l-[4px] pl-7 mb-10 max-w-xl"
+            style={{ borderColor: theme.corAccent }}>
+            <p className="text-slate-500 text-lg md:text-xl leading-relaxed font-medium italic">
+              “{comunidade.descricao_curta}”
             </p>
+          </blockquote>
 
-            <div className="flex flex-wrap gap-3 mb-10">
-              {[
-              ].map((m, i) => (
-                <span key={i}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold border"
-                  style={{
-                    borderColor: theme.cor + '40',
-                    backgroundColor: theme.cor + '12',
-                    color: 'rgba(255,255,255,0.6)',
-                  }}>
-
-                  {m.valor}
-                </span>
-              ))}
-            </div>
-
-            <Link
-              href={`/comunidades/${comunidade.id}`}
-              className="group/btn inline-flex items-center gap-3 self-start px-8 py-4 rounded-full
-                font-black text-[10px] uppercase tracking-widest shadow-xl
-                hover:-translate-y-1 hover:shadow-2xl transition-all duration-300"
-              style={{ backgroundColor: theme.cor, color: theme.corAccent }}>
-              Conhecer a comunidade
-              <ArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
-            </Link>
-          </Reveal>
-        </div>
+          <Link
+            href={`/comunidades/${comunidade.id}`}
+            className="group/btn inline-flex items-center gap-3 self-start px-8 py-4 rounded-full
+              font-black text-xs uppercase tracking-widest shadow-lg
+              hover:-translate-y-1 hover:shadow-xl transition-all duration-300"
+            style={{ backgroundColor: theme.cor, color: '#fff' }}>
+            <span>Conhecer a comunidade</span>
+            <ArrowRight size={18} className="group-hover/btn:translate-x-1 transition-transform" />
+          </Link>
+        </Reveal>
       </div>
     </article>
   );
@@ -188,13 +138,11 @@ export default function ComunidadesPage() {
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [comunidades, setComunidades] = useState<Comunidade[]>([]);
   const [loading, setLoading] = useState(true);
   const [scrollY, setScrollY] = useState(0);
 
-  // Ref para forçar o Autoplay no Mobile
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -231,17 +179,14 @@ export default function ComunidadesPage() {
   }, [lastScrollY]);
 
   return (
-    <main className={`${inter.className} text-white overflow-x-hidden min-h-screen`}
-      style={{ backgroundColor: '#001f2e' }}>
-
+    <main className={`${inter.className} text-slate-800 overflow-x-hidden bg-[#FDFBF7]`}>
       {/* ── HEADER FLUTUANTE ── */}
       <header className="relative z-50 w-full bg-white border-b border-slate-200 py-4">
         <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6">
           <Link href="/" className="flex items-center gap-3">
-             <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
-                {/* Removido o filtro invertido para manter as cores originais da logo */}
-                <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain" />
-             </div>
+            <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
+              <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain" />
+            </div>
           </Link>
 
           <nav className="hidden lg:flex items-center gap-8">
@@ -260,7 +205,6 @@ export default function ComunidadesPage() {
           </button>
         </div>
 
-        {/* Menu Mobile */}
         {isMobileMenuOpen && (
           <div className="absolute top-full left-0 w-full bg-white border-b border-slate-200 p-6 flex flex-col gap-4 shadow-2xl lg:hidden z-50">
             <Link href="/rotas" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Rotas Turísticas</Link>
@@ -278,71 +222,58 @@ export default function ComunidadesPage() {
       {/* ══════════════════════════════════════
           HERO CINEMATOGRÁFICO
       ══════════════════════════════════════ */}
-      <section className="relative h-[85vh] flex flex-col items-start justify-end
-        pb-20 md:pb-30 px-0 md:px-0 overflow-hidden"
-        style={{ backgroundColor: '#002f40' }}>
-
+      <section className="relative h-[88vh] flex flex-col items-start justify-end pb-20 md:pb-28 overflow-hidden bg-[#002f40]">
         <div className="absolute inset-0 z-0 scale-110"
           style={{ transform: `translateY(${scrollY * 0.25}px) scale(1.1)` }}>
           <video
             ref={videoRef}
             src="/comunidades.mp4"
-            autoPlay 
-            loop 
-            muted 
+            autoPlay
+            loop
+            muted
             playsInline
             preload="auto"
-            poster="/logop.png" 
-            className="absolute inset-0 w-full h-full object-cover opacity-200"
+            poster="/logop.png"
+            className="absolute inset-0 w-full h-full object-cover opacity-100"
           />
         </div>
 
         <div className="absolute inset-0 z-0 pointer-events-none"
-          style={{ background: 'linear-gradient(to top, #001f2e 0%, #001f2ecc 30%, #001f2e55 60%, transparent 85%)' }} />
+          style={{ background: 'linear-gradient(to top, #001f2e 0%, #001f2ecc 25%, #001f2e55 55%, transparent 85%)' }} />
         <div className="absolute inset-0 z-0 pointer-events-none"
           style={{ background: 'linear-gradient(to right, #001f2eaa 0%, transparent 65%)' }} />
 
-        <div className="absolute left-6 md:left-12 top-[20%] bottom-[100%] w-px pointer-events-none z-10 hidden md:block"
-          style={{ background: 'linear-gradient(to bottom, transparent, #F9C40045, transparent)' }} />
-
-        <div className="relative z-10 max-w-[1400px] w-full mx-auto">
+        <div className="relative z-10 w-full max-w-[1400px] mx-auto px-6">
           <Reveal anim="up">
-
             <h1 className={`${jakarta.className} text-[clamp(3rem,11vw,9rem)] font-black text-white leading-[0.88] mb-9`}>
               Nossas<br />
               <span className="italic" style={{ color: '#F9C400' }}>Comunidades</span>
             </h1>
-
           </Reveal>
         </div>
 
-        <div className="absolute bottom-10 right-6 md:right-12 z-10 hidden md:flex flex-col items-end gap-5">
-
-        </div>
-
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10">
-          <ChevronDown size={18} className="animate-bounce" style={{ color: 'rgba(249,196,0,0.35)' }} />
+          <ChevronDown size={18} className="animate-bounce" style={{ color: 'rgba(249,196,0,0.4)' }} />
         </div>
       </section>
 
       {/* ══════════════════════════════════════
-          LISTAGEM DE COMUNIDADES
+          LISTAGEM FULLSCREEN
       ══════════════════════════════════════ */}
-      <section id="comunidades">
+      <section id="comunidades" className="relative">
         {loading && (
-          <div className="flex flex-col items-center justify-center py-40" style={{ backgroundColor: '#001f2e' }}>
-            <Loader2 className="animate-spin w-12 h-12 mb-4" style={{ color: '#F9C400' }} />
-            <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.4)' }}>
+          <div className="flex flex-col items-center justify-center py-40 bg-[#FDFBF7]">
+            <Loader2 className="animate-spin w-12 h-12 mb-4 text-[#F9C400]" />
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">
               Viajando até as comunidades...
             </p>
           </div>
         )}
 
         {!loading && comunidades.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-40 px-6 text-center"
-            style={{ backgroundColor: '#001f2e' }}>
-            <Compass size={64} style={{ color: 'rgba(255,255,255,0.05)' }} className="mb-6" />
-            <h3 className={`${jakarta.className} text-3xl font-black mb-3`} style={{ color: 'rgba(255,255,255,0.2)' }}>
+          <div className="flex flex-col items-center justify-center py-40 px-6 text-center bg-[#FDFBF7]">
+            <Compass size={64} className="text-slate-200 mb-6" />
+            <h3 className={`${jakarta.className} text-3xl font-black text-slate-300 mb-3`}>
               Nenhuma comunidade cadastrada
             </h3>
           </div>

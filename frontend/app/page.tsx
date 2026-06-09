@@ -704,7 +704,7 @@ export default function HomePage() {
             <AnimatedSection animation="fade-left" delay={200}>
               <Link href="/comunidades" className="relative h-[240px] rounded-[2rem] overflow-hidden group block">
                 <div className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-                  style={{ backgroundImage: "url('https://images.pexels.com/photos/36152983/pexels-photo-36152983.jpeg?_gl=1*nb46ao*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzk0OTc2MzAkbzUxJGcxJHQxNzc5NTAxOTA3JGo1OSRsMCRoMA..')" }} />
+                  style={{ backgroundImage: "url('https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/df417333-2d29-4ae1-80cb-47a0491c8d40.JPG')" }} />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent" />
                 <div className="absolute bottom-6 left-6 right-6 text-white">
                   <h3 className={`${jakarta.className} text-2xl font-black mb-3`}>Comunidades</h3>

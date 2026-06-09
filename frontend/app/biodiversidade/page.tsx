@@ -57,7 +57,7 @@ const fauna = [
   { nome: "Arara-canindé", cientifico: "Ara ararauna", habitat: "Floresta Amazônica", imagem: "https://images.pexels.com/photos/36052063/pexels-photo-36052063.jpeg?_gl=1*tsn53b*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzk1NDAyNDckbzUzJGcxJHQxNzc5NTQwNTgyJGozNSRsMCRoMA..", cor: "#1a6b3c", tag: "Ave", ameaca: "Vulnerável" },
   { nome: "Onça-pintada", cientifico: "Panthera onca", habitat: "Cerrado / Amazônia", imagem: "https://images.pexels.com/photos/11630694/pexels-photo-11630694.jpeg?_gl=1*56kp8k*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzk1NDAyNDckbzUzJGcxJHQxNzc5NTQwNjYzJGo0MyRsMCRoMA..", cor: "#8b5e0a", tag: "Mamífero", ameaca: "Vulnerável" },
   { nome: "Lobo-guará", cientifico: "Chrysocyon brachyurus", habitat: "Cerrado", imagem: "https://images.unsplash.com/photo-1474511320723-9a56873867b5?w=600&q=80", cor: "#c2440c", tag: "Mamífero", ameaca: "Quase ameaçado" },
-  { nome: "Tucano-toco", cientifico: "Ramphastos toco", habitat: "Floresta / Cerrado", imagem: "https://images.pexels.com/photos/35098811/pexels-photo-35098811.jpeg?_gl=1*vp3cdd*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzk1NDAyNDckbzUzJGcxJHQxNzc5NTQwNDk1JGoxMiRsMCRoMA..", cor: "#00577C", tag: "Ave", ameaca: "Pouco preocupante" },
+  { nome: "Tucano-toco", cientifico: "Ramphastos toco", habitat: "Floresta / Cerrado", imagem: "https://images.pexels.com/photos/35098811/pexels-photo-35098811.jpeg?_gl=1*vp3cdd*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzk1NDAyNDckbzUzJGcxJHQxNzc5NTQwNDk1JGozMiRsMCRoMA..", cor: "#00577C", tag: "Ave", ameaca: "Pouco preocupante" },
   { nome: "Capivara", cientifico: "Hydrochoerus hydrochaeris", habitat: "Margens do Araguaia", imagem: "https://images.pexels.com/photos/28977022/pexels-photo-28977022.jpeg?_gl=1*q6uyb1*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzk1NDAyNDckbzUzJGcxJHQxNzc5NTQwMzA3JGo2MCRsMCRoMA..", cor: "#5a4a2e", tag: "Mamífero", ameaca: "Pouco preocupante" },
   { nome: "Boto-cor-de-rosa", cientifico: "Inia geoffrensis", habitat: "Rio Araguaia", imagem: "https://images.pexels.com/photos/8867193/pexels-photo-8867193.jpeg?_gl=1*16lgvur*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzk1NDAyNDckbzUzJGcxJHQxNzc5NTQwNDA0JGozOCRsMCRoMA..", cor: "#c2567a", tag: "Mamífero aquático", ameaca: "Em perigo" },
   { nome: "Tamanduá-bandeira", cientifico: "Myrmecophaga tridactyla", habitat: "Cerrado", imagem: "https://images.pexels.com/photos/27044123/pexels-photo-27044123.jpeg?_gl=1*ga07ce*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzk1NDAyNDckbzUzJGcxJHQxNzc5NTQwMzYyJGo1JGwwJGgw", cor: "#6b4c2a", tag: "Mamífero", ameaca: "Vulnerável" },
@@ -69,27 +69,64 @@ const fauna = [
 const flora = [
   { nome: "Ipê-amarelo", cientifico: "Handroanthus albus", habitat: "Cerrado", imagem: "https://images.pexels.com/photos/13596969/pexels-photo-13596969.jpeg?_gl=1*ccckmr*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzk2NTY5NTgkbzYzJGcxJHQxNzc5NjU3MDEwJGo4JGwwJGgw", descricao: "Árvore símbolo do Brasil, exuberante floração amarela no cerrado.", cor: "#c2930a" },
   { nome: "Castanheira", cientifico: "Bertholletia excelsa", habitat: "Floresta Amazônica", imagem: "https://images.pexels.com/photos/12941185/pexels-photo-12941185.jpeg?_gl=1*1od68zg*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzk2NTY5NTgkbzYzJGcxJHQxNzc5NjU4MjA4JGozNiRsMCRoMA..", descricao: "Gigante da Amazônia, pode viver mais de 1000 anos.", cor: "#1a5e2a" },
-  { nome: "Buritizeiro", cientifico: "Mauritia flexuosa", habitat: "Veredas / Cerrado", imagem: "https://images.pexels.com/photos/2563244/pexels-photo-2563244.jpeg?_gl=1*18vbbro*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzk2NTY5NTgkbzYzJGcxJHQxNzc5NjU3OTQ3JGoyMiRsMCRoMA..", descricao: "Palmeira das veredas, fundamental para a fauna local.", cor: "#3a7d18" },
+  { nome: "Buritizeiro", cientifico: "Mauritia flexuosa", habitat: "Veredas / Cerrado", imagem: "https://images.pexels.com/photos/2563244/pexels-photo-2563244.jpeg?_gl=1*18vbbro*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzk2NTY5NTgkbzYzJGcxJHQxNzc5NjU3OTQ3JGozMiRsMCRoMA..", descricao: "Palmeira das veredas, fundamental para a fauna local.", cor: "#3a7d18" },
   { nome: "Andiroba", cientifico: "Carapa guianensis", habitat: "Floresta Amazônica", imagem: "https://images.pexels.com/photos/20992632/pexels-photo-20992632.jpeg?_gl=1*m5be40*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzk2NTY5NTgkbzYzJGcxJHQxNzc5NjU4MjY3JGozOCRsMCRoMA..", descricao: "Árvore medicinal de alto valor, protegida na Serra das Andorinhas.", cor: "#2d5c1a" },
   { nome: "Pequizeiro", cientifico: "Caryocar brasiliense", habitat: "Cerrado", imagem: "https://images.pexels.com/photos/2170351/pexels-photo-2170351.jpeg?_gl=1*1m2qajr*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzk2NTY5NTgkbzYzJGcxJHQxNzc5NjU4MzY2JGozNCRsMCRoMA..", descricao: "Fruto ícone do cerrado, alimento e símbolo cultural regional.", cor: "#8b6914" },
   { nome: "Sumaúma", cientifico: "Ceiba pentandra", habitat: "Floresta Amazônica", imagem: "https://images.pexels.com/photos/4773620/pexels-photo-4773620.jpeg?_gl=1*do5myu*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzk2NTY5NTgkbzYzJGcxJHQxNzc5NjU4NDI0JGozNiRsMCRoMA..", descricao: "A 'Rainha da Floresta', pode ultrapassar 50 metros de altura.", cor: "#1a4a2a" },
 ];
 
 // ==========================================
-// DADOS — 11 CACHOEIRAS COM IMAGENS
+// DADOS — 6 CACHOEIRAS COM IMAGENS (TODAS COM DESTAQUE = TRUE)
 // ==========================================
 const cachoeiras = [
-  { nome: "Cachoeira Três Quedas", altura: "42m", dificuldade: "Fácil", descricao: "A mais emblemática do parque, conhecida pelas três quedas de água.", destaque: true, imagem: "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/IMG_1802.PNG" },
-  { nome: "Cachoeira Quarta Queda", altura: "28m", dificuldade: "Fácil", descricao: "Queda delicada em fio cristalino, envolta em samambaias e bromélias.", destaque: true, imagem: "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/IMG_1802.PNG" },
-  { nome: "Poço Esmeralda", altura: "15m", dificuldade: "Fácil", descricao: "Localizada acima das Cachoeiras Três Quedas, a Cachoeira Quarta Queda é um convite para trilha e aventura.", destaque: true, imagem: "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/IMG_1802.PNG" },
-  { nome: "Cachoeira Rapunzel", altura: "20m", dificuldade: "Difícil", descricao: "Cai sobre uma gruta de calcário, criando um ambiente místico único.", destaque: true, imagem: "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/IMG_1802.PNG" },
-  { nome: "Cachoeira da Paciência", altura: "35m", dificuldade: "Moderada", descricao: "Vista panorâmica para o Rio Araguaia ao fundo do horizonte.", destaque: true, imagem: "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/IMG_1802.PNG" },
-  { nome: "Cachoeira Urubu -Rei", altura: "18m", dificuldade: "Moderada", descricao: "Frequentada por gavião-real em seu habitat natural de nidificação.", destaque: true, imagem: "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/IMG_1802.PNG" },
-  { nome: "Casacata do Urubu - Rei", altura: "12m", dificuldade: "Difícil", descricao: "Acessível apenas por trilha densa, recompensa com solidão total.", destaque: true, imagem: "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/IMG_1802.PNG" },
-  { nome: "Cachoeira Antônio Crente", altura: "8m", dificuldade: "Fácil", descricao: "Piscina natural turquesa, ideal para banho em família.", destaque: true, imagem: "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/IMG_1802.PNG" },
-  { nome: "Cachoeira Viagem Grande", altura: "55m", dificuldade: "Difícil", descricao: "A mais alta do parque, vista só de longe devido ao isolamento.", destaque: true, imagem: "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/IMG_1802.PNG" },
-  { nome: "Cachoeira Riacho Fundo", altura: "10m", dificuldade: "Fácil", descricao: "Nasce entre afloramentos de quartzo com água de pureza excepcional.", destaque: true, imagem: "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/IMG_1802.PNG" },
-  { nome: "Cachoeira Spanner", altura: "22m", dificuldade: "Moderada", descricao: "Encravada em densa mata de galeria, abrigo de orquídeas e bromélias.", destaque: true, imagem: "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/IMG_1802.PNG" },
+  {
+    nome: "Cachoeira Riacho Fundo",
+    altura: "",
+    dificuldade: "Não classificada",
+    descricao: "Sem descrição",
+    destaque: true,   // <-- CORRIGIDO
+    imagem: "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/c2085f3b-dde5-4a96-b346-329b30ec4054.JPG"
+  },
+  {
+    nome: "Cachoeira Piscinão do Honorato",
+    altura: "",
+    dificuldade: "Não classificada",
+    descricao: "Sem descrição",
+    destaque: true,
+    imagem: "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/55aa42b0-0de1-4bdb-be7d-e1e5f6fe88e3.JPG"
+  },
+  {
+    nome: "Cachoeira do Poção",
+    altura: "",
+    dificuldade: "Não classificada",
+    descricao: "Sem descrição",
+    destaque: true,
+    imagem: "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/24445621-1a43-4ca4-ad51-d2c29c4cc6c3.JPG"
+  },
+  {
+    nome: "Cachoeira da Visagem",
+    altura: "",
+    dificuldade: "Não classificada",
+    descricao: "Sem descrição",
+    destaque: true,
+    imagem: "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/217474f1-5f64-4320-a672-3449cb669dce.JPG"
+  },
+  {
+    nome: "Cachoeira do Espelho",
+    altura: "",
+    dificuldade: "Não classificada",
+    descricao: "Sem descrição",
+    destaque: true,
+    imagem: "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/3d237e50-5fe7-4306-80ed-22d76292bbba.JPG"
+  },
+  {
+    nome: "Cachoeira da Vargem Grande",
+    altura: "",
+    dificuldade: "Não classificada",
+    descricao: "Sem descrição",
+    destaque: true,
+    imagem: "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/PHOTO-2026-06-09-01-00-26.jpg"
+  }
 ];
 
 const dificuldadeCor: Record<string, string> = {
@@ -148,7 +185,7 @@ function HeroBiodiversidade() {
       {/* Stats flutuantes */}
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 hidden md:flex gap-8">
         {[
-          { n: "11", label: "Cachoeiras" },
+          { n: "+50", label: "Cachoeiras" },
           { n: "2", label: "Biomas" },
           { n: "+300", label: "Espécies" },
         ].map(stat => (
@@ -218,7 +255,7 @@ function SecParque() {
 
             <Reveal anim="left" delay={200}>
               <div className="group relative h-[220px] rounded-[2rem] overflow-hidden bg-[#1a4a2a]">
-                <Image src="https://images.pexels.com/photos/18064280/pexels-photo-18064280.jpeg?_gl=1*1642x6g*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3ODA3NTAwOTQkbzY5JGcxJHQxNzgwNzUwMzAxJGoyOSRsMCRoMA.." alt="Floresta densa" fill className="object-cover opacity-50 group-hover:opacity-70 transition-all duration-700" />
+                <Image src="https://images.pexels.com/photos/18064280/pexels-photo-18064280.jpeg?_gl=1*1642x6g*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3ODA3NTAwOTQkbzY5JGcxJHQxNzgwNzUwMzAxJGo5OSRsMCRoMA.." alt="Floresta densa" fill className="object-cover opacity-50 group-hover:opacity-70 transition-all duration-700" />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#1a4a2a]/90 to-transparent" />
                 <div className="absolute bottom-6 left-6 right-6 text-white">
                   <Leaf size={20} className="text-[#F9C400] mb-2" />
@@ -289,7 +326,7 @@ function SecBiomas() {
 }
 
 // ==========================================
-// SECÇÃO: 11 CACHOEIRAS (COM IMAGENS REAIS, SEM DIFICULDADE)
+// SECÇÃO: 11 CACHOEIRAS (COM IMAGENS REAIS, TODAS EM DESTAQUE)
 // ==========================================
 function SecCachoeiras() {
   const destaques = cachoeiras.filter(c => c.destaque);
@@ -306,14 +343,14 @@ function SecCachoeiras() {
                 <span className="w-6 h-[1px] bg-[#F9C400]" /> Parque Estadual Serra das Andorinhas-Martírios
               </p>
               <h2 className={`${jakarta.className} text-5xl md:text-8xl font-black text-white leading-[0.88]`}>
-                11<br /><span className="italic text-[#F9C400]">Cachoeiras</span>
+                6<br /><span className="italic text-[#F9C400]">Cachoeiras</span>
               </h2>
             </div>
           </div>
         </Reveal>
 
-        {/* 3 destaques — grandes com imagens */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
+        {/* Grid de todas as cachoeiras (com imagem) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {destaques.map((c, i) => (
             <Reveal key={c.nome} anim="up" delay={i * 120}>
               <div className="group relative h-[380px] rounded-[2rem] overflow-hidden bg-[#003d5c] cursor-pointer">
@@ -321,10 +358,9 @@ function SecCachoeiras() {
                   src={c.imagem}
                   alt={c.nome}
                   fill
-                  className="object-cover opacity-6 group-hover:scale-105 group-hover:opacity-80 transition-all duration-1000"
+                  className="object-cover opacity-70 group-hover:scale-105 group-hover:opacity-90 transition-all duration-1000"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#003d5c]/95 via-[#003d5c]/20 to-transparent" />
-                {/* REMOVIDO O BADGE DE DIFICULDADE */}
                 <div className="absolute bottom-8 left-8 right-8 text-white">
                   <div className="flex items-center gap-2 mb-2">
                     <Droplets size={14} className="text-[#F9C400]" />
@@ -338,22 +374,23 @@ function SecCachoeiras() {
           ))}
         </div>
 
-        {/* Grid das restantes 8 (sem imagem, apenas informações) */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {resto.map((c, i) => (
-            <Reveal key={c.nome} anim="up" delay={i * 60}>
-              <div className="bg-white/5 border border-white/10 rounded-[1.5rem] p-6 hover:bg-white/10 transition-colors group cursor-pointer">
-                <div className="flex items-start justify-between mb-4">
-                  <Droplets size={18} className="text-[#F9C400]" />
-                  {/* REMOVIDO O BADGE DE DIFICULDADE */}
+        {/* Caso existam itens sem destaque (agora não há, mas mantemos) */}
+        {resto.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-5">
+            {resto.map((c, i) => (
+              <Reveal key={c.nome} anim="up" delay={i * 60}>
+                <div className="bg-white/5 border border-white/10 rounded-[1.5rem] p-6 hover:bg-white/10 transition-colors group cursor-pointer">
+                  <div className="flex items-start justify-between mb-4">
+                    <Droplets size={18} className="text-[#F9C400]" />
+                  </div>
+                  <p className="text-[#F9C400] font-black text-xl mb-1">{c.altura}</p>
+                  <h4 className={`${jakarta.className} text-base font-black text-white mb-2 group-hover:text-[#F9C400] transition-colors`}>{c.nome}</h4>
+                  <p className="text-white/40 text-xs leading-relaxed">{c.descricao}</p>
                 </div>
-                <p className="text-[#F9C400] font-black text-xl mb-1">{c.altura}</p>
-                <h4 className={`${jakarta.className} text-base font-black text-white mb-2 group-hover:text-[#F9C400] transition-colors`}>{c.nome}</h4>
-                <p className="text-white/40 text-xs leading-relaxed">{c.descricao}</p>
-              </div>
-            </Reveal>
-          ))}
-        </div>
+              </Reveal>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
