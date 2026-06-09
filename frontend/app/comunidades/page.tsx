@@ -4,16 +4,16 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState, useRef, ReactNode } from 'react';
 import {
-  Menu, X, ArrowRight, Loader2, Compass,
-  ChevronDown, Users, ShieldCheck
+  Menu, X, ArrowRight, Loader2, Users, ShieldCheck
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
 
+// ── FONTES PADRÃO DO SITE ──
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '700', '800'] });
-const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
+const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'] });
 
-// ── TIPAGEM ──
+// ── TIPAGEM DA TABELA 'comunidades' ──
 type Comunidade = {
   id: string;
   titulo: string;
@@ -22,165 +22,126 @@ type Comunidade = {
   ordem?: number;
 };
 
-// ── TEMAS (cores suaves para fundo dos cards) ──
-const themes = [
-  { cor: '#8b5e0a', corAccent: '#F9C400', bgLight: '#FDFBF7' },
-  { cor: '#00577C', corAccent: '#F9C400', bgLight: '#F5F9FC' },
-  { cor: '#009640', corAccent: '#F9C400', bgLight: '#F4F9F5' },
-];
-
-const getTheme = (index: number) => themes[index % themes.length];
-
-// ── MOTOR DE SCROLL ──
-function useScrollAnimation(threshold = 0.08) {
+// ── MOTOR DE ANIMAÇÕES DE SCROLL (otimizado) ──
+function useScrollAnimation(threshold = 0.15) {
   const ref = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
+
   useEffect(() => {
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) { setIsVisible(true); observer.unobserve(entry.target); }
-    }, { threshold });
-    if (ref.current) observer.observe(ref.current);
-    return () => { if (ref.current) observer.unobserve(ref.current); };
+    const element = ref.current;
+    if (!element) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.unobserve(entry.target);
+        }
+      },
+      { threshold }
+    );
+    observer.observe(element);
+    return () => observer.disconnect();
   }, [threshold]);
+
   return { ref, isVisible };
 }
 
-function Reveal({ children, className = '', anim = 'up', delay = 0 }: {
-  children: ReactNode; className?: string;
-  anim?: 'up' | 'left' | 'right' | 'zoom' | 'fade'; delay?: number;
+function AnimatedSection({
+  children,
+  className = "",
+  animation = "fade-up",
+  delay = 0,
+}: {
+  children: ReactNode;
+  className?: string;
+  animation?: "fade-up" | "fade-left" | "fade-right" | "zoom-in";
+  delay?: number;
 }) {
   const { ref, isVisible } = useScrollAnimation();
-  const hidden: Record<string, string> = {
-    up: 'opacity-0 translate-y-14',
-    left: 'opacity-0 translate-x-14',
-    right: 'opacity-0 -translate-x-14',
-    zoom: 'opacity-0 scale-90',
-    fade: 'opacity-0',
-  };
+  let hiddenClass = "";
+  switch (animation) {
+    case "fade-up":
+      hiddenClass = "opacity-0 translate-y-16";
+      break;
+    case "fade-left":
+      hiddenClass = "opacity-0 translate-x-16";
+      break;
+    case "fade-right":
+      hiddenClass = "opacity-0 -translate-x-16";
+      break;
+    case "zoom-in":
+      hiddenClass = "opacity-0 scale-95";
+      break;
+  }
   return (
-    <div ref={ref}
-      className={`transition-all duration-1000 ease-out will-change-transform
-        ${isVisible ? 'opacity-100 translate-y-0 translate-x-0 scale-100' : hidden[anim]} ${className}`}
-      style={{ transitionDelay: `${delay}ms` }}>
+    <div
+      ref={ref}
+      className={`transition-all duration-[1000ms] ease-out will-change-transform ${
+        isVisible
+          ? "opacity-100 translate-y-0 translate-x-0 scale-100"
+          : hiddenClass
+      } ${className}`}
+      style={{ transitionDelay: `${delay}ms` }}
+    >
       {children}
     </div>
   );
 }
 
-// ══════════════════════════════════════
-// CARD FULLSCREEN – IMAGEM NÍTIDA
-// ══════════════════════════════════════
-function ComunidadeCard({ comunidade, index }: { comunidade: Comunidade; index: number }) {
-  const theme = getTheme(index);
-  const isPar = index % 2 === 0;
-
-  return (
-    <article className="relative w-full min-h-screen flex flex-col lg:flex-row"
-      style={{ backgroundColor: theme.bgLight }}>
-      {/* ── METADE IMAGEM (sem gradientes) ── */}
-      <div className={`relative w-full h-[50vh] lg:h-screen lg:w-1/2 overflow-hidden`}>
-        <Image
-          src={comunidade.imagem_url || 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09'}
-          alt={comunidade.titulo}
-          fill
-          className="object-cover"
-          sizes="(max-width: 1024px) 100vw, 50vw"
-          priority={index === 0}
-        />
-      </div>
-
-      {/* ── METADE TEXTO ── */}
-      <div className={`relative w-full lg:w-1/2 flex flex-col justify-center px-8 py-16 lg:px-20 lg:py-24 ${!isPar ? 'lg:order-first' : ''}`}>
-        {/* Número decorativo discreto */}
-        <div className={`${jakarta.className} absolute top-8 right-8 lg:top-12 lg:right-12 text-[120px] md:text-[160px] font-black leading-none select-none pointer-events-none`}
-          style={{ color: theme.cor, opacity: 0.05 }}
-          aria-hidden="true">
-          {String(index + 1).padStart(2, '0')}
-        </div>
-
-        <Reveal anim={isPar ? 'left' : 'right'} delay={200}>
-          <div className="flex items-center gap-3 mb-8 text-sm font-bold uppercase tracking-[0.25em]"
-            style={{ color: theme.cor }}>
-            <Users size={22} strokeWidth={2.5} />
-            <span>Comunidade {String(index + 1).padStart(2, '0')}</span>
-          </div>
-
-          <h2 className={`${jakarta.className} text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black text-slate-800 leading-[0.95] mb-8`}>
-            {comunidade.titulo}
-          </h2>
-
-          <blockquote className="border-l-[4px] pl-7 mb-10 max-w-xl"
-            style={{ borderColor: theme.corAccent }}>
-            <p className="text-slate-500 text-lg md:text-xl leading-relaxed font-medium italic">
-              “{comunidade.descricao_curta}”
-            </p>
-          </blockquote>
-
-          <Link
-            href={`/comunidades/${comunidade.id}`}
-            className="group/btn inline-flex items-center gap-3 self-start px-8 py-4 rounded-full
-              font-black text-xs uppercase tracking-widest shadow-lg
-              hover:-translate-y-1 hover:shadow-xl transition-all duration-300"
-            style={{ backgroundColor: theme.cor, color: '#fff' }}>
-            <span>Conhecer a comunidade</span>
-            <ArrowRight size={18} className="group-hover/btn:translate-x-1 transition-transform" />
-          </Link>
-        </Reveal>
-      </div>
-    </article>
-  );
-}
-
-// ══════════════════════════════════════
-// PÁGINA PRINCIPAL
-// ══════════════════════════════════════
 export default function ComunidadesPage() {
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
-  const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [comunidades, setComunidades] = useState<Comunidade[]>([]);
   const [loading, setLoading] = useState(true);
-  const [scrollY, setScrollY] = useState(0);
 
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.play().catch(err => console.log("Autoplay bloqueado pelo navegador, poster em uso.", err));
-    }
-  }, []);
-
+  // Buscar comunidades
   useEffect(() => {
     async function fetchComunidades() {
       const { data, error } = await supabase
         .from('comunidades')
         .select('*')
         .order('ordem', { ascending: true });
+
       if (data) setComunidades(data);
-      if (error) console.error('Erro ao buscar comunidades:', error);
+      if (error) console.error("Erro ao buscar comunidades:", error);
       setLoading(false);
     }
     fetchComunidades();
   }, []);
 
+  // Reprodução segura do vídeo
+  useEffect(() => {
+    const video = videoRef.current;
+    if (video) {
+      video.play().catch((err) => console.log("Autoplay bloqueado:", err));
+    }
+    return () => {
+      if (video) {
+        video.pause();
+        video.src = '';
+      }
+    };
+  }, []);
+
+  // Header dinâmico
   useEffect(() => {
     const handleScroll = () => {
-      const y = window.scrollY;
-      setScrollY(y);
-      setIsScrolled(y > 50);
-      if (y < 80) setShowHeader(true);
-      else if (y > lastScrollY) setShowHeader(false);
+      const currentScrollY = window.scrollY;
+      if (currentScrollY < 80) setShowHeader(true);
+      else if (currentScrollY > lastScrollY) setShowHeader(false);
       else setShowHeader(true);
-      setLastScrollY(y);
+      setLastScrollY(currentScrollY);
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
   return (
-    <main className={`${inter.className} text-slate-800 overflow-x-hidden bg-[#FDFBF7]`}>
-      {/* ── HEADER FLUTUANTE ── */}
+    <main className={`${inter.className} bg-white text-slate-900 overflow-x-hidden min-h-screen`}>
+      {/* ── HEADER PADRÃO ── */}
       <header className="relative z-50 w-full bg-white border-b border-slate-200 py-4">
         <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6">
           <Link href="/" className="flex items-center gap-3">
@@ -190,41 +151,78 @@ export default function ComunidadesPage() {
           </Link>
 
           <nav className="hidden lg:flex items-center gap-8">
-            {['Hoteis', 'Pacotes', 'Rotas','Passeios', 'Aldeias','Biodiversidade', 'Gastronomia', 'Comunidades'].map(item => (
-              <Link key={item} href={`/${item.toLowerCase()}`} className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-slate-600 hover:text-[#00577C] transition-colors`}>
+            {[
+              'Hoteis',
+              'Pacotes',
+              'Rotas',
+              'Passeios',
+              'Aldeias',
+              'Eventos',
+              'Biodiversidade',
+              'Gastronomia',
+              'Comunidades',
+            ].map((item) => (
+              <Link
+                key={item}
+                href={`/${item.toLowerCase()}`}
+                className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-slate-600 hover:text-[#00577C] transition-colors`}
+              >
                 {item}
               </Link>
             ))}
-            <Link href="/cadastro" className={`${jakarta.className} bg-[#F9C400] text-[#002f40] px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-sm`}>
+            <Link
+              href="/cadastro"
+              className={`${jakarta.className} bg-[#F9C400] text-[#002f40] px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-sm`}
+            >
               Cartão Residente
             </Link>
           </nav>
 
-          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="rounded-xl p-2 lg:hidden bg-slate-50 text-[#00577C] hover:bg-slate-100 transition-colors">
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="rounded-xl p-2 lg:hidden bg-slate-50 text-[#00577C] hover:bg-slate-100 transition-colors"
+          >
             {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
 
+        {/* Menu Mobile */}
         {isMobileMenuOpen && (
           <div className="absolute top-full left-0 w-full bg-white border-b border-slate-200 p-6 flex flex-col gap-4 shadow-2xl lg:hidden z-50">
-            <Link href="/rotas" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Rotas Turísticas</Link>
-            <Link href="/eventos" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Agenda Cultural</Link>
-            <Link href="/pacotes" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Pacotes</Link>
-            <Link href="/rotas" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Roteiros</Link>
-            <Link href="/biodiversidade" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Biodiversidade</Link>
-            <Link href="/gastronomia" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Gastronomia</Link>
-            <Link href="/comunidades" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Comunidades</Link>
-            <Link href="/cadastro" className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md mt-2`}>Cartão Residente</Link>
+            <Link href="/rotas" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>
+              Rotas Turísticas
+            </Link>
+            <Link href="/eventos" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>
+              Agenda Cultural
+            </Link>
+            <Link href="/pacotes" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>
+              Pacotes
+            </Link>
+            <Link href="/rotas" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>
+              Roteiros
+            </Link>
+            <Link href="/biodiversidade" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>
+              Biodiversidade
+            </Link>
+            <Link href="/gastronomia" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>
+              Gastronomia
+            </Link>
+            <Link href="/comunidades" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>
+              Comunidades
+            </Link>
+            <Link
+              href="/cadastro"
+              className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md mt-2`}
+            >
+              Cartão Residente
+            </Link>
           </div>
         )}
       </header>
 
-      {/* ══════════════════════════════════════
-          HERO CINEMATOGRÁFICO
-      ══════════════════════════════════════ */}
-      <section className="relative h-[88vh] flex flex-col items-start justify-end pb-20 md:pb-28 overflow-hidden bg-[#002f40]">
-        <div className="absolute inset-0 z-0 scale-110"
-          style={{ transform: `translateY(${scrollY * 0.25}px) scale(1.1)` }}>
+      {/* ── HERO SECTION COMUNIDADES ── */}
+      <section className="relative min-h-[80vh] flex items-center justify-center pt-28 pb-16 md:pt-32 md:pb-24 overflow-hidden bg-[#002f40]">
+        <div className="absolute inset-0 z-0 pointer-events-none">
           <video
             ref={videoRef}
             src="/comunidades.mp4"
@@ -232,63 +230,106 @@ export default function ComunidadesPage() {
             loop
             muted
             playsInline
-            preload="auto"
-            poster="/logop.png"
-            className="absolute inset-0 w-full h-full object-cover opacity-100"
+            className="absolute inset-0 w-full h-full object-cover opacity-80"
           />
+          <div className="absolute inset-0 bg-[#002f40]/10" />
         </div>
 
-        <div className="absolute inset-0 z-0 pointer-events-none"
-          style={{ background: 'linear-gradient(to top, #001f2e 0%, #001f2ecc 25%, #001f2e55 55%, transparent 85%)' }} />
-        <div className="absolute inset-0 z-0 pointer-events-none"
-          style={{ background: 'linear-gradient(to right, #001f2eaa 0%, transparent 65%)' }} />
-
-        <div className="relative z-10 w-full max-w-[1400px] mx-auto px-6">
-          <Reveal anim="up">
-            <h1 className={`${jakarta.className} text-[clamp(3rem,11vw,9rem)] font-black text-white leading-[0.88] mb-9`}>
-              Nossas<br />
-              <span className="italic" style={{ color: '#F9C400' }}>Comunidades</span>
+        <div className="relative z-10 text-center px-5 max-w-4xl pt-10">
+          <AnimatedSection animation="zoom-in">
+            <h1 className={`${jakarta.className} text-4xl sm:text-5xl md:text-7xl font-black text-white tracking-tight leading-tight mb-6 drop-shadow-xl`}>
+              Nossas <span className="text-[#F9C400]">Comunidades</span>
             </h1>
-          </Reveal>
-        </div>
-
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10">
-          <ChevronDown size={18} className="animate-bounce" style={{ color: 'rgba(249,196,0,0.4)' }} />
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════
-          LISTAGEM FULLSCREEN
-      ══════════════════════════════════════ */}
-      <section id="comunidades" className="relative">
-        {loading && (
-          <div className="flex flex-col items-center justify-center py-40 bg-[#FDFBF7]">
-            <Loader2 className="animate-spin w-12 h-12 mb-4 text-[#F9C400]" />
-            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">
-              Viajando até as comunidades...
+            <p className="text-base sm:text-lg md:text-xl text-white/80 font-medium leading-relaxed drop-shadow-md max-w-2xl mx-auto">
+              Gente que mantém viva a história, a cultura e a alma do território. Entre, escute e sinta-se em casa.
             </p>
-          </div>
-        )}
-
-        {!loading && comunidades.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-40 px-6 text-center bg-[#FDFBF7]">
-            <Compass size={64} className="text-slate-200 mb-6" />
-            <h3 className={`${jakarta.className} text-3xl font-black text-slate-300 mb-3`}>
-              Nenhuma comunidade cadastrada
-            </h3>
-          </div>
-        )}
-
-        {!loading && comunidades.length > 0 && (
-          <div>
-            {comunidades.map((comunidade, index) => (
-              <ComunidadeCard key={comunidade.id} comunidade={comunidade} index={index} />
-            ))}
-          </div>
-        )}
+          </AnimatedSection>
+        </div>
       </section>
 
-      {/* FOOTER */}
+      {/* ── LISTAGEM COM IMAGENS GRANDES ── */}
+      <section className="py-24 md:py-32 bg-white relative">
+        <div className="mx-auto max-w-[1600px] px-5 relative z-10">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <Loader2 className="animate-spin text-[#00577C] w-12 h-12 mb-4" />
+              <p className="text-xs font-black uppercase tracking-widest text-slate-400">
+                Viajando até as comunidades...
+              </p>
+            </div>
+          ) : comunidades.length === 0 ? (
+            <div className="text-center py-20 border-2 border-dashed border-slate-200 rounded-[2rem]">
+              <Users className="mx-auto w-16 h-16 text-slate-300 mb-4" />
+              <h3 className={`${jakarta.className} text-2xl font-bold text-slate-500`}>
+                Nenhuma comunidade cadastrada.
+              </h3>
+            </div>
+          ) : (
+            <div className="space-y-32 md:space-y-48">
+              {comunidades.map((comunidade, index) => {
+                const isPar = index % 2 === 0;
+
+                return (
+                  <div
+                    key={comunidade.id}
+                    className={`flex flex-col gap-12 lg:gap-20 items-center ${
+                      isPar ? 'lg:flex-row' : 'lg:flex-row-reverse'
+                    }`}
+                  >
+                    {/* BLOCO DA IMAGEM (60% largura no desktop) */}
+                    <AnimatedSection
+                      animation={isPar ? "fade-right" : "fade-left"}
+                      className="w-full lg:w-3/5"
+                    >
+                      <div className="relative aspect-[16/9] w-full rounded-[2.5rem] overflow-hidden shadow-2xl border border-slate-100 group">
+                        <Image
+                          src={comunidade.imagem_url}
+                          alt={comunidade.titulo}
+                          fill
+                          className="object-cover group-hover:scale-105 transition-transform duration-700"
+                          sizes="(max-width: 768px) 100vw, 60vw"
+                          priority={index < 2}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-700" />
+
+                        <div className="absolute bottom-6 left-6 bg-[#F9C400] px-5 py-2.5 rounded-full flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-[#00577C] shadow-md">
+                          <Users size={16} /> Comunidade {String(index + 1).padStart(2, '0')}
+                        </div>
+                      </div>
+                    </AnimatedSection>
+
+                    {/* BLOCO DO TEXTO (40% largura no desktop) */}
+                    <AnimatedSection
+                      animation={isPar ? "fade-left" : "fade-right"}
+                      className="w-full lg:w-2/5 text-left"
+                    >
+                      <h2 className={`${jakarta.className} text-3xl md:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight leading-[1.1] mb-6`}>
+                        {comunidade.titulo}
+                      </h2>
+
+                      <p className="text-base md:text-lg text-slate-600 leading-relaxed mb-8 font-medium max-w-lg">
+                        {comunidade.descricao_curta}
+                      </p>
+
+                      <div className="flex items-center gap-4">
+                        <Link
+                          href={`/comunidades/${comunidade.id}`}
+                          className="inline-flex items-center gap-3 bg-[#00577C] text-white px-8 py-4 rounded-full font-black text-xs uppercase tracking-widest shadow-lg hover:bg-[#004a6b] hover:shadow-xl hover:-translate-y-1 transition-all group"
+                        >
+                          Conhecer a comunidade
+                          <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                        </Link>
+                      </div>
+                    </AnimatedSection>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* FOOTER INSTITUCIONAL */}
       <footer className="py-20 px-8 border-t border-slate-200 bg-white text-left">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
           <div className="flex flex-col items-center md:items-start gap-4">

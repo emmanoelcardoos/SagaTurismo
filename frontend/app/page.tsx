@@ -651,7 +651,7 @@ export default function HomePage() {
         max-md:pb-8 max-md:px-5"
       > 
         <video 
-          src="/serra.mp4" 
+          src="/video1.mp4" 
           autoPlay 
           loop 
           muted 

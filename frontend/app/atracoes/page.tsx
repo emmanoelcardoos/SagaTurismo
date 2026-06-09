@@ -27,25 +27,25 @@ type Atracao = {
 // ── SISTEMA DE TEMAS ──
 const themes = [
   {
-    cor: '#00577C',
+    cor: '',
     corAccent: '#F9C400',
     bgDark: '#001f2e',
-    label: 'Turismo de Natureza',
-    icon: <Waves size={16} />
+    label: '',
+    
   },
   {
     cor: '#009640',
     corAccent: '#F9C400',
     bgDark: '#051a09',
-    label: 'Ecoturismo',
-    icon: <TreePine size={16} />
+    label: '',
+    
   },
   {
     cor: '#8b5e0a',
     corAccent: '#F9C400',
     bgDark: '#1a0e02',
-    label: 'Turismo Histórico',
-    icon: <Mountain size={16} />
+    label: '',
+    
   },
 ];
 
