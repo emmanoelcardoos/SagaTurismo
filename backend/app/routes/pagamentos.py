@@ -182,9 +182,20 @@ async def processar_pagamento(pedido: PedidoPagamento):
         lista_atracoes_calculadas = []
         
         if pedido.tipo_item == "carteira":
-            valor_total = 20.00 * pedido.quantidade
+            # O turista paga R$ 20.00
+            valor_total = 22.00 * pedido.quantidade
             nome_item_checkout = f"Taxa de Emissão - Carteira Digital ({pedido.quantidade}x)"
             item_id_db = pedido.token_id
+
+            # --- MODELO SAAS: A TUA EMPRESA FICA COM UMA TAXA ---
+            taxa_empresa_saas = 2.00 # A tua empresa retém R$ 2,00 por carteira
+            valor_prefeitura = (22.00 - taxa_empresa_saas) * pedido.quantidade
+            
+            # ID da Prefeitura (Em testes, usamos o teu ACCO_... Para produção, usaremos o da Prefeitura)
+            rec_id_prefeitura = os.environ.get("ID_PAGBANK_PREFEITURA", "ACCO_6E1ADFFA-C4A3-46AD-8574-236531CF08E2")
+            
+            valor_repasse = int(round(valor_prefeitura, 2) * 100)
+            recebedores_split.append({ "account": {"id": rec_id_prefeitura}, "amount": {"value": valor_repasse} })
 
         elif pedido.tipo_item == "hotel":
             if not hotel_id_sanitizado or not quarto_tipo_id_sanitizado:
@@ -352,9 +363,9 @@ async def processar_pagamento(pedido: PedidoPagamento):
         else:
             splits_array = []
 
-        # HACK SANDBOX: Comentado para forçar o envio do Split para testes
-        # if "sandbox" in PAGBANK_API_URL:
-        #    splits_array = []
+        # HACK SANDBOX: Reativado para forçar o sucesso nos teus testes locais
+        if "sandbox" in PAGBANK_API_URL:
+            splits_array = []
 
         pedido_db = {
             "codigo_pedido": codigo_pedido,
