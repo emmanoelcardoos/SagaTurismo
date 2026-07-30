@@ -26,6 +26,8 @@ const formatarMoeda = (valor: any) => {
 function SucessoCarteiraContent() {
   const searchParams = useSearchParams();
   const pedidoId = searchParams.get('pedido'); 
+  const nomeUrl = searchParams.get('n'); 
+  const emailUrl = searchParams.get('e');
 
   const [isMounted, setIsMounted] = useState(false);
   const [pedido, setPedido] = useState<any>(null);
@@ -78,12 +80,12 @@ function SucessoCarteiraContent() {
 
         if (!pData) throw new Error('Reserva da carteira não localizada.');
         
-        // 2. Buscar o Nome e E-mail exatos (diretamente da raiz do Cadastro)
-        let emailReal = pData.email_cliente || pData.email;
-        let nomeReal = pData.nome_cliente || pData.nome;
+        // PRIORIDADE MÁXIMA: Os dados exatos que a página anterior enviou pelo link!
+        let emailReal = emailUrl || pData.email_cliente || pData.email;
+        let nomeReal = nomeUrl || pData.nome_cliente || pData.nome;
 
-        if (pData.item_id) {
-           // Vai à tabela de residentes buscar os dados originais que o cidadão preencheu no primeiro passo
+        // Só tenta ir à base de dados se a URL falhar por algum motivo bizarro
+        if (pData.item_id && (!nomeUrl || !emailUrl)) {
            const { data: cidadao } = await supabase
              .from('rd_residentes')
              .select('nome, email')
@@ -96,7 +98,7 @@ function SucessoCarteiraContent() {
            }
         }
 
-        // 3. Atualiza a interface com a certeza de que estamos a usar os dados corretos
+        // 3. Atualiza a interface com a certeza absoluta do Nome e E-mail
         setEmailUtente(emailReal || 'contato@sagaturismo.com.br');
         setPedido({ ...pData, nome_cliente: nomeReal || 'Residente' });
 

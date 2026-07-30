@@ -290,8 +290,12 @@ function CheckoutCarteiraContent() {
       const data = await res.json();
 
       if (data.sucesso) {
-        // Redireciona para o sucesso como se tivesse pago!
-        router.push('/sucesso-carteira?pedido=' + data.codigo_pedido);
+        // Pegamos os dados reais que estão guardados na memória da página
+        const nomeFinal = nomeTitular || dadosCidadão?.nome || dadosCidadão?.nome_cliente || 'Residente';
+        const emailFinal = emailTitular || dadosCidadão?.email || dadosCidadão?.email_cliente || '';
+        
+        // Passamos tudo "à força" pelo link para a página de sucesso não se perder
+        router.push(`/sucesso-carteira?pedido=${data.codigo_pedido}&n=${encodeURIComponent(nomeFinal)}&e=${encodeURIComponent(emailFinal)}`);
       } else {
         setErroApi(data.detail || 'Falha na emissão gratuita.');
       }
