@@ -1,3 +1,4 @@
+/*
 'use client';
 
 import Link from 'next/link';
@@ -596,7 +597,7 @@ export default function HomePage() {
   return (
     <main className={`${inter.className} bg-white text-slate-900 overflow-x-hidden`}>
 
-      {/* ── HEADER EDITORIAL ── */}
+      {/* ── HEADER EDITORIAL ── * /}
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${showHeader ? 'translate-y-0' : '-translate-y-full'} ${isScrolled ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100' : 'bg-white border-b border-slate-200'}`}
       >
@@ -642,7 +643,7 @@ export default function HomePage() {
         )}
       </header>
 
-      {/* ── HERO SECTION PREMIUM (sem indicador de scroll) ── */}
+      {/* ── HERO SECTION PREMIUM (sem indicador de scroll) ── * /}
       <section className="relative h-[95vh] flex flex-col 
         justify-end md:justify-end        
         pb-20 md:pb-20 px-6 md:px-10 overflow-hidden bg-[#002f40]
@@ -676,7 +677,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── ROTA TURÍSTICA — BENTO GRID ── */}
+      {/* ── ROTA TURÍSTICA — BENTO GRID ── * /}
       <section className="py-24 bg-[#FDFCF7]">
         <div className="max-w-[1400px] mx-auto px-6">
           <AnimatedSection animation="fade-up">
@@ -732,25 +733,25 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── AGENDA CULTURAL ── */}
+      {/* ── AGENDA CULTURAL ── * /}
       <AgendaCultural />
 
-      {/* ── DESTAQUES VERÃO ── */}
+      {/* ── DESTAQUES VERÃO ── * /}
       <DestaquesVerao />
 
-      {/* ── GALERIA ── */}
+      {/* ── GALERIA ── * /}
       <GaleriaVerao />
 
-      {/* ── HOTÉIS ── */}
+      {/* ── HOTÉIS ── * /}
       <SeccaoHoteis />
 
-      {/* ── PACOTES ── */}
+      {/* ── PACOTES ── * /}
       <SeccaoPacotes />
 
-      {/* ── PASSEIOS ── */}
+      {/* ── PASSEIOS ── * /}
       <SeccaoPasseios />
 
-      {/* ── HISTÓRIA ── */}
+      {/* ── HISTÓRIA ── * /}
 {/* 
       <section id="historia" className="py-24 bg-[#002f40] overflow-hidden">
         <div className="max-w-[1400px] mx-auto px-6">
@@ -783,10 +784,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-*/}
+* /}
 
-
-      {/* ── CARTÃO RESIDENTE ── */}
+      {/* ── CARTÃO RESIDENTE ── * /}
       <section className="py-24 bg-[#F9C400] overflow-hidden">
         <div className="max-w-[1400px] mx-auto px-6">
           <div className="grid md:grid-cols-[1.2fr_0.8fr] gap-10 items-center">
@@ -815,7 +815,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── FOOTER ── */}
+      {/* ── FOOTER ── * /}
       <footer className="py-20 px-6 bg-[#FDFCF7] border-t border-slate-100">
         <div className="max-w-[1400px] mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-10 md:gap-16 mb-20">
@@ -859,6 +859,79 @@ export default function HomePage() {
         </div>
       </footer>
 
+    </main>
+  );
+}
+*/
+
+
+'use client';
+
+import Link from 'next/link';
+import Image from 'next/image';
+import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
+import { IdCard, ArrowRight } from 'lucide-react';
+
+const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '700', '800'] });
+const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
+
+export default function HomePage() {
+  return (
+    <main className={`${inter.className} min-h-screen flex flex-col bg-[#002f40] relative overflow-hidden`}>
+      {/* ── BACKGROUND SUAVE ── */}
+      <div className="absolute inset-0 z-0">
+        <Image 
+          src="https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/IMG_1803.PNG" 
+          alt="São Geraldo do Araguaia" 
+          fill 
+          className="object-cover opacity-20"
+          priority 
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#002f40]/80 via-[#002f40]/90 to-[#002f40]" />
+      </div>
+
+      {/* ── HEADER CLEAN ── */}
+      <header className="relative z-10 w-full p-8 md:p-10 flex justify-center md:justify-start max-w-7xl mx-auto">
+        <div className="relative h-12 w-40 md:h-14 md:w-44">
+          <Image src="/logop.png" alt="Prefeitura Municipal" fill className="object-contain brightness-0 invert" />
+        </div>
+      </header>
+
+      {/* ── CONTEÚDO CENTRAL (MINIMALISTA) ── */}
+      <div className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-6 max-w-3xl mx-auto mt-[-5vh]">
+        
+        <p className="text-[#F9C400] text-sm md:text-base font-bold uppercase tracking-[0.3em] mb-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          Em breve
+        </p>
+
+        <h1 className={`${jakarta.className} text-5xl md:text-7xl font-black text-white leading-[1.1] mb-6 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-150`}>
+          O novo portal de turismo de <br className="hidden md:block" />
+          <span className="text-[#F9C400]">São Geraldo.</span>
+        </h1>
+        
+        <p className="text-lg md:text-xl text-white/70 font-medium mb-12 max-w-2xl leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
+          Uma nova experiência digital está a caminho. No momento, o nosso sistema de emissão da Carteira de Residente já se encontra operacional.
+        </p>
+
+        {/* Botão de Ação Direto */}
+        <div className="animate-in fade-in zoom-in-95 duration-700 delay-500 w-full sm:w-auto">
+          <Link 
+            href="/cadastro" 
+            className="group inline-flex items-center justify-center gap-4 w-full sm:w-auto bg-[#009640] hover:bg-[#007a33] text-white px-10 py-5 rounded-full font-black text-lg transition-all active:scale-95"
+          >
+            <IdCard size={24} />
+            Emitir Carteira
+            <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+          </Link>
+        </div>
+      </div>
+
+      {/* ── FOOTER DISCRETO ── */}
+      <footer className="relative z-10 p-8 text-center">
+        <p className="text-xs font-bold text-white/30 uppercase tracking-widest">
+          © {new Date().getFullYear()} Secretaria Municipal de Turismo - SGA
+        </p>
+      </footer>
     </main>
   );
 }

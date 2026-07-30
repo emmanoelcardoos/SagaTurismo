@@ -133,14 +133,11 @@ function Header() {
           </Link>
 
           <nav className="hidden lg:flex items-center gap-8">
-            {['Hoteis', 'Pacotes', 'Rotas','Passeios', 'Aldeias', 'Eventos', 'Biodiversidade', 'Gastronomia', 'Comunidades'].map(item => (
+            {[].map(item => (
               <Link key={item} href={`/${item.toLowerCase()}`} className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-slate-600 hover:text-[#00577C] transition-colors`}>
                 {item}
               </Link>
             ))}
-            <Link href="/parceiros" className={`${jakarta.className} bg-[#F9C400] text-[#002f40] px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-sm`}>
-              Seja um Parceiro
-            </Link>
           </nav>
 
           <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="rounded-xl p-2 lg:hidden bg-slate-50 text-[#00577C] hover:bg-slate-100 transition-colors">
@@ -160,7 +157,7 @@ function Header() {
             <Link href="/comunidades" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Comunidades</Link>
             <Link href="/parceiros" className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md mt-2`}>Seja um Parceiro</Link>
           </div>
-        )}
+        )} 
       </header>
   );
 }
@@ -290,7 +287,7 @@ export default function CadastroPage() {
       } else {
         // A IA REALMENTE REJEITOU
         setRejeicaoIA({
-          mensagem: res?.mensagem || 'A nossa Inteligência Artificial não conseguiu aprovar a sua documentação. Verifique se as fotos estão nítidas e se comprovam a residência.'
+          mensagem: res?.mensagem || 'Infelizmente não foi possível aprovar a sua documentação. Verifique se as fotos estão nítidas e comprovam a residência.'
         });
       }
     } catch (err: any) {
@@ -437,7 +434,7 @@ export default function CadastroPage() {
             A analisar documentação...
           </h2>
           <p className="text-slate-500 mt-3 font-medium text-sm md:text-base max-w-md">
-            A nossa Inteligência Artificial está a processar os seus dados de forma segura. Isto levará apenas alguns segundos.
+            Estamos processando os seus dados de forma segura. Isto levará apenas alguns segundos.
           </p>
         </div>
       )}

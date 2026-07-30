@@ -138,13 +138,16 @@ function SucessoCarteiraContent() {
               <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Secretaria de Turismo</p>
             </div>
           </Link>
-          <nav className="hidden items-center gap-7 md:flex">
-            <Link href="/roteiro" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Rota Turística</Link>
-            <Link href="/passeios" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Passeios</Link>
-            <Link href="/historia" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">História do Município</Link>
-            <Link href="/aldeias" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Conheca as nossas Aldeias</Link>
-            <Link href="/parceiros" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Seja um Parceiro</Link>
-          </nav>
+          {false && (
+            <nav className="hidden items-center gap-7 md:flex">
+              <Link href="/roteiro" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Rota Turística</Link>
+              <Link href="/passeios" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Passeios</Link>
+              <Link href="/historia" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">História do Município</Link>
+              <Link href="/aldeias" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Conheca as nossas Aldeias</Link>
+              <Link href="/parceiros" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Seja um Parceiro</Link>
+            </nav>
+          )}
+
           <button className="rounded-xl border border-slate-200 p-2 md:hidden"><Menu className="h-5 w-5 text-[#00577C]" /></button>
         </div>
       </header>

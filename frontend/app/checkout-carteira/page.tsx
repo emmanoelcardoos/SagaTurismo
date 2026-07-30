@@ -322,7 +322,7 @@ function CheckoutCarteiraContent() {
           </Link>
 
           <nav className="hidden lg:flex items-center gap-8">
-            {['Hoteis', 'Pacotes', 'Rotas','Passeios', 'Aldeias', 'Eventos', 'Biodiversidade', 'Gastronomia', 'Comunidades'].map(item => (
+            {[].map(item => (
               <Link key={item} href={`/${item.toLowerCase()}`} className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-slate-600 hover:text-[#00577C] transition-colors`}>
                 {item}
               </Link>
@@ -338,7 +338,7 @@ function CheckoutCarteiraContent() {
         </div>
 
         {/* Menu Mobile */}
-        {isMobileMenuOpen && (
+        {false && isMobileMenuOpen && (
           <div className="absolute top-full left-0 w-full bg-white border-b border-slate-200 p-6 flex flex-col gap-4 shadow-2xl lg:hidden z-50">
             <Link href="/rotas" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Rotas Turísticas</Link>
             <Link href="/eventos" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Agenda Cultural</Link>
@@ -350,7 +350,8 @@ function CheckoutCarteiraContent() {
             <Link href="/cadastro" className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md mt-2`}>Cartão Residente</Link>
           </div>
         )}
-      </header>
+        </header>
+
 
       {/* PROGRESS BAR */}
       <div className="bg-white border-b border-slate-200 mt-[0px] md:mt-[0px]">
@@ -389,7 +390,7 @@ function CheckoutCarteiraContent() {
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                          <input required value={cpfFaturamento} onChange={e => setCpfFaturamento(mascaraCPF(e.target.value))} maxLength={14} className="w-full rounded-xl border-2 border-slate-100 bg-white px-4 py-3 text-sm font-bold text-slate-800" placeholder="O seu CPF" />
-                         <input required value={telefone} onChange={e => setTelefone(mascaraTelefone(e.target.value))} maxLength={15} className="w-full rounded-xl border-2 border-slate-100 bg-white px-4 py-3 text-sm font-bold text-slate-800" placeholder="Telemóvel / Celular (com DDD)" />
+                         <input required value={telefone} onChange={e => setTelefone(mascaraTelefone(e.target.value))} maxLength={15} className="w-full rounded-xl border-2 border-slate-100 bg-white px-4 py-3 text-sm font-bold text-slate-800" placeholder="Telefone Celular (com DDD)" />
                       </div>
                     </div>
 
