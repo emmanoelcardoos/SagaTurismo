@@ -431,7 +431,7 @@ export default function CadastroPage() {
              <Loader2 className="h-20 w-20 text-[#00577C] animate-spin" />
           </div>
           <h2 className={`${jakarta.className} text-2xl md:text-3xl font-black text-[#00577C] mt-4`}>
-            A analisar documentação...
+            Documentação em análise...
           </h2>
           <p className="text-slate-500 mt-3 font-medium text-sm md:text-base max-w-md">
             Estamos processando os seus dados de forma segura. Isto levará apenas alguns segundos.

@@ -78,10 +78,27 @@ function SucessoCarteiraContent() {
 
         if (!pData) throw new Error('Reserva da carteira não localizada.');
         
-        setPedido(pData);
+        // 2. Buscar o Nome e E-mail exatos (diretamente da raiz do Cadastro)
+        let emailReal = pData.email_cliente || pData.email;
+        let nomeReal = pData.nome_cliente || pData.nome;
 
-        // 2. Usa diretamente o e-mail preenchido na página de checkout
-        setEmailUtente(pData.email_cliente || 'contato@sagaturismo.com.br');
+        if (pData.item_id) {
+           // Vai à tabela de residentes buscar os dados originais que o cidadão preencheu no primeiro passo
+           const { data: cidadao } = await supabase
+             .from('rd_residentes')
+             .select('nome, email')
+             .eq('id', pData.item_id)
+             .maybeSingle();
+             
+           if (cidadao) {
+              if (cidadao.email) emailReal = cidadao.email;
+              if (cidadao.nome) nomeReal = cidadao.nome;
+           }
+        }
+
+        // 3. Atualiza a interface com a certeza de que estamos a usar os dados corretos
+        setEmailUtente(emailReal || 'contato@sagaturismo.com.br');
+        setPedido({ ...pData, nome_cliente: nomeReal || 'Residente' });
 
         // 3. Carregar Sugestões Exclusivas de PASSEIOS (já que é residente, hotel não faz sentido)
         const { data: sugData } = await supabase

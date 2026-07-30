@@ -906,7 +906,7 @@ export default function HomePage() {
 
         <h1 className={`${jakarta.className} text-5xl md:text-7xl font-black text-white leading-[1.1] mb-6 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-150`}>
           O novo portal de turismo de <br className="hidden md:block" />
-          <span className="text-[#F9C400]">São Geraldo.</span>
+          <span className="text-[#F9C400]">São Geraldo do Araguaia.</span>
         </h1>
         
         <p className="text-lg md:text-xl text-white/70 font-medium mb-12 max-w-2xl leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
@@ -929,7 +929,7 @@ export default function HomePage() {
       {/* ── FOOTER DISCRETO ── */}
       <footer className="relative z-10 p-8 text-center">
         <p className="text-xs font-bold text-white/30 uppercase tracking-widest">
-          © {new Date().getFullYear()} Secretaria Municipal de Turismo - SGA
+          © {new Date().getFullYear()} Prefeitura Municipal de São Geraldo do Araguaia — Todos os direitos reservados.
         </p>
       </footer>
     </main>
