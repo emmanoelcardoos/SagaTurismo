@@ -461,7 +461,7 @@ function CheckoutCarteiraContent() {
                        <div className="bg-[#F9C400]/20 px-3 py-1 rounded-full flex items-center gap-1.5 text-amber-700 text-[10px] font-black uppercase">Tarifa Única</div>
                     </div>
                     <p className={`${jakarta.className} text-4xl md:text-5xl font-black text-[#00577C] tabular-nums leading-none`}>
-                      {formatarMoeda(valorTotalReserva)}
+                      {isCarteiraGratuitaTemporariamente ? formatarMoeda(0) : formatarMoeda(valorTotalReserva)}
                     </p>
                  </div>
               </div>
