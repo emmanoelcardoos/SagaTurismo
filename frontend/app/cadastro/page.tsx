@@ -29,9 +29,6 @@ import FileUploader from '@/components/ui/FileUploader';
 import { cadastrarResidente, type CadastroResponse } from '@/lib/api';
 
 // ── IMPORTS DAS ANIMAÇÕES LOTTIE ──
-import Lottie from 'lottie-react';
-import idCardAnimation from '../../public/id-card.json';
-import incorrectAnimation from '../../public/icorrect.json';
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -377,8 +374,8 @@ export default function CadastroPage() {
         <Header />
         <div className="flex-1 flex items-center justify-center px-4 py-28 sm:px-5">
           <div className="w-full max-w-2xl rounded-[2rem] border border-slate-200 bg-white p-6 text-center shadow-2xl sm:p-8 animate-in zoom-in-95 duration-300">
-            <div className="mx-auto mb-4 w-32 h-32 md:w-40 md:h-40">
-              <Lottie animationData={incorrectAnimation} loop={false} />
+            <div className={`mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-red-50`}>
+              <XCircle className="h-12 w-12 text-red-500" />
             </div>
             <span className={`mb-5 inline-flex rounded-full px-4 py-2 text-xs font-black uppercase tracking-[0.18em] bg-red-50 text-red-700`}>
               Solicitação Retida
@@ -433,8 +430,8 @@ export default function CadastroPage() {
       {/* ── OVERLAY DE LOADING: ANIMAÇÃO DA IA A PENSAR ── */}
       {loading && (
         <div className="fixed inset-0 z-[100] bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-300">
-          <div className="w-64 h-64 md:w-80 md:h-80 -mt-10">
-            <Lottie animationData={idCardAnimation} loop={true} />
+          <div className="mb-6 -mt-10">
+             <Loader2 className="h-20 w-20 text-[#00577C] animate-spin" />
           </div>
           <h2 className={`${jakarta.className} text-2xl md:text-3xl font-black text-[#00577C] mt-4`}>
             A analisar documentação...

@@ -12,7 +12,6 @@ import {
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, DM_Sans } from 'next/font/google';
 import Lottie, { LottieRefCurrentProps } from 'lottie-react';
-import infoAnimation from '../../public/info.json';
 
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['700', '800'] });
 const dmSans  = DM_Sans({ subsets: ['latin'], weight: ['300', '400', '500', '600'] });
