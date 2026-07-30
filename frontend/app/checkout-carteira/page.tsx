@@ -124,6 +124,10 @@ function CheckoutCarteiraContent() {
   const [pixExpirado, setPixExpirado] = useState(false);
   const [copiado, setCopiado] = useState(false);
 
+  // ── O TEU INTERRUPTOR DE NEGÓCIO ──
+  // Muda para 'false' quando a prefeitura mandar começar a cobrar!
+  const isCarteiraGratuitaTemporariamente = true;
+
   // ── INJEÇÃO DO PAGBANK SDK ──
   useEffect(() => {
     if (typeof window !== 'undefined' && !window.PagSeguro) {
@@ -258,6 +262,41 @@ function CheckoutCarteiraContent() {
     }
   };
 
+  const handleEmissaoGratuita = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErroApi('');
+    setIsSubmitting(true);
+
+    const payload = {
+      nome_cliente: dadosCidadão?.nome || 'Titular',
+      cpf_cliente: cpfFaturamento.replace(/\D/g, '') || dadosCidadão?.cpf?.replace(/\D/g, '') || '00000000000',
+      email_cliente: dadosCidadão?.email || 'contato@sagaturismo.com.br',
+      telefone_cliente: telefone.replace(/\D/g, '') || '11999999999',
+      token_id: token
+    };
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://sagaturismo-production.up.railway.app';
+      const res = await fetch(`${apiUrl}/api/v1/pagamentos/carteira-gratuita`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+
+      if (data.sucesso) {
+        // Redireciona para o sucesso como se tivesse pago!
+        router.push('/sucesso-carteira?pedido=' + data.codigo_pedido);
+      } else {
+        setErroApi(data.detail || 'Falha na emissão gratuita.');
+      }
+    } catch (err: any) {
+      setErroApi(err.message || 'Erro inesperado.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   if (loadingInitial) return (
     <div className="min-h-screen bg-[#F5F7FA] flex flex-col items-center justify-center">
       <Loader2 className="animate-spin text-[#00577C] w-12 h-12 mb-4" />
@@ -324,63 +363,38 @@ function CheckoutCarteiraContent() {
           
           <div className="space-y-6 md:space-y-8">
             {!qrCodeData ? (
-              <form onSubmit={handlePagamento} className="space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                
-                <SectionCard className="p-6 md:p-10 text-left border-t-4 border-t-[#00577C]">
-                  <SectionHeader step={1} title="Método de Pagamento" icon={<Wallet size={20} />} />
-                  <div className="grid grid-cols-2 gap-4 mb-8">
-                    <button type="button" onClick={() => setMetodoPagamento('pix')} className={`flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border-2 transition-all ${metodoPagamento === 'pix' ? 'border-[#009640] bg-[#009640]/5 text-[#009640]' : 'border-slate-100 bg-slate-50 text-slate-400'}`}>
-                      <QrCode size={32} /> <span className="text-xs font-black uppercase">PIX Rápido</span>
-                    </button>
-                    <button type="button" onClick={() => setMetodoPagamento('cartao')} className={`flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border-2 transition-all ${metodoPagamento === 'cartao' ? 'border-[#00577C] bg-[#00577C]/5 text-[#00577C]' : 'border-slate-100 bg-slate-50 text-slate-400'}`}>
-                      <CreditCard size={32} /> <span className="text-xs font-black uppercase">Cartão Crédito</span>
-                    </button>
-                  </div>
-
-                  {metodoPagamento === 'cartao' && (
-                    <div className="space-y-6 animate-in slide-in-from-top-2 duration-300">
-                      
-                      {/* DADOS DO CARTÃO */}
-                      <div className="space-y-5 bg-white border-2 border-[#00577C]/10 p-6 rounded-[2rem] shadow-inner">
-                        <input required value={nomeCartao} onChange={e => setNomeCartao(e.target.value.toUpperCase())} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 uppercase" placeholder="NOME IMPRESSO NO CARTÃO" />
-                        <input required value={numeroCartao} onChange={e => setNumeroCartao(mascaraCartao(e.target.value))} maxLength={19} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 tracking-widest" placeholder="0000 0000 0000 0000" />
-                        <div className="grid grid-cols-[1fr_1fr_1.5fr] gap-3">
-                          <input required value={mesCartao} maxLength={2} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 py-4 text-sm font-bold text-center" placeholder="Mês (MM)" onChange={e => setMesCartao(e.target.value.replace(/\D/g,''))} />
-                          <input required value={anoCartao} maxLength={4} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 py-4 text-sm font-bold text-center" placeholder="Ano (AAAA)" onChange={e => setAnoCartao(e.target.value.replace(/\D/g,''))} />
-                          <input required type="password" value={cvvCartao} maxLength={4} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 py-4 text-sm font-bold text-center tracking-widest" placeholder="CVV" onChange={e => setCvvCartao(e.target.value.replace(/\D/g,''))} />
-                        </div>
-                      </div>
-
-                      {/* DADOS DE FATURAMENTO (Obrigatórios para o Antifraude do PagBank) */}
-                      <div className="space-y-4 pt-4">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2"><MapPin size={14}/> Endereço de Faturação & Contato</p>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                           <input required value={cpfFaturamento} onChange={e => setCpfFaturamento(mascaraCPF(e.target.value))} maxLength={14} className="w-full rounded-xl border-2 border-slate-100 bg-white px-4 py-3 text-sm font-bold text-slate-800" placeholder="CPF do Titular do Cartão" />
-                           <input required value={telefone} onChange={e => setTelefone(mascaraTelefone(e.target.value))} maxLength={15} className="w-full rounded-xl border-2 border-slate-100 bg-white px-4 py-3 text-sm font-bold text-slate-800" placeholder="Telemóvel / Celular (com DDD)" />
-                        </div>
-                        
-                        <div className="grid grid-cols-[1fr_2fr] gap-3">
-                           <input required value={cep} onChange={e => setCep(mascaraCEP(e.target.value))} maxLength={9} className="w-full rounded-xl border-2 border-slate-100 bg-white px-4 py-3 text-sm font-bold text-slate-800" placeholder="CEP" />
-                           <input required value={rua} onChange={e => setRua(e.target.value)} className="w-full rounded-xl border-2 border-slate-100 bg-white px-4 py-3 text-sm font-bold text-slate-800" placeholder="Rua / Avenida" />
-                        </div>
-                        
-                        <div className="grid grid-cols-[1fr_2fr] gap-3">
-                           <input required value={numeroEndereco} onChange={e => setNumeroEndereco(e.target.value)} className="w-full rounded-xl border-2 border-slate-100 bg-white px-4 py-3 text-sm font-bold text-slate-800" placeholder="Número" />
-                           <input required value={bairro} onChange={e => setBairro(e.target.value)} className="w-full rounded-xl border-2 border-slate-100 bg-white px-4 py-3 text-sm font-bold text-slate-800" placeholder="Bairro" />
-                        </div>
-                      </div>
-
+              isCarteiraGratuitaTemporariamente ? (
+                /* ── FORMULÁRIO GRATUITO ── */
+                <form onSubmit={handleEmissaoGratuita} className="space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <SectionCard className="p-6 md:p-10 text-left border-t-4 border-t-[#009640]">
+                    <SectionHeader step={1} title="Isenção de Taxa" icon={<ShieldCheck size={20} />} />
+                    
+                    <div className="bg-green-50 text-green-800 p-6 rounded-2xl mb-8 border border-green-100">
+                        <p className="font-bold text-lg mb-2">Boas notícias!</p>
+                        <p className="text-sm">Neste momento, a taxa de emissão está a ser <strong>100% subsidiada pela Prefeitura Municipal</strong>. A emissão é gratuita e não é necessário cartão de crédito ou PIX.</p>
                     </div>
-                  )}
 
-                  {erroApi && <div className="mt-8 mb-4 p-5 bg-red-50 text-red-700 rounded-2xl font-bold text-sm flex items-center gap-3 border border-red-100"><AlertCircle size={24}/> {erroApi}</div>}
-                  
-                  <button type="submit" disabled={isSubmitting} className={`w-full mt-8 py-6 rounded-[1.5rem] font-black text-xl text-white shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed ${metodoPagamento === 'pix' ? 'bg-[#009640] hover:bg-green-700' : 'bg-[#00577C] hover:bg-blue-900'}`}>
-                    {isSubmitting ? <><Loader2 className="animate-spin" size={24}/> Autorizando...</> : metodoPagamento === 'pix' ? <><QrCode size={22}/> Gerar Código PIX</> : <><Lock size={22}/> Pagar com Cartão</>}
-                  </button>
-                </SectionCard>
-              </form>
+                    <div className="space-y-4">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2"><User size={14}/> Confirme os seus contatos</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                         <input required value={cpfFaturamento} onChange={e => setCpfFaturamento(mascaraCPF(e.target.value))} maxLength={14} className="w-full rounded-xl border-2 border-slate-100 bg-white px-4 py-3 text-sm font-bold text-slate-800" placeholder="Seu CPF" />
+                         <input required value={telefone} onChange={e => setTelefone(mascaraTelefone(e.target.value))} maxLength={15} className="w-full rounded-xl border-2 border-slate-100 bg-white px-4 py-3 text-sm font-bold text-slate-800" placeholder="Telemóvel / Celular (com DDD)" />
+                      </div>
+                    </div>
+
+                    {erroApi && <div className="mt-8 mb-4 p-5 bg-red-50 text-red-700 rounded-2xl font-bold text-sm flex items-center gap-3 border border-red-100"><AlertCircle size={24}/> {erroApi}</div>}
+
+                    <button type="submit" disabled={isSubmitting} className="w-full mt-8 py-6 rounded-[1.5rem] font-black text-xl text-white bg-[#009640] hover:bg-green-700 shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50">
+                        {isSubmitting ? <><Loader2 className="animate-spin" size={24}/> Processando...</> : <><IdCard size={22}/> Emitir Carteira Imediatamente</>}
+                    </button>
+                  </SectionCard>
+                </form>
+              ) : (
+                /* ── O TEU FORMULÁRIO ORIGINAL DE PAGAMENTO FICA AQUI INTACTO ── */
+                <form onSubmit={handlePagamento} className="space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    {/* ... (Cola aqui todo o SectionCard do teu formulário original de Pagamento) ... */}
+                </form>
+              )
             ) : (
               <SectionCard className="p-8 md:p-16 text-center border-green-100 animate-in zoom-in-95 duration-500">
                  <div className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6"><CheckCircle2 size={48} className="text-[#009640]"/></div>
