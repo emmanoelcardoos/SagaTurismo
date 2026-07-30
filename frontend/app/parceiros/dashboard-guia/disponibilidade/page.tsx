@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { 
   Loader2, ArrowLeft, CheckCircle2, Save, Compass, 
   ChevronLeft, ChevronRight, DollarSign, Users, 
-  MapPin, Trash2, Upload, Images, MailWarning, Calendar as CalendarIcon, Plus, Target, Bed, ShoppingBag, X, handleGaleriaChange
+  MapPin, Trash2, Upload, Images, MailWarning, Calendar as CalendarIcon, Plus, Target, Bed, ShoppingBag, X, 
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';

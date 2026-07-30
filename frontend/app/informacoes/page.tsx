@@ -7,11 +7,10 @@ import {
   Menu, AlertTriangle, Compass, HeartPulse, Shield,
   Flame, Building2, Phone, MapPin, Clock, Info,
   ChevronRight, X, ArrowRight, Ambulance, TreePine,
-  LifeBuoy, Stethoscope, Car, Wifi, DollarSign, Droplets, isMobileMenuOpen, setIsMobileMenuOpen,
+  LifeBuoy, Stethoscope, Car, Wifi, DollarSign, Droplets,
   ShieldCheck
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, DM_Sans } from 'next/font/google';
-import Lottie, { LottieRefCurrentProps } from 'lottie-react';
 
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['700', '800'] });
 const dmSans  = DM_Sans({ subsets: ['latin'], weight: ['300', '400', '500', '600'] });
@@ -239,8 +238,7 @@ export default function InformacoesPage() {
   const [showHeader, setShowHeader]     = useState(true);
   const [scrolled, setScrolled]         = useState(false);
   const [lastY, setLastY]               = useState(0);
-  const [menuOpen, setMenuOpen]         = useState(false);
-  const lottieRef = useRef<LottieRefCurrentProps>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useReveal();
 
@@ -380,17 +378,8 @@ export default function InformacoesPage() {
 
               {/* Right: Lottie animation — plays once on load, then stops */}
               <div className="flex items-center justify-center">
-                <div className="w-full max-w-[420px]">
-                  <Lottie
-                    lottieRef={lottieRef}
-                    animationData={infoAnimation}
-                    loop={false}
-                    autoplay={true}
-                    onComplete={() => {
-                      // stay on the last frame — do nothing
-                    }}
-                    style={{ width: '100%', height: 'auto' }}
-                  />
+                <div className="w-full flex justify-center">
+                   <Info className="w-32 h-32 md:w-48 md:h-48 text-white opacity-90" />
                 </div>
               </div>
             </div>

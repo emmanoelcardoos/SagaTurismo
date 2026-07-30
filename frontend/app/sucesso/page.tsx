@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { 
   Loader2, CheckCircle2, Mail, FileText, Calendar, 
   MapPin, Bed, Compass, User, ShieldCheck, 
-  ArrowRight, ArrowLeft, Info, Printer, Lock, Menu, Star, isMobileMenuOpen, setIsMobileMenuOpen, X
+  ArrowRight, ArrowLeft, Info, Printer, Lock, Menu, Star, X
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -43,6 +43,7 @@ function SucessoContent() {
   
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => { setIsMounted(true); }, []);
 
