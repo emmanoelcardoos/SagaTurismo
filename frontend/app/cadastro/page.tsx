@@ -610,31 +610,37 @@ export default function CadastroPage() {
                       </div>
                     </div>
 
-                    {/* CAIXA DE REGRAS EXPLICADAS */}
+                    {/* CAIXA DE REGRAS EXPLICADAS (DECRETO MUNICIPAL) */}
                     <div className="mb-8 md:mb-10 space-y-3 md:space-y-4 text-left">
+                      
+                      {/* Regras Gerais */}
                       <div className="rounded-2xl border-2 border-blue-50 bg-blue-50/50 p-5 md:p-6">
-                        <div className="mb-3 md:mb-4 flex items-center gap-3"><Info className="h-5 w-5 md:h-6 md:w-6 shrink-0 text-[#00577C]" /><p className="font-black text-[#00577C] text-sm md:text-base">Regras de Verificação</p></div>
+                        <div className="mb-3 md:mb-4 flex items-center gap-3"><Info className="h-5 w-5 md:h-6 md:w-6 shrink-0 text-[#00577C]" /><p className="font-black text-[#00577C] text-sm md:text-base">Regras do Decreto Municipal</p></div>
                         <ul className="ml-7 md:ml-9 list-disc space-y-1.5 md:space-y-2 text-xs md:text-sm text-slate-600 font-medium">
-                          <li>O documento deve provar vínculo com <strong className="text-[#00577C]">São Geraldo do Araguaia - PA</strong>.</li>
-                          <li>Deve ser recente (máximo 90 dias) e estar legível.</li>
-                          <li>Deve estar no <strong className="text-[#00577C]">seu nome</strong> ou familiar direto.</li>
+                          <li><strong className="text-[#00577C]">Residentes (13 a 59 anos):</strong> Têm direito a 50% apresentando comprovante de morada no município.</li>
+                          <li><strong className="text-[#00577C]">Crianças (até 12 anos) e Idosos (60+):</strong> Têm o benefício automático morando em qualquer lugar.</li>
+                          <li><strong className="text-[#00577C]">Professores, Militares e PCDs:</strong> Têm direito a 50% de desconto independentemente do local onde moram.</li>
+                          <li><strong className="text-[#00577C]">Dependentes:</strong> Filhos até 18 anos podem usar a conta dos pais. Outros familiares exigem termo de curadoria.</li>
                         </ul>
                       </div>
 
+                      {/* O que é aceito */}
                       <div className="rounded-2xl border-2 border-green-50 bg-green-50/50 p-5 md:p-6">
-                        <div className="mb-3 md:mb-4 flex items-center gap-3"><CheckCircle2 className="h-5 w-5 md:h-6 md:w-6 shrink-0 text-[#009640]" /><p className="font-black text-[#009640] text-sm md:text-base">Aceitamos</p></div>
+                        <div className="mb-3 md:mb-4 flex items-center gap-3"><CheckCircle2 className="h-5 w-5 md:h-6 md:w-6 shrink-0 text-[#009640]" /><p className="font-black text-[#009640] text-sm md:text-base">Documentos Aceitos</p></div>
                         <ul className="ml-7 md:ml-9 list-disc space-y-1.5 md:space-y-2 text-xs md:text-sm text-slate-600 font-medium">
-                          <li>Contas (Energia, Água, Internet).</li>
-                          <li>Titulo de Eleitor de São Geraldo do Araguaia.</li>
+                          <li><strong className="text-[#009640]">Para provar morada:</strong> Contas (Energia, Água, Internet) ou Título de Eleitor de SGA recentes.</li>
+                          <li><strong className="text-[#009640]">Para comprovar idade:</strong> RG, CNH, Passaporte ou Certidão de Nascimento.</li>
+                          <li><strong className="text-[#009640]">Para classes especiais:</strong> Contracheque/Contrato (Professores), Identidade Militar, ou Laudo Médico (PCD).</li>
                         </ul>
                       </div>
 
+                      {/* O que não é aceito */}
                       <div className="rounded-2xl border-2 border-red-50 bg-red-50 p-5 md:p-6">
                         <div className="mb-3 md:mb-4 flex items-center gap-3"><XCircle className="h-5 w-5 md:h-6 md:w-6 shrink-0 text-red-500" /><p className="font-black text-red-600 text-sm md:text-base">Não Aceitamos</p></div>
                         <ul className="ml-7 md:ml-9 list-disc space-y-1.5 md:space-y-2 text-xs md:text-sm text-slate-600 font-medium">
-                          <li>Boletos ou compras online.</li>
-                          <li>Contratos sem firma reconhecida.</li>
-                          <li>Apenas foto de RG/CPF (pois não comprova a morada).</li>
+                          <li>Boletos bancários ou comprovantes de compras online como prova de morada.</li>
+                          <li>Contratos de aluguel de imóvel sem firma reconhecida em cartório.</li>
+                          <li>Carteirinhas de estudante genéricas (é obrigatório emitir o documento municipal).</li>
                         </ul>
                       </div>
                     </div>
@@ -644,7 +650,7 @@ export default function CadastroPage() {
                       <div className={`rounded-3xl border-2 bg-slate-50 p-5 md:p-6 transition-colors ${errors.arquivo ? 'border-red-300' : 'border-slate-100 hover:border-slate-200'}`}>
                         <div className="mb-4 md:mb-5 flex items-center gap-3">
                           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F9C400] text-[#00577C]"><ShieldCheck size={20} /></div>
-                          <div><p className="text-[10px] font-black uppercase text-slate-600 tracking-widest leading-tight">Comprovante de residência *</p></div>
+                          <div><p className="text-[10px] font-black uppercase text-slate-600 tracking-widest leading-tight">Documento Comprobatório *</p></div>
                         </div>
                         <FileUploader onFileSelect={setArquivo} error={errors.arquivo} />
                       </div>

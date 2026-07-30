@@ -381,17 +381,40 @@ function CheckoutCarteiraContent() {
                     </div>
 
                     <div className="space-y-4">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2"><User size={14}/> Confirme os seus dados para emissão</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                        <Lock size={14}/> Dados Validados Pela Auditoria
+                      </p>
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                         <input required value={nomeTitular} onChange={e => setNomeTitular(e.target.value)} className="w-full rounded-xl border-2 border-slate-100 bg-white px-4 py-3 text-sm font-bold text-slate-800" placeholder="Nome Completo" />
-                         <input required type="email" value={emailTitular} onChange={e => setEmailTitular(e.target.value)} className="w-full rounded-xl border-2 border-slate-100 bg-white px-4 py-3 text-sm font-bold text-slate-800" placeholder="O seu melhor e-mail" />
+                         <div className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-500 flex justify-between items-center cursor-not-allowed">
+                            <span className="truncate">{nomeTitular || 'A carregar...'}</span>
+                            <Lock size={14} className="text-slate-300 shrink-0 ml-2" />
+                         </div>
+                         <div className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-500 flex justify-between items-center cursor-not-allowed">
+                            <span className="truncate">{emailTitular || 'A carregar...'}</span>
+                            <Lock size={14} className="text-slate-300 shrink-0 ml-2" />
+                         </div>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                         <input required value={cpfFaturamento} onChange={e => setCpfFaturamento(mascaraCPF(e.target.value))} maxLength={14} className="w-full rounded-xl border-2 border-slate-100 bg-white px-4 py-3 text-sm font-bold text-slate-800" placeholder="O seu CPF" />
-                         <input required value={telefone} onChange={e => setTelefone(mascaraTelefone(e.target.value))} maxLength={15} className="w-full rounded-xl border-2 border-slate-100 bg-white px-4 py-3 text-sm font-bold text-slate-800" placeholder="Telefone Celular (com DDD)" />
+                         <div className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-500 flex justify-between items-center cursor-not-allowed">
+                            <span>{cpfFaturamento ? mascaraCPF(cpfFaturamento) : 'A carregar...'}</span>
+                            <Lock size={14} className="text-slate-300 shrink-0 ml-2" />
+                         </div>
+                         
+                         {/* O ÚNICO CAMPO QUE ELE PRECISA DE PREENCHER AGORA */}
+                         <input 
+                           required 
+                           value={telefone} 
+                           onChange={e => setTelefone(mascaraTelefone(e.target.value))} 
+                           maxLength={15} 
+                           className="w-full rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] transition-colors" 
+                           placeholder="Seu Telefone (WhatsApp) *" 
+                         />
                       </div>
+                      <p className="text-[10px] text-slate-400 font-medium">
+                        * O nome e o CPF estão bloqueados pois estão vinculados ao documento aprovado pela prefeitura.
+                      </p>
                     </div>
 
                     {erroApi && <div className="mt-8 mb-4 p-5 bg-red-50 text-red-700 rounded-2xl font-bold text-sm flex items-center gap-3 border border-red-100"><AlertCircle size={24}/> {erroApi}</div>}
