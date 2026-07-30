@@ -6,7 +6,9 @@ import os
 import uuid
 from datetime import datetime, timedelta
 from supabase import create_client, Client
-
+# Importação dos serviços que já tens criados
+from app.services.pdf_service import gerar_pdf_carteira
+from app.services.email_service import enviar_carteiras_por_email
 router = APIRouter()
 
 # 1. Configurações de Ambiente
@@ -557,6 +559,36 @@ async def processar_carteira_gratuita(pedido: PedidoCarteiraGratuita):
         if not res.data:
             raise HTTPException(status_code=400, detail="Erro ao registar a emissão gratuita na base de dados.")
             
+        # ====================================================================
+        # GERAÇÃO DO PDF E ENVIO DE E-MAIL (REAPROVEITANDO OS SERVIÇOS EXISTENTES)
+        # ====================================================================
+        if pedido.token_id:
+            # Busca os dados originais do residente na base
+            res_res = supabase.table("rd_residentes").select("*").eq("id", pedido.token_id).execute()
+            
+            if res_res.data:
+                residente = res_res.data[0]
+                
+                # 1. Atualiza o status do residente para ativo (já que a emissão foi validada gratuitamente)
+                supabase.table("rd_residentes").update({"status": "ativo"}).eq("id", residente["id"]).execute()
+                
+                # 2. Gera o PDF lindíssimo da carteira usando a função existente
+                dados_pdf = {
+                    "nome": residente.get("nome_completo") or pedido.nome_cliente,
+                    "cpf": residente.get("cpf") or pedido.cpf_cliente,
+                    "data_nascimento": residente.get("data_nascimento") or pedido.data_nascimento or "--/--/----",
+                    "foto_url": residente.get("foto_url") or pedido.foto_url
+                }
+                caminho_pdf = gerar_pdf_carteira(dados_pdf, residente.get("qrcode_token") or residente["id"])
+                
+                # 3. Dispara o e-mail oficial com o anexo do PDF
+                if caminho_pdf:
+                    try:
+                        enviar_carteiras_por_email(pedido.email_cliente, pedido.nome_cliente, [caminho_pdf])
+                        print(f"[EMISSÃO GRATUITA] E-mail e PDF enviados com sucesso para {pedido.email_cliente}")
+                    except Exception as err_email:
+                        print(f"[ERRO E-MAIL] Falha ao enviar carteira gratuita: {err_email}")
+
         return {
             "sucesso": True,
             "codigo_pedido": codigo_pedido,
