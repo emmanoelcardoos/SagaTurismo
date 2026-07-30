@@ -627,16 +627,15 @@ export default function CadastroPage() {
                       <div className="rounded-2xl border-2 border-green-50 bg-green-50/50 p-5 md:p-6">
                         <div className="mb-3 md:mb-4 flex items-center gap-3"><CheckCircle2 className="h-5 w-5 md:h-6 md:w-6 shrink-0 text-[#009640]" /><p className="font-black text-[#009640] text-sm md:text-base">Aceitamos</p></div>
                         <ul className="ml-7 md:ml-9 list-disc space-y-1.5 md:space-y-2 text-xs md:text-sm text-slate-600 font-medium">
-                          <li>Contas (Energia, Água, Internet fixa).</li>
-                          <li>Matrícula escolar ou contrato com empresa local.</li>
-                          <li>Cartão SUS ou declaração de UBS local.</li>
+                          <li>Contas (Energia, Água, Internet).</li>
+                          <li>Titulo de Eleitor de São Geraldo do Araguaia.</li>
                         </ul>
                       </div>
 
                       <div className="rounded-2xl border-2 border-red-50 bg-red-50 p-5 md:p-6">
                         <div className="mb-3 md:mb-4 flex items-center gap-3"><XCircle className="h-5 w-5 md:h-6 md:w-6 shrink-0 text-red-500" /><p className="font-black text-red-600 text-sm md:text-base">Não Aceitamos</p></div>
                         <ul className="ml-7 md:ml-9 list-disc space-y-1.5 md:space-y-2 text-xs md:text-sm text-slate-600 font-medium">
-                          <li>Boletos genéricos ou compras online.</li>
+                          <li>Boletos ou compras online.</li>
                           <li>Contratos sem firma reconhecida.</li>
                           <li>Apenas foto de RG/CPF (pois não comprova a morada).</li>
                         </ul>

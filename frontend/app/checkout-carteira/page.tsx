@@ -111,6 +111,8 @@ function CheckoutCarteiraContent() {
   // Dados Obrigatórios para Faturação e Antifraude
   const [cpfFaturamento, setCpfFaturamento] = useState('');
   const [telefone, setTelefone] = useState('');
+  const [nomeTitular, setNomeTitular] = useState('');
+  const [emailTitular, setEmailTitular] = useState('');
   const [cep, setCep] = useState('');
   const [rua, setRua] = useState('');
   const [numeroEndereco, setNumeroEndereco] = useState('');
@@ -167,8 +169,11 @@ function CheckoutCarteiraContent() {
           if (data.quantidade_pessoas) setQuantidade(data.quantidade_pessoas);
           else if (data.quantidade) setQuantidade(data.quantidade);
           
-          // Pré-preenche o CPF se já vier do cidadão
+          // Pré-preenche os dados se já vierem do cidadão
           if (data.cpf) setCpfFaturamento(data.cpf);
+          if (data.nome) setNomeTitular(data.nome);
+          if (data.email) setEmailTitular(data.email);
+          
 
           setLoadingInitial(false);
         }
@@ -268,9 +273,9 @@ function CheckoutCarteiraContent() {
     setIsSubmitting(true);
 
     const payload = {
-      nome_cliente: dadosCidadão?.nome || 'Titular',
+      nome_cliente: nomeTitular || dadosCidadão?.nome || 'Titular',
       cpf_cliente: cpfFaturamento.replace(/\D/g, '') || dadosCidadão?.cpf?.replace(/\D/g, '') || '00000000000',
-      email_cliente: dadosCidadão?.email || 'contato@sagaturismo.com.br',
+      email_cliente: emailTitular || dadosCidadão?.email || 'contato@sagaturismo.com.br',
       telefone_cliente: telefone.replace(/\D/g, '') || '11999999999',
       token_id: token
     };
@@ -348,7 +353,7 @@ function CheckoutCarteiraContent() {
       </header>
 
       {/* PROGRESS BAR */}
-      <div className="bg-white border-b border-slate-200 mt-[65px] md:mt-[80px]">
+      <div className="bg-white border-b border-slate-200 mt-[0px] md:mt-[0px]">
         <div className="mx-auto max-w-7xl px-4 md:px-8 py-4 md:py-5">
           <div className="flex items-center justify-center md:justify-start gap-2 md:gap-4 text-[9px] md:text-[10px] uppercase tracking-[0.2em] font-black text-slate-400">
             <span className="hidden sm:inline-block">Aprovação IA</span> <ChevronRight size={14} className="hidden sm:inline-block"/> 
@@ -375,9 +380,15 @@ function CheckoutCarteiraContent() {
                     </div>
 
                     <div className="space-y-4">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2"><User size={14}/> Confirme os seus contatos</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2"><User size={14}/> Confirme os seus dados para emissão</p>
+                      
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                         <input required value={cpfFaturamento} onChange={e => setCpfFaturamento(mascaraCPF(e.target.value))} maxLength={14} className="w-full rounded-xl border-2 border-slate-100 bg-white px-4 py-3 text-sm font-bold text-slate-800" placeholder="Seu CPF" />
+                         <input required value={nomeTitular} onChange={e => setNomeTitular(e.target.value)} className="w-full rounded-xl border-2 border-slate-100 bg-white px-4 py-3 text-sm font-bold text-slate-800" placeholder="Nome Completo" />
+                         <input required type="email" value={emailTitular} onChange={e => setEmailTitular(e.target.value)} className="w-full rounded-xl border-2 border-slate-100 bg-white px-4 py-3 text-sm font-bold text-slate-800" placeholder="O seu melhor e-mail" />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                         <input required value={cpfFaturamento} onChange={e => setCpfFaturamento(mascaraCPF(e.target.value))} maxLength={14} className="w-full rounded-xl border-2 border-slate-100 bg-white px-4 py-3 text-sm font-bold text-slate-800" placeholder="O seu CPF" />
                          <input required value={telefone} onChange={e => setTelefone(mascaraTelefone(e.target.value))} maxLength={15} className="w-full rounded-xl border-2 border-slate-100 bg-white px-4 py-3 text-sm font-bold text-slate-800" placeholder="Telemóvel / Celular (com DDD)" />
                       </div>
                     </div>
@@ -385,7 +396,7 @@ function CheckoutCarteiraContent() {
                     {erroApi && <div className="mt-8 mb-4 p-5 bg-red-50 text-red-700 rounded-2xl font-bold text-sm flex items-center gap-3 border border-red-100"><AlertCircle size={24}/> {erroApi}</div>}
 
                     <button type="submit" disabled={isSubmitting} className="w-full mt-8 py-6 rounded-[1.5rem] font-black text-xl text-white bg-[#009640] hover:bg-green-700 shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50">
-                        {isSubmitting ? <><Loader2 className="animate-spin" size={24}/> Processando...</> : <><IdCard size={22}/> Emitir Carteira Imediatamente</>}
+                        {isSubmitting ? <><Loader2 className="animate-spin" size={24}/> Processando...</> : <><IdCard size={22}/> Prosseguir com a Emissão</>}
                     </button>
                   </SectionCard>
                 </form>
@@ -425,7 +436,7 @@ function CheckoutCarteiraContent() {
               <div className="h-2 w-full bg-gradient-to-r from-[#00577C] via-[#F9C400] to-[#009640]" />
               <div className="p-6 md:p-8 border-b border-slate-100 text-left bg-slate-50">
                 <p className="text-[10px] font-black uppercase text-[#00577C] tracking-widest mb-2 flex items-center gap-2"><CheckCircle2 size={14}/> Resumo da Emissão</p>
-                <h3 className={`${jakarta.className} text-xl font-black text-slate-800 leading-tight`}>Cartão de Residente Integrado</h3>
+                <h3 className={`${jakarta.className} text-xl font-black text-slate-800 leading-tight`}>Cartão de Residente</h3>
               </div>
 
               <div className="p-6 md:p-8 space-y-6 text-left">
@@ -433,7 +444,7 @@ function CheckoutCarteiraContent() {
                  <div className="space-y-4 pb-6 border-b border-slate-100">
                     <div>
                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1"><User size={12}/> Titular da Conta Aprovado</p>
-                        <p className="font-bold text-slate-800 text-sm">{dadosCidadão?.nome || 'Nome não disponível'}</p>
+                        <p className="font-bold text-slate-800 text-sm">{dadosCidadão?.nome || 'Indisponível no momento'}</p>
                     </div>
                     {dadosCidadão?.email && (
                       <div>
@@ -444,7 +455,7 @@ function CheckoutCarteiraContent() {
                  </div>
 
                  <div className="flex justify-between items-center text-sm">
-                    <span className="font-bold text-slate-500 flex items-center gap-2"><Users size={16}/> Comitiva Aprovada</span>
+                    <span className="font-bold text-slate-500 flex items-center gap-2"><Users size={16}/> Grupo Familiar Aprovado</span>
                     <span className="font-black text-slate-800">{quantidade} {quantidade === 1 ? 'Pessoa' : 'Pessoas'}</span>
                  </div>
                  

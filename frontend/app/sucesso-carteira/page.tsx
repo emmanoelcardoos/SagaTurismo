@@ -80,24 +80,8 @@ function SucessoCarteiraContent() {
         
         setPedido(pData);
 
-        // 2. Tentar cruzar com a tabela de residentes para garantir o email real registado na carteira
-        // Assume-se que o CPF foi gravado no pedido, usamos isso para achar o residente.
-        // 2. Buscar o email real diretamente pelo ID do residente guardado na compra
-        if (pData.item_id) {
-           const { data: residenteData } = await supabase
-            .from('rd_residentes')
-            .select('email')
-            .eq('id', pData.item_id)
-            .maybeSingle();
-            
-           if (residenteData && residenteData.email) {
-             setEmailUtente(residenteData.email);
-           } else {
-             setEmailUtente(pData.email_cliente); // Fallback
-           }
-        } else {
-           setEmailUtente(pData.email_cliente);
-        }
+        // 2. Usa diretamente o e-mail preenchido na página de checkout
+        setEmailUtente(pData.email_cliente || 'contato@sagaturismo.com.br');
 
         // 3. Carregar Sugestões Exclusivas de PASSEIOS (já que é residente, hotel não faz sentido)
         const { data: sugData } = await supabase
