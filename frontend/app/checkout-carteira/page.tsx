@@ -357,7 +357,7 @@ function CheckoutCarteiraContent() {
       <div className="bg-white border-b border-slate-200 mt-[0px] md:mt-[0px]">
         <div className="mx-auto max-w-7xl px-4 md:px-8 py-4 md:py-5">
           <div className="flex items-center justify-center md:justify-start gap-2 md:gap-4 text-[9px] md:text-[10px] uppercase tracking-[0.2em] font-black text-slate-400">
-            <span className="hidden sm:inline-block">Aprovação IA</span> <ChevronRight size={14} className="hidden sm:inline-block"/> 
+            <span className="hidden sm:inline-block">Análise</span> <ChevronRight size={14} className="hidden sm:inline-block"/> 
             <span className="text-[#00577C] bg-blue-50 px-3 py-1.5 rounded-full flex items-center gap-2"><Lock size={12}/> Taxa de Emissão</span> <ChevronRight size={14}/> 
             <span>Carteira Ativa</span>
           </div>
@@ -382,42 +382,21 @@ function CheckoutCarteiraContent() {
 
                     <div className="space-y-4">
                       <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
-                        <Lock size={14}/> Dados Validados Pela Auditoria
+                        <Smartphone size={14}/> Informação de Contacto
                       </p>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                         <div className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-500 flex justify-between items-center cursor-not-allowed">
-                            <span className="truncate">{nomeTitular || 'A carregar...'}</span>
-                            <Lock size={14} className="text-slate-300 shrink-0 ml-2" />
-                         </div>
-                         <div className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-500 flex justify-between items-center cursor-not-allowed">
-                            <span className="truncate">{emailTitular || 'A carregar...'}</span>
-                            <Lock size={14} className="text-slate-300 shrink-0 ml-2" />
-                         </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                         <div className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-500 flex justify-between items-center cursor-not-allowed">
-                            <span>{cpfFaturamento ? mascaraCPF(cpfFaturamento) : 'A carregar...'}</span>
-                            <Lock size={14} className="text-slate-300 shrink-0 ml-2" />
-                         </div>
-                         
-                         {/* O ÚNICO CAMPO QUE ELE PRECISA DE PREENCHER AGORA */}
+                      <div className="grid grid-cols-1 gap-3">
                          <input 
                            required 
                            value={telefone} 
                            onChange={e => setTelefone(mascaraTelefone(e.target.value))} 
                            maxLength={15} 
-                           className="w-full rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] transition-colors" 
-                           placeholder="Seu Telefone (WhatsApp) *" 
+                           className="w-full rounded-xl border-2 border-slate-200 bg-white px-5 py-4 text-sm md:text-base font-bold text-slate-800 outline-none focus:border-[#00577C] transition-colors" 
+                           placeholder="O seu Telefone / WhatsApp *" 
                          />
                       </div>
-                      <p className="text-[10px] text-slate-400 font-medium">
-                        * O nome e o CPF estão bloqueados pois estão vinculados ao documento aprovado pela prefeitura.
-                      </p>
+                      
                     </div>
-
-                    {erroApi && <div className="mt-8 mb-4 p-5 bg-red-50 text-red-700 rounded-2xl font-bold text-sm flex items-center gap-3 border border-red-100"><AlertCircle size={24}/> {erroApi}</div>}
 
                     <button type="submit" disabled={isSubmitting} className="w-full mt-8 py-6 rounded-[1.5rem] font-black text-xl text-white bg-[#009640] hover:bg-green-700 shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50">
                         {isSubmitting ? <><Loader2 className="animate-spin" size={24}/> Processando...</> : <><IdCard size={22}/> Prosseguir com a Emissão</>}
