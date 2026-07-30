@@ -165,15 +165,25 @@ function CheckoutCarteiraContent() {
         }
 
         if (data) {
-          setDadosCidadão(data);
-          if (data.quantidade_pessoas) setQuantidade(data.quantidade_pessoas);
-          else if (data.quantidade) setQuantidade(data.quantidade);
+          // 1. Vai buscar os dados à memória do navegador (gravados na página anterior)
+          const nomeMemoria = typeof window !== 'undefined' ? localStorage.getItem('saga_residente_nome') : null;
+          const emailMemoria = typeof window !== 'undefined' ? localStorage.getItem('saga_residente_email') : null;
+
+          // 2. Mescla o que vem da API com o que está na memória
+          const dadosCompletos = {
+            ...data,
+            nome: data.nome || data.nome_cliente || nomeMemoria || 'Residente',
+            email: data.email || data.email_cliente || emailMemoria || ''
+          };
+
+          setDadosCidadão(dadosCompletos);
           
-          // Pré-preenche os dados se já vierem do cidadão
-          if (data.cpf) setCpfFaturamento(data.cpf);
-          if (data.nome) setNomeTitular(data.nome);
-          if (data.email) setEmailTitular(data.email);
+          if (dadosCompletos.quantidade_pessoas) setQuantidade(dadosCompletos.quantidade_pessoas);
+          else if (dadosCompletos.quantidade) setQuantidade(dadosCompletos.quantidade);
           
+          if (dadosCompletos.cpf) setCpfFaturamento(dadosCompletos.cpf);
+          setNomeTitular(dadosCompletos.nome);
+          setEmailTitular(dadosCompletos.email);
 
           setLoadingInitial(false);
         }
@@ -272,10 +282,13 @@ function CheckoutCarteiraContent() {
     setErroApi('');
     setIsSubmitting(true);
 
+    const nomeMemoria = typeof window !== 'undefined' ? localStorage.getItem('saga_residente_nome') : null;
+    const emailMemoria = typeof window !== 'undefined' ? localStorage.getItem('saga_residente_email') : null;
+
     const payload = {
-      nome_cliente: nomeTitular || dadosCidadão?.nome || 'Titular',
+      nome_cliente: nomeTitular || dadosCidadão?.nome || nomeMemoria || 'Titular',
       cpf_cliente: cpfFaturamento.replace(/\D/g, '') || dadosCidadão?.cpf?.replace(/\D/g, '') || '00000000000',
-      email_cliente: emailTitular || dadosCidadão?.email || 'contato@sagaturismo.com.br',
+      email_cliente: emailTitular || dadosCidadão?.email || emailMemoria || 'contato@sagaturismo.com.br',
       telefone_cliente: telefone.replace(/\D/g, '') || '11999999999',
       token_id: token
     };
@@ -290,12 +303,8 @@ function CheckoutCarteiraContent() {
       const data = await res.json();
 
       if (data.sucesso) {
-        // Pegamos os dados reais que estão guardados na memória da página
-        const nomeFinal = nomeTitular || dadosCidadão?.nome || dadosCidadão?.nome_cliente || 'Residente';
-        const emailFinal = emailTitular || dadosCidadão?.email || dadosCidadão?.email_cliente || '';
-        
-        // Passamos tudo "à força" pelo link para a página de sucesso não se perder
-        router.push(`/sucesso-carteira?pedido=${data.codigo_pedido}&n=${encodeURIComponent(nomeFinal)}&e=${encodeURIComponent(emailFinal)}`);
+        // Como o localStorage já está a guardar a informação, redirecionamos de forma limpa
+        router.push(`/sucesso-carteira?pedido=${data.codigo_pedido}`);
       } else {
         setErroApi(data.detail || 'Falha na emissão gratuita.');
       }

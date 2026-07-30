@@ -80,12 +80,16 @@ function SucessoCarteiraContent() {
 
         if (!pData) throw new Error('Reserva da carteira não localizada.');
         
-        // PRIORIDADE MÁXIMA: Os dados exatos que a página anterior enviou pelo link!
-        let emailReal = emailUrl || pData.email_cliente || pData.email;
-        let nomeReal = nomeUrl || pData.nome_cliente || pData.nome;
+        // 1. Vai buscar à memória do navegador (infalível, pois o utilizador acabou de preencher)
+        const nomeMemoria = typeof window !== 'undefined' ? localStorage.getItem('saga_residente_nome') : null;
+        const emailMemoria = typeof window !== 'undefined' ? localStorage.getItem('saga_residente_email') : null;
 
-        // Só tenta ir à base de dados se a URL falhar por algum motivo bizarro
-        if (pData.item_id && (!nomeUrl || !emailUrl)) {
+        // 2. Define a prioridade: Memória do Navegador > Base de Dados do Pedido
+        let emailReal = emailMemoria || pData.email_cliente || pData.email;
+        let nomeReal = nomeMemoria || pData.nome_cliente || pData.nome;
+
+        // Tenta ir à base de dados caso a memória falhe (ex: utilizador mudou de aba/dispositivo)
+        if (pData.item_id && (!nomeMemoria || !emailMemoria)) {
            const { data: cidadao } = await supabase
              .from('rd_residentes')
              .select('nome, email')
@@ -93,8 +97,8 @@ function SucessoCarteiraContent() {
              .maybeSingle();
              
            if (cidadao) {
-              if (cidadao.email) emailReal = cidadao.email;
-              if (cidadao.nome) nomeReal = cidadao.nome;
+              if (cidadao.email && !emailReal) emailReal = cidadao.email;
+              if (cidadao.nome && !nomeReal) nomeReal = cidadao.nome;
            }
         }
 
@@ -102,13 +106,11 @@ function SucessoCarteiraContent() {
         setEmailUtente(emailReal || 'contato@sagaturismo.com.br');
         setPedido({ ...pData, nome_cliente: nomeReal || 'Residente' });
 
-        // 3. Carregar Sugestões Exclusivas de PASSEIOS (já que é residente, hotel não faz sentido)
-        const { data: sugData } = await supabase
-          .from('passeios')
-          .select('id, titulo, imagem_principal, preco, valor_total')
-          .limit(3); 
-          
-        if (sugData) setSugestoesPasseios(sugData);
+        // 4. Limpa a memória do navegador para que não apareça o mesmo nome na próxima vez que alguém usar
+        if (typeof window !== 'undefined') {
+           localStorage.removeItem('saga_residente_nome');
+           localStorage.removeItem('saga_residente_email');
+        }
 
         setLoading(false);
       } catch (err: any) {

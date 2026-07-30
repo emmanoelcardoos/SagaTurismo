@@ -276,6 +276,12 @@ export default function CadastroPage() {
         // Tenta encontrar o token de qualquer maneira
         const tokenFinal = res?.token || res?.dados?.token || res?.data?.token || res?.codigo_pedido || '';
         
+        // 🔴 SALVA NA MEMÓRIA DO NAVEGADOR ANTES DE MUDAR DE PÁGINA
+        if (typeof window !== 'undefined') {
+           localStorage.setItem('saga_residente_nome', nome);
+           localStorage.setItem('saga_residente_email', email);
+        }
+
         if (tokenFinal) {
            router.push(`/checkout-carteira?token=${tokenFinal}`);
         } else {
