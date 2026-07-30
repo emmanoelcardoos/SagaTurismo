@@ -94,6 +94,14 @@ export default function DisponibilidadeGuiaPage() {
   const [arquivoCapa, setArquivoCapa] = useState<File | null>(null);
   const [arquivosGaleria, setArquivosGaleria] = useState<File[]>([]);
 
+  // ── FUNÇÃO DE UPLOAD DA GALERIA ──
+  const handleGaleriaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const filesArray = Array.from(e.target.files).slice(0, 6); // Limite de 6 fotos
+      setArquivosGaleria(filesArray);
+    }
+  };
+
   // Busca Endereço
   const [sugestoesEndereco, setSugestoesEndereco] = useState<EnderecoBusca[]>([]);
   const [buscandoEndereco, setBuscandoEndereco] = useState(false);
