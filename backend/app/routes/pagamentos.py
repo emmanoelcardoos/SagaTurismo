@@ -66,6 +66,15 @@ class PedidoPagamento(BaseModel):
 
     hospedes_extras: Optional[List[AcompanhanteSchema]] = []
 
+class PedidoCarteiraGratuita(BaseModel):
+    nome_cliente: str
+    cpf_cliente: str
+    email_cliente: str
+    telefone_cliente: str
+    foto_url: Optional[str] = None
+    data_nascimento: Optional[str] = None
+    token_id: Optional[str] = None
+
 def calcular_preco_hotel_dinamico(hotel_id: str, quarto_tipo_id: str, checkin_str: str, checkout_str: str, quantidade_quartos: int = 1, quantidade_pessoas: int = 2) -> float:
     res_h = supabase.table("hoteis").select("*").eq("id", hotel_id).single().execute()
     if not res_h.data:
@@ -519,4 +528,41 @@ async def processar_pagamento(pedido: PedidoPagamento):
         raise http_err
     except Exception as e:
         print(f"Erro: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/api/v1/pagamentos/carteira-gratuita")
+async def processar_carteira_gratuita(pedido: PedidoCarteiraGratuita):
+    try:
+        codigo_pedido = f"SAGA-FREE-{uuid.uuid4().hex[:8].upper()}"
+        
+        pedido_db = {
+            "codigo_pedido": codigo_pedido,
+            "tipo_item": "carteira",
+            "nome_cliente": pedido.nome_cliente,
+            "cpf_cliente": pedido.cpf_cliente,
+            "email_cliente": pedido.email_cliente,
+            "telefone_cliente": pedido.telefone_cliente,
+            "valor_total": 0.0, 
+            "status_pagamento": "pago", # O segredo: já entra como pago
+            "metodo_pagamento": "isento_prefeitura",
+            "data_nascimento": pedido.data_nascimento,
+            "foto_url": pedido.foto_url,
+            "quantidade": 1,
+            "nome_item": "Emissão Gratuita - Carteira Digital de Turismo",
+            "item_id": pedido.token_id
+        }
+        
+        res = supabase.table("pedidos").insert(pedido_db).execute()
+        
+        if not res.data:
+            raise HTTPException(status_code=400, detail="Erro ao registar a emissão gratuita na base de dados.")
+            
+        return {
+            "sucesso": True,
+            "codigo_pedido": codigo_pedido,
+            "mensagem": "Carteira aprovada e emitida com sucesso!"
+        }
+
+    except Exception as e:
+        print(f"Erro na emissão gratuita: {e}")
         raise HTTPException(status_code=500, detail=str(e))
