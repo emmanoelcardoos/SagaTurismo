@@ -23,7 +23,7 @@ COR_FUNDO_DESTAQUE = colors.HexColor("#f0fdf4") # Green 50
 LOGO_URL = "https://sagatur.com.br/logop.png"
 MARGIN_X = 20 * mm
 
-# Aliases de retrocompatibilidade para a Carteira de Residente
+# Aliases de retrocompatibilidade
 COR_AZUL = COR_PRIMARIA
 COR_VERDE = COR_SECUNDARIA
 COR_AMARELO = COR_DESTAQUE
@@ -31,7 +31,6 @@ COR_FUNDO = COR_FUNDO_BOX
 COR_CINZA_BORDA = COR_LINHA
 COR_TEXTO_LABEL = COR_TEXTO_SUAVE
 COR_BRANCO = colors.white
-
 
 # ─── FUNÇÕES AUXILIARES GERAIS E DESIGN ─────────────────────────────────────
 
@@ -83,69 +82,230 @@ def gerar_qr_code_em_memoria(conteudo: str) -> BytesIO:
     qr_io.seek(0)
     return qr_io
 
-def _hex_to_rgb(hex_str):
-    h = hex_str.lstrip('#')
-    return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
+def _primeiro_ultimo_nome(nome_completo: str) -> str:
+    nome = _safe(nome_completo, "Residente").strip()
+    partes = [p for p in nome.split() if p]
+    if len(partes) <= 1:
+        return nome.upper() if nome else "RESIDENTE"
+    return f"{partes[0]} {partes[-1]}".upper()
 
-def _gradiente_header(c, largura, altura):
-    passos = 30
-    h_header = 24 * mm
-    y_inicio = altura - h_header
-    r1, g1, b1 = _hex_to_rgb("#004766")
-    r2, g2, b2 = _hex_to_rgb("#00577C")
-    faixa_h = h_header / passos
-    for i in range(passos):
-        t = i / passos
-        r = r1 * (1 - t) + r2 * t
-        g = g1 * (1 - t) + g2 * t
-        b = b1 * (1 - t) + b2 * t
-        c.setFillColorRGB(r / 255, g / 255, b / 255)
-        c.rect(0, y_inicio + i * faixa_h, largura, faixa_h + 0.5, fill=1, stroke=0)
-
-def _linha_cor(c, x1, y1, x2, y2, espessura=0.6, cor=COR_AMARELO):
+def _chip_status(c, x, y, texto="ATIVO", cor=None):
+    cor = cor or COR_SECUNDARIA
+    c.setFont("Helvetica-Bold", 5.5)
+    largura_texto = c.stringWidth(texto, "Helvetica-Bold", 5.5)
+    pad_x = 2 * mm
+    chip_h = 4 * mm
+    chip_w = largura_texto + pad_x * 2 + 3 * mm
+    c.setFillColor(colors.HexColor("#ffffff"))
     c.setStrokeColor(cor)
-    c.setLineWidth(espessura)
-    c.line(x1, y1, x2, y2)
-
-def _textura_fundo(c, largura, altura):
-    c.saveState()
-    c.setStrokeColor(COR_AZUL)
-    c.setLineWidth(0.3)
-    c.setStrokeAlpha(0.04)
-    step = 4 * mm
-    for i in range(-int(altura / step), int(largura / step) + int(altura / step)):
-        x0 = i * step
-        c.line(x0, 0, x0 + altura, altura)
-    c.restoreState()
-
-def _moldura_foto(c, x, y, w, h, radius=4 * mm):
-    c.setFillColor(colors.HexColor("#00000010"))
-    c.roundRect(x + 1.2 * mm, y - 1.2 * mm, w, h, radius, fill=1, stroke=0)
-    c.setStrokeColor(COR_AZUL)
-    c.setLineWidth(1.5)
-    c.setFillColor(COR_BRANCO)
-    c.roundRect(x, y, w, h, radius, fill=1, stroke=1)
-
-def _label_valor(c, x, y, label, valor, tam_label=6, tam_valor=10):
-    c.setFillColor(COR_TEXTO_LABEL)
-    c.setFont("Helvetica-Bold", tam_label)
-    c.drawString(x, y, label) 
+    c.setLineWidth(0.7)
+    c.roundRect(x, y, chip_w, chip_h, chip_h / 2, fill=1, stroke=1)
+    c.setFillColor(cor)
+    c.circle(x + pad_x, y + chip_h / 2, 0.9 * mm, fill=1, stroke=0)
     c.setFillColor(COR_TEXTO_ESCURO)
-    c.setFont("Helvetica-Bold", tam_valor)
-    c.drawString(x, y - (tam_valor * 0.45 * mm) - 1.5 * mm, str(valor))
+    c.setFont("Helvetica-Bold", 5.5)
+    c.drawString(x + pad_x + 2.4 * mm, y + chip_h / 2 - 0.9 * mm, texto)
+    return chip_w
 
-def _badge_desconto(c, x, y, raio=8 * mm):
-    c.setFillColor(colors.HexColor("#00000015"))
-    c.circle(x + 0.8 * mm, y - 0.8 * mm, raio, fill=1, stroke=0)
-    c.setFillColor(COR_AMARELO)
-    c.setStrokeColor(COR_AZUL)
-    c.setLineWidth(1.5)
-    c.circle(x, y, raio, fill=1, stroke=1)
-    c.setFillColor(COR_AZUL)
+def _foto_circular(c, x, y, diametro, foto_url):
+    """
+    Desenha a foto do residente em formato perfeitamente circular
+    com borda na cor COR_PRIMARIA, protegida contra timeouts de internet.
+    """
+    raio = diametro / 2
+    centro_x = x + raio
+    centro_y = y + raio
+
+    # Borda (anel externo)
+    c.setStrokeColor(COR_PRIMARIA)
+    c.setLineWidth(1.8)
+    c.circle(centro_x, centro_y, raio, fill=0, stroke=1)
+
+    desenhada = False
+    try:
+        if foto_url:
+            resposta = requests.get(foto_url, timeout=10)
+            if resposta.status_code == 200:
+                img_data = BytesIO(resposta.content)
+                
+                # Máscara de corte circular
+                c.saveState()
+                p = c.beginPath()
+                p.circle(centro_x, centro_y, raio - 1.2)
+                c.clipPath(p, stroke=0)
+                
+                c.drawImage(ImageReader(img_data), x, y, width=diametro, height=diametro, mask='auto', preserveAspectRatio=True)
+                c.restoreState()
+                desenhada = True
+    except Exception:
+        pass
+
+    if not desenhada:
+        # Fallback visual caso não haja foto ou a internet falhe
+        c.setFillColor(colors.HexColor("#F0F0F0"))
+        c.circle(centro_x, centro_y, raio - 1.2, fill=1, stroke=0)
+        c.setFillColor(COR_TEXTO_SUAVE)
+        c.setFont("Helvetica-Bold", 7)
+        c.drawCentredString(centro_x, centro_y - 2.5, "SEM FOTO")
+
+
+# ─── 1. GERAÇÃO DA CARTEIRA DIGITAL DE RESIDENTE (LAYOUT GROK) ─────────────
+
+def gerar_pdf_carteira(residente_data: dict, token: str) -> str:
+    os.makedirs("tmp_pdfs", exist_ok=True)
+    nome_pessoa_limpo = _safe(residente_data.get('nome'), 'Residente').replace(' ', '_')
+    caminho_pdf = os.path.abspath(f"tmp_pdfs/Carteira_{nome_pessoa_limpo}_{token[:4]}.pdf")
+
+    largura, altura = 135 * mm, 85 * mm
+    c = canvas.Canvas(caminho_pdf, pagesize=(largura, altura))
+
+    # ── Fundo limpo ────────────────────────────────────────────────────
+    c.setFillColor(COR_BRANCO)
+    c.rect(0, 0, largura, altura, fill=1, stroke=0)
+
+    # ── Header sólido (azul petróleo) ──────────────────────────────────
+    h_header = 18 * mm
+    c.setFillColor(COR_PRIMARIA)
+    c.rect(0, altura - h_header, largura, h_header, fill=1, stroke=0)
+
+    # Linha de destaque amarela logo abaixo do header
+    c.setFillColor(COR_DESTAQUE)
+    c.rect(0, altura - h_header - 1.1 * mm, largura, 1.1 * mm, fill=1, stroke=0)
+
+    # Logo institucional
+    logo_src = _obter_logo_institucional()
+    logo_h = 11 * mm
+    logo_y = altura - (h_header / 2) - (logo_h / 2)
+
+    if logo_src:
+        img_logo = logo_src if isinstance(logo_src, str) else ImageReader(logo_src)
+        c.drawImage(img_logo, 7 * mm, logo_y, width=logo_h, height=logo_h, mask='auto', preserveAspectRatio=True)
+        texto_x = 7 * mm + logo_h + 3.5 * mm
+    else:
+        # Fallback visual caso não haja logo
+        c.setFillColor(COR_DESTAQUE)
+        c.circle(7 * mm + 5.5 * mm, altura - h_header / 2, 5.5 * mm, fill=1, stroke=0)
+        c.setFillColor(COR_PRIMARIA)
+        c.setFont("Helvetica-Bold", 7)
+        c.drawCentredString(7 * mm + 5.5 * mm, altura - h_header / 2 - 1.5 * mm, "SGA")
+        texto_x = 7 * mm + 12 * mm + 3 * mm
+
+    # Título principal
+    c.setFillColor(COR_BRANCO)
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(texto_x, altura - h_header / 2 + 1.8 * mm, "SERRA DAS ANDORINHAS")
+
+    # Subtítulo
+    c.setFillColor(COR_DESTAQUE)
+    c.setFont("Helvetica-Bold", 6)
+    c.drawString(texto_x, altura - h_header / 2 - 3.8 * mm, "CARTEIRA DE RESIDENTE")
+
+    # Número do documento (direita)
+    c.setFillColor(COR_BRANCO)
+    c.setFont("Helvetica-Bold", 7)
+    c.drawRightString(largura - 7 * mm, altura - h_header / 2 + 1.8 * mm, f"Nº {token[:8].upper()}")
+
+    # Município
+    c.setFillColor(colors.HexColor("#ffffffcc"))
+    c.setFont("Helvetica", 5.5)
+    c.drawRightString(largura - 7 * mm, altura - h_header / 2 - 3.8 * mm, "SÃO GERALDO DO ARAGUAIA · PA")
+
+    # ── Área de conteúdo (abaixo do header) ────────────────────────────
+    margem = 8 * mm
+    y_base = 9 * mm                       # espaço para o rodapé
+    area_h = altura - h_header - 1.1 * mm - y_base - 4 * mm
+
+    # ── 1. COLUNA ESQUERDA → Foto circular ─────────────────────────────
+    foto_diam = 38 * mm
+    foto_x = margem
+    foto_y = y_base + (area_h - foto_diam) / 2   # centralizada verticalmente
+
+    _foto_circular(c, foto_x, foto_y, foto_diam, residente_data.get('foto_url'))
+
+    # ── 2. COLUNA CENTRAL → Dados ──────────────────────────────────────
+    x_dados = foto_x + foto_diam + 7 * mm
+    y_topo = altura - h_header - 1.1 * mm - 9 * mm
+
+    # Nome
+    nome_reduzido = _primeiro_ultimo_nome(residente_data.get('nome')) or "—"
+    c.setFillColor(COR_TEXTO_SUAVE)
+    c.setFont("Helvetica-Bold", 6)
+    c.drawString(x_dados, y_topo, "NOME")
+
+    # Ajuste automático de tamanho da fonte do nome
+    tam_nome = 13
+    max_w_nome = largura - x_dados - 38 * mm - 6 * mm   # deixa espaço para o QR
+    while c.stringWidth(nome_reduzido, "Helvetica-Bold", tam_nome) > max_w_nome and tam_nome > 8:
+        tam_nome -= 0.5
+
+    c.setFillColor(COR_PRIMARIA)
+    c.setFont("Helvetica-Bold", tam_nome)
+    c.drawString(x_dados, y_topo - 6.2 * mm, nome_reduzido)
+
+    # Linha separadora suave
+    c.setStrokeColor(COR_LINHA)
+    c.setLineWidth(0.6)
+    c.line(x_dados, y_topo - 9.5 * mm, x_dados + max_w_nome, y_topo - 9.5 * mm)
+
+    # CPF
+    y_cpf = y_topo - 17 * mm
+    c.setFillColor(COR_TEXTO_SUAVE)
+    c.setFont("Helvetica-Bold", 6)
+    c.drawString(x_dados, y_cpf, "CPF")
+    c.setFillColor(COR_TEXTO_ESCURO)
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(x_dados, y_cpf - 5.2 * mm, _safe(residente_data.get('cpf'), "—"))
+
+    # Validade
+    y_val = y_cpf - 14 * mm
+    validade = (datetime.now() + timedelta(days=365)).strftime("%d/%m/%Y")
+    c.setFillColor(COR_TEXTO_SUAVE)
+    c.setFont("Helvetica-Bold", 6)
+    c.drawString(x_dados, y_val, "VALIDADE")
+    c.setFillColor(COR_SECUNDARIA)
     c.setFont("Helvetica-Bold", 11)
-    c.drawCentredString(x, y + 0.5 * mm, "50%")
-    c.setFont("Helvetica-Bold", 4.5)
-    c.drawCentredString(x, y - 3.5 * mm, "DESCONTO")
+    c.drawString(x_dados, y_val - 5.5 * mm, validade)
+
+    # Chip de status
+    _chip_status(c, x_dados + c.stringWidth(validade, "Helvetica-Bold", 11) + 5 * mm, y_val - 6.2 * mm, "ATIVO")
+
+    # ── 3. COLUNA DIREITA → QR Code ────────────────────────────────────
+    qr_size = 28 * mm
+    qr_x = largura - margem - qr_size
+    qr_y = y_base + (area_h - qr_size) / 2          # centralizado verticalmente
+
+    # Fundo branco + borda suave
+    c.setFillColor(COR_BRANCO)
+    c.setStrokeColor(COR_LINHA)
+    c.setLineWidth(0.7)
+    c.roundRect(qr_x - 2 * mm, qr_y - 2 * mm, qr_size + 4 * mm, qr_size + 4 * mm, 2.2 * mm, fill=1, stroke=1)
+
+    # Gera e desenha o QR
+    qr_io = gerar_qr_code_em_memoria(f"https://sagatur.com.br/fiscal/validar/{token}")
+    c.drawImage(ImageReader(qr_io), qr_x, qr_y, width=qr_size, height=qr_size)
+
+    # Texto abaixo do QR
+    c.setFillColor(COR_TEXTO_SUAVE)
+    c.setFont("Helvetica-Bold", 4.8)
+    c.drawCentredString(qr_x + qr_size / 2, qr_y - 4.8 * mm, "VALIDAR")
+
+    # ── Rodapé discreto ────────────────────────────────────────────────
+    c.setStrokeColor(COR_SECUNDARIA)
+    c.setLineWidth(1.2)
+    c.line(margem, 6.8 * mm, largura - margem, 6.8 * mm)
+
+    c.setFillColor(COR_TEXTO_SUAVE)
+    c.setFont("Helvetica", 5.2)
+    c.drawString(margem, 3.3 * mm, "Secretaria Municipal de Turismo · São Geraldo do Araguaia - PA")
+
+    c.setFont("Helvetica-Bold", 5.2)
+    c.drawRightString(largura - margem, 3.3 * mm, "DOCUMENTO OFICIAL")
+
+    c.save()
+    return caminho_pdf
+
+
+# ─── 2. GERAÇÃO DO VOUCHER DE HOSPEDAGEM (HOTÉIS / PASSEIOS) ───────────────
 
 def _desenhar_header_voucher(c: canvas.Canvas, largura: float, altura: float, pedido: str):
     c.setFillColor(colors.white)
@@ -181,232 +341,7 @@ def _desenhar_footer_voucher(c: canvas.Canvas, largura: float, pagina: int):
     c.drawString(MARGIN_X + 58 * mm, 10 * mm, "São Geraldo do Araguaia - Estado do Pará")
     c.drawRightString(largura - MARGIN_X, 10 * mm, f"Página {pagina} de 2")
 
-
-# ─── 1. GERAÇÃO DA CARTEIRA DIGITAL DE RESIDENTE (DESIGN MINIMALISTA) ───────
-
-def _primeiro_ultimo_nome(nome_completo: str) -> str:
-    """Reduz um nome completo para 'Primeiro Último' evitando texto espremido/cortado."""
-    nome = _safe(nome_completo, "Residente").strip()
-    partes = [p for p in nome.split() if p]
-    if len(partes) <= 1:
-        return nome.upper() if nome else "RESIDENTE"
-    return f"{partes[0]} {partes[-1]}".upper()
-
-def _foto_arredondada(c, x, y, w, h, foto_url, radius=5 * mm):
-    """Desenha a foto do residente com cantos suavemente arredondados e moldura sutil."""
-    c.saveState()
-    caminho = c.beginPath()
-    caminho.roundRect(x, y, w, h, radius)
-    c.clipPath(caminho, stroke=0, fill=0)
-
-    desenhada = False
-    try:
-        if foto_url:
-            resposta = requests.get(foto_url, timeout=10)
-            if resposta.status_code == 200:
-                img_data = BytesIO(resposta.content)
-                c.drawImage(ImageReader(img_data), x, y, width=w, height=h,
-                            preserveAspectRatio=True, anchor='c', mask='auto')
-                desenhada = True
-    except Exception:
-        desenhada = False
-
-    if not desenhada:
-        c.setFillColor(COR_FUNDO_BOX)
-        c.rect(x, y, w, h, fill=1, stroke=0)
-        c.setFillColor(COR_TEXTO_SUAVE)
-        c.setFont("Helvetica-Oblique", 7)
-        c.drawCentredString(x + w / 2, y + h / 2, "Foto indisponível")
-    c.restoreState()
-
-    # Moldura sutil por cima da foto (uma única linha fina)
-    c.setStrokeColor(COR_LINHA)
-    c.setLineWidth(0.8)
-    c.roundRect(x, y, w, h, radius, fill=0, stroke=1)
-
-def _tag_desconto(c, x_right, y_top, texto="50% DE DESCONTO"):
-    """Badge/tag minimalista de desconto, no lugar do antigo selo circular pesado."""
-    c.setFont("Helvetica-Bold", 6.5)
-    largura_texto = c.stringWidth(texto, "Helvetica-Bold", 6.5)
-    pad_x = 2.6 * mm
-    tag_w = largura_texto / mm * mm + pad_x * 2
-    tag_h = 5.6 * mm
-    x = x_right - tag_w
-    y = y_top - tag_h
-
-    c.setFillColor(COR_DESTAQUE)
-    c.roundRect(x, y, tag_w, tag_h, tag_h / 2, fill=1, stroke=0)
-    # pequeno ponto decorativo
-    c.setFillColor(COR_PRIMARIA)
-    c.circle(x + pad_x * 0.55, y + tag_h / 2, 0.7 * mm, fill=1, stroke=0)
-    c.setFillColor(COR_PRIMARIA)
-    c.setFont("Helvetica-Bold", 6.5)
-    c.drawString(x + pad_x * 0.55 + 1.6 * mm, y + tag_h / 2 - 1.1 * mm, texto)
-    return x, y  
-
-def _chip_status(c, x, y, texto="ATIVO", cor=None):
-    """Pequeno chip de status (ex.: ATIVO), moderno e discreto."""
-    cor = cor or COR_SECUNDARIA
-    c.setFont("Helvetica-Bold", 5.5)
-    largura_texto = c.stringWidth(texto, "Helvetica-Bold", 5.5)
-    pad_x = 2 * mm
-    chip_h = 4 * mm
-    chip_w = largura_texto + pad_x * 2 + 3 * mm
-    c.setFillColor(colors.HexColor("#ffffff"))
-    c.setStrokeColor(cor)
-    c.setLineWidth(0.7)
-    c.roundRect(x, y, chip_w, chip_h, chip_h / 2, fill=1, stroke=1)
-    c.setFillColor(cor)
-    c.circle(x + pad_x, y + chip_h / 2, 0.9 * mm, fill=1, stroke=0)
-    c.setFillColor(COR_TEXTO_ESCURO)
-    c.setFont("Helvetica-Bold", 5.5)
-    c.drawString(x + pad_x + 2.4 * mm, y + chip_h / 2 - 0.9 * mm, texto)
-    return chip_w
-
-def gerar_pdf_carteira(residente_data: dict, token: str) -> str:
-    """
-    Gera a Carteira Digital de Residente em um design minimalista e moderno:
-    fundo limpo, tipografia com hierarquia clara, foto com cantos suaves,
-    QR code bem posicionado e uma tag de desconto discreta.
-    """
-    os.makedirs("tmp_pdfs", exist_ok=True)
-    nome_pessoa_limpo = _safe(residente_data.get('nome'), 'Residente').replace(' ', '_')
-    caminho_pdf = os.path.abspath(f"tmp_pdfs/Carteira_{nome_pessoa_limpo}_{token[:4]}.pdf")
-
-    largura, altura = 135 * mm, 85 * mm
-    c = canvas.Canvas(caminho_pdf, pagesize=(largura, altura))
-
-    # ── Fundo limpo (branco) ────────────────────────────────────────────
-    c.setFillColor(COR_BRANCO)
-    c.rect(0, 0, largura, altura, fill=1, stroke=0)
-
-    # ── Header sólido, sem gradiente/textura ────────────────────────────
-    h_header = 19 * mm
-    c.setFillColor(COR_PRIMARIA)
-    c.rect(0, altura - h_header, largura, h_header, fill=1, stroke=0)
-    # fio de destaque discreto na base do header
-    c.setFillColor(COR_DESTAQUE)
-    c.rect(0, altura - h_header, largura, 0.9 * mm, fill=1, stroke=0)
-
-    logo_src = _obter_logo_institucional()
-    logo_h = 10 * mm
-    logo_y = altura - (h_header / 2) - (logo_h / 2)
-    if logo_src:
-        img_logo = logo_src if isinstance(logo_src, str) else ImageReader(logo_src)
-        c.drawImage(img_logo, 8 * mm, logo_y, width=logo_h, height=logo_h,
-                    mask='auto', preserveAspectRatio=True)
-        texto_x = 8 * mm + logo_h + 3 * mm
-    else:
-        c.setFillColor(COR_BRANCO)
-        c.circle(8 * mm + 5 * mm, altura - h_header / 2, 5 * mm, fill=1, stroke=0)
-        c.setFillColor(COR_PRIMARIA)
-        c.setFont("Helvetica-Bold", 7)
-        c.drawCentredString(8 * mm + 5 * mm, altura - h_header / 2 - 1.2 * mm, "SGA")
-        texto_x = 8 * mm + 10 * mm + 3 * mm
-
-    c.setFillColor(COR_BRANCO)
-    c.setFont("Helvetica-Bold", 11.5)
-    c.drawString(texto_x, altura - h_header / 2 + 1.3 * mm, "SagaTurismo")
-    c.setFillColor(COR_DESTAQUE)
-    c.setFont("Helvetica-Bold", 6)
-    c.drawString(texto_x, altura - h_header / 2 - 4.3 * mm, "CARTEIRA DE RESIDENTE")
-
-    c.setFillColor(colors.HexColor("#ffffffaa"))
-    c.setFont("Helvetica", 5.5)
-    c.drawRightString(largura - 8 * mm, altura - h_header / 2 - 4.3 * mm,
-                       "SÃO GERALDO DO ARAGUAIA · PA")
-    c.setFillColor(COR_BRANCO)
-    c.setFont("Helvetica-Bold", 6.5)
-    c.drawRightString(largura - 8 * mm, altura - h_header / 2 + 1.3 * mm,
-                       f"Nº {token[:8].upper()}")
-
-    # ── Tag de desconto minimalista (substitui o selo circular antigo) ──
-    _tag_desconto(c, largura - 8 * mm, altura - h_header - 4 * mm)
-
-    # ── Foto do residente (cantos suavemente arredondados) ──────────────
-    foto_x, foto_y = 8 * mm, 10 * mm
-    foto_w, foto_h = 32 * mm, 44 * mm
-    _foto_arredondada(c, foto_x, foto_y, foto_w, foto_h, residente_data.get('foto_url'))
-
-    # ── Coluna de dados ───────────────────────────────────────────────
-    x_col = foto_x + foto_w + 8 * mm
-    col_w = largura - x_col - 32 * mm  # reserva espaço para o QR code à direita
-
-    y_topo_dados = altura - h_header - 8 * mm
-
-    # Nome — maior destaque tipográfico (apenas primeiro e último nome)
-    nome_reduzido = _primeiro_ultimo_nome(residente_data.get('nome'))
-    c.setFillColor(COR_TEXTO_SUAVE)
-    c.setFont("Helvetica-Bold", 6)
-    c.drawString(x_col, y_topo_dados, "NOME DO TITULAR")
-
-    tam_fonte_nome = 15
-    while c.stringWidth(nome_reduzido, "Helvetica-Bold", tam_fonte_nome) > col_w and tam_fonte_nome > 9:
-        tam_fonte_nome -= 0.5
-    c.setFillColor(COR_PRIMARIA)
-    c.setFont("Helvetica-Bold", tam_fonte_nome)
-    c.drawString(x_col, y_topo_dados - 6.5 * mm, nome_reduzido)
-
-    # Linha fina de separação
-    c.setStrokeColor(COR_LINHA)
-    c.setLineWidth(0.6)
-    c.line(x_col, y_topo_dados - 10 * mm, x_col + col_w, y_topo_dados - 10 * mm)
-
-    # CPF e Data de Nascimento lado a lado
-    y_linha2 = y_topo_dados - 18 * mm
-    meia_col = col_w / 2
-    _label_valor(c, x_col, y_linha2, "CPF", _safe(residente_data.get('cpf')),
-                 tam_label=6, tam_valor=9.5)
-    _label_valor(c, x_col + meia_col, y_linha2, "DATA DE NASCIMENTO",
-                 _safe(residente_data.get('data_nascimento')), tam_label=6, tam_valor=9.5)
-
-    # Validade + chip de status
-    y_linha3 = y_linha2 - 12 * mm
-    validade = (datetime.now() + timedelta(days=365)).strftime("%d/%m/%Y")
-    c.setFillColor(COR_TEXTO_SUAVE)
-    c.setFont("Helvetica-Bold", 6)
-    c.drawString(x_col, y_linha3, "VÁLIDO ATÉ")
-    c.setFillColor(COR_SECUNDARIA)
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(x_col, y_linha3 - 5.5 * mm, validade)
-
-    _chip_status(c, x_col + c.stringWidth(validade, "Helvetica-Bold", 12) + 6 * mm,
-                 y_linha3 - 6.3 * mm, "ATIVO")
-
-    # ── QR Code (canto inferior direito, legível e bem alinhado) ────────
-    qr_size = 25 * mm
-    qr_x = largura - qr_size - 8 * mm
-    qr_y = 10 * mm
-    qr_io = gerar_qr_code_em_memoria(f"https://sagatur.com.br/fiscal/validar/{token}")
-
-    c.setFillColor(COR_BRANCO)
-    c.setStrokeColor(COR_LINHA)
-    c.setLineWidth(0.8)
-    c.roundRect(qr_x - 1.5 * mm, qr_y - 1.5 * mm, qr_size + 3 * mm, qr_size + 3 * mm,
-                2 * mm, fill=1, stroke=1)
-    c.drawImage(ImageReader(qr_io), qr_x, qr_y, width=qr_size, height=qr_size)
-
-    c.setFillColor(COR_TEXTO_SUAVE)
-    c.setFont("Helvetica-Bold", 5)
-    c.drawCentredString(qr_x + qr_size / 2, qr_y + qr_size + 2.6 * mm, "VALIDAR AUTENTICIDADE")
-
-    # ── Rodapé discreto ──────────────────────────────────────────────────
-    c.setStrokeColor(COR_SECUNDARIA)
-    c.setLineWidth(1)
-    c.line(8 * mm, 6.5 * mm, largura - 8 * mm, 6.5 * mm)
-    c.setFillColor(COR_TEXTO_SUAVE)
-    c.setFont("Helvetica", 5.5)
-    c.drawString(8 * mm, 3.2 * mm, "Secretaria Municipal de Turismo · São Geraldo do Araguaia - PA")
-    c.setFont("Helvetica-Bold", 5.5)
-    c.drawRightString(largura - 8 * mm, 3.2 * mm, "DOCUMENTO OFICIAL")
-
-    c.save()
-    return caminho_pdf
-
-# ─── 2. GERAÇÃO DO VOUCHER DE HOSPEDAGEM (HOTÉIS / PASSEIOS) ───────────────
-
 def gerar_pdf_voucher(pedido_db: dict, dados_extra: dict = None) -> str:
-    """Gera o PDF com o nome e a estrutura esperados pelo webhook, usando dados do Supabase"""
     output_dir = "tmp_pdfs"
     os.makedirs(output_dir, exist_ok=True)
     
@@ -485,7 +420,7 @@ def gerar_pdf_voucher(pedido_db: dict, dados_extra: dict = None) -> str:
     c.drawString(largura - MARGIN_X - 8 * mm, y - 14 * mm, "O imposto de fomento ao turismo local já se encontra recolhido.")
     y -= 32 * mm
 
-    # --- INFORMAÇÕES NOMINAIS DOS INTEGRANTES DA COMITIVA (ATUALIZADO DINÂMICO) ---
+    # --- INFORMAÇÕES NOMINAIS DOS INTEGRANTES DA COMITIVA ---
     garantir_espaco(30)
     c.setFillColor(COR_PRIMARIA)
     c.setFont("Helvetica-Bold", 12)
@@ -593,7 +528,7 @@ def gerar_pdf_voucher(pedido_db: dict, dados_extra: dict = None) -> str:
     y -= 18 * mm
     desenhar_linha_divisoria()
 
-    # --- RESUMO FINANCEIRO INTEGRADO DO PAGBANK ---
+    # --- RESUMO FINANCEIRO ---
     garantir_espaco(30)
     c.setFillColor(COR_PRIMARIA)
     c.setFont("Helvetica-Bold", 12)
@@ -617,7 +552,7 @@ def gerar_pdf_voucher(pedido_db: dict, dados_extra: dict = None) -> str:
     _desenhar_footer_voucher(c, largura, 1)
 
     # =========================================================================
-    # PÁGINA 2: CLÁUSULAS REGULAMENTARES E POLÍTICAS REAIS DA HOSPEDAGEM
+    # PÁGINA 2: CLÁUSULAS REGULAMENTARES
     # =========================================================================
     y = nova_pagina(2)
 
