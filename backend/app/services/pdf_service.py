@@ -129,7 +129,6 @@ def _moldura_foto(c, x, y, w, h, radius=4 * mm):
 def _label_valor(c, x, y, label, valor, tam_label=6, tam_valor=10):
     c.setFillColor(COR_TEXTO_LABEL)
     c.setFont("Helvetica-Bold", tam_label)
-    # ◄── A CORREÇÃO FOI FEITA NESTA LINHA:
     c.drawString(x, y, label) 
     c.setFillColor(COR_TEXTO_ESCURO)
     c.setFont("Helvetica-Bold", tam_valor)
@@ -243,7 +242,7 @@ def _tag_desconto(c, x_right, y_top, texto="50% DE DESCONTO"):
     c.setFillColor(COR_PRIMARIA)
     c.setFont("Helvetica-Bold", 6.5)
     c.drawString(x + pad_x * 0.55 + 1.6 * mm, y + tag_h / 2 - 1.1 * mm, texto)
-    return x, y  # canto inferior esquerdo da tag, útil para posicionar outros elementos
+    return x, y  
 
 def _chip_status(c, x, y, texto="ATIVO", cor=None):
     """Pequeno chip de status (ex.: ATIVO), moderno e discreto."""
@@ -263,7 +262,6 @@ def _chip_status(c, x, y, texto="ATIVO", cor=None):
     c.setFont("Helvetica-Bold", 5.5)
     c.drawString(x + pad_x + 2.4 * mm, y + chip_h / 2 - 0.9 * mm, texto)
     return chip_w
-
 
 def gerar_pdf_carteira(residente_data: dict, token: str) -> str:
     """
@@ -404,6 +402,219 @@ def gerar_pdf_carteira(residente_data: dict, token: str) -> str:
 
     c.save()
     return caminho_pdf
+
+# ─── 2. GERAÇÃO DO VOUCHER DE HOSPEDAGEM (HOTÉIS / PASSEIOS) ───────────────
+
+def gerar_pdf_voucher(pedido_db: dict, dados_extra: dict = None) -> str:
+    """Gera o PDF com o nome e a estrutura esperados pelo webhook, usando dados do Supabase"""
+    output_dir = "tmp_pdfs"
+    os.makedirs(output_dir, exist_ok=True)
+    
+    if not dados_extra: dados_extra = {}
+    
+    codigo_pedido = _safe(pedido_db.get("codigo_pedido", "SAGA-0000")).upper()
+    caminho_pdf = os.path.join(output_dir, f"Voucher_{codigo_pedido}.pdf")
+    
+    c = canvas.Canvas(caminho_pdf, pagesize=A4)
+    largura, altura = A4
+
+    def nova_pagina(num_pag):
+        _desenhar_footer_voucher(c, largura, num_pag)
+        c.showPage()
+        c.setFillColor(colors.white)
+        c.rect(0, 0, largura, altura, fill=1, stroke=0)
+        _desenhar_header_voucher(c, largura, altura, codigo_pedido)
+        return altura - 45 * mm
+
+    c.setFillColor(colors.white)
+    c.rect(0, 0, largura, altura, fill=1, stroke=0)
+    _desenhar_header_voucher(c, largura, altura, codigo_pedido)
+    y = altura - 40 * mm
+
+    def garantir_espaco(espaco):
+        nonlocal y
+        if y - espaco < 25 * mm: y = nova_pagina(1)
+
+    def desenhar_linha_divisoria():
+        nonlocal y
+        y -= 4 * mm
+        c.setStrokeColor(COR_LINHA)
+        c.setLineWidth(0.8)
+        c.line(MARGIN_X, y, largura - MARGIN_X, y)
+        y -= 8 * mm
+
+    # --- STATUS E IDENTIFICAÇÃO DO PARCEIRO ---
+    hotel_nome = _safe(dados_extra.get("nome") or pedido_db.get("nome_item"), "Acomodação Parceira")
+    hotel_endereco = _safe(dados_extra.get("endereco") or pedido_db.get("endereco_completo"), "São Geraldo do Araguaia - PA")
+
+    c.setFillColor(COR_PRIMARIA)
+    c.setFont("Helvetica-Bold", 8)
+    c.drawString(MARGIN_X, y, "STATUS DA OPERAÇÃO DE TURISMO")
+    y -= 6 * mm
+    c.setFillColor(COR_PRIMARIA)
+    c.setFont("Helvetica-Bold", 18)
+    c.drawString(MARGIN_X, y, hotel_nome[:45])
+    c.setFillColor(COR_SECUNDARIA)
+    c.setFont("Helvetica-Bold", 12)
+    c.drawRightString(largura - MARGIN_X, y, "✓ RESERVA CONFIRMADA")
+    
+    y -= 5 * mm
+    c.setFillColor(COR_TEXTO_MEDIO)
+    c.setFont("Helvetica", 9)
+    c.drawString(MARGIN_X, y, f"Localização: {hotel_endereco}")
+    y -= 2 * mm
+    desenhar_linha_divisoria()
+
+    # --- CARD DE CONFIRMAÇÃO DO CONTROLO MUNICIPAL ---
+    garantir_espaco(35)
+    c.setFillColor(COR_FUNDO_DESTAQUE)
+    c.setStrokeColor(COR_SECUNDARIA)
+    c.setLineWidth(1)
+    c.roundRect(MARGIN_X, y - 22 * mm, largura - 2 * MARGIN_X, 22 * mm, 4 * mm, fill=1, stroke=1)
+    
+    c.setFillColor(COR_PRIMARIA)
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(MARGIN_X + 8 * mm, y - 8 * mm, "LOCALIZADOR INTEGRADO DO ESTABELECIMENTO (CHECK-IN):")
+    c.setFillColor(COR_PRIMARIA)
+    c.setFont("Helvetica-Bold", 22)
+    c.drawString(MARGIN_X + 8 * mm, y - 17 * mm, codigo_pedido)
+    
+    c.setFillColor(COR_TEXTO_MEDIO)
+    c.setFont("Helvetica", 9)
+    c.drawString(largura - MARGIN_X - 8 * mm, y - 9 * mm, "Apresente este documento na recepção da propriedade.")
+    c.drawString(largura - MARGIN_X - 8 * mm, y - 14 * mm, "O imposto de fomento ao turismo local já se encontra recolhido.")
+    y -= 32 * mm
+
+    # --- INFORMAÇÕES NOMINAIS DOS INTEGRANTES DA COMITIVA (ATUALIZADO DINÂMICO) ---
+    garantir_espaco(30)
+    c.setFillColor(COR_PRIMARIA)
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(MARGIN_X, y, "Manifesto Nominal de Hóspedes Autorizados")
+    y -= 6 * mm
+    
+    c.setFillColor(COR_TEXTO_MEDIO)
+    c.setFont("Helvetica-Bold", 8)
+    c.drawString(MARGIN_X, y, "NOME COMPLETO DO TURISTA")
+    c.drawString(MARGIN_X + 95 * mm, y, "DOCUMENTO REGISTADO (CPF)")
+    c.drawString(MARGIN_X + 150 * mm, y, "VÍNCULO")
+    y -= 5 * mm
+    
+    # Titular da Transação
+    c.setFillColor(COR_TEXTO_ESCURO)
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(MARGIN_X, y, _safe(pedido_db.get("nome_cliente")).upper())
+    c.setFont("Helvetica", 10)
+    c.drawString(MARGIN_X + 95 * mm, y, _safe(pedido_db.get("cpf_cliente")))
+    c.drawString(MARGIN_X + 150 * mm, y, "TITULAR")
+    y -= 6 * mm
+    
+    total_pessoas = pedido_db.get("quantidade_pessoas", 1) or 1
+    lista_acompanhantes = pedido_db.get("hospedes_extras", [])
+    if not isinstance(lista_acompanhantes, list): 
+        lista_acompanhantes = []
+        
+    if lista_acompanhantes:
+        for hospede in lista_acompanhantes:
+            garantir_espaco(8)
+            nome_extra = _safe(hospede.get("nome")).upper()
+            cpf_extra = _safe(hospede.get("cpf"), "NÃO INFORMADO")
+            data_nasc_extra = _formatar_data_br(hospede.get("data_nascimento"))
+            
+            doc_exibicao = f"{cpf_extra} ({data_nasc_extra})" if data_nasc_extra != "—" else cpf_extra
+            
+            c.setFillColor(COR_TEXTO_ESCURO)
+            c.setFont("Helvetica-Bold", 10)
+            c.drawString(MARGIN_X, y, nome_extra)
+            c.setFont("Helvetica", 10)
+            c.drawString(MARGIN_X + 95 * mm, y, doc_exibicao)
+            c.drawString(MARGIN_X + 150 * mm, y, "ACOMPANHANTE")
+            y -= 6 * mm
+    else:
+        if total_pessoas > 1:
+            for idx in range(1, total_pessoas):
+                garantir_espaco(8)
+                c.setFillColor(COR_TEXTO_ESCURO)
+                c.setFont("Helvetica-Bold", 10)
+                c.drawString(MARGIN_X, y, f"ACOMPANHANTE {idx} (REGISTADO NO SISTEMA)")
+                c.setFont("Helvetica", 10)
+                c.drawString(MARGIN_X + 95 * mm, y, "VINCULADO AO CPF TITULAR")
+                c.drawString(MARGIN_X + 150 * mm, y, "ACOMPANHANTE")
+                y -= 6 * mm
+            
+    desenhar_linha_divisoria()
+
+    # --- DETALHES DE ALOCAÇÃO DO QUARTO E ESTADIA ---
+    garantir_espaco(50)
+    c.setFillColor(COR_PRIMARIA)
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(MARGIN_X, y, "Especificações da Estadia Contratada")
+    y -= 8 * mm
+
+    tipo_quarto_bruto = str(pedido_db.get("tipo_quarto", "standard")).lower()
+    nome_quarto_real = _safe(dados_extra.get(f"quarto_{tipo_quarto_bruto}_nome"), "Quarto Standard")
+    
+    politicas_json = dados_extra.get("politicas", {})
+    if not isinstance(politicas_json, dict): politicas_json = {}
+    checkin_hora = _safe(politicas_json.get("horario_checkin"), "14:00h")
+    checkout_hora = _safe(politicas_json.get("horario_checkout"), "12:00h")
+
+    c.setFillColor(COR_FUNDO_BOX)
+    c.setStrokeColor(COR_LINHA)
+    c.setLineWidth(1)
+    altura_box = 28 * mm
+    c.roundRect(MARGIN_X, y - altura_box + 4 * mm, largura - 2 * MARGIN_X, altura_box, 3 * mm, fill=1, stroke=1)
+
+    c.setFillColor(COR_PRIMARIA)
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(MARGIN_X + 6 * mm, y - 3 * mm, "BED")
+    
+    c.setFillColor(COR_TEXTO_ESCURO)
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(MARGIN_X + 16 * mm, y - 2 * mm, nome_quarto_real.upper())
+    c.setFillColor(COR_TEXTO_MEDIO)
+    c.setFont("Helvetica", 8)
+    c.drawString(MARGIN_X + 16 * mm, y - 6 * mm, f"Regime de Acomodação: Tarifa Regulamentada pela Secretaria de Turismo")
+    
+    y -= 14 * mm
+    
+    # Coluna Entrada
+    c.setFillColor(COR_PRIMARIA); c.setFont("Helvetica-Bold", 14); c.drawString(MARGIN_X + 16 * mm, y, checkin_hora)
+    c.setFillColor(COR_TEXTO_ESCURO); c.setFont("Helvetica-Bold", 10); c.drawString(MARGIN_X + 32 * mm, y, "CHECK-IN")
+    c.setFillColor(COR_TEXTO_MEDIO); c.setFont("Helvetica", 8); c.drawString(MARGIN_X + 16 * mm, y - 4 * mm, _formatar_data_br(pedido_db.get("data_checkin")))
+
+    c.setFillColor(COR_TEXTO_SUAVE); c.setFont("Helvetica", 14); c.drawString(largura / 2 - 5 * mm, y, "➔")
+
+    # Coluna Saída
+    X_SAIDA = largura / 2 + 25 * mm
+    c.setFillColor(COR_PRIMARIA); c.setFont("Helvetica-Bold", 14); c.drawString(X_SAIDA, y, checkout_hora)
+    c.setFillColor(COR_TEXTO_ESCURO); c.setFont("Helvetica-Bold", 10); c.drawString(X_SAIDA + 18 * mm, y, "CHECK-OUT")
+    c.setFillColor(COR_TEXTO_MEDIO); c.setFont("Helvetica", 8); c.drawString(X_SAIDA, y - 4 * mm, _formatar_data_br(pedido_db.get("data_checkout")))
+
+    y -= 18 * mm
+    desenhar_linha_divisoria()
+
+    # --- RESUMO FINANCEIRO INTEGRADO DO PAGBANK ---
+    garantir_espaco(30)
+    c.setFillColor(COR_PRIMARIA)
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(MARGIN_X, y, "Balanço Consolidado Financeiro")
+    y -= 6 * mm
+
+    num_quartos = pedido_db.get("quantidade_quartos", 1) or pedido_db.get("quantidade", 1) or 1
+    c.setFillColor(COR_TEXTO_MEDIO)
+    c.setFont("Helvetica", 10)
+    c.drawString(MARGIN_X, y, f"Unidade(s) de Quarto Alocada(s): {num_quartos} quarto(s)")
+    y -= 5 * mm
+    c.drawString(MARGIN_X, y, f"Total de Hóspedes Cobertos nesta Tarifa: {total_pessoas} pessoa(s)")
+    
+    c.setFillColor(COR_TEXTO_ESCURO)
+    c.setFont("Helvetica-Bold", 10)
+    c.drawRightString(largura - MARGIN_X, y + 5 * mm, "Total Líquido Liquidado:")
+    c.setFillColor(COR_PRIMARIA)
+    c.setFont("Helvetica-Bold", 16)
+    c.drawRightString(largura - MARGIN_X, y - 1 * mm, formatar_moeda(pedido_db.get("valor_total")))
+
+    _desenhar_footer_voucher(c, largura, 1)
 
     # =========================================================================
     # PÁGINA 2: CLÁUSULAS REGULAMENTARES E POLÍTICAS REAIS DA HOSPEDAGEM
