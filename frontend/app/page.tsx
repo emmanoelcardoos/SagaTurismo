@@ -899,14 +899,12 @@ export default function HomePage() {
       <div className="absolute bottom-0 left-0 z-0 w-[460px] h-[360px] pointer-events-none"
         style={{ background: 'radial-gradient(ellipse at bottom left, rgba(0,150,64,0.09) 0%, transparent 65%)' }} />
 
-      {/* Barra lateral esquerda — identidade visual */}
-      <div className="absolute left-0 top-0 bottom-0 z-0 w-[3px] pointer-events-none"
-        style={{ background: 'linear-gradient(to bottom, transparent 0%, #F9C400 30%, #009640 65%, transparent 100%)' }} />
-
       {/* ── HEADER ── */}
-      <header className="relative z-10 w-full px-8 md:px-14 pt-9 max-w-[1400px] mx-auto">
-        <div className="relative h-11 w-36 md:h-12 md:w-44">
-          <Image src="/logop.png" alt="Prefeitura Municipal" fill className="object-contain brightness-0 invert" />
+      <header className="relative z-10 w-full pt-9">
+        <div className="w-full max-w-[1400px] mx-auto px-8 md:px-14">
+          <div className="relative h-14 w-44 md:h-16 md:w-52">
+            <Image src="/logop.png" alt="Prefeitura Municipal" fill className="object-contain object-left brightness-0 invert" />
+          </div>
         </div>
       </header>
 
@@ -917,8 +915,6 @@ export default function HomePage() {
 
             {/* Coluna esquerda — texto */}
             <div className="flex flex-col gap-10">
-
-              
 
               {/* Título */}
               <div className="flex flex-col gap-1">
@@ -985,8 +981,8 @@ export default function HomePage() {
       </div>
 
       {/* ── FOOTER ── */}
-      <footer className="relative z-10 px-8 md:px-14 py-7">
-        <div className="max-w-[1400px] mx-auto">
+      <footer className="relative z-10 py-7">
+        <div className="w-full max-w-[1400px] mx-auto px-8 md:px-14">
           <p className={`${jakarta.className} text-[10px] font-bold text-white/20 uppercase tracking-widest`}>
             © {new Date().getFullYear()} Prefeitura Municipal de São Geraldo do Araguaia — Todos os direitos reservados.
           </p>
