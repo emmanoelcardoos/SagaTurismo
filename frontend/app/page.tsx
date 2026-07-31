@@ -878,60 +878,121 @@ const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] }
 export default function HomePage() {
   return (
     <main className={`${inter.className} min-h-screen flex flex-col bg-[#002f40] relative overflow-hidden`}>
-      {/* ── BACKGROUND SUAVE ── */}
+
+      {/* Foto de fundo com overlay */}
       <div className="absolute inset-0 z-0">
-        <Image 
-          src="https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/IMG_1803.PNG" 
-          alt="São Geraldo do Araguaia" 
-          fill 
+        <Image
+          src="https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/IMG_1803.PNG"
+          alt="São Geraldo do Araguaia"
+          fill
           className="object-cover opacity-20"
-          priority 
+          priority
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#002f40]/80 via-[#002f40]/90 to-[#002f40]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#002f40]/20 via-[#002f40]/20 to-[#002f40]/20" />
       </div>
 
-      {/* ── HEADER CLEAN ── */}
-      <header className="relative z-10 w-full p-8 md:p-10 flex justify-center md:justify-start max-w-7xl mx-auto">
-        <div className="relative h-12 w-40 md:h-14 md:w-44">
+      {/* Halo amarelo — canto superior direito */}
+      <div className="absolute top-0 right-0 z-0 w-[500px] h-[500px] pointer-events-none"
+        style={{ background: 'radial-gradient(ellipse at top right, rgba(249,196,0,0.10) 0%, transparent 65%)' }} />
+
+      {/* Halo verde — canto inferior esquerdo */}
+      <div className="absolute bottom-0 left-0 z-0 w-[460px] h-[360px] pointer-events-none"
+        style={{ background: 'radial-gradient(ellipse at bottom left, rgba(0,150,64,0.09) 0%, transparent 65%)' }} />
+
+      {/* Barra lateral esquerda — identidade visual */}
+      <div className="absolute left-0 top-0 bottom-0 z-0 w-[3px] pointer-events-none"
+        style={{ background: 'linear-gradient(to bottom, transparent 0%, #F9C400 30%, #009640 65%, transparent 100%)' }} />
+
+      {/* ── HEADER ── */}
+      <header className="relative z-10 w-full px-8 md:px-14 pt-9 max-w-[1400px] mx-auto">
+        <div className="relative h-11 w-36 md:h-12 md:w-44">
           <Image src="/logop.png" alt="Prefeitura Municipal" fill className="object-contain brightness-0 invert" />
         </div>
       </header>
 
-      {/* ── CONTEÚDO CENTRAL (MINIMALISTA) ── */}
-      <div className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-6 max-w-3xl mx-auto mt-[-5vh]">
-        
-        <p className="text-[#F9C400] text-sm md:text-base font-bold uppercase tracking-[0.3em] mb-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          Em breve
-        </p>
+      {/* ── CONTEÚDO PRINCIPAL ── */}
+      <div className="relative z-10 flex-1 flex items-center">
+        <div className="w-full max-w-[1400px] mx-auto px-8 md:px-14 py-16 md:py-0">
+          <div className="grid md:grid-cols-2 gap-14 md:gap-20 items-center">
 
-        <h1 className={`${jakarta.className} text-5xl md:text-7xl font-black text-white leading-[1.1] mb-6 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-150`}>
-          O novo portal de turismo de <br className="hidden md:block" />
-          <span className="text-[#F9C400]">São Geraldo do Araguaia.</span>
-        </h1>
-        
-        <p className="text-lg md:text-xl text-white/70 font-medium mb-12 max-w-2xl leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
-          Uma nova experiência digital está a caminho. No momento, o nosso sistema de emissão da Carteira de Residente já se encontra operacional.
-        </p>
+            {/* Coluna esquerda — texto */}
+            <div className="flex flex-col gap-10">
 
-        {/* Botão de Ação Direto */}
-        <div className="animate-in fade-in zoom-in-95 duration-700 delay-500 w-full sm:w-auto">
-          <Link 
-            href="/cadastro" 
-            className="group inline-flex items-center justify-center gap-4 w-full sm:w-auto bg-[#009640] hover:bg-[#007a33] text-white px-10 py-5 rounded-full font-black text-lg transition-all active:scale-95"
-          >
-            <IdCard size={24} />
-            Emitir Carteira
-            <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-          </Link>
+              
+
+              {/* Título */}
+              <div className="flex flex-col gap-1">
+                <h1 className={`${jakarta.className} font-black text-white leading-[0.97]`}
+                  style={{ fontSize: 'clamp(42px, 5.5vw, 72px)' }}>
+                  O novo portal
+                </h1>
+                <h1 className={`${jakarta.className} font-black text-[#F9C400] leading-[0.97]`}
+                  style={{ fontSize: 'clamp(42px, 5.5vw, 72px)' }}>
+                  de turismo
+                </h1>
+                <h1 className={`${jakarta.className} font-black text-white/30 leading-[0.97]`}
+                  style={{ fontSize: 'clamp(42px, 5.5vw, 72px)' }}>
+                  está chegando.
+                </h1>
+              </div>
+
+              {/* Descrição */}
+              <p className={`${inter.className} text-white/50 text-base md:text-lg leading-relaxed max-w-md`}>
+                Uma nova experiência digital para explorar São Geraldo do Araguaia. Enquanto isso, a nossa Carteira de Residente já está disponível.
+              </p>
+
+              {/* CTA */}
+              <Link
+                href="/cadastro"
+                className={`${jakarta.className} group inline-flex items-center gap-3 self-start bg-[#009640] hover:bg-[#007a33] active:scale-95 text-white px-9 py-4 rounded-full font-black text-sm uppercase tracking-widest transition-all duration-200 shadow-lg shadow-[#009640]/20`}
+              >
+                <IdCard size={18} />
+                Emitir Carteira
+                <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </div>
+
+            {/* Coluna direita — foto */}
+            <div className="hidden md:flex items-center justify-center">
+              <div className="relative w-full max-w-[420px] aspect-[3/4] rounded-[2.5rem] overflow-hidden"
+                style={{ boxShadow: '0 40px 80px -20px rgba(0,0,0,0.7)' }}>
+                <Image
+                  src="https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/IMG_1803.PNG"
+                  alt="São Geraldo do Araguaia"
+                  fill
+                  className="object-cover"
+                  style={{ filter: 'brightness(0.72) saturate(0.85)' }}
+                  priority
+                />
+                {/* Gradiente inferior suave */}
+                <div className="absolute inset-0"
+                  style={{ background: 'linear-gradient(to top, rgba(0,47,64,0.75) 0%, transparent 50%)' }} />
+
+                {/* Legenda discreta dentro da foto */}
+                <div className="absolute bottom-0 left-0 right-0 p-8">
+                  <p className={`${jakarta.className} text-white/35 text-[9px] font-black uppercase tracking-[0.3em] mb-1`}>
+                    Pará · Brasil
+                  </p>
+                  <p className={`${jakarta.className} text-white font-black text-xl leading-snug`}>
+                    São Geraldo<br />do Araguaia
+                  </p>
+                </div>
+              </div>
+            </div>
+
+          </div>
         </div>
       </div>
 
-      {/* ── FOOTER DISCRETO ── */}
-      <footer className="relative z-10 p-8 text-center">
-        <p className="text-xs font-bold text-white/30 uppercase tracking-widest">
-          © {new Date().getFullYear()} Prefeitura Municipal de São Geraldo do Araguaia — Todos os direitos reservados.
-        </p>
+      {/* ── FOOTER ── */}
+      <footer className="relative z-10 px-8 md:px-14 py-7">
+        <div className="max-w-[1400px] mx-auto">
+          <p className={`${jakarta.className} text-[10px] font-bold text-white/20 uppercase tracking-widest`}>
+            © {new Date().getFullYear()} Prefeitura Municipal de São Geraldo do Araguaia — Todos os direitos reservados.
+          </p>
+        </div>
       </footer>
+
     </main>
   );
 }
