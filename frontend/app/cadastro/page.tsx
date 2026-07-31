@@ -325,7 +325,7 @@ export default function CadastroPage() {
       if (errorMsg.includes('23505') || errorMsg.includes('already exists')) {
         setApiError("Este CPF já possui uma solicitação em andamento. Consulte o seu email ou utilize outro CPF.");
       } else {
-        setApiError('A conexão com o servidor falhou ou a IA demorou muito a responder. Tente novamente.');
+        setApiError('A conexão com o servidor falhou. Tente novamente mais tarde.');
       }
     } finally {
       setLoading(false);
@@ -733,6 +733,15 @@ export default function CadastroPage() {
                         <XCircle className="h-5 w-5 shrink-0" /> {apiError}
                       </div>
                     )}
+
+                    {/* ◄── INÍCIO DO NOVO BLOCO: AVISO LGPD ──► */}
+                    <div className="mb-6 rounded-2xl bg-slate-50 border border-slate-200 p-4 md:p-5 text-xs font-medium text-slate-500 leading-relaxed shadow-sm">
+                      <p>
+                        Ao clicar em <strong>"Avançar para Verificação"</strong>, você concorda com os nossos <Link href="/termos" target="_blank" className="text-[#00577C] font-bold hover:underline transition-colors">Termos de Uso</Link> e a nossa <Link href="/privacidade" target="_blank" className="text-[#00577C] font-bold hover:underline transition-colors">Política de Privacidade</Link>, em conformidade com a <strong>LGPD (Lei Geral de Proteção de Dados)</strong>.
+                      </p>
+                      
+                    </div>
+                    {/* ◄── FIM DO NOVO BLOCO ──► */}
 
                     <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                       <button
