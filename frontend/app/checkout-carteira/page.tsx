@@ -159,6 +159,10 @@ function CheckoutCarteiraContent() {
         const res = await fetch(`/api/validar?token=${token}`);
         const data = await res.json();
         
+        // ◄── NOVA BLINDAGEM: Procurar quantidade no URL e na Memória ──►
+        const qtdUrl = searchParams.get('quantidade') || searchParams.get('qtd');
+        const qtdMemoria = typeof window !== 'undefined' ? localStorage.getItem('saga_residente_quantidade') : null;
+
         if (data.status === 'ativa' || data.status === 'pago') {
           router.push(`/carteira/${token}`);
           return;
@@ -178,8 +182,11 @@ function CheckoutCarteiraContent() {
 
           setDadosCidadão(dadosCompletos);
           
-          if (dadosCompletos.quantidade_pessoas) setQuantidade(dadosCompletos.quantidade_pessoas);
-          else if (dadosCompletos.quantidade) setQuantidade(dadosCompletos.quantidade);
+          // 3. Define a Quantidade Familiar (Tenta API, depois URL, depois Memória)
+          if (dadosCompletos.quantidade_pessoas) setQuantidade(Number(dadosCompletos.quantidade_pessoas));
+          else if (dadosCompletos.quantidade) setQuantidade(Number(dadosCompletos.quantidade));
+          else if (qtdUrl) setQuantidade(Number(qtdUrl));
+          else if (qtdMemoria) setQuantidade(Number(qtdMemoria));
           
           if (dadosCompletos.cpf) setCpfFaturamento(dadosCompletos.cpf);
           setNomeTitular(dadosCompletos.nome);
@@ -188,7 +195,11 @@ function CheckoutCarteiraContent() {
           setLoadingInitial(false);
         }
       } catch (err) { 
-        console.error("Falha ao puxar dados do titular", err); 
+        console.error("Falha ao puxar dados do titular", err);
+        // Fallback de emergência em caso de erro na API
+        const qtdMemoria = typeof window !== 'undefined' ? localStorage.getItem('saga_residente_quantidade') : null;
+        if (qtdMemoria) setQuantidade(Number(qtdMemoria));
+        
         setLoadingInitial(false); 
       }
     };
@@ -196,7 +207,7 @@ function CheckoutCarteiraContent() {
     checkStatus();
     const interval = setInterval(checkStatus, 8000); 
     return () => clearInterval(interval);
-  }, [token, router]);
+  }, [token, router, searchParams]);
 
   const handlePagamento = async (e: React.FormEvent) => {
     e.preventDefault();

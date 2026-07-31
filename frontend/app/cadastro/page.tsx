@@ -302,6 +302,8 @@ export default function CadastroPage() {
         if (typeof window !== 'undefined') {
            localStorage.setItem('saga_residente_nome', nome);
            localStorage.setItem('saga_residente_email', email);
+           // ◄── NOVA LINHA: Guarda a quantidade total (Titular + Dependentes) ──►
+           localStorage.setItem('saga_residente_quantidade', String(integrantes.length));
         }
 
         if (tokenFinal) {
@@ -557,20 +559,23 @@ export default function CadastroPage() {
                         <div className="mb-4 flex items-center gap-2 text-sm font-black text-slate-700">
                           <CalendarDays className="h-4 w-4 md:h-5 md:w-5 text-[#00577C]" /> Selecione sua data
                         </div>
-                        <div className="grid grid-cols-3 gap-2 md:gap-3">
-                          <select value={dia} onChange={(e) => setDia(e.target.value)} className="w-full rounded-xl border border-slate-200 bg-white px-2 py-3 md:py-4 text-xs md:text-sm font-bold text-slate-700 outline-none cursor-pointer">
-                            <option value="">Dia</option>
-                            {days.map((d) => <option key={d} value={String(d).padStart(2, '0')}>{d}</option>)}
-                          </select>
-                          <select value={mes} onChange={(e) => setMes(e.target.value)} className="w-full rounded-xl border border-slate-200 bg-white px-2 py-3 md:py-4 text-xs md:text-sm font-bold text-slate-700 outline-none cursor-pointer">
-                            <option value="">Mês</option>
-                            {months.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                          </select>
-                          <select value={ano} onChange={(e) => setAno(e.target.value)} className="w-full rounded-xl border border-slate-200 bg-white px-2 py-3 md:py-4 text-xs md:text-sm font-bold text-slate-700 outline-none cursor-pointer">
-                            <option value="">Ano</option>
-                            {years.map((y) => <option key={y} value={String(y)}>{y}</option>)}
-                          </select>
-                        </div>
+                        <div className="flex gap-2">
+                             <select value={dep.dia} onChange={(e) => updateDependente(index, 'dia', e.target.value)} className="flex-1 rounded-xl border border-slate-200 bg-slate-50 p-2 md:p-3 text-xs font-bold outline-none cursor-pointer">
+                               {/* ◄── ADICIONADO OPTION VAZIO ──► */}
+                               <option value="">Dia</option>
+                               {days.map(d => <option key={d} value={String(d).padStart(2,'0')}>{d}</option>)}
+                             </select>
+                             <select value={dep.mes} onChange={(e) => updateDependente(index, 'mes', e.target.value)} className="flex-1 rounded-xl border border-slate-200 bg-slate-50 p-2 md:p-3 text-xs font-bold outline-none cursor-pointer">
+                               {/* ◄── ADICIONADO OPTION VAZIO ──► */}
+                               <option value="">Mês</option>
+                               {months.map(([v]) => <option key={v} value={v}>{v}</option>)}
+                             </select>
+                             <select value={dep.ano} onChange={(e) => updateDependente(index, 'ano', e.target.value)} className="flex-1 rounded-xl border border-slate-200 bg-slate-50 p-2 md:p-3 text-xs font-bold outline-none cursor-pointer">
+                               {/* ◄── ADICIONADO OPTION VAZIO ──► */}
+                               <option value="">Ano</option>
+                               {years.map(y => <option key={y} value={String(y)}>{y}</option>)}
+                             </select>
+                           </div>
                       </div>
                       {errors.data_nascimento && <p className="text-xs font-bold text-red-500 mt-1">⚠ {errors.data_nascimento}</p>}
                     </div>
