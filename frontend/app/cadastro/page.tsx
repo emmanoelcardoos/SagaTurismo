@@ -680,13 +680,21 @@ export default function CadastroPage() {
                           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F9C400] text-[#00577C]"><ShieldCheck size={20} /></div>
                           <div><p className="text-[10px] font-black uppercase text-slate-600 tracking-widest leading-tight">Documento Comprobatório *</p></div>
                         </div>
-                        <FileUploader onFileSelect={setArquivo} error={errors.arquivo} />
+                        <FileUploader 
+                          onFileSelect={setArquivo} 
+                          error={errors.arquivo} 
+                          accept="application/pdf, image/jpeg, image/png" 
+                        />
                       </div>
 
                       <div className="space-y-5 md:space-y-6">
                         <div className={`rounded-3xl border-2 bg-slate-50 p-5 md:p-6 transition-colors ${errors.foto ? 'border-red-300' : 'border-slate-100 hover:border-slate-200'}`}>
                           <p className="text-xs font-black uppercase tracking-widest text-[#00577C] mb-4 md:mb-5 flex items-center gap-2"><Camera size={16} className="md:w-[18px] md:h-[18px]"/> Selfie do Titular *</p>
-                          <FileUploader onFileSelect={setFoto} error={errors.foto} />
+                          <FileUploader 
+                            onFileSelect={setFoto} 
+                            error={errors.foto} 
+                            accept="image/jpeg, image/png" 
+                          />
                         </div>
 
                         {hasDependentes && dependentes.map((dep, index) => (
@@ -695,7 +703,11 @@ export default function CadastroPage() {
                                <Camera size={16} className="text-[#00577C] md:w-[18px] md:h-[18px]"/> 
                                Selfie: {dep.nome ? dep.nome.split(' ')[0] : `Familiar ${index+1}`} *
                             </p>
-                            <FileUploader onFileSelect={(f) => updateDependente(index, 'foto', f)} error={errors.dependentes?.[index]?.foto} />
+                            <FileUploader 
+                              onFileSelect={(f) => updateDependente(index, 'foto', f)} 
+                              error={errors.dependentes?.[index]?.foto} 
+                              accept="image/jpeg, image/png" 
+                            />
                           </div>
                         ))}
                       </div>
