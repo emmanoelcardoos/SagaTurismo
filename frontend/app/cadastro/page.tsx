@@ -487,9 +487,7 @@ export default function CadastroPage() {
 
           <div className="relative z-10 mx-auto max-w-7xl px-5 md:px-6">
             <div className="max-w-2xl">
-              <div className="inline-flex items-center gap-2 bg-[#F9C400] text-[#00577C] px-4 py-1.5 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest mb-5 md:mb-6 shadow-sm">
-                <Wallet size={14}/> Taxa de Emissão: R$ 20,00 / pessoa
-              </div>
+              
               
               <h1 className={`${jakarta.className} text-3xl sm:text-5xl md:text-6xl font-black text-white leading-tight mb-4 md:mb-6`}>
                 Cartão <span className="text-[#F9C400]">Residente.</span>
