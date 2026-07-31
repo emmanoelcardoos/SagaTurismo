@@ -7,9 +7,17 @@ from app.routes import residentes, fiscal, pagamentos, webhooks, validacao, parc
 app = FastAPI(title="API SagaTurismo - São Geraldo do Araguaia")
 
 # --- CONFIGURAÇÃO DO CORS ---
+# ◄── BLINDAGEM DE SEGURANÇA: Apenas estes domínios podem aceder à API
+origens_permitidas = [
+    "http://localhost:3000",             # Para continuares a testar localmente no teu PC
+    "https://saga-turismo.vercel.app",   # O teu link antigo da Vercel
+    "https://sagatur.com.br",            # O TEU NOVO DOMÍNIO OFICIAL
+    "https://www.sagatur.com.br"         # O TEU NOVO DOMÍNIO OFICIAL COM WWW
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Permite que a Vercel acesse a API
+    allow_origins=origens_permitidas,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
