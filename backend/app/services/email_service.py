@@ -64,7 +64,7 @@ def enviar_email(
 from typing import List
 
 # Substitua pela constante já existente no seu projeto (ex.: importada de um config.py)
-LOGO_URL = "https://exemplo.com/assets/logo-prefeitura.png"
+LOGO_URL = "https://sagatur.com.br/logop.png"
 
 
 def enviar_carteiras_por_email(email_destino: str, nome_titular: str, caminhos_pdfs: List[str]):
