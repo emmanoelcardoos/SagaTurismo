@@ -183,348 +183,227 @@ def _desenhar_footer_voucher(c: canvas.Canvas, largura: float, pagina: int):
     c.drawRightString(largura - MARGIN_X, 10 * mm, f"Página {pagina} de 2")
 
 
-# ─── 1. GERAÇÃO DA CARTEIRA DIGITAL DE RESIDENTE ────────────────────────────
+# ─── 1. GERAÇÃO DA CARTEIRA DIGITAL DE RESIDENTE (DESIGN MINIMALISTA) ───────
+
+def _primeiro_ultimo_nome(nome_completo: str) -> str:
+    """Reduz um nome completo para 'Primeiro Último' evitando texto espremido/cortado."""
+    nome = _safe(nome_completo, "Residente").strip()
+    partes = [p for p in nome.split() if p]
+    if len(partes) <= 1:
+        return nome.upper() if nome else "RESIDENTE"
+    return f"{partes[0]} {partes[-1]}".upper()
+
+def _foto_arredondada(c, x, y, w, h, foto_url, radius=5 * mm):
+    """Desenha a foto do residente com cantos suavemente arredondados e moldura sutil."""
+    c.saveState()
+    caminho = c.beginPath()
+    caminho.roundRect(x, y, w, h, radius)
+    c.clipPath(caminho, stroke=0, fill=0)
+
+    desenhada = False
+    try:
+        if foto_url:
+            resposta = requests.get(foto_url, timeout=10)
+            if resposta.status_code == 200:
+                img_data = BytesIO(resposta.content)
+                c.drawImage(ImageReader(img_data), x, y, width=w, height=h,
+                            preserveAspectRatio=True, anchor='c', mask='auto')
+                desenhada = True
+    except Exception:
+        desenhada = False
+
+    if not desenhada:
+        c.setFillColor(COR_FUNDO_BOX)
+        c.rect(x, y, w, h, fill=1, stroke=0)
+        c.setFillColor(COR_TEXTO_SUAVE)
+        c.setFont("Helvetica-Oblique", 7)
+        c.drawCentredString(x + w / 2, y + h / 2, "Foto indisponível")
+    c.restoreState()
+
+    # Moldura sutil por cima da foto (uma única linha fina)
+    c.setStrokeColor(COR_LINHA)
+    c.setLineWidth(0.8)
+    c.roundRect(x, y, w, h, radius, fill=0, stroke=1)
+
+def _tag_desconto(c, x_right, y_top, texto="50% DE DESCONTO"):
+    """Badge/tag minimalista de desconto, no lugar do antigo selo circular pesado."""
+    c.setFont("Helvetica-Bold", 6.5)
+    largura_texto = c.stringWidth(texto, "Helvetica-Bold", 6.5)
+    pad_x = 2.6 * mm
+    tag_w = largura_texto / mm * mm + pad_x * 2
+    tag_h = 5.6 * mm
+    x = x_right - tag_w
+    y = y_top - tag_h
+
+    c.setFillColor(COR_DESTAQUE)
+    c.roundRect(x, y, tag_w, tag_h, tag_h / 2, fill=1, stroke=0)
+    # pequeno ponto decorativo
+    c.setFillColor(COR_PRIMARIA)
+    c.circle(x + pad_x * 0.55, y + tag_h / 2, 0.7 * mm, fill=1, stroke=0)
+    c.setFillColor(COR_PRIMARIA)
+    c.setFont("Helvetica-Bold", 6.5)
+    c.drawString(x + pad_x * 0.55 + 1.6 * mm, y + tag_h / 2 - 1.1 * mm, texto)
+    return x, y  # canto inferior esquerdo da tag, útil para posicionar outros elementos
+
+def _chip_status(c, x, y, texto="ATIVO", cor=None):
+    """Pequeno chip de status (ex.: ATIVO), moderno e discreto."""
+    cor = cor or COR_SECUNDARIA
+    c.setFont("Helvetica-Bold", 5.5)
+    largura_texto = c.stringWidth(texto, "Helvetica-Bold", 5.5)
+    pad_x = 2 * mm
+    chip_h = 4 * mm
+    chip_w = largura_texto + pad_x * 2 + 3 * mm
+    c.setFillColor(colors.HexColor("#ffffff"))
+    c.setStrokeColor(cor)
+    c.setLineWidth(0.7)
+    c.roundRect(x, y, chip_w, chip_h, chip_h / 2, fill=1, stroke=1)
+    c.setFillColor(cor)
+    c.circle(x + pad_x, y + chip_h / 2, 0.9 * mm, fill=1, stroke=0)
+    c.setFillColor(COR_TEXTO_ESCURO)
+    c.setFont("Helvetica-Bold", 5.5)
+    c.drawString(x + pad_x + 2.4 * mm, y + chip_h / 2 - 0.9 * mm, texto)
+    return chip_w
+
 
 def gerar_pdf_carteira(residente_data: dict, token: str) -> str:
+    """
+    Gera a Carteira Digital de Residente em um design minimalista e moderno:
+    fundo limpo, tipografia com hierarquia clara, foto com cantos suaves,
+    QR code bem posicionado e uma tag de desconto discreta.
+    """
     os.makedirs("tmp_pdfs", exist_ok=True)
-    nome_pessoa_limpo = residente_data.get('nome', 'Residente').replace(' ', '_')
+    nome_pessoa_limpo = _safe(residente_data.get('nome'), 'Residente').replace(' ', '_')
     caminho_pdf = os.path.abspath(f"tmp_pdfs/Carteira_{nome_pessoa_limpo}_{token[:4]}.pdf")
 
     largura, altura = 135 * mm, 85 * mm
     c = canvas.Canvas(caminho_pdf, pagesize=(largura, altura))
 
-    c.setFillColor(COR_FUNDO)
+    # ── Fundo limpo (branco) ────────────────────────────────────────────
+    c.setFillColor(COR_BRANCO)
     c.rect(0, 0, largura, altura, fill=1, stroke=0)
-    _textura_fundo(c, largura, altura)
 
-    c.setFillColor(COR_VERDE)
-    c.rect(0, 0, 3 * mm, altura, fill=1, stroke=0)
-    c.setFillColor(COR_AMARELO)
-    c.rect(3 * mm, 0, 1.5 * mm, altura, fill=1, stroke=0)
-
-    _gradiente_header(c, largura, altura)
-    _linha_cor(c, 0, altura - 24 * mm, largura, altura - 24 * mm, espessura=1.5, cor=COR_AMARELO)
+    # ── Header sólido, sem gradiente/textura ────────────────────────────
+    h_header = 19 * mm
+    c.setFillColor(COR_PRIMARIA)
+    c.rect(0, altura - h_header, largura, h_header, fill=1, stroke=0)
+    # fio de destaque discreto na base do header
+    c.setFillColor(COR_DESTAQUE)
+    c.rect(0, altura - h_header, largura, 0.9 * mm, fill=1, stroke=0)
 
     logo_src = _obter_logo_institucional()
+    logo_h = 10 * mm
+    logo_y = altura - (h_header / 2) - (logo_h / 2)
     if logo_src:
-        if isinstance(logo_src, BytesIO):
-            c.drawImage(ImageReader(logo_src), 9 * mm, altura - 20 * mm, width=14 * mm, height=14 * mm, mask='auto', preserveAspectRatio=True)
-        else:
-            c.drawImage(logo_src, 9 * mm, altura - 20 * mm, width=14 * mm, height=14 * mm, mask='auto', preserveAspectRatio=True)
+        img_logo = logo_src if isinstance(logo_src, str) else ImageReader(logo_src)
+        c.drawImage(img_logo, 8 * mm, logo_y, width=logo_h, height=logo_h,
+                    mask='auto', preserveAspectRatio=True)
+        texto_x = 8 * mm + logo_h + 3 * mm
     else:
         c.setFillColor(COR_BRANCO)
-        c.circle(16 * mm, altura - 13 * mm, 7 * mm, fill=1, stroke=0)
-        c.setFillColor(COR_AZUL)
-        c.setFont("Helvetica-Bold", 9)
-        c.drawCentredString(16 * mm, altura - 14.5 * mm, "SGA")
+        c.circle(8 * mm + 5 * mm, altura - h_header / 2, 5 * mm, fill=1, stroke=0)
+        c.setFillColor(COR_PRIMARIA)
+        c.setFont("Helvetica-Bold", 7)
+        c.drawCentredString(8 * mm + 5 * mm, altura - h_header / 2 - 1.2 * mm, "SGA")
+        texto_x = 8 * mm + 10 * mm + 3 * mm
 
-    c.setFillColor(COR_AMARELO)
-    c.setFont("Helvetica-Bold", 17)
-    c.drawString(28 * mm, altura - 13 * mm, "SagaTurismo")
+    c.setFillColor(COR_BRANCO)
+    c.setFont("Helvetica-Bold", 11.5)
+    c.drawString(texto_x, altura - h_header / 2 + 1.3 * mm, "SagaTurismo")
+    c.setFillColor(COR_DESTAQUE)
+    c.setFont("Helvetica-Bold", 6)
+    c.drawString(texto_x, altura - h_header / 2 - 4.3 * mm, "CARTEIRA DE RESIDENTE")
 
+    c.setFillColor(colors.HexColor("#ffffffaa"))
+    c.setFont("Helvetica", 5.5)
+    c.drawRightString(largura - 8 * mm, altura - h_header / 2 - 4.3 * mm,
+                       "SÃO GERALDO DO ARAGUAIA · PA")
     c.setFillColor(COR_BRANCO)
     c.setFont("Helvetica-Bold", 6.5)
-    c.drawString(28 * mm, altura - 18.5 * mm, "CARTEIRA DE RESIDENTE  ·  SÃO GERALDO DO ARAGUAIA")
+    c.drawRightString(largura - 8 * mm, altura - h_header / 2 + 1.3 * mm,
+                       f"Nº {token[:8].upper()}")
 
-    c.setFillColor(colors.HexColor("#ffffff60"))
-    c.setFont("Helvetica-Bold", 7)
-    c.drawRightString(largura - 6 * mm, altura - 15 * mm, f"ID: {token[:8].upper()}")
+    # ── Tag de desconto minimalista (substitui o selo circular antigo) ──
+    _tag_desconto(c, largura - 8 * mm, altura - h_header - 4 * mm)
 
-    foto_x, foto_y = 10 * mm, 18 * mm
-    foto_w, foto_h = 36 * mm, 45 * mm
-    _moldura_foto(c, foto_x, foto_y, foto_w, foto_h)
+    # ── Foto do residente (cantos suavemente arredondados) ──────────────
+    foto_x, foto_y = 8 * mm, 10 * mm
+    foto_w, foto_h = 32 * mm, 44 * mm
+    _foto_arredondada(c, foto_x, foto_y, foto_w, foto_h, residente_data.get('foto_url'))
 
-    try:
-        url_foto = residente_data.get('foto_url')
-        if url_foto:
-            response = requests.get(url_foto, timeout=10)
-            img_data = BytesIO(response.content)
-            c.drawImage(ImageReader(img_data), foto_x + 1 * mm, foto_y + 1 * mm, width=foto_w - 2 * mm, height=foto_h - 2 * mm, preserveAspectRatio=True, mask='auto')
-    except Exception:
-        c.setFillColor(COR_CINZA_BORDA)
-        c.roundRect(foto_x + 1 * mm, foto_y + 1 * mm, foto_w - 2 * mm, foto_h - 2 * mm, 3 * mm, fill=1, stroke=0)
-        c.setFillColor(COR_TEXTO_LABEL)
-        c.setFont("Helvetica-Oblique", 7)
-        c.drawCentredString(foto_x + foto_w / 2, foto_y + foto_h / 2, "Foto indisponível")
+    # ── Coluna de dados ───────────────────────────────────────────────
+    x_col = foto_x + foto_w + 8 * mm
+    col_w = largura - x_col - 32 * mm  # reserva espaço para o QR code à direita
 
-    c.setFillColor(COR_AZUL)
-    c.roundRect(foto_x, foto_y - 7.5 * mm, foto_w, 6 * mm, 1.5 * mm, fill=1, stroke=0)
-    c.setFillColor(COR_AMARELO)
-    c.setFont("Helvetica-Bold", 7)
-    c.drawCentredString(foto_x + foto_w / 2, foto_y - 5.5 * mm, "RESIDENTE OFICIAL")
+    y_topo_dados = altura - h_header - 8 * mm
 
-    x_col = 54 * mm
-    col_w  = largura - x_col - 36 * mm
-    _linha_cor(c, x_col - 4 * mm, 12 * mm, x_col - 4 * mm, altura - 28 * mm, espessura=0.8, cor=COR_CINZA_BORDA)
-
-    nome = residente_data.get('nome', '').upper()
-    c.setFillColor(COR_TEXTO_LABEL)
+    # Nome — maior destaque tipográfico (apenas primeiro e último nome)
+    nome_reduzido = _primeiro_ultimo_nome(residente_data.get('nome'))
+    c.setFillColor(COR_TEXTO_SUAVE)
     c.setFont("Helvetica-Bold", 6)
-    c.drawString(x_col, 56 * mm, "NOME DO TITULAR")
-    
-    c.setFillColor(COR_AZUL)
-    c.setFont("Helvetica-Bold", 12)
-    while c.stringWidth(nome, "Helvetica-Bold", 12) > col_w and len(nome) > 4:
-        nome = nome[:-1]
-    c.drawString(x_col, 51.5 * mm, nome)
+    c.drawString(x_col, y_topo_dados, "NOME DO TITULAR")
 
-    _label_valor(c, x_col, 42 * mm, "CPF", residente_data.get('cpf', '000.000.000-00'))
-    _label_valor(c, x_col, 32 * mm, "DATA DE NASCIMENTO", residente_data.get('data_nascimento', '--/--/----'))
+    tam_fonte_nome = 15
+    while c.stringWidth(nome_reduzido, "Helvetica-Bold", tam_fonte_nome) > col_w and tam_fonte_nome > 9:
+        tam_fonte_nome -= 0.5
+    c.setFillColor(COR_PRIMARIA)
+    c.setFont("Helvetica-Bold", tam_fonte_nome)
+    c.drawString(x_col, y_topo_dados - 6.5 * mm, nome_reduzido)
 
-    c.setStrokeColor(COR_CINZA_BORDA)
-    c.setLineWidth(0.5)
-    c.line(x_col, 25 * mm, x_col + col_w, 25 * mm)
+    # Linha fina de separação
+    c.setStrokeColor(COR_LINHA)
+    c.setLineWidth(0.6)
+    c.line(x_col, y_topo_dados - 10 * mm, x_col + col_w, y_topo_dados - 10 * mm)
 
+    # CPF e Data de Nascimento lado a lado
+    y_linha2 = y_topo_dados - 18 * mm
+    meia_col = col_w / 2
+    _label_valor(c, x_col, y_linha2, "CPF", _safe(residente_data.get('cpf')),
+                 tam_label=6, tam_valor=9.5)
+    _label_valor(c, x_col + meia_col, y_linha2, "DATA DE NASCIMENTO",
+                 _safe(residente_data.get('data_nascimento')), tam_label=6, tam_valor=9.5)
+
+    # Validade + chip de status
+    y_linha3 = y_linha2 - 12 * mm
     validade = (datetime.now() + timedelta(days=365)).strftime("%d/%m/%Y")
-    c.setFillColor(COR_TEXTO_LABEL)
+    c.setFillColor(COR_TEXTO_SUAVE)
     c.setFont("Helvetica-Bold", 6)
-    c.drawString(x_col, 23 * mm, "VÁLIDO ATÉ")
-    
-    c.setFillColor(COR_VERDE)
-    c.setFont("Helvetica-Bold", 14)
-    c.drawString(x_col, 16.5 * mm, validade)
+    c.drawString(x_col, y_linha3, "VÁLIDO ATÉ")
+    c.setFillColor(COR_SECUNDARIA)
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(x_col, y_linha3 - 5.5 * mm, validade)
 
-    _badge_desconto(c, largura - 14 * mm, 50 * mm, raio=9 * mm)
+    _chip_status(c, x_col + c.stringWidth(validade, "Helvetica-Bold", 12) + 6 * mm,
+                 y_linha3 - 6.3 * mm, "ATIVO")
 
-    qr_io = gerar_qr_code_em_memoria(f"https://sagatur.com.br/fiscal/validar/{token}")
+    # ── QR Code (canto inferior direito, legível e bem alinhado) ────────
     qr_size = 25 * mm
-    qr_x    = largura - qr_size - 6 * mm
-    qr_y    = 11 * mm
+    qr_x = largura - qr_size - 8 * mm
+    qr_y = 10 * mm
+    qr_io = gerar_qr_code_em_memoria(f"https://sagatur.com.br/fiscal/validar/{token}")
 
     c.setFillColor(COR_BRANCO)
-    c.setStrokeColor(COR_CINZA_BORDA)
-    c.setLineWidth(1)
-    c.roundRect(qr_x - 1.5 * mm, qr_y - 1.5 * mm, qr_size + 3 * mm, qr_size + 3 * mm, 2 * mm, fill=1, stroke=1)
+    c.setStrokeColor(COR_LINHA)
+    c.setLineWidth(0.8)
+    c.roundRect(qr_x - 1.5 * mm, qr_y - 1.5 * mm, qr_size + 3 * mm, qr_size + 3 * mm,
+                2 * mm, fill=1, stroke=1)
     c.drawImage(ImageReader(qr_io), qr_x, qr_y, width=qr_size, height=qr_size)
 
-    c.setFillColor(COR_VERDE)
-    c.setFont("Helvetica-Bold", 5.5)
-    c.drawCentredString(qr_x + qr_size / 2, qr_y - 4 * mm, "VALIDAR ACESSO")
+    c.setFillColor(COR_TEXTO_SUAVE)
+    c.setFont("Helvetica-Bold", 5)
+    c.drawCentredString(qr_x + qr_size / 2, qr_y + qr_size + 2.6 * mm, "VALIDAR AUTENTICIDADE")
 
-    _linha_cor(c, 0, 7.5 * mm, largura, 7.5 * mm, espessura=1, cor=COR_VERDE)
-    c.setFillColor(COR_VERDE)
-    c.rect(0, 0, largura, 7 * mm, fill=1, stroke=0)
-
-    c.setFillColor(COR_AMARELO)
+    # ── Rodapé discreto ──────────────────────────────────────────────────
+    c.setStrokeColor(COR_SECUNDARIA)
+    c.setLineWidth(1)
+    c.line(8 * mm, 6.5 * mm, largura - 8 * mm, 6.5 * mm)
+    c.setFillColor(COR_TEXTO_SUAVE)
+    c.setFont("Helvetica", 5.5)
+    c.drawString(8 * mm, 3.2 * mm, "Secretaria Municipal de Turismo · São Geraldo do Araguaia - PA")
     c.setFont("Helvetica-Bold", 5.5)
-    c.drawCentredString(largura / 2, 2.5 * mm, "DOCUMENTO OFICIAL DA SECRETARIA MUNICIPAL DE TURISMO")
+    c.drawRightString(largura - 8 * mm, 3.2 * mm, "DOCUMENTO OFICIAL")
 
     c.save()
     return caminho_pdf
-
-# ─── 2. GERAÇÃO DO VOUCHER DE HOSPEDAGEM (HOTÉIS / PASSEIOS) ───────────────
-
-def gerar_pdf_voucher(pedido_db: dict, dados_extra: dict = None) -> str:
-    """Gera o PDF com o nome e a estrutura esperados pelo webhook, usando dados do Supabase"""
-    output_dir = "tmp_pdfs"
-    os.makedirs(output_dir, exist_ok=True)
-    
-    if not dados_extra: dados_extra = {}
-    
-    codigo_pedido = _safe(pedido_db.get("codigo_pedido", "SAGA-0000")).upper()
-    caminho_pdf = os.path.join(output_dir, f"Voucher_{codigo_pedido}.pdf")
-    
-    c = canvas.Canvas(caminho_pdf, pagesize=A4)
-    largura, altura = A4
-
-    def nova_pagina(num_pag):
-        _desenhar_footer_voucher(c, largura, num_pag)
-        c.showPage()
-        c.setFillColor(colors.white)
-        c.rect(0, 0, largura, altura, fill=1, stroke=0)
-        _desenhar_header_voucher(c, largura, altura, codigo_pedido)
-        return altura - 45 * mm
-
-    c.setFillColor(colors.white)
-    c.rect(0, 0, largura, altura, fill=1, stroke=0)
-    _desenhar_header_voucher(c, largura, altura, codigo_pedido)
-    y = altura - 40 * mm
-
-    def garantir_espaco(espaco):
-        nonlocal y
-        if y - espaco < 25 * mm: y = nova_pagina(1)
-
-    def desenhar_linha_divisoria():
-        nonlocal y
-        y -= 4 * mm
-        c.setStrokeColor(COR_LINHA)
-        c.setLineWidth(0.8)
-        c.line(MARGIN_X, y, largura - MARGIN_X, y)
-        y -= 8 * mm
-
-    # --- STATUS E IDENTIFICAÇÃO DO PARCEIRO ---
-    hotel_nome = _safe(dados_extra.get("nome") or pedido_db.get("nome_item"), "Acomodação Parceira")
-    hotel_endereco = _safe(dados_extra.get("endereco") or pedido_db.get("endereco_completo"), "São Geraldo do Araguaia - PA")
-
-    c.setFillColor(COR_PRIMARIA)
-    c.setFont("Helvetica-Bold", 8)
-    c.drawString(MARGIN_X, y, "STATUS DA OPERAÇÃO DE TURISMO")
-    y -= 6 * mm
-    c.setFillColor(COR_PRIMARIA)
-    c.setFont("Helvetica-Bold", 18)
-    c.drawString(MARGIN_X, y, hotel_nome[:45])
-    c.setFillColor(COR_SECUNDARIA)
-    c.setFont("Helvetica-Bold", 12)
-    c.drawRightString(largura - MARGIN_X, y, "✓ RESERVA CONFIRMADA")
-    
-    y -= 5 * mm
-    c.setFillColor(COR_TEXTO_MEDIO)
-    c.setFont("Helvetica", 9)
-    c.drawString(MARGIN_X, y, f"Localização: {hotel_endereco}")
-    y -= 2 * mm
-    desenhar_linha_divisoria()
-
-    # --- CARD DE CONFIRMAÇÃO DO CONTROLO MUNICIPAL ---
-    garantir_espaco(35)
-    c.setFillColor(COR_FUNDO_DESTAQUE)
-    c.setStrokeColor(COR_SECUNDARIA)
-    c.setLineWidth(1)
-    c.roundRect(MARGIN_X, y - 22 * mm, largura - 2 * MARGIN_X, 22 * mm, 4 * mm, fill=1, stroke=1)
-    
-    c.setFillColor(COR_PRIMARIA)
-    c.setFont("Helvetica-Bold", 10)
-    c.drawString(MARGIN_X + 8 * mm, y - 8 * mm, "LOCALIZADOR INTEGRADO DO ESTABELECIMENTO (CHECK-IN):")
-    c.setFillColor(COR_PRIMARIA)
-    c.setFont("Helvetica-Bold", 22)
-    c.drawString(MARGIN_X + 8 * mm, y - 17 * mm, codigo_pedido)
-    
-    c.setFillColor(COR_TEXTO_MEDIO)
-    c.setFont("Helvetica", 9)
-    c.drawString(largura - MARGIN_X - 8 * mm, y - 9 * mm, "Apresente este documento na recepção da propriedade.")
-    c.drawString(largura - MARGIN_X - 8 * mm, y - 14 * mm, "O imposto de fomento ao turismo local já se encontra recolhido.")
-    y -= 32 * mm
-
-    # --- INFORMAÇÕES NOMINAIS DOS INTEGRANTES DA COMITIVA (ATUALIZADO DINÂMICO) ---
-    garantir_espaco(30)
-    c.setFillColor(COR_PRIMARIA)
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(MARGIN_X, y, "Manifesto Nominal de Hóspedes Autorizados")
-    y -= 6 * mm
-    
-    c.setFillColor(COR_TEXTO_MEDIO)
-    c.setFont("Helvetica-Bold", 8)
-    c.drawString(MARGIN_X, y, "NOME COMPLETO DO TURISTA")
-    c.drawString(MARGIN_X + 95 * mm, y, "DOCUMENTO REGISTADO (CPF)")
-    c.drawString(MARGIN_X + 150 * mm, y, "VÍNCULO")
-    y -= 5 * mm
-    
-    # Titular da Transação
-    c.setFillColor(COR_TEXTO_ESCURO)
-    c.setFont("Helvetica-Bold", 10)
-    c.drawString(MARGIN_X, y, _safe(pedido_db.get("nome_cliente")).upper())
-    c.setFont("Helvetica", 10)
-    c.drawString(MARGIN_X + 95 * mm, y, _safe(pedido_db.get("cpf_cliente")))
-    c.drawString(MARGIN_X + 150 * mm, y, "TITULAR")
-    y -= 6 * mm
-    
-    # ◄── FIX CORREÇÃO DE ESCOPO: total_pessoas declarada antes das condições (Resolvido!)
-    total_pessoas = pedido_db.get("quantidade_pessoas", 1) or 1
-    lista_acompanhantes = pedido_db.get("hospedes_extras", [])
-    if not isinstance(lista_acompanhantes, list): 
-        lista_acompanhantes = []
-        
-    if lista_acompanhantes:
-        for hospede in lista_acompanhantes:
-            garantir_espaco(8)
-            nome_extra = _safe(hospede.get("nome")).upper()
-            cpf_extra = _safe(hospede.get("cpf"), "NÃO INFORMADO")
-            data_nasc_extra = _formatar_data_br(hospede.get("data_nascimento"))
-            
-            doc_exibicao = f"{cpf_extra} ({data_nasc_extra})" if data_nasc_extra != "—" else cpf_extra
-            
-            c.setFillColor(COR_TEXTO_ESCURO)
-            c.setFont("Helvetica-Bold", 10)
-            c.drawString(MARGIN_X, y, nome_extra)
-            c.setFont("Helvetica", 10)
-            c.drawString(MARGIN_X + 95 * mm, y, doc_exibicao)
-            c.drawString(MARGIN_X + 150 * mm, y, "ACOMPANHANTE")
-            y -= 6 * mm
-    else:
-        if total_pessoas > 1:
-            for idx in range(1, total_pessoas):
-                garantir_espaco(8)
-                c.setFillColor(COR_TEXTO_ESCURO)
-                c.setFont("Helvetica-Bold", 10)
-                c.drawString(MARGIN_X, y, f"ACOMPANHANTE {idx} (REGISTADO NO SISTEMA)")
-                c.setFont("Helvetica", 10)
-                c.drawString(MARGIN_X + 95 * mm, y, "VINCULADO AO CPF TITULAR")
-                c.drawString(MARGIN_X + 150 * mm, y, "ACOMPANHANTE")
-                y -= 6 * mm
-            
-    desenhar_linha_divisoria()
-
-    # --- DETALHES DE ALOCAÇÃO DO QUARTO E ESTADIA ---
-    garantir_espaco(50)
-    c.setFillColor(COR_PRIMARIA)
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(MARGIN_X, y, "Especificações da Estadia Contratada")
-    y -= 8 * mm
-
-    tipo_quarto_bruto = str(pedido_db.get("tipo_quarto", "standard")).lower()
-    nome_quarto_real = _safe(dados_extra.get(f"quarto_{tipo_quarto_bruto}_nome"), "Quarto Standard")
-    
-    politicas_json = dados_extra.get("politicas", {})
-    if not isinstance(politicas_json, dict): politicas_json = {}
-    checkin_hora = _safe(politicas_json.get("horario_checkin"), "14:00h")
-    checkout_hora = _safe(politicas_json.get("horario_checkout"), "12:00h")
-
-    c.setFillColor(COR_FUNDO_BOX)
-    c.setStrokeColor(COR_LINHA)
-    c.setLineWidth(1)
-    altura_box = 28 * mm
-    c.roundRect(MARGIN_X, y - altura_box + 4 * mm, largura - 2 * MARGIN_X, altura_box, 3 * mm, fill=1, stroke=1)
-
-    c.setFillColor(COR_PRIMARIA)
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(MARGIN_X + 6 * mm, y - 3 * mm, "BED")
-    
-    c.setFillColor(COR_TEXTO_ESCURO)
-    c.setFont("Helvetica-Bold", 10)
-    c.drawString(MARGIN_X + 16 * mm, y - 2 * mm, nome_quarto_real.upper())
-    c.setFillColor(COR_TEXTO_MEDIO)
-    c.setFont("Helvetica", 8)
-    c.drawString(MARGIN_X + 16 * mm, y - 6 * mm, f"Regime de Acomodação: Tarifa Regulamentada pela Secretaria de Turismo")
-    
-    y -= 14 * mm
-    
-    # Coluna Entrada
-    c.setFillColor(COR_PRIMARIA); c.setFont("Helvetica-Bold", 14); c.drawString(MARGIN_X + 16 * mm, y, checkin_hora)
-    c.setFillColor(COR_TEXTO_ESCURO); c.setFont("Helvetica-Bold", 10); c.drawString(MARGIN_X + 32 * mm, y, "CHECK-IN")
-    c.setFillColor(COR_TEXTO_MEDIO); c.setFont("Helvetica", 8); c.drawString(MARGIN_X + 16 * mm, y - 4 * mm, _formatar_data_br(pedido_db.get("data_checkin")))
-
-    c.setFillColor(COR_TEXTO_SUAVE); c.setFont("Helvetica", 14); c.drawString(largura / 2 - 5 * mm, y, "➔")
-
-    # Coluna Saída
-    X_SAIDA = largura / 2 + 25 * mm
-    c.setFillColor(COR_PRIMARIA); c.setFont("Helvetica-Bold", 14); c.drawString(X_SAIDA, y, checkout_hora)
-    c.setFillColor(COR_TEXTO_ESCURO); c.setFont("Helvetica-Bold", 10); c.drawString(X_SAIDA + 18 * mm, y, "CHECK-OUT")
-    c.setFillColor(COR_TEXTO_MEDIO); c.setFont("Helvetica", 8); c.drawString(X_SAIDA, y - 4 * mm, _formatar_data_br(pedido_db.get("data_checkout")))
-
-    y -= 18 * mm
-    desenhar_linha_divisoria()
-
-    # --- RESUMO FINANCEIRO INTEGRADO DO PAGBANK ---
-    garantir_espaco(30)
-    c.setFillColor(COR_PRIMARIA)
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(MARGIN_X, y, "Balanço Consolidado Financeiro")
-    y -= 6 * mm
-
-    num_quartos = pedido_db.get("quantidade_quartos", 1) or pedido_db.get("quantidade", 1) or 1
-    c.setFillColor(COR_TEXTO_MEDIO)
-    c.setFont("Helvetica", 10)
-    c.drawString(MARGIN_X, y, f"Unidade(s) de Quarto Alocada(s): {num_quartos} quarto(s)")
-    y -= 5 * mm
-    c.drawString(MARGIN_X, y, f"Total de Hóspedes Cobertos nesta Tarifa: {total_pessoas} pessoa(s)")
-    
-    c.setFillColor(COR_TEXTO_ESCURO)
-    c.setFont("Helvetica-Bold", 10)
-    c.drawRightString(largura - MARGIN_X, y + 5 * mm, "Total Líquido Liquidado:")
-    c.setFillColor(COR_PRIMARIA)
-    c.setFont("Helvetica-Bold", 16)
-    c.drawRightString(largura - MARGIN_X, y - 1 * mm, formatar_moeda(pedido_db.get("valor_total")))
-
-    _desenhar_footer_voucher(c, largura, 1)
 
     # =========================================================================
     # PÁGINA 2: CLÁUSULAS REGULAMENTARES E POLÍTICAS REAIS DA HOSPEDAGEM
