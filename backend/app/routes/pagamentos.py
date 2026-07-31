@@ -560,40 +560,51 @@ async def processar_carteira_gratuita(pedido: PedidoCarteiraGratuita):
             raise HTTPException(status_code=400, detail="Erro ao registar a emissão gratuita na base de dados.")
             
         # ====================================================================
-        # GERAÇÃO DO PDF E ENVIO DE E-MAIL (REAPROVEITANDO OS SERVIÇOS EXISTENTES)
+        # GERAÇÃO DO PDF E ENVIO DE E-MAIL (AGORA PARA A FAMÍLIA TODA)
         # ====================================================================
         if pedido.token_id:
-            # Busca os dados originais do residente na base
-            res_res = supabase.table("rd_residentes").select("*").eq("id", pedido.token_id).execute()
+            # 1. Busca o titular E os seus dependentes
+            titular_res = supabase.table("rd_residentes").select("*").eq("id", pedido.token_id).execute()
+            deps_res = supabase.table("rd_residentes").select("*").eq("titular_id", pedido.token_id).execute()
             
-            if res_res.data:
-                residente = res_res.data[0]
+            # Junta o titular e a família numa única lista
+            membros_familia = (titular_res.data or []) + (deps_res.data or [])
+            
+            caminhos_pdfs = []
+            
+            if membros_familia:
+                # 2. Faz um "loop" por cada membro da família
+                for residente in membros_familia:
+                    # Atualiza o status para ativo
+                    supabase.table("rd_residentes").update({"status": "ativo"}).eq("id", residente["id"]).execute()
+                    
+                    # Gera o PDF individual
+                    dados_pdf = {
+                        "nome": residente.get("nome_completo") or pedido.nome_cliente,
+                        "cpf": residente.get("cpf") or pedido.cpf_cliente,
+                        "data_nascimento": residente.get("data_nascimento") or pedido.data_nascimento or "--/--/----",
+                        "foto_url": residente.get("foto_url") or pedido.foto_url
+                    }
+                    caminho_pdf = gerar_pdf_carteira(dados_pdf, residente.get("qrcode_token") or residente["id"])
+                    
+                    if caminho_pdf:
+                        caminhos_pdfs.append(caminho_pdf)
                 
-                # 1. Atualiza o status do residente para ativo (já que a emissão foi validada gratuitamente)
-                supabase.table("rd_residentes").update({"status": "ativo"}).eq("id", residente["id"]).execute()
-                
-                # 2. Gera o PDF lindíssimo da carteira usando a função existente
-                dados_pdf = {
-                    "nome": residente.get("nome_completo") or pedido.nome_cliente,
-                    "cpf": residente.get("cpf") or pedido.cpf_cliente,
-                    "data_nascimento": residente.get("data_nascimento") or pedido.data_nascimento or "--/--/----",
-                    "foto_url": residente.get("foto_url") or pedido.foto_url
-                }
-                caminho_pdf = gerar_pdf_carteira(dados_pdf, residente.get("qrcode_token") or residente["id"])
-                
-                # 3. Dispara o e-mail oficial com o anexo do PDF
-                if caminho_pdf:
+                # 3. Dispara UM único e-mail oficial com TODOS os anexos PDF
+                if caminhos_pdfs:
                     try:
-                        enviar_carteiras_por_email(pedido.email_cliente, pedido.nome_cliente, [caminho_pdf])
-                        print(f"[EMISSÃO GRATUITA] E-mail e PDF enviados com sucesso para {pedido.email_cliente}")
+                        enviar_carteiras_por_email(pedido.email_cliente, pedido.nome_cliente, caminhos_pdfs)
+                        print(f"[EMISSÃO GRATUITA] E-mail com {len(caminhos_pdfs)} carteira(s) enviado com sucesso para {pedido.email_cliente}")
                     except Exception as err_email:
                         print(f"[ERRO E-MAIL] Falha ao enviar carteira gratuita: {err_email}")
 
         return {
             "sucesso": True,
             "codigo_pedido": codigo_pedido,
-            "mensagem": "Carteira aprovada e emitida com sucesso!"
+            "mensagem": "Carteiras aprovadas e emitidas com sucesso!"
         }
+
+        
 
     except Exception as e:
         print(f"Erro na emissão gratuita: {e}")

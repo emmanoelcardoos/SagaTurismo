@@ -85,19 +85,24 @@ async def webhook_pagbank(request: Request):
                 residentes_encontrados = []
 
                 if token_id:
-                    res_res = supabase.table("rd_residentes").select("*").eq("id", token_id).execute()
-                    if not res_res.data:
-                        res_res = supabase.table("rd_residentes").select("*").eq("qrcode_token", token_id).execute()
-                    residentes_encontrados = res_res.data
+                    # Busca o titular
+                    titular_res = supabase.table("rd_residentes").select("*").eq("id", token_id).execute()
+                    # Busca os dependentes amarrados ao titular
+                    deps_res = supabase.table("rd_residentes").select("*").eq("titular_id", token_id).execute()
+                    
+                    # Junta todos os encontrados
+                    residentes_encontrados = (titular_res.data or []) + (deps_res.data or [])
                 
+                # Se mesmo assim falhar (backup de segurança via CPF)
                 if not residentes_encontrados:
                     res_res = supabase.table("rd_residentes").select("*").eq("cpf", pedido.get("cpf_cliente")).execute()
-                    residentes_encontrados = res_res.data
+                    residentes_encontrados = res_res.data or []
 
                 if residentes_encontrados:
                     caminhos_pdfs = []
                     email_real_destino = email_cliente
                     nome_real_destino = nome_cliente
+
 
                     for res in residentes_encontrados:
                         supabase.table("rd_residentes").update({"status": "ativo"}).eq("id", res["id"]).execute()
