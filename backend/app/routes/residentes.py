@@ -33,6 +33,16 @@ async def cadastrar_residente(
         # Validação de segurança
         if len(membros) != len(fotos):
             return {"status": "erro", "mensagem": "O número de dados e de fotos não coincide."}
+            
+        # ◄── NOVA VALIDAÇÃO DE SEGURANÇA NO BACKEND (BLOQUEIA HACKERS E ERROS)
+        formatos_imagem = ["image/jpeg", "image/png", "image/jpg"]
+        for foto in fotos:
+            if foto.content_type not in formatos_imagem:
+                return {"status": "erro", "mensagem": "As selfies devem ser obrigatoriamente imagens (JPG/PNG)."}
+                
+        formatos_comprovante = ["application/pdf", "image/jpeg", "image/png", "image/jpg"]
+        if arquivo.content_type not in formatos_comprovante:
+            return {"status": "erro", "mensagem": "O documento comprobatório deve ser um PDF ou Imagem."}
         
         # Extrair a lista de nomes para mandar para a IA
         lista_nomes = [m["nome"] for m in membros]
@@ -45,8 +55,13 @@ async def cadastrar_residente(
         supabase.storage.from_("comprovantes").upload(path_comp, contents_comprovante)
         url_comprovante = supabase.storage.from_("comprovantes").get_public_url(path_comp)
 
-        # 3. Validação Real com Gemini (Enviando a família toda)
-        analise_ia = validar_endereco_com_ia(contents_comprovante, lista_nomes)
+        # 3. Validação Real com Gemini (Enviando a família toda E O FORMATO CORRETO)
+        # ◄── AGORA ENVIAMOS O mime_type PARA A IA SABER SE É PDF OU FOTO
+        analise_ia = validar_endereco_com_ia(
+            imagem_bytes=contents_comprovante, 
+            lista_nomes=lista_nomes,
+            mime_type=arquivo.content_type
+        )
         
         if not analise_ia.get('valido'):
             return {
