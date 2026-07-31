@@ -20,7 +20,7 @@ COR_LINHA = colors.HexColor("#e2e8f0")          # Slate 200
 COR_FUNDO_BOX = colors.HexColor("#f8fafc")      # Slate 50
 COR_FUNDO_DESTAQUE = colors.HexColor("#f0fdf4") # Green 50
 
-LOGO_URL = "https://saga-turismo.vercel.app/logop.png"
+LOGO_URL = "https://sagatur.com.br/logop.png"
 MARGIN_X = 20 * mm
 
 # Aliases de retrocompatibilidade para a Carteira de Residente
@@ -286,7 +286,7 @@ def gerar_pdf_carteira(residente_data: dict, token: str) -> str:
 
     _badge_desconto(c, largura - 14 * mm, 50 * mm, raio=9 * mm)
 
-    qr_io = gerar_qr_code_em_memoria(f"https://saga-turismo.vercel.app/fiscal/validar/{token}")
+    qr_io = gerar_qr_code_em_memoria(f"https://sagatur.com.br/fiscal/validar/{token}")
     qr_size = 25 * mm
     qr_x    = largura - qr_size - 6 * mm
     qr_y    = 11 * mm

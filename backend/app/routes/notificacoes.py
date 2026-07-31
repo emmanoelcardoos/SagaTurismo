@@ -56,7 +56,7 @@ async def webhook_supabase_passeio_aprovado(request: Request):
                 nome_guia = res_guia.data.get("nome_negocio", "Guia Credenciado")
                 
                 # Link dinâmico oficial para partilha nas redes sociais
-                link_vendas = f"https://sagaturismo.com.br/passeios/{passeio_id}"
+                link_vendas = f"https://sagatur.com.br/passeios/{passeio_id}"
 
                 # Envia o e-mail oficial com o link de partilha
                 notificar_guia_passeio_aprovado(email_guia, nome_guia, nome_passeio, link_vendas)
