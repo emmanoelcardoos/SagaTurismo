@@ -10,3 +10,5 @@ pillow
 qrcode==7.4.2
 Pillow>=11.0.0
 resend
+svglib
+reportlab
