@@ -77,7 +77,7 @@ def enviar_carteiras_por_email(email_destino: str, nome_titular: str, caminhos_p
 
         <!-- Preheader (texto de pré-visualização, invisível no corpo do e-mail) -->
         <div style="display:none; font-size:1px; line-height:1px; max-height:0; max-width:0; opacity:0; overflow:hidden; color:#F8FAFC;">
-            O seu cadastro foi aprovado e a emissão foi concluída. A Carteira Digital de Residente já está pronta.
+            O seu cadastro foi aprovado e a emissão foi concluída. A Carteira Digital do Residente já está pronta.
             &#8203;&nbsp;&zwnj;&nbsp;&#8203;&nbsp;&zwnj;&nbsp;&#8203;&nbsp;&zwnj;&nbsp;
         </div>
 
@@ -118,7 +118,7 @@ def enviar_carteiras_por_email(email_destino: str, nome_titular: str, caminhos_p
                                         <td style="padding:28px 28px 24px 28px;">
 
                                             <p style="margin:0 0 20px 0; font-family:{FONT_STACK}; font-size:12px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:#009640;">
-                                                Os seus benefícios
+                                                O seu benefício
                                             </p>
 
                                             <!-- Benefício 1 -->
@@ -132,7 +132,7 @@ def enviar_carteiras_por_email(email_destino: str, nome_titular: str, caminhos_p
                                                         </table>
                                                     </td>
                                                     <td valign="top" style="font-family:{FONT_STACK}; font-size:15px; line-height:1.5; color:#334155;">
-                                                        <strong style="color:#0f172a;">50% de desconto automático</strong> em alojamentos locais.
+                                                        <strong style="color:#0f172a;">50% de desconto automático</strong> na entrada do Parque Três Quedas.
                                                     </td>
                                                 </tr>
                                             </table>
@@ -140,22 +140,6 @@ def enviar_carteiras_por_email(email_destino: str, nome_titular: str, caminhos_p
                                             <!-- Espaçador -->
                                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                                                 <tr><td style="height:16px; line-height:16px; font-size:0;">&nbsp;</td></tr>
-                                            </table>
-
-                                            <!-- Benefício 2 -->
-                                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;">
-                                                <tr>
-                                                    <td width="32" valign="top" style="width:32px; padding-right:14px;">
-                                                        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:24px; height:24px;">
-                                                            <tr>
-                                                                <td align="center" valign="middle" style="width:24px; height:24px; border-radius:50%; background-color:#009640; font-family:{FONT_STACK}; font-size:13px; font-weight:700; line-height:24px; color:#FFFFFF;">&#10003;</td>
-                                                            </tr>
-                                                        </table>
-                                                    </td>
-                                                    <td valign="top" style="font-family:{FONT_STACK}; font-size:15px; line-height:1.5; color:#334155;">
-                                                        <strong style="color:#0f172a;">Isenção de taxas municipais</strong> em atrações.
-                                                    </td>
-                                                </tr>
                                             </table>
 
                                         </td>
@@ -170,7 +154,7 @@ def enviar_carteiras_por_email(email_destino: str, nome_titular: str, caminhos_p
                                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; background-color:#FFFBEB; border-radius:14px;">
                                     <tr>
                                         <td style="padding:16px 20px; font-family:{FONT_STACK}; font-size:13px; line-height:1.6; color:#92620A;">
-                                            📎&nbsp; Faça o download dos PDFs em anexo e guarde-os no seu telemóvel — vai precisar de apresentar o QR Code quando solicitado.
+                                            📎&nbsp; Faça o download dos PDFs em anexo e guarde-os no seu celular — vai precisar de apresentar o QR Code quando solicitado.
                                         </td>
                                     </tr>
                                 </table>
