@@ -103,7 +103,7 @@ def gerar_pdf_carteira(residente_data: dict, token: str) -> str:
 
     # Logo Institucional Grande no Header
     logo_src = _obter_logo_institucional()
-    logo_h = 12 * mm
+    logo_h = 15 * mm
     logo_x = 6 * mm
     logo_y = altura - (h_header / 2) - (logo_h / 2)
 
