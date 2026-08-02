@@ -870,12 +870,31 @@ export default function HomePage() {
 import Link from 'next/link';
 import Image from 'next/image';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
-import { IdCard, ArrowRight } from 'lucide-react';
+import { IdCard, ArrowRight, Menu, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '700', '800'] });
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
 
 export default function HomePage() {
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [showHeader, setShowHeader] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      setIsScrolled(currentScrollY > 50);
+      if (currentScrollY < 80) setShowHeader(true);
+      else if (currentScrollY > lastScrollY) setShowHeader(false);
+      else setShowHeader(true);
+      setLastScrollY(currentScrollY);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [lastScrollY]);
+
   return (
     <main className={`${inter.className} min-h-screen flex flex-col bg-[#002f40] relative overflow-hidden`}>
 
@@ -899,17 +918,57 @@ export default function HomePage() {
       <div className="absolute bottom-0 left-0 z-0 w-[460px] h-[360px] pointer-events-none"
         style={{ background: 'radial-gradient(ellipse at bottom left, rgba(0,150,64,0.09) 0%, transparent 65%)' }} />
 
-      {/* ── HEADER ── */}
-      <header className="relative z-10 w-full pt-9">
-        <div className="w-full max-w-[1400px] mx-auto px-8 md:px-14">
-          <div className="relative h-14 w-44 md:h-16 md:w-52">
-            <Image src="/logop.png" alt="Prefeitura Municipal" fill className="object-contain object-left brightness-0 invert" />
-          </div>
+      {/* ── HEADER ORIGINAL (COMPLETO E NAVEGÁVEL) ── */}
+      <header
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${showHeader ? 'translate-y-0' : '-translate-y-full'} ${isScrolled ? 'bg-[#002f40]/95 backdrop-blur-md shadow-sm border-b border-white/10' : 'bg-transparent'}`}
+      >
+        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4">
+          <Link href="/" className="flex items-center gap-3">
+            <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
+              <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain brightness-0 invert" />
+            </div>
+          </Link>
+
+          <nav className="hidden lg:flex items-center gap-8">
+            {['Hoteis', 'Pacotes', 'Atracoes', 'Passeios', 'Biodiversidade', 'Gastronomia', 'Comunidades','Parceiros'].map(item => (
+              <Link key={item} href={`/${item.toLowerCase()}`}
+                className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-white/50 hover:text-white transition-colors`}
+              >
+                {item}
+              </Link>
+            ))}
+            <Link href="/cadastro"
+              className={`${jakarta.className} bg-[#F9C400] text-[#002f40] px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-sm`}>
+              Residente
+            </Link>
+          </nav>
+
+          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="rounded-xl p-2 lg:hidden bg-white/10 text-white hover:bg-white/20 transition-colors">
+            {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
         </div>
+
+        {isMobileMenuOpen && (
+          <div className="absolute top-full left-0 w-full bg-[#002f40] border-b border-white/10 p-6 flex flex-col gap-4 shadow-2xl lg:hidden z-50">
+            {['Hoteis', 'Pacotes', 'Atracoes', 'Passeios', 'Aldeias', 'Biodiversidade', 'Informacoes', 'Parceiros'].map(item => (
+              <Link key={item} href={`/${item.toLowerCase()}`}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`${jakarta.className} font-black text-white/60 hover:text-white text-lg border-b border-white/10 pb-2 transition-colors`}>
+                {item}
+              </Link>
+            ))}
+            <Link href="/cadastro"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md mt-2`}>
+              Cartão Residente
+            </Link>
+          </div>
+        )}
       </header>
 
       {/* ── CONTEÚDO PRINCIPAL ── */}
-      <div className="relative z-10 flex-1 flex items-center">
+      <div className="relative z-10 flex-1 flex items-center mt-20"> 
         <div className="w-full max-w-[1400px] mx-auto px-8 md:px-14 py-16 md:py-0">
           <div className="grid md:grid-cols-2 gap-14 md:gap-20 items-center">
 

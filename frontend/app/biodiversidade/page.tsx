@@ -31,7 +31,6 @@ function useScrollAnimation(threshold = 0.08) {
   return { ref, isVisible };
 }
 
-
 function Reveal({ children, className = "", anim = "up", delay = 0 }: { children: ReactNode; className?: string; anim?: "up" | "left" | "right" | "zoom" | "fade"; delay?: number; }) {
   const { ref, isVisible } = useScrollAnimation();
   const hidden: Record<string, string> = {
@@ -76,7 +75,7 @@ const flora = [
 ];
 
 // ==========================================
-// DADOS — 6 CACHOEIRAS COM IMAGENS (TODAS COM DESTAQUE = TRUE)
+// DADOS — 6 CACHOEIRAS
 // ==========================================
 const cachoeiras = [
   {
@@ -84,7 +83,7 @@ const cachoeiras = [
     altura: "",
     dificuldade: "Não classificada",
     descricao: "Sem descrição",
-    destaque: true,   // <-- CORRIGIDO
+    destaque: true,
     imagem: "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/c2085f3b-dde5-4a96-b346-329b30ec4054.JPG"
   },
   {
@@ -148,7 +147,6 @@ function HeroBiodiversidade() {
 
   return (
     <section className="relative h-[80vh] flex flex-col items-start justify-end pb-24 px-6 md:px-12 overflow-hidden bg-[#021a0d]">
-      {/* Parallax image */}
       <div className="absolute inset-0 z-0" style={{ transform: `translateY(${scrollY * 0.3}px)` }}>
         <Image
           src="https://images.pexels.com/photos/18064280/pexels-photo-18064280.jpeg?_gl=1*1at0h8g*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzk1MDQ0MjUkbzUyJGcxJHQxNzc5NTA0ODIxJGo1OSRsMCRoMA.."
@@ -157,32 +155,26 @@ function HeroBiodiversidade() {
         />
       </div>
 
-      {/* Gradientes */}
       <div className="absolute inset-0 bg-gradient-to-t from-[#021a0d] via-[#021a0d]/30 to-transparent z-0" />
       <div className="absolute inset-0 bg-gradient-to-r from-[#021a0d]/60 to-transparent z-0" />
 
-      {/* Conteúdo */}
       <div className="relative z-10 max-w-[1400px] w-full mx-auto">
         <div className="flex flex-col items-start">
-
           <h1 className={`${jakarta.className} text-[clamp(3.5rem,8vw,9rem)] font-black text-white leading-[0.88] mb-6`}>
             Bio<br />
             <span className="text-[#009640] italic">diversidade</span>
           </h1>
-
           <p className="text-white/60 text-base md:text-xl max-w-lg mb-10 font-medium leading-relaxed">
             Onde a Amazônia encontra o Cerrado.
           </p>
         </div>
       </div>
 
-      {/* Scroll indicator */}
       <div className="absolute bottom-8 right-8 md:right-12 z-10 flex flex-col items-center gap-2">
         <p className="text-white/30 font-black text-[8px] uppercase tracking-widest [writing-mode:vertical-lr]">Scroll</p>
         <ChevronDown size={16} className="text-white/30 animate-bounce" />
       </div>
 
-      {/* Stats flutuantes */}
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 hidden md:flex gap-8">
         {[
           { n: "+50", label: "Cachoeiras" },
@@ -206,7 +198,6 @@ function SecParque() {
   return (
     <section id="parque" className="py-24 bg-[#021a0d] overflow-hidden">
       <div className="max-w-[1400px] mx-auto px-6 md:px-12">
-
         <Reveal anim="up" className="mb-20">
           <div className="flex flex-col md:flex-row gap-12 md:gap-24 items-end">
             <div className="flex-1">
@@ -223,10 +214,7 @@ function SecParque() {
           </div>
         </Reveal>
 
-        {/* Bento grid — parque */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
-
-          {/* Card grande — serras */}
           <Reveal anim="right" className="md:col-span-7">
             <div className="group relative h-[460px] rounded-[2rem] overflow-hidden bg-[#051a09]">
               <Image src="https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/Serra_Das_Andorinhas_02.JPG" alt="Floresta da Serra" fill className="object-cover opacity-60 group-hover:scale-105 group-hover:opacity-80 transition-all duration-1000" />
@@ -239,7 +227,6 @@ function SecParque() {
             </div>
           </Reveal>
 
-          {/* Coluna de mini cards */}
           <div className="md:col-span-5 flex flex-col gap-5">
             <Reveal anim="left" delay={100}>
               <div className="group relative h-[220px] rounded-[2rem] overflow-hidden bg-[#00577C]">
@@ -277,10 +264,7 @@ function SecParque() {
 function SecBiomas() {
   return (
     <section className="relative overflow-hidden">
-      {/* Linha divisória entre biomas */}
       <div className="grid grid-cols-1 md:grid-cols-2 min-h-[70vh]">
-
-        {/* Amazônia */}
         <div className="relative group overflow-hidden bg-[#021a0d] flex items-end p-10 md:p-16 min-h-[50vh] md:min-h-0">
           <Image src="https://images.pexels.com/photos/4642462/pexels-photo-4642462.jpeg?_gl=1*170nnnw*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3ODA3NTAwOTQkbzY5JGcxJHQxNzgwNzUwNTU2JGozNyRsMCRoMA.." alt="Floresta Amazônica" fill className="object-cover opacity-40 group-hover:scale-105 group-hover:opacity-55 transition-all duration-1000" />
           <div className="absolute inset-0 bg-gradient-to-t from-[#021a0d]/95 via-[#021a0d]/30 to-transparent" />
@@ -299,7 +283,6 @@ function SecBiomas() {
           </Reveal>
         </div>
 
-        {/* Cerrado */}
         <div className="relative group overflow-hidden bg-[#1a0e02] flex items-end p-10 md:p-16 min-h-[50vh] md:min-h-0">
           <Image src="https://images.pexels.com/photos/9101309/pexels-photo-9101309.jpeg?_gl=1*rgl0ww*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3ODA3NTAwOTQkbzY5JGcxJHQxNzgwNzUwNTk4JGo1OSRsMCRoMA.." alt="Cerrado" fill className="object-cover opacity-40 group-hover:scale-105 group-hover:opacity-55 transition-all duration-1000" />
           <div className="absolute inset-0 bg-gradient-to-t from-[#1a0e02]/95 via-[#1a0e02]/30 to-transparent" />
@@ -319,14 +302,13 @@ function SecBiomas() {
         </div>
       </div>
 
-      {/* Linha de transição central */}
       <div className="hidden md:block absolute top-0 left-1/2 -translate-x-1/2 w-[1px] h-full bg-gradient-to-b from-transparent via-white/20 to-transparent z-20 pointer-events-none" />
     </section>
   );
 }
 
 // ==========================================
-// SECÇÃO: 11 CACHOEIRAS (COM IMAGENS REAIS, TODAS EM DESTAQUE)
+// SECÇÃO: CACHOEIRAS
 // ==========================================
 function SecCachoeiras() {
   const destaques = cachoeiras.filter(c => c.destaque);
@@ -335,13 +317,9 @@ function SecCachoeiras() {
   return (
     <section id="cachoeiras" className="py-24 bg-[#00577C] overflow-hidden">
       <div className="max-w-[1400px] mx-auto px-6 md:px-12">
-
         <Reveal anim="up" className="mb-16">
           <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-8">
             <div>
-              <p className="text-[#F9C400] font-black text-[9px] uppercase tracking-[0.35em] mb-4 flex items-center gap-3">
-                <span className="w-6 h-[1px] bg-[#F9C400]" /> Parque Estadual Serra das Andorinhas-Martírios
-              </p>
               <h2 className={`${jakarta.className} text-5xl md:text-8xl font-black text-white leading-[0.88]`}>
                 6<br /><span className="italic text-[#F9C400]">Cachoeiras</span>
               </h2>
@@ -349,7 +327,6 @@ function SecCachoeiras() {
           </div>
         </Reveal>
 
-        {/* Grid de todas as cachoeiras (com imagem) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {destaques.map((c, i) => (
             <Reveal key={c.nome} anim="up" delay={i * 120}>
@@ -374,7 +351,6 @@ function SecCachoeiras() {
           ))}
         </div>
 
-        {/* Caso existam itens sem destaque (agora não há, mas mantemos) */}
         {resto.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-5">
             {resto.map((c, i) => (
@@ -403,7 +379,6 @@ function SecFauna() {
   return (
     <section id="fauna" className="py-24 bg-[#0c1a08] overflow-hidden">
       <div className="max-w-[1400px] mx-auto px-6 md:px-12">
-
         <Reveal anim="up" className="mb-16">
           <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-8">
             <div>
@@ -420,10 +395,7 @@ function SecFauna() {
           </div>
         </Reveal>
 
-        {/* Grid fauna — bento assimétrico */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
-
-          {/* Card grande */}
           {fauna[0] && (
             <Reveal anim="right" className="md:col-span-5 md:row-span-2">
               <div className="group relative h-[500px] md:h-[600px] rounded-[2rem] overflow-hidden" style={{ backgroundColor: fauna[0].cor }}>
@@ -444,7 +416,6 @@ function SecFauna() {
             </Reveal>
           )}
 
-          {/* Cards médios — 2 na mesma linha */}
           {fauna.slice(1, 3).map((animal, i) => (
             <Reveal key={animal.nome} anim="left" delay={i * 100} className="md:col-span-7">
               <div className="group relative h-[290px] rounded-[2rem] overflow-hidden" style={{ backgroundColor: animal.cor }}>
@@ -462,7 +433,6 @@ function SecFauna() {
             </Reveal>
           ))}
 
-          {/* Linha inferior — 4 cards pequenos */}
           {fauna.slice(3).map((animal, i) => (
             <Reveal key={animal.nome} anim="up" delay={i * 80} className="md:col-span-3">
               <div className="group relative h-[240px] rounded-[2rem] overflow-hidden" style={{ backgroundColor: animal.cor }}>
@@ -492,7 +462,6 @@ function SecFlora() {
   return (
     <section id="flora" className="py-24 bg-[#FDFCF7] overflow-hidden">
       <div className="max-w-[1400px] mx-auto px-6 md:px-12">
-
         <Reveal anim="up" className="mb-16">
           <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-8">
             <div>
@@ -500,7 +469,7 @@ function SecFlora() {
                 <span className="w-6 h-[1px] bg-[#009640]" /> Vegetação & Flora
               </p>
               <h2 className={`${jakarta.className} text-5xl md:text-8xl font-black text-slate-900 leading-[0.88]`}>
-                Árvores<br /><span className="italic text-[#009640]">Guardiãs</span>
+                Árvores<br /><span className="italic text-[#009640]">Protetoras</span>
               </h2>
             </div>
             <p className="text-slate-400 max-w-xs text-sm leading-relaxed">
@@ -509,7 +478,6 @@ function SecFlora() {
           </div>
         </Reveal>
 
-        {/* Grid flora — padrão editorial */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {flora.map((planta, i) => (
             <Reveal key={planta.nome} anim="up" delay={i * 100}>
@@ -517,7 +485,6 @@ function SecFlora() {
                 <Image src={planta.imagem} alt={planta.nome} fill className="object-cover opacity-80 group-hover:scale-105 group-hover:opacity-95 transition-all duration-1000" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
 
-                {/* Bioma badge */}
                 <div className="absolute top-5 left-5">
                   <span className="text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full border"
                     style={{
@@ -543,68 +510,8 @@ function SecFlora() {
   );
 }
 
-
 // ==========================================
-// SECÇÃO: EDUCAÇÃO AMBIENTAL & COMUNIDADES
-// ==========================================
-function SecEducacaoComunidades() {
-  const pilares = [
-    { icon: <Shield size={20} />, titulo: "Conservação Ativa", desc: "Programas de monitoramento de fauna com participação das comunidades tradicionais." },
-    { icon: <Users size={20} />, titulo: "Comunidades Tradicionais", desc: "Quilombolas e ribeirinhos são guardiões do conhecimento ancestral sobre a floresta." },
-    { icon: <Leaf size={20} />, titulo: "Educação Ambiental", desc: "Visitas pedagógicas para escolas locais e programas de voluntariado ecológico." },
-    { icon: <Camera size={20} />, titulo: "Pesquisa Científica", desc: "Parceria com universidades para catalogação de espécies e estudos de ecossistema." },
-    { icon: <Globe size={20} />, titulo: "Turismo Responsável", desc: "Limitação de visitantes por trilha para garantir mínimo impacto ambiental." },
-    { icon: <Layers size={20} />, titulo: "Corredores Ecológicos", desc: "Integração com outras unidades de conservação do sul do Pará." },
-  ];
-
-  return (
-    <section className="py-24 bg-[#FDFCF7] overflow-hidden">
-      <div className="max-w-[1400px] mx-auto px-6 md:px-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-16 md:gap-24 items-start">
-
-          {/* Texto editorial */}
-          <div>
-            <Reveal anim="right">
-              <p className="text-[#009640] font-black text-[9px] uppercase tracking-[0.35em] mb-4 flex items-center gap-3">
-                <span className="w-6 h-[1px] bg-[#009640]" /> Impacto social
-              </p>
-              <h2 className={`${jakarta.className} text-5xl md:text-6xl font-black text-slate-900 leading-[0.88] mb-8`}>
-                Educação<br />Ambiental &<br /><span className="italic text-[#009640]">Comunidades</span>
-              </h2>
-              <p className="text-slate-500 text-lg leading-relaxed mb-6">
-                A Serra das Andorinhas é também um laboratório social. As comunidades quilombolas e ribeirinhas que habitam o entorno do parque detêm um saber ecológico milenar que a ciência começa agora a reconhecer.
-              </p>
-              <p className="text-slate-400 text-base leading-relaxed mb-10">
-                Programas de educação ambiental levam crianças das escolas municipais ao contato direto com a natureza, formando a próxima geração de guardiões do bioma.
-              </p>
-              <Link href="/rotas" className="inline-flex items-center gap-3 bg-[#009640] text-white px-8 py-4 rounded-full font-black text-[10px] uppercase tracking-widest hover:bg-[#007a33] transition-colors">
-                Conhecer os programas <ArrowRight size={14} />
-              </Link>
-            </Reveal>
-          </div>
-
-          {/* Grid de pilares */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {pilares.map((p, i) => (
-              <Reveal key={p.titulo} anim="left" delay={i * 80}>
-                <div className="bg-white border border-slate-100 rounded-[1.5rem] p-6 hover:shadow-lg transition-all group">
-                  <div className="w-10 h-10 rounded-xl bg-[#009640]/10 flex items-center justify-center text-[#009640] mb-4 group-hover:bg-[#009640] group-hover:text-white transition-colors">
-                    {p.icon}
-                  </div>
-                  <h4 className={`${jakarta.className} text-base font-black text-slate-900 mb-2`}>{p.titulo}</h4>
-                  <p className="text-slate-400 text-xs leading-relaxed">{p.desc}</p>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ==========================================
-// SECÇÃO: NATUREZA INTOCADA — EDITORIAL FULL WIDTH
+// SECÇÃO: NATUREZA INTOCADA
 // ==========================================
 function SecNaturezaIntocada() {
   return (
@@ -632,7 +539,6 @@ function SecCTA() {
     <section className="py-24 bg-[#021a0d] overflow-hidden">
       <div className="max-w-[1400px] mx-auto px-6 md:px-12">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
-
           <Reveal anim="right" className="md:col-span-7">
             <div className="bg-[#009640] rounded-[2rem] p-10 md:p-14 flex flex-col justify-between h-full min-h-[320px]">
               <div>
@@ -709,85 +615,75 @@ export default function BiodiversidadePage() {
 
   return (
     <main className={`${inter.className} min-h-screen flex flex-col bg-[#021a0d] text-white overflow-x-hidden`}>
-      {/* Conteúdo principal (tudo excepto o footer) */}
       <div className="flex-1">
-        {/* HEADER */}
-        <header className="relative z-50 w-full bg-white border-b border-slate-200 py-4">
-          <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6">
+        
+        {/* ── HEADER PADRÃO ATUALIZADO ── */}
+        <header
+          className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${showHeader ? 'translate-y-0' : '-translate-y-full'} ${isScrolled ? 'bg-[#021a0d]/95 backdrop-blur-md shadow-sm border-b border-white/10' : 'bg-transparent'}`}
+        >
+          <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4">
             <Link href="/" className="flex items-center gap-3">
-               <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
-                  <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain" />
-               </div>
+              <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
+                <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain brightness-0 invert" />
+              </div>
             </Link>
 
             <nav className="hidden lg:flex items-center gap-8">
-              {['Hoteis', 'Pacotes', 'Rotas','Passeios', 'Aldeias', 'Eventos', 'Biodiversidade', 'Gastronomia', 'Comunidades'].map(item => (
-                <Link key={item} href={`/${item.toLowerCase()}`} className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-slate-600 hover:text-[#00577C] transition-colors`}>
+              {['Hoteis', 'Pacotes', 'Atracoes', 'Passeios', 'Biodiversidade', 'Gastronomia', 'Comunidades',  'Parceiros'].map(item => (
+                <Link key={item} href={`/${item.toLowerCase()}`}
+                  className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-white/50 hover:text-white transition-colors`}
+                >
                   {item}
                 </Link>
               ))}
-              <Link href="/cadastro" className={`${jakarta.className} bg-[#F9C400] text-[#002f40] px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-sm`}>
-                Cartão Residente
+              <Link href="/cadastro"
+                className={`${jakarta.className} bg-[#F9C400] text-[#002f40] px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-sm`}>
+                Residente
               </Link>
             </nav>
 
-            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="rounded-xl p-2 lg:hidden bg-slate-50 text-[#00577C] hover:bg-slate-100 transition-colors">
+            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="rounded-xl p-2 lg:hidden bg-white/10 text-white hover:bg-white/20 transition-colors">
               {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
           </div>
 
-          {/* Menu Mobile */}
           {isMobileMenuOpen && (
-            <div className="absolute top-full left-0 w-full bg-white border-b border-slate-200 p-6 flex flex-col gap-4 shadow-2xl lg:hidden z-50">
-              <Link href="/rotas" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Rotas Turísticas</Link>
-              <Link href="/eventos" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Agenda Cultural</Link>
-              <Link href="/pacotes" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Pacotes</Link>
-              <Link href="/rotas" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Rotas</Link>
-              <Link href="/biodiversidade" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Biodiversidade</Link>
-              <Link href="/gastronomia" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Gastronomia</Link>
-              <Link href="/comunidades" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Comunidades</Link>
-              <Link href="/cadastro" className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md mt-2`}>Cartão Residente</Link>
+            <div className="absolute top-full left-0 w-full bg-[#021a0d] border-b border-white/10 p-6 flex flex-col gap-4 shadow-2xl lg:hidden z-50">
+              {['Hoteis', 'Pacotes', 'Atracoes', 'Passeios', 'Biodiversidade', 'Gastronomia', 'Comunidades', 'Parceiros'].map(item => (
+                <Link key={item} href={`/${item.toLowerCase()}`}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`${jakarta.className} font-black text-white/60 hover:text-white text-lg border-b border-white/10 pb-2 transition-colors`}>
+                  {item}
+                </Link>
+              ))}
+              <Link href="/cadastro"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md mt-2`}>
+                Cartão Residente
+              </Link>
             </div>
           )}
         </header>
 
-        {/* CONTEÚDO DAS SECÇÕES */}
+        {/* CONTEÚDO DAS SECÇÕES INTOCADO */}
         <HeroBiodiversidade />
         <SecParque />
         <SecBiomas />
         <SecCachoeiras />
         <SecFauna />
         <SecFlora />
-        <SecEducacaoComunidades />
-        <SecNaturezaIntocada />
         <SecCTA />
       </div>
 
-      {/* FOOTER */}
-      <footer className="py-20 px-8 border-t border-slate-200 bg-white text-left">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
-          <div className="flex flex-col items-center md:items-start gap-4">
-            <div className="flex items-center gap-6">
-              <Image src="/logop.png" alt="SagaTurismo" width={160} height={50} className="object-contain" />
-              <div className="w-px h-12 bg-slate-200 hidden md:block" />
-              <Image src="/prefeitura.png" alt="Prefeitura de São Geraldo do Araguaia" width={140} height={50} className="object-contain" />
-            </div>
-            <div className="text-left space-y-1">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                © 2026 Secretaria Municipal de Turismo - SGA | Todos os direitos reservados
-              </p>
-              <p className="text-[10px] font-bold text-slate-400/80">
-                CNPJ: 10.249.241/0001-22
-              </p>
-            </div>
-          </div>
-
-          <div className="flex gap-10">
-            <div className="text-left border-l-2 border-slate-100 pl-9">
-              <p className="text-[10px] font-black text-[#00577C] uppercase mb-1">Contato Oficial</p>
-              <p className="text-xs font-bold text-slate-500 tracking-tight">setursaga@gmail.com</p>
-            </div>
-            <ShieldCheck size={40} className="text-[#009640] opacity-30" />
+      {/* ── FOOTER PADRÃO ATUALIZADO ── */}
+      <footer className="relative z-10 py-7 bg-[#021a0d] border-t border-white/10">
+        <div className="w-full max-w-[1400px] mx-auto px-8 md:px-14 flex flex-col md:flex-row justify-between items-center gap-4">
+          <p className={`${jakarta.className} text-[10px] font-bold text-white/20 uppercase tracking-widest`}>
+            © {new Date().getFullYear()} Prefeitura Municipal de São Geraldo do Araguaia — Todos os direitos reservados.
+          </p>
+          <div className="flex items-center gap-2 text-white/30 text-xs">
+            <Leaf size={14} /> Guia de Biodiversidade
           </div>
         </div>
       </footer>
