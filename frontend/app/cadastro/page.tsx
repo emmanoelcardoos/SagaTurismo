@@ -672,15 +672,7 @@ export default function CadastroPage() {
                         </ul>
                       </div>
 
-                      {/* O que não é aceito */}
-                      <div className="rounded-2xl border-2 border-red-50 bg-red-50 p-5 md:p-6">
-                        <div className="mb-3 md:mb-4 flex items-center gap-3"><XCircle className="h-5 w-5 md:h-6 md:w-6 shrink-0 text-red-500" /><p className="font-black text-red-600 text-sm md:text-base">Não Aceitamos</p></div>
-                        <ul className="ml-7 md:ml-9 list-disc space-y-1.5 md:space-y-2 text-xs md:text-sm text-slate-600 font-medium">
-                          <li>Boletos bancários ou comprovantes de compras online como prova de morada.</li>
-                          <li>Contratos de aluguel de imóvel sem firma reconhecida em cartório.</li>
-                          <li>Carteirinhas de estudante genéricas (é obrigatório emitir o documento municipal).</li>
-                        </ul>
-                      </div>
+                      
                     </div>
 
                     {/* UPLOADS */}
@@ -698,17 +690,43 @@ export default function CadastroPage() {
                       </div>
 
                       <div className="space-y-5 md:space-y-6">
-                        {/* ◄── INÍCIO DA DICA DE FOTO ──► */}
-                        <div className="rounded-2xl border-2 border-amber-100 bg-amber-50 p-4 md:p-5 flex items-start gap-3 shadow-sm">
-                          <Info className="h-5 w-5 md:h-6 md:w-6 shrink-0 text-amber-600 mt-0.5" />
-                          <div className="text-xs md:text-sm text-amber-800 font-medium">
-                            <strong className="block font-black text-amber-900 mb-1">Como deve ser a foto?</strong>
-                            Para o Cartão Digital, envie uma foto nítida <strong>apenas do rosto e ombros</strong> (estilo 3x4 ou selfie de perto). 
-                            <ul className="list-disc ml-4 mt-2 space-y-1">
-                              <li>Não use óculos de sol ou chapéus/bonés.</li>
-                              <li>Não envie fotos de corpo inteiro.</li>
-                              <li>Evite fundos muito escuros ou com outras pessoas.</li>
-                            </ul>
+                        {/* ◄── INÍCIO DA DICA DE FOTO (TUTORIAL VISUAL) ──► */}
+                        <div className="rounded-2xl border-2 border-amber-100 bg-amber-50 p-4 md:p-5 shadow-sm">
+                          <div className="flex items-start gap-3 mb-4">
+                            <Info className="h-5 w-5 shrink-0 text-amber-600 mt-0.5" />
+                            <div className="text-xs md:text-sm text-amber-800 font-medium">
+                              <strong className="block font-black text-amber-900 mb-1">Guia para a Foto do Cartão</strong>
+                              A foto será impressa no seu documento oficial. Ela deve focar <strong>apenas no seu rosto e ombros</strong>, com boa iluminação e fundo neutro.
+                            </div>
+                          </div>
+
+                          {/* Grid do Tutorial Visual */}
+                          <div className="grid grid-cols-2 gap-3 md:gap-4 mt-2">
+                            {/* Exemplo CORRETO */}
+                            <div className="flex flex-col items-center justify-center p-3 md:p-4 rounded-xl border border-green-200 bg-white">
+                              <div className="relative h-16 w-16 mb-2 rounded-full bg-slate-100 border-2 border-green-500 flex items-end justify-center overflow-hidden shadow-inner">
+                                {/* Ícone grande simulando rosto de perto */}
+                                <User className="h-14 w-14 text-slate-400 translate-y-1" strokeWidth={1.5} />
+                                
+                              </div>
+                              <span className="text-[10px] md:text-xs font-bold text-green-700 text-center leading-tight">
+                                ✅ Perto e Nítido<br/>
+                                <span className="font-medium text-green-600/80">(Estilo selfie/3x4)</span>
+                              </span>
+                            </div>
+
+                            {/* Exemplo INCORRETO */}
+                            <div className="flex flex-col items-center justify-center p-3 md:p-4 rounded-xl border border-red-200 bg-white">
+                              <div className="relative h-16 w-16 mb-2 rounded-full bg-slate-100 border-2 border-red-400 flex items-center justify-center shadow-inner">
+                                {/* Ícone pequeno simulando corpo inteiro longe */}
+                                <User className="h-6 w-6 text-slate-400" strokeWidth={2} />
+                                
+                              </div>
+                              <span className="text-[10px] md:text-xs font-bold text-red-700 text-center leading-tight">
+                                ❌ Longe ou com<br/>
+                                <span className="font-medium text-red-600/80">óculos de sol/boné</span>
+                              </span>
+                            </div>
                           </div>
                         </div>
                         {/* ◄── FIM DA DICA DE FOTO ──► */}
