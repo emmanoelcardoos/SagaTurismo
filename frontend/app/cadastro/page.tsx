@@ -653,7 +653,7 @@ export default function CadastroPage() {
                       
                       {/* Regras Gerais */}
                       <div className="rounded-2xl border-2 border-blue-50 bg-blue-50/50 p-5 md:p-6">
-                        <div className="mb-3 md:mb-4 flex items-center gap-3"><Info className="h-5 w-5 md:h-6 md:w-6 shrink-0 text-[#00577C]" /><p className="font-black text-[#00577C] text-sm md:text-base">Regras do Decreto Municipal</p></div>
+                        <div className="mb-3 md:mb-4 flex items-center gap-3"><Info className="h-5 w-5 md:h-6 md:w-6 shrink-0 text-[#00577C]" /><p className="font-black text-[#00577C] text-sm md:text-base">Regras de Verificação</p></div>
                         <ul className="ml-7 md:ml-9 list-disc space-y-1.5 md:space-y-2 text-xs md:text-sm text-slate-600 font-medium">
                           <li><strong className="text-[#00577C]">Residentes (13 a 59 anos):</strong> Têm direito a 50% apresentando comprovante de morada no município.</li>
                           <li><strong className="text-[#00577C]">Crianças (até 12 anos) e Idosos (60+):</strong> Têm o benefício automático morando em qualquer lugar.</li>
@@ -698,6 +698,21 @@ export default function CadastroPage() {
                       </div>
 
                       <div className="space-y-5 md:space-y-6">
+                        {/* ◄── INÍCIO DA DICA DE FOTO ──► */}
+                        <div className="rounded-2xl border-2 border-amber-100 bg-amber-50 p-4 md:p-5 flex items-start gap-3 shadow-sm">
+                          <Info className="h-5 w-5 md:h-6 md:w-6 shrink-0 text-amber-600 mt-0.5" />
+                          <div className="text-xs md:text-sm text-amber-800 font-medium">
+                            <strong className="block font-black text-amber-900 mb-1">Como deve ser a foto?</strong>
+                            Para o Cartão Digital, envie uma foto nítida <strong>apenas do rosto e ombros</strong> (estilo 3x4 ou selfie de perto). 
+                            <ul className="list-disc ml-4 mt-2 space-y-1">
+                              <li>Não use óculos de sol ou chapéus/bonés.</li>
+                              <li>Não envie fotos de corpo inteiro.</li>
+                              <li>Evite fundos muito escuros ou com outras pessoas.</li>
+                            </ul>
+                          </div>
+                        </div>
+                        {/* ◄── FIM DA DICA DE FOTO ──► */}
+
                         <div className={`rounded-3xl border-2 bg-slate-50 p-5 md:p-6 transition-colors ${errors.foto ? 'border-red-300' : 'border-slate-100 hover:border-slate-200'}`}>
                           <p className="text-xs font-black uppercase tracking-widest text-[#00577C] mb-4 md:mb-5 flex items-center gap-2"><Camera size={16} className="md:w-[18px] md:h-[18px]"/> Selfie do Titular *</p>
                           <FileUploader 

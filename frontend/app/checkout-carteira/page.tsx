@@ -423,7 +423,7 @@ function CheckoutCarteiraContent() {
                     
                     <div className="bg-green-50 text-green-800 p-6 rounded-2xl mb-8 border border-green-100">
                         <p className="font-bold text-lg mb-2">Boas notícias!</p>
-                        <p className="text-sm">Neste momento, a taxa de emissão está a ser <strong>100% subsidiada pela Prefeitura Municipal</strong>. A emissão é gratuita e não é necessário cartão de crédito ou PIX.</p>
+                        <p className="text-sm">Neste momento, a taxa de emissão está a ser <strong>100% subsidiada pela Prefeitura Municipal de São Geraldo do Araguaia</strong>. A emissão é gratuita e não é necessário pagamento.</p>
                     </div>
 
                     <div className="space-y-4">
