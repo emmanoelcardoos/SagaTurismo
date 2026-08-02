@@ -84,7 +84,7 @@ export default function GastronomiaPage() {
 
         {isMobileMenuOpen && (
           <div className="absolute top-full left-0 w-full bg-[#002f40] border-b border-white/10 p-6 flex flex-col gap-4 shadow-2xl lg:hidden z-50">
-            {['Hoteis', 'Pacotes', 'Atracoes', 'Passeios', 'Aldeias', 'Biodiversidade', 'Parceiros'].map(item => (
+            {['Hoteis', 'Pacotes', 'Atracoes', 'Passeios', 'Biodiversidade', 'Parceiros'].map(item => (
               <Link key={item} href={`/${item.toLowerCase()}`}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={`${jakarta.className} font-black text-white/60 hover:text-white text-lg border-b border-white/10 pb-2 transition-colors`}>
