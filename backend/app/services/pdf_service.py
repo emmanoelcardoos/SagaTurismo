@@ -1,12 +1,14 @@
 import os
 import requests
-from io import BytesIO
+from io import BytesIO, StringIO
 from datetime import datetime, timedelta
 import qrcode
 from reportlab.lib import colors
 from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
 from reportlab.lib.utils import ImageReader
+from reportlab.graphics import renderPDF
+from svglib.svglib import svg2rlg
 
 # ─── CONFIGURAÇÕES VISUAIS INSTITUCIONAIS ────────────────────────────────────
 COR_PRIMARIA = colors.HexColor("#0A3D4A")       # Azul Escuro do Cabeçalho e Rodapé Esquerdo
@@ -96,7 +98,40 @@ def gerar_pdf_carteira(residente_data: dict, token: str) -> str:
     c.setFillColor(COR_FUNDO_CARD)
     c.rect(0, 0, largura, altura, fill=1, stroke=0)
 
-    # 2. Header (Mais compacto/fino para otimizar espaço)
+    # ─── 1.5 MARCA D'ÁGUA VETORIAL (SVG) ────────────────────────────────────
+    svg_watermark = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="30 105 573 188">
+      <!-- SagaTurismo - Marca d'agua: Onca-pintada -->
+      <g fill="#E5E3D2" opacity="0.15">
+        <rect x="40" y="245" width="140" height="38" rx="19"/>
+        <ellipse cx="300" cy="195" rx="190" ry="78"/>
+        <ellipse cx="455" cy="215" rx="55" ry="60"/>
+        <circle cx="115" cy="205" r="62"/>
+        <ellipse cx="95" cy="245" rx="40" ry="28"/>
+        <path d="M75,165 L60,120 L105,155 Z"/>
+        <path d="M140,160 L165,115 L165,165 Z"/>
+        <ellipse cx="170" cy="255" rx="40" ry="22"/>
+        <path d="M500,230 C540,235 560,210 555,180 C575,175 585,150 565,135" fill="none" stroke="#E5E3D2" stroke-width="16" stroke-linecap="round"/>
+      </g>
+    </svg>"""
+    
+    try:
+        # Lê o SVG da string e converte num objeto que o ReportLab entende
+        drawing = svg2rlg(StringIO(svg_watermark))
+        
+        # Ajusta a escala para encaixar bem no meio do cartão (área clara)
+        scale_factor = 0.14
+        drawing.scale(scale_factor, scale_factor)
+        drawing.width *= scale_factor
+        drawing.height *= scale_factor
+        
+        # Desenha a marca d'água no centro (atrás dos dados do residente)
+        renderPDF.draw(drawing, c, 35 * mm, 15 * mm)
+    except Exception as e:
+        print(f"Erro ao desenhar marca d'água: {e}")
+        pass
+    # ────────────────────────────────────────────────────────────────────────
+
+    # 2. Header
     h_header = 16 * mm
     c.setFillColor(COR_PRIMARIA)
     c.rect(0, altura - h_header, largura, h_header, fill=1, stroke=0)
@@ -166,7 +201,7 @@ def gerar_pdf_carteira(residente_data: dict, token: str) -> str:
     c.setFont("Helvetica-Bold", 10)
     c.drawString(x_dados + 15 * mm, y_texto - 20 * mm, validade)
 
-    # Coluna Direita: QR Code Isolado (Sem risco de sobreposição)
+    # Coluna Direita: QR Code Isolado
     qr_size = 24 * mm
     qr_x = largura - qr_size - 7 * mm
     qr_y = y_corpo_bottom + (area_h - qr_size) / 2
