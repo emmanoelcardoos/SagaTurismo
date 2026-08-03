@@ -870,7 +870,7 @@ export default function HomePage() {
 import Link from 'next/link';
 import Image from 'next/image';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
-import { IdCard, ArrowRight, Menu, X } from 'lucide-react';
+import { IdCard, ArrowRight, Menu, X, Building2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '700', '800'] });
@@ -911,20 +911,20 @@ export default function HomePage() {
       </div>
 
       {/* Halo amarelo — canto superior direito */}
-      <div className="absolute top-0 right-0 z-0 w-[500px] h-[500px] pointer-events-none"
+      <div className="absolute top-0 right-0 z-0 w-[300px] h-[300px] md:w-[500px] md:h-[500px] pointer-events-none"
         style={{ background: 'radial-gradient(ellipse at top right, rgba(249,196,0,0.10) 0%, transparent 65%)' }} />
 
       {/* Halo verde — canto inferior esquerdo */}
-      <div className="absolute bottom-0 left-0 z-0 w-[460px] h-[360px] pointer-events-none"
+      <div className="absolute bottom-0 left-0 z-0 w-[250px] h-[250px] md:w-[460px] md:h-[360px] pointer-events-none"
         style={{ background: 'radial-gradient(ellipse at bottom left, rgba(0,150,64,0.09) 0%, transparent 65%)' }} />
 
       {/* ── HEADER ORIGINAL (COMPLETO E NAVEGÁVEL) ── */}
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${showHeader ? 'translate-y-0' : '-translate-y-full'} ${isScrolled ? 'bg-[#002f40]/95 backdrop-blur-md shadow-sm border-b border-white/10' : 'bg-transparent'}`}
       >
-        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4">
+        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-5 py-4 md:px-6">
           <Link href="/" className="flex items-center gap-3">
-            <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
+            <div className="relative h-9 w-24 md:h-12 md:w-36 shrink-0">
               <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain brightness-0 invert" />
             </div>
           </Link>
@@ -949,8 +949,9 @@ export default function HomePage() {
           </button>
         </div>
 
+        {/* Menu Mobile */}
         {isMobileMenuOpen && (
-          <div className="absolute top-full left-0 w-full bg-[#002f40] border-b border-white/10 p-6 flex flex-col gap-4 shadow-2xl lg:hidden z-50">
+          <div className="absolute top-full left-0 w-full bg-[#002f40] border-b border-white/10 p-5 flex flex-col gap-4 shadow-2xl lg:hidden z-50">
             {['Hoteis', 'Pacotes', 'Atracoes', 'Passeios', 'Biodiversidade', 'Gastronomia', 'Comunidades', 'Parceiros'].map(item => (
               <Link key={item} href={`/${item.toLowerCase()}`}
                 onClick={() => setIsMobileMenuOpen(false)}
@@ -967,49 +968,58 @@ export default function HomePage() {
         )}
       </header>
 
-      {/* ── CONTEÚDO PRINCIPAL ── */}
-      <div className="relative z-10 flex-1 flex items-center mt-20"> 
-        <div className="w-full max-w-[1400px] mx-auto px-8 md:px-14 py-16 md:py-0">
-          <div className="grid md:grid-cols-2 gap-14 md:gap-20 items-center">
+      {/* ── CONTEÚDO PRINCIPAL (MOBILE FIRST) ── */}
+      <div className="relative z-10 flex-1 flex flex-col justify-center mt-16 md:mt-20"> 
+        <div className="w-full max-w-[1400px] mx-auto px-5 md:px-14 py-10 md:py-0">
+          <div className="grid md:grid-cols-2 gap-12 md:gap-20 items-center">
 
             {/* Coluna esquerda — texto */}
-            <div className="flex flex-col gap-10">
+            <div className="flex flex-col gap-8 md:gap-10">
 
               {/* Título */}
               <div className="flex flex-col gap-1">
                 <h1 className={`${jakarta.className} font-black text-white leading-[0.97]`}
-                  style={{ fontSize: 'clamp(42px, 5.5vw, 72px)' }}>
+                  style={{ fontSize: 'clamp(36px, 6vw, 72px)' }}>
                   O novo portal
                 </h1>
                 <h1 className={`${jakarta.className} font-black text-[#F9C400] leading-[0.97]`}
-                  style={{ fontSize: 'clamp(42px, 5.5vw, 72px)' }}>
+                  style={{ fontSize: 'clamp(36px, 6vw, 72px)' }}>
                   de turismo
                 </h1>
                 <h1 className={`${jakarta.className} font-black text-white/30 leading-[0.97]`}
-                  style={{ fontSize: 'clamp(42px, 5.5vw, 72px)' }}>
+                  style={{ fontSize: 'clamp(36px, 6vw, 72px)' }}>
                   está chegando.
                 </h1>
               </div>
 
               {/* Descrição */}
-              <p className={`${inter.className} text-white/50 text-base md:text-lg leading-relaxed max-w-md`}>
+              <p className={`${inter.className} text-white/50 text-sm md:text-lg leading-relaxed max-w-md`}>
                 Uma nova experiência digital para explorar São Geraldo do Araguaia. Enquanto isso, a nossa Carteira de Residente já está disponível.
               </p>
 
-              {/* CTA */}
-              <Link
-                href="/cadastro"
-                className={`${jakarta.className} group inline-flex items-center gap-3 self-start bg-[#009640] hover:bg-[#007a33] active:scale-95 text-white px-9 py-4 rounded-full font-black text-sm uppercase tracking-widest transition-all duration-200 shadow-lg shadow-[#009640]/20`}
-              >
-                <IdCard size={18} />
-                Emitir Carteira
-                <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-              </Link>
+              {/* CTAs */}
+              <div className="flex flex-col sm:flex-row gap-4 sm:gap-3 w-full max-w-md">
+                <Link
+                  href="/cadastro"
+                  className={`${jakarta.className} group w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-[#009640] hover:bg-[#007a33] active:scale-95 text-white px-7 py-4 md:py-4 rounded-xl md:rounded-full font-black text-xs uppercase tracking-widest transition-all duration-200 shadow-lg shadow-[#009640]/20`}
+                >
+                  <IdCard size={28} />
+                  Emitir Carteira
+                  <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                </Link>
 
-              
+                <Link
+                  href="/parceiros"
+                  className={`${jakarta.className} group w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-white/10 hover:bg-white/20 text-white px-7 py-4 md:py-4 rounded-xl md:rounded-full font-black text-xs uppercase tracking-widest transition-all duration-200 border border-white/5`}
+                >
+                  <Building2 size={28} />
+                  Seja um parceiro
+                </Link>
+              </div>
+
             </div>
 
-            {/* Coluna direita — foto */}
+            {/* Coluna direita — foto (Oculta em telas muito pequenas) */}
             <div className="hidden md:flex items-center justify-center">
               <div className="relative w-full max-w-[420px] aspect-[3/4] rounded-[2.5rem] overflow-hidden"
                 style={{ boxShadow: '0 40px 80px -20px rgba(0,0,0,0.7)' }}>
@@ -1042,9 +1052,9 @@ export default function HomePage() {
       </div>
 
       {/* ── FOOTER ── */}
-      <footer className="relative z-10 py-7">
-        <div className="w-full max-w-[1400px] mx-auto px-8 md:px-14">
-          <p className={`${jakarta.className} text-[10px] font-bold text-white/20 uppercase tracking-widest`}>
+      <footer className="relative z-10 py-6 md:py-7 border-t border-white/5 mt-8 md:mt-0">
+        <div className="w-full max-w-[1400px] mx-auto px-5 md:px-14 flex justify-center md:justify-start">
+          <p className={`${jakarta.className} text-[9px] md:text-[10px] font-bold text-white/20 uppercase tracking-widest text-center md:text-left`}>
             © {new Date().getFullYear()} Prefeitura Municipal de São Geraldo do Araguaia — Todos os direitos reservados.
           </p>
         </div>

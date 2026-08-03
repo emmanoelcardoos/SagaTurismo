@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
-import { ArrowLeft, Menu, X, Building2, MapPin, Mail } from 'lucide-react';
+import { ArrowLeft, Menu, X, Building2, ClipboardList, MapPin } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '700', '800'] });
@@ -35,9 +35,9 @@ export default function ParceirosPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
-  // Contatos da Secretaria de Turismo
-  const whatsappNumber = "55949844949474"; // Coloque o número real aqui
-  const emailContact = "setursaga@gmail.com";
+  // Contatos e Links
+  const whatsappNumber = "55949844949474"; 
+  const googleFormsLink = "https://docs.google.com/forms/d/e/1FAIpQLScUnwAEfwvfbjwf5w81F_3OynXVNDdCBx9QsDmxtunXftQchg/viewform?usp=publish-editor";
 
   return (
     <main className={`${inter.className} min-h-screen flex flex-col bg-[#002f40] relative overflow-hidden`}>
@@ -48,27 +48,27 @@ export default function ParceirosPage() {
           src="https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/IMG_1804.PNG"
           alt="Parceiros do Turismo em São Geraldo do Araguaia"
           fill
-          className="object-cover opacity-35"
+          className="object-cover opacity-25 md:opacity-35"
           priority
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#002f40]/50 via-[#002f40]/40 to-[#002f40]/20" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#002f40]/70 via-[#002f40]/60 to-[#002f40]/30 md:from-[#002f40]/50 md:via-[#002f40]/40 md:to-[#002f40]/20" />
       </div>
 
       {/* Halo amarelo — canto superior direito */}
-      <div className="absolute top-0 right-0 z-0 w-[500px] h-[500px] pointer-events-none"
-        style={{ background: 'radial-gradient(ellipse at top right, rgba(249,196,0,0.12) 0%, transparent 65%)' }} />
+      <div className="absolute top-0 right-0 z-0 w-[300px] h-[300px] md:w-[500px] md:h-[500px] pointer-events-none"
+        style={{ background: 'radial-gradient(ellipse at top right, rgba(249,196,0,0.15) 0%, transparent 65%)' }} />
 
       {/* Halo verde — canto inferior esquerdo */}
-      <div className="absolute bottom-0 left-0 z-0 w-[460px] h-[360px] pointer-events-none"
-        style={{ background: 'radial-gradient(ellipse at bottom left, rgba(0,150,64,0.12) 0%, transparent 65%)' }} />
+      <div className="absolute bottom-0 left-0 z-0 w-[250px] h-[250px] md:w-[460px] md:h-[360px] pointer-events-none"
+        style={{ background: 'radial-gradient(ellipse at bottom left, rgba(0,150,64,0.15) 0%, transparent 65%)' }} />
 
-      {/* ── HEADER ORIGINAL (COMPLETO E NAVEGÁVEL) ── */}
+      {/* ── HEADER (COMPLETO E NAVEGÁVEL) ── */}
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${showHeader ? 'translate-y-0' : '-translate-y-full'} ${isScrolled ? 'bg-[#002f40]/95 backdrop-blur-md shadow-sm border-b border-white/10' : 'bg-transparent'}`}
       >
-        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4">
+        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-5 py-4 md:px-6">
           <Link href="/" className="flex items-center gap-3">
-            <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
+            <div className="relative h-9 w-24 md:h-12 md:w-36 shrink-0">
               <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain brightness-0 invert" />
             </div>
           </Link>
@@ -93,9 +93,10 @@ export default function ParceirosPage() {
           </button>
         </div>
 
+        {/* Menu Mobile */}
         {isMobileMenuOpen && (
-          <div className="absolute top-full left-0 w-full bg-[#002f40] border-b border-white/10 p-6 flex flex-col gap-4 shadow-2xl lg:hidden z-50">
-            {['Hoteis', 'Pacotes', 'Atracoes', 'Passeios', 'Biodiversidade', 'Parceiros'].map(item => (
+          <div className="absolute top-full left-0 w-full bg-[#002f40] border-b border-white/10 p-5 flex flex-col gap-4 shadow-2xl lg:hidden z-50">
+            {['Hoteis', 'Pacotes', 'Atracoes', 'Passeios', 'Biodiversidade', 'Gastronomia', 'Comunidades', 'Parceiros'].map(item => (
               <Link key={item} href={`/${item.toLowerCase()}`}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={`${jakarta.className} font-black text-white/60 hover:text-white text-lg border-b border-white/10 pb-2 transition-colors`}>
@@ -111,68 +112,72 @@ export default function ParceirosPage() {
         )}
       </header>
 
-      {/* ── CONTEÚDO PRINCIPAL (LAYOUT TEASER) ── */}
-      <div className="relative z-10 flex-1 flex items-center mt-12 md:mt-16">
-        <div className="w-full max-w-[1400px] mx-auto px-8 md:px-14 py-16 md:py-0">
-          <div className="grid md:grid-cols-2 gap-14 md:gap-20 items-center">
+      {/* ── CONTEÚDO PRINCIPAL (MOBILE FIRST) ── */}
+      <div className="relative z-10 flex-1 flex flex-col justify-center mt-16 md:mt-20">
+        <div className="w-full max-w-[1400px] mx-auto px-5 md:px-14 py-10 md:py-0">
+          <div className="grid md:grid-cols-2 gap-12 md:gap-20 items-center">
 
             {/* Coluna esquerda — texto */}
-            <div className="flex flex-col gap-10">
+            <div className="flex flex-col gap-8 md:gap-10">
 
               {/* Título */}
               <div className="flex flex-col gap-1">
                 <h1 className={`${jakarta.className} font-black text-white leading-[0.97]`}
-                  style={{ fontSize: 'clamp(42px, 5.5vw, 72px)' }}>
+                  style={{ fontSize: 'clamp(36px, 6vw, 72px)' }}>
                   A nossa
                 </h1>
                 <h1 className={`${jakarta.className} font-black text-[#F9C400] leading-[0.97]`}
-                  style={{ fontSize: 'clamp(42px, 5.5vw, 72px)' }}>
+                  style={{ fontSize: 'clamp(36px, 6vw, 72px)' }}>
                   rede
                 </h1>
                 <h1 className={`${jakarta.className} font-black text-white/30 leading-[0.97]`}
-                  style={{ fontSize: 'clamp(42px, 5.5vw, 72px)' }}>
-                  em breve.
+                  style={{ fontSize: 'clamp(36px, 6vw, 72px)' }}>
+                  começa aqui.
                 </h1>
               </div>
 
-              {/* Descrição - Português do Brasil */}
-              <div className="flex flex-col gap-6">
-                <p className={`${inter.className} text-white/50 text-base md:text-lg leading-relaxed max-w-md`}>
-                  Em breve, hoteleiros, guias turísticos, restaurantes e agentes de viagens poderão anunciar os seus negócios <strong className="text-white">gratuitamente</strong> na página oficial de turismo de São Geraldo do Araguaia.
+              {/* Descrições */}
+              <div className="flex flex-col gap-5">
+                <p className={`${inter.className} text-white/70 text-sm md:text-lg leading-relaxed max-w-md`}>
+                  Hoteleiros, guias turísticos, restaurantes e agentes de viagens poderão anunciar os seus negócios <strong className="text-white">gratuitamente</strong> na página oficial de turismo de São Geraldo do Araguaia.
                 </p>
-                
+                <p className={`${inter.className} text-[#F9C400] text-sm md:text-base font-medium leading-relaxed max-w-md`}>
+                  Tem um negócio voltado para o turismo local e quer garantir o seu espaço? Preencha o cadastro abaixo.
+                </p>
               </div>
 
-              {/* CTAs de Contato */}
-              <div className="flex flex-col sm:flex-row gap-4">
+              {/* CTAs de Contato (Botões empilhados no mobile) */}
+              <div className="flex flex-col sm:flex-row gap-4 sm:gap-3 w-full max-w-md">
+                <a
+                  href={googleFormsLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`${jakarta.className} w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-[#009640] hover:bg-[#007a33] text-white px-7 py-4 md:py-4 rounded-xl md:rounded-full font-black text-xs uppercase tracking-widest transition-all duration-200 shadow-lg`}
+                >
+                  <ClipboardList size={18} />
+                  Fazer Cadastro
+                </a>
                 <a
                   href={`https://wa.me/${whatsappNumber}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`${jakarta.className} inline-flex items-center justify-center gap-3 bg-[#009640] hover:bg-[#007a33] text-white px-7 py-4 rounded-full font-black text-xs uppercase tracking-widest transition-all duration-200 shadow-lg`}
+                  className={`${jakarta.className} w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-white/10 hover:bg-white/20 text-white px-7 py-4 md:py-4 rounded-xl md:rounded-full font-black text-xs uppercase tracking-widest transition-all duration-200 border border-white/5`}
                 >
                   <WhatsAppIcon size={18} />
-                  Falar no WhatsApp
-                </a>
-                <a
-                  href={`mailto:${emailContact}`}
-                  className={`${jakarta.className} inline-flex items-center justify-center gap-3 bg-white/10 hover:bg-white/20 text-white px-7 py-4 rounded-full font-black text-xs uppercase tracking-widest transition-all duration-200 border border-white/5`}
-                >
-                  <Mail size={18} />
-                  Enviar E-mail
+                  Dúvidas?
                 </a>
               </div>
               
               <Link
                 href="/"
-                className={`${jakarta.className} group inline-flex items-center gap-3 self-start text-white/40 hover:text-white mt-4 font-black text-xs uppercase tracking-widest transition-all duration-200`}
+                className={`${jakarta.className} group inline-flex items-center justify-center sm:justify-start gap-3 text-white/40 hover:text-white mt-2 font-black text-xs uppercase tracking-widest transition-all duration-200`}
               >
                 <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
                 Voltar ao Início
               </Link>
             </div>
 
-            {/* Coluna direita — foto estática de apoio */}
+            {/* Coluna direita — foto estática de apoio (Oculta em telas muito pequenas, visível de tablet para cima) */}
             <div className="hidden md:flex items-center justify-center">
               <div className="relative w-full max-w-[420px] aspect-[3/4] rounded-[2.5rem] overflow-hidden"
                 style={{ boxShadow: '0 40px 80px -20px rgba(0,0,0,0.7)' }}>
@@ -208,12 +213,11 @@ export default function ParceirosPage() {
       </div>
 
       {/* ── FOOTER ── */}
-      <footer className="relative z-10 py-7">
-        <div className="w-full max-w-[1400px] mx-auto px-8 md:px-14 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className={`${jakarta.className} text-[10px] font-bold text-white/20 uppercase tracking-widest`}>
+      <footer className="relative z-10 py-6 md:py-7 border-t border-white/5 mt-8 md:mt-0">
+        <div className="w-full max-w-[1400px] mx-auto px-5 md:px-14 flex flex-col md:flex-row justify-center md:justify-between items-center gap-4 text-center md:text-left">
+          <p className={`${jakarta.className} text-[9px] md:text-[10px] font-bold text-white/20 uppercase tracking-widest`}>
             © {new Date().getFullYear()} Prefeitura Municipal de São Geraldo do Araguaia — Todos os direitos reservados.
           </p>
-
         </div>
       </footer>
 
