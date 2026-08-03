@@ -144,7 +144,7 @@ export default function ComunidadesPage() {
               <div className="relative w-full max-w-[420px] aspect-[3/4] rounded-[2.5rem] overflow-hidden"
                 style={{ boxShadow: '0 40px 80px -20px rgba(0,0,0,0.7)' }}>
                 <Image
-                  src="https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/ChatGPT%20Image%206_06_2026,%2014_12_18.png"
+                  src="https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/df417333-2d29-4ae1-80cb-47a0491c8d40.JPG"
                   alt="Comunidades Locais"
                   fill
                   className="object-cover"

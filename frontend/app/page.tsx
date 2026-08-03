@@ -1005,6 +1005,8 @@ export default function HomePage() {
                 Emitir Carteira
                 <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
               </Link>
+
+              
             </div>
 
             {/* Coluna direita — foto */}

@@ -144,7 +144,7 @@ export default function HoteisPage() {
               <div className="relative w-full max-w-[420px] aspect-[3/4] rounded-[2.5rem] overflow-hidden"
                 style={{ boxShadow: '0 40px 80px -20px rgba(0,0,0,0.7)' }}>
                 <Image
-                  src="https://images.pexels.com/photos/19737836/pexels-photo-19737836.jpeg?_gl=1*17hauab*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3ODU2OTY0OTYkbzcwJGcxJHQxNzg1Njk4OTE4JGo1OSRsMCRoMA.."
+                  src="https://images.pexels.com/photos/28468079/pexels-photo-28468079.jpeg?_gl=1*1e0dwdp*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3ODU2OTY0OTYkbzcwJGcxJHQxNzg1Njk4NzE4JGoyMCRsMCRoMA.."
                   alt="Resort ou Hotel de Natureza"
                   fill
                   className="object-cover"

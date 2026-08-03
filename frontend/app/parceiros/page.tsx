@@ -36,7 +36,7 @@ export default function ParceirosPage() {
   }, [lastScrollY]);
 
   // Contatos da Secretaria de Turismo
-  const whatsappNumber = "556399202-7548"; // Coloque o número real aqui
+  const whatsappNumber = "55949844949474"; // Coloque o número real aqui
   const emailContact = "setursaga@gmail.com";
 
   return (
@@ -140,9 +140,7 @@ export default function ParceirosPage() {
                 <p className={`${inter.className} text-white/50 text-base md:text-lg leading-relaxed max-w-md`}>
                   Em breve, hoteleiros, guias turísticos, restaurantes e agentes de viagens poderão anunciar os seus negócios <strong className="text-white">gratuitamente</strong> na página oficial de turismo de São Geraldo do Araguaia.
                 </p>
-                <p className={`${inter.className} text-[#F9C400] text-sm md:text-base font-medium leading-relaxed max-w-md`}>
-                  Tem um negócio voltado para o turismo local e quer garantir o seu espaço? Entre em contato agora com a nossa equipe.
-                </p>
+                
               </div>
 
               {/* CTAs de Contato */}

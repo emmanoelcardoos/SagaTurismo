@@ -34,7 +34,7 @@ export default function GastronomiaPage() {
       {/* Foto de fundo com overlay (Substituiu o vídeo) */}
       <div className="absolute inset-0 z-0">
         <Image
-          src="https://images.pexels.com/photos/3727208/pexels-photo-3727208.jpeg?_gl=1*16u1eqf*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3ODU3MDEwMTUkbzcxJGcxJHQxNzg1NzAxMjU5JGo0OCRsMCRoMA.."
+          src="https://images.pexels.com/photos/19781594/pexels-photo-19781594.jpeg?_gl=1*1i526k7*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3ODU3MDEwMTUkbzcxJGcxJHQxNzg1NzAxMTAxJGo1OSRsMCRoMA.."
           alt="Gastronomia de São Geraldo do Araguaia"
           fill
           className="object-cover opacity-55"

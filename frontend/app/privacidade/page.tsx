@@ -43,10 +43,7 @@ export default function PoliticaDePrivacidadePage() {
           {/* Cabeçalho da página */}
           <div className="mb-8 flex flex-col gap-6 border-b border-slate-200 pb-8 sm:flex-row sm:items-end sm:justify-between print:hidden">
             <div>
-              <span className="inline-flex items-center gap-2 rounded-full bg-[#00577C]/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#00577C]">
-                <ShieldCheck className="h-3.5 w-3.5" />
-                Proteção de dados · LGPD
-              </span>
+              
               <h1 className="mt-4 text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
                 Política de Privacidade
               </h1>
@@ -64,29 +61,7 @@ export default function PoliticaDePrivacidadePage() {
             </button>
           </div>
 
-          {/* Aviso de minuta */}
-          <div className="mb-10 flex gap-3 rounded-xl border border-[#F9C400]/50 bg-[#F9C400]/10 p-5 text-sm text-slate-700 print:hidden">
-            <AlertTriangle className="mt-0.5 h-5 w-5 flex-none text-[#b98600]" />
-            <p>
-              <strong>Aviso:</strong> este documento é uma minuta preliminar, disponibilizada para fins de
-              transparência durante a fase de testes da plataforma SagaTurismo. O texto está sujeito a
-              revisão pela Procuradoria-Geral do Município de São Geraldo do Araguaia antes de sua versão
-              definitiva, incluindo a designação formal do Encarregado de Dados (DPO).
-            </p>
-          </div>
-
-          {/* Resumo em destaque */}
-          <div className="mb-10 rounded-xl border border-[#009640]/30 bg-[#009640]/5 p-6 print:hidden">
-            <h2 className="text-sm font-bold uppercase tracking-wide text-[#009640]">Resumo em linguagem simples</h2>
-            <p className="mt-2 leading-relaxed text-slate-600">
-              Usamos sua selfie e seu comprovante de residência apenas para confirmar, de forma
-              automática por Inteligência Artificial, que você é residente de São Geraldo do Araguaia.{' '}
-              <strong>Nenhuma pessoa da nossa equipe acessa ou guarda esses arquivos</strong>: assim que a
-              validação termina, eles são apagados dos nossos servidores. Guardamos apenas o essencial —
-              seu nome, CPF, e-mail e a foto de rosto aprovada — para emitir sua carteira e permitir a
-              fiscalização do benefício.
-            </p>
-          </div>
+          
 
           <div className="lg:grid lg:grid-cols-[1fr_260px] lg:items-start lg:gap-12">
             <article className="min-w-0 divide-y divide-slate-200">
@@ -188,7 +163,7 @@ export default function PoliticaDePrivacidadePage() {
                   </Li>
                   <Li>
                     <strong>Retenção mínima:</strong> somente em caso de aprovação, ficam armazenados no
-                    banco de dados (Supabase) apenas: a fotografia de rosto aprovada (utilizada para compor
+                    banco de dados apenas: a fotografia de rosto aprovada (utilizada para compor
                     a carteira), o nome, o CPF e o e-mail — dados estritamente necessários para gerar a
                     carteira e permitir sua fiscalização.
                   </Li>
@@ -220,7 +195,7 @@ export default function PoliticaDePrivacidadePage() {
                 <Ul>
                   <Li>
                     Os dados retidos (nome, CPF, e-mail e foto aprovada) são armazenados em infraestrutura
-                    Supabase, com criptografia em trânsito e em repouso;
+                    de Data Base, com criptografia em trânsito e em repouso;
                   </Li>
                   <Li>
                     O acesso ao banco de dados é restrito a processos e credenciais estritamente

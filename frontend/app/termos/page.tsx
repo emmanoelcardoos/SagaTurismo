@@ -40,14 +40,12 @@ export default function TermosDeUsoPage() {
           {/* Cabeçalho da página */}
           <div className="mb-8 flex flex-col gap-6 border-b border-slate-200 pb-8 sm:flex-row sm:items-end sm:justify-between print:hidden">
             <div>
-              <span className="inline-flex items-center gap-2 rounded-full bg-[#00577C]/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#00577C]">
-                Documento institucional
-              </span>
+              
               <h1 className="mt-4 text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
                 Termos de Uso
               </h1>
               <p className="mt-2 text-sm text-slate-500">
-                Plataforma SagaTurismo · Última atualização: 31 de julho de 2026 · Versão preliminar 0.1
+                Plataforma SagaTurismo · Última atualização: 03 de Agosto de 2026 · Versão preliminar 0.2
               </p>
             </div>
 
@@ -60,16 +58,7 @@ export default function TermosDeUsoPage() {
             </button>
           </div>
 
-          {/* Aviso de minuta */}
-          <div className="mb-10 flex gap-3 rounded-xl border border-[#F9C400]/50 bg-[#F9C400]/10 p-5 text-sm text-slate-700 print:hidden">
-            <AlertTriangle className="mt-0.5 h-5 w-5 flex-none text-[#b98600]" />
-            <p>
-              <strong>Aviso:</strong> este documento é uma minuta preliminar, disponibilizada para fins de
-              transparência durante a fase de testes da plataforma SagaTurismo. O texto está sujeito a
-              revisão pela Procuradoria-Geral do Município de São Geraldo do Araguaia antes de sua versão
-              definitiva.
-            </p>
-          </div>
+          
 
           <div className="lg:grid lg:grid-cols-[1fr_260px] lg:items-start lg:gap-12">
             {/* Conteúdo */}
@@ -137,8 +126,8 @@ export default function TermosDeUsoPage() {
               <Section id="carteira" number="4" title="Da Carteira Digital de Residente e do benefício">
                 <P>
                   A Carteira Digital de Residente, quando aprovada, concede ao titular desconto de até{' '}
-                  <strong>50% (cinquenta por cento)</strong> em serviços e atrativos turísticos oferecidos
-                  por estabelecimentos parceiros cadastrados na Plataforma.
+                  <strong>50% (cinquenta por cento)</strong> especificamente na entrada do <strong>Parque Cachoeira Três Quedas</strong>. Outros serviços e atrativos turísticos oferecidos
+                  por estabelecimentos parceiros cadastrados na Plataforma não estão incluídos neste benefício temporariamente.
                 </P>
                 <Ul>
                   <Li>
@@ -156,7 +145,7 @@ export default function TermosDeUsoPage() {
                 </Ul>
               </Section>
 
-              <Section id="validacao-ia" number="5" title="Do envio de documentos e do processo de validação por Inteligência Artificial">
+              <Section id="validacao-ia" number="5" title="Do envio de documentos e do processo de validação">
                 <P>
                   Para emissão da carteira, o usuário envia uma <strong>selfie</strong> (foto do rosto) e um{' '}
                   <strong>comprovante de residência</strong>. É fundamental que o usuário compreenda como
