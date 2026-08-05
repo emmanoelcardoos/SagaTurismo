@@ -1,5 +1,6 @@
 import os
 import requests
+from PIL import Image
 from io import BytesIO, StringIO
 from datetime import datetime, timedelta
 import qrcode
@@ -62,37 +63,62 @@ def gerar_qr_code_em_memoria(conteudo: str) -> BytesIO:
     return qr_io
 
 def _foto_circular_sem_borda(c, x, y, diametro, foto_url):
-    """Desenha apenas a foto recortada em círculo, sem bordas adicionais"""
+    """Desenha apenas a foto recortada em círculo perfeito a partir do centro, sem distorcer"""
+    if not foto_url:
+        return
+
     raio = diametro / 2
     centro_x = x + raio
     centro_y = y + raio
 
     try:
-        if foto_url:
+        img_original = None
+        import os
+        
+        # 1. CARREGAR A IMAGEM (Mantendo a tua lógica exata)
+        if os.path.exists(foto_url):
+            img_original = Image.open(foto_url)
+        else:
+            if not foto_url.startswith("http"):
+                resposta_supabase = supabase.storage.from_("comprovantes").create_signed_url(foto_url, 60)
+                if isinstance(resposta_supabase, dict) and "signedURL" in resposta_supabase:
+                    foto_url = resposta_supabase["signedURL"]
+                elif isinstance(resposta_supabase, str):
+                    foto_url = resposta_supabase
+
+            resposta = requests.get(foto_url, timeout=10)
+            if resposta.status_code == 200:
+                img_original = Image.open(BytesIO(resposta.content))
+
+        # 2. RECORTAR NO CENTRO E DESENHAR NO PDF
+        if img_original:
+            # Encontra o menor lado para criar um quadrado perfeito
+            largura_img, altura_img = img_original.size
+            tamanho_quadrado = min(largura_img, altura_img)
+            
+            # Calcula as coordenadas para cortar o excesso
+            esq = (largura_img - tamanho_quadrado) / 2
+            topo = (altura_img - tamanho_quadrado) / 2
+            dir = (largura_img + tamanho_quadrado) / 2
+            fundo = (altura_img + tamanho_quadrado) / 2
+            
+            # Corta a imagem (crop)
+            img_recortada = img_original.crop((esq, topo, dir, fundo))
+            
+            # Prepara a imagem recortada para o ReportLab
+            img_io = BytesIO()
+            img_recortada.save(img_io, format='PNG')
+            img_io.seek(0)
+            
+            # Desenha a máscara e a imagem
             c.saveState()
             p = c.beginPath()
             p.circle(centro_x, centro_y, raio) 
             c.clipPath(p, stroke=0)
-
-            import os
-            # NOVA LÓGICA: Se for um caminho no teu Mac, ele lê direto do disco!
-            if os.path.exists(foto_url):
-                c.drawImage(ImageReader(foto_url), x, y, width=diametro, height=diametro, mask='auto', preserveAspectRatio=True)
-            else:
-                # Se não for local, faz o download normal do Supabase
-                if not foto_url.startswith("http"):
-                    resposta_supabase = supabase.storage.from_("comprovantes").create_signed_url(foto_url, 60)
-                    if isinstance(resposta_supabase, dict) and "signedURL" in resposta_supabase:
-                        foto_url = resposta_supabase["signedURL"]
-                    elif isinstance(resposta_supabase, str):
-                        foto_url = resposta_supabase
-
-                resposta = requests.get(foto_url, timeout=10)
-                if resposta.status_code == 200:
-                    img_data = BytesIO(resposta.content)
-                    c.drawImage(ImageReader(img_data), x, y, width=diametro, height=diametro, mask='auto', preserveAspectRatio=True)
             
+            c.drawImage(ImageReader(img_io), x, y, width=diametro, height=diametro)
             c.restoreState()
+            
     except Exception as e:
         print(f"Erro ao desenhar foto circular: {e}")
         pass
