@@ -98,6 +98,7 @@ def _foto_circular_sem_borda(c, x, y, diametro, foto_url):
 
 
 # ─── GERAÇÃO DA CARTEIRA DIGITAL DE RESIDENTE ───────────────────────────────
+# ─── GERAÇÃO DA CARTEIRA DIGITAL DE RESIDENTE ───────────────────────────────
 def gerar_pdf_carteira(residente_data: dict, token: str) -> str:
     os.makedirs("tmp_pdfs", exist_ok=True)
     nome_pessoa_limpo = _safe(residente_data.get('nome'), 'Residente').replace(' ', '_')
@@ -107,45 +108,46 @@ def gerar_pdf_carteira(residente_data: dict, token: str) -> str:
     largura, altura = 135 * mm, 83 * mm
     c = canvas.Canvas(caminho_pdf, pagesize=(largura, altura))
 
-    # 1. Desenha o fundo feito no Canva
- 
-    caminho_fundo = os.path.abspath("../frontend/public/carteira.png")
+    # 1. Desenha o fundo feito no Canva usando o CAMINHO ABSOLUTO EXATO
+    caminho_fundo = "/Users/emmanoelcardoso/Desktop/SagaTurismo/frontend/public/carteira.png"
+    
     try:
         c.drawImage(caminho_fundo, 0, 0, width=largura, height=altura)
     except Exception as e:
-        print(f"Aviso: Não encontrou o fundo carteira.png no caminho {caminho_fundo}. Erro: {e}")
+        print(f"ERRO CRÍTICO: Não encontrou o fundo no caminho {caminho_fundo}. Erro: {e}")
+        # Se falhar, vamos pintar um fundo cinza só para você perceber que a imagem não carregou, em vez de ficar branco
+        c.setFillColor(colors.HexColor("#f0f0f0"))
+        c.rect(0, 0, largura, altura, fill=1, stroke=0)
 
-    # 2. Inserir a Foto do Residente
-    # Valores estimados (ajuste os milímetros se a foto não encaixar perfeitamente no seu círculo)
-    foto_diam = 35 * mm
-    foto_x = 9 * mm
-    foto_y = 19 * mm
+    # 2. Inserir a Foto do Residente (Ajustado para o tamanho do círculo do Canva)
+    foto_diam = 53 * mm
+    foto_x = 8.5 * mm
+    foto_y = 13.5 * mm
     _foto_circular_sem_borda(c, foto_x, foto_y, foto_diam, residente_data.get('foto_url'))
 
     # 3. Inserir os Textos Dinâmicos (Nome, CPF e Validade)
-    # Alinhamento horizontal onde os dados reais vão começar a ser escritos
-    x_dados = 57 * mm 
-    c.setFillColor(colors.HexColor("#1e293b")) # Cor grafite escuro para combinar
+    # x_dados é a distância da margem esquerda até onde o texto começa (logo após os rótulos do Canva)
+    x_dados = 61 * mm 
+    c.setFillColor(colors.HexColor("#1e293b")) # Cor grafite escuro
 
     # Nome 
     nome_reduzido = _primeiro_ultimo_nome(residente_data.get('nome'))
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(x_dados, 41 * mm, nome_reduzido)
+    c.setFont("Helvetica-Bold", 13)
+    c.drawString(x_dados, 45 * mm, nome_reduzido)
 
     # CPF
-    c.setFont("Helvetica-Bold", 10)
-    c.drawString(x_dados, 28 * mm, _safe(residente_data.get('cpf'), "—"))
+    c.setFont("Helvetica-Bold", 11)
+    c.drawString(x_dados, 30.5 * mm, _safe(residente_data.get('cpf'), "—"))
 
     # Validade
     validade = (datetime.now() + timedelta(days=365)).strftime("%d/%m/%Y")
-    c.setFont("Helvetica-Bold", 10)
-    c.drawString(x_dados, 15.5 * mm, validade)
+    c.setFont("Helvetica-Bold", 11)
+    c.drawString(x_dados, 16.5 * mm, validade)
 
-    # 4. Inserir o QR Code
-    # Valores estimados para encaixar no quadrado da direita
+    # 4. Inserir o QR Code (Ajustado para o quadrado na direita da imagem)
     qr_size = 25 * mm
-    qr_x = 103 * mm
-    qr_y = 19 * mm
+    qr_x = 104 * mm
+    qr_y = 23 * mm
 
     qr_io = gerar_qr_code_em_memoria(f"https://sagatur.com.br/fiscal/validar/{token}")
     c.drawImage(ImageReader(qr_io), qr_x, qr_y, width=qr_size, height=qr_size)
