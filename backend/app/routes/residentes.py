@@ -53,7 +53,10 @@ async def cadastrar_residente(
         ext_comp = arquivo.filename.split('.')[-1]
         path_comp = f"comprovantes/comp_{membros[0]['cpf']}_{uuid.uuid4().hex[:5]}.{ext_comp}"
         supabase.storage.from_("comprovantes").upload(path_comp, contents_comprovante)
-        url_comprovante = supabase.storage.from_("comprovantes").get_public_url(path_comp)
+        
+        # ANTES: url_comprovante = supabase.storage.from_("comprovantes").get_public_url(path_comp)
+        # AGORA: Guarda apenas o caminho interno estruturado
+        url_comprovante = path_comp
 
         # 3. Validação Real com Gemini (Enviando a família toda E O FORMATO CORRETO)
         # ◄── AGORA ENVIAMOS O mime_type PARA A IA SABER SE É PDF OU FOTO
@@ -79,7 +82,10 @@ async def cadastrar_residente(
             ext_foto = fotos[index].filename.split('.')[-1]
             path_foto = f"fotos_perfil/foto_{membro['cpf']}_{uuid.uuid4().hex[:5]}.{ext_foto}"
             supabase.storage.from_("comprovantes").upload(path_foto, contents_foto)
-            url_foto = supabase.storage.from_("comprovantes").get_public_url(path_foto)
+            
+            # ANTES: url_foto = supabase.storage.from_("comprovantes").get_public_url(path_foto)
+            # AGORA: Guarda apenas o caminho interno
+            url_foto = path_foto
 
             qrcode_token = str(uuid.uuid4())
 
