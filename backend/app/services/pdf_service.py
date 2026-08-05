@@ -9,6 +9,13 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.utils import ImageReader
 from reportlab.graphics import renderPDF
 from svglib.svglib import svg2rlg
+from supabase import create_client, Client
+from dotenv import load_dotenv
+
+load_dotenv()
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # ─── CONFIGURAÇÕES VISUAIS INSTITUCIONAIS ────────────────────────────────────
 COR_PRIMARIA = colors.HexColor("#0A3D4A")       # Azul Escuro do Cabeçalho e Rodapé Esquerdo
@@ -67,6 +74,19 @@ def _foto_circular(c, x, y, diametro, foto_url):
     desenhada = False
     try:
         if foto_url:
+            # ◄── INÍCIO DA MÁGICA DA SEGURANÇA ──►
+            # Se for um caminho interno (não começa por http), geramos a URL temporária
+            if not foto_url.startswith("http"):
+                # Pede ao cofre uma chave válida por 60 segundos
+                resposta_supabase = supabase.storage.from_("comprovantes").create_signed_url(foto_url, 60)
+                
+                # A biblioteca do Supabase Python devolve um dicionário com a chave "signedURL"
+                if isinstance(resposta_supabase, dict) and "signedURL" in resposta_supabase:
+                    foto_url = resposta_supabase["signedURL"]
+                elif isinstance(resposta_supabase, str):
+                    foto_url = resposta_supabase
+            # ◄── FIM DA MÁGICA ──►
+
             resposta = requests.get(foto_url, timeout=10)
             if resposta.status_code == 200:
                 img_data = BytesIO(resposta.content)
@@ -77,7 +97,8 @@ def _foto_circular(c, x, y, diametro, foto_url):
                 c.drawImage(ImageReader(img_data), x, y, width=diametro, height=diametro, mask='auto', preserveAspectRatio=True)
                 c.restoreState()
                 desenhada = True
-    except Exception:
+    except Exception as e:
+        print(f"Erro ao desenhar foto circular: {e}")
         pass
 
     if not desenhada:
