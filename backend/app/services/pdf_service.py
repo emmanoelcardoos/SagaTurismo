@@ -133,7 +133,7 @@ def gerar_pdf_carteira(residente_data: dict, token: str) -> str:
     c = canvas.Canvas(caminho_pdf, pagesize=(largura, altura))
 
     # 1. Desenha o fundo
-    url_fundo = "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/carteira/fundo.jpg"
+    url_fundo = "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/carteira/versao.jpg"
     
     try:
         resposta_fundo = requests.get(url_fundo, timeout=10)
@@ -160,16 +160,19 @@ def gerar_pdf_carteira(residente_data: dict, token: str) -> str:
     nome_reduzido = _primeiro_ultimo_nome(residente_data.get('nome'))
     
     # Nome (Restaurado para Helvetica-Bold)
-    c.setFont("Helvetica-Bold", 11)
-    c.drawString(x_nome, 42.7 * mm, nome_reduzido)
+    c.setFillColor(colors.HexColor("#374151"))
+    c.setFont("Helvetica-Bold", 9)
+    c.drawString(x_nome, 42.9 * mm, nome_reduzido)
     
     # CPF (Restaurado para Helvetica-Bold)
-    c.setFont("Helvetica-Bold", 10)
-    c.drawString(x_cpf, 34.5 * mm, _safe(residente_data.get('cpf'), "—"))
+    c.setFillColor(colors.HexColor("#374151"))
+    c.setFont("Helvetica-Bold", 9)
+    c.drawString(x_cpf, 34.7 * mm, _safe(residente_data.get('cpf'), "—"))
     
     # Validade (Mantém a fonte anterior, ou seja, Helvetica-Bold tamanho 10)
+    c.setFillColor(colors.HexColor("#374151"))
     validade = (datetime.now() + timedelta(days=365)).strftime("%d/%m/%Y")
-    c.drawString(x_validade, 27.5 * mm, validade)
+    c.drawString(x_validade, 27.7 * mm, validade)
 
     # 4. QR Code
     qr_size = 25 * mm
