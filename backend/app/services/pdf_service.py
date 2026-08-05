@@ -126,36 +126,36 @@ def gerar_pdf_carteira(residente_data: dict, token: str) -> str:
         c.setFillColor(colors.HexColor("#f0f0f0"))
         c.rect(0, 0, largura, altura, fill=1, stroke=0)
 
-    # 2. Inserir a Foto do Residente
-    foto_diam = 51 * mm
-    foto_x = 9.5 * mm
-    foto_y = 15.5 * mm
+    # 2. Inserir a Foto do Residente (Reduzida para caber na moldura do Canva)
+    foto_diam = 42 * mm
+    foto_x = 13 * mm
+    foto_y = 21 * mm
     _foto_circular_sem_borda(c, foto_x, foto_y, foto_diam, residente_data.get('foto_url'))
 
-    # 3. Inserir os Textos Dinâmicos (Nome, CPF e Validade)
-    x_dados = 61 * mm 
+    # 3. Inserir os Textos Dinâmicos (Centralizados na área branca)
+    x_dados = 60 * mm 
     c.setFillColor(colors.HexColor("#1e293b")) 
 
-    # Nome 
+    # Nome (Subiu para a linha correta)
     nome_reduzido = _primeiro_ultimo_nome(residente_data.get('nome'))
-    c.setFont("Helvetica-Bold", 13)
-    c.drawString(x_dados, 45 * mm, nome_reduzido)
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(x_dados, 56 * mm, nome_reduzido)
 
-    # CPF
-    c.setFont("Helvetica-Bold", 11)
-    c.drawString(x_dados, 30.5 * mm, _safe(residente_data.get('cpf'), "—"))
+    # CPF (Subiu para a linha correta)
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(x_dados, 40 * mm, _safe(residente_data.get('cpf'), "—"))
 
-    # Validade
+    # Validade (Subiu para a linha correta)
     validade = (datetime.now() + timedelta(days=365)).strftime("%d/%m/%Y")
-    c.setFont("Helvetica-Bold", 11)
-    c.drawString(x_dados, 16.5 * mm, validade)
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(x_dados, 24 * mm, validade)
 
-    # 4. Inserir o QR Code
-    qr_size = 25 * mm
-    qr_x = 104 * mm
-    qr_y = 23 * mm
+    # 4. Inserir o QR Code (Movido para a esquerda para não cortar na borda)
+    qr_size = 22 * mm
+    qr_x = 102 * mm
+    qr_y = 20 * mm
 
-    # Fundo branco para garantir que o QR Code seja lido caso a pedra escura fique atrás
+    # Fundo branco para garantir a leitura do QR Code
     c.setFillColor(colors.white)
     c.setStrokeColor(colors.white)
     c.rect(qr_x, qr_y, qr_size, qr_size, fill=1, stroke=0)
@@ -165,7 +165,6 @@ def gerar_pdf_carteira(residente_data: dict, token: str) -> str:
 
     c.save()
     return caminho_pdf
-
 
 # ─── 2. GERAÇÃO DO VOUCHER DE HOSPEDAGEM (HOTÉIS / PASSEIOS) ───────────────
 
