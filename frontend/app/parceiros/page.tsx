@@ -168,13 +168,7 @@ export default function ParceirosPage() {
                 </a>
               </div>
               
-              <Link
-                href="/"
-                className={`${jakarta.className} group inline-flex items-center justify-center sm:justify-start gap-3 text-white/40 hover:text-white mt-2 font-black text-xs uppercase tracking-widest transition-all duration-200`}
-              >
-                <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
-                Voltar ao Início
-              </Link>
+              
             </div>
 
             {/* Coluna direita — foto estática de apoio (Oculta em telas muito pequenas, visível de tablet para cima) */}
@@ -216,7 +210,7 @@ export default function ParceirosPage() {
       <footer className="relative z-10 py-6 md:py-7 border-t border-white/5 mt-8 md:mt-0">
         <div className="w-full max-w-[1400px] mx-auto px-5 md:px-14 flex flex-col md:flex-row justify-center md:justify-between items-center gap-4 text-center md:text-left">
           <p className={`${jakarta.className} text-[9px] md:text-[10px] font-bold text-white/20 uppercase tracking-widest`}>
-            © {new Date().getFullYear()} Prefeitura Municipal de São Geraldo do Araguaia — Todos os direitos reservados.
+            © {new Date().getFullYear()}  — Todos os direitos reservados.
           </p>
         </div>
       </footer>
