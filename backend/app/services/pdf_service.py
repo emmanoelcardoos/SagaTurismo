@@ -114,7 +114,6 @@ def gerar_pdf_carteira(residente_data: dict, token: str) -> str:
     url_fundo = "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/carteira/fundo.jpg"
     
     try:
-        # Baixa a imagem da internet direto para a memória e desenha no PDF
         resposta_fundo = requests.get(url_fundo, timeout=10)
         if resposta_fundo.status_code == 200:
             img_fundo = ImageReader(BytesIO(resposta_fundo.content))
@@ -126,36 +125,37 @@ def gerar_pdf_carteira(residente_data: dict, token: str) -> str:
         c.setFillColor(colors.HexColor("#f0f0f0"))
         c.rect(0, 0, largura, altura, fill=1, stroke=0)
 
-    # 2. Inserir a Foto do Residente (Reduzida para caber na moldura do Canva)
-    foto_diam = 42 * mm
-    foto_x = 13 * mm
-    foto_y = 21 * mm
+    # 2. Inserir a Foto do Residente (CALIBRADO)
+    foto_diam = 41.5 * mm  # Reduzido ligeiramente para caber perfeitamente DENTRO da borda
+    foto_x = 9 * mm        # Puxado para a esquerda
+    foto_y = 18.5 * mm     # Descido para centralizar na argola do layout
     _foto_circular_sem_borda(c, foto_x, foto_y, foto_diam, residente_data.get('foto_url'))
 
-    # 3. Inserir os Textos Dinâmicos (Centralizados na área branca)
-    x_dados = 60 * mm 
+    # 3. Inserir os Textos Dinâmicos (CALIBRADO)
+    # Empurrado para a direita (68mm) para não sobrepor os rótulos estáticos do fundo
+    x_dados = 68 * mm 
     c.setFillColor(colors.HexColor("#1e293b")) 
 
-    # Nome (Subiu para a linha correta)
+    # Nome (Descido de 56mm para 49mm para alinhar com o "Nome:")
     nome_reduzido = _primeiro_ultimo_nome(residente_data.get('nome'))
     c.setFont("Helvetica-Bold", 12)
-    c.drawString(x_dados, 56 * mm, nome_reduzido)
+    c.drawString(x_dados, 49 * mm, nome_reduzido)
 
-    # CPF (Subiu para a linha correta)
+    # CPF (Descido de 40mm para 36.5mm para alinhar com o "CPF:")
     c.setFont("Helvetica-Bold", 10)
-    c.drawString(x_dados, 40 * mm, _safe(residente_data.get('cpf'), "—"))
+    c.drawString(x_dados, 36.5 * mm, _safe(residente_data.get('cpf'), "—"))
 
-    # Validade (Subiu para a linha correta)
+    # Validade (Mantido e afinado para alinhar com "Validade:")
     validade = (datetime.now() + timedelta(days=365)).strftime("%d/%m/%Y")
     c.setFont("Helvetica-Bold", 10)
-    c.drawString(x_dados, 24 * mm, validade)
+    c.drawString(x_dados, 24.5 * mm, validade)
 
-    # 4. Inserir o QR Code (Movido para a esquerda para não cortar na borda)
-    qr_size = 22 * mm
-    qr_x = 102 * mm
-    qr_y = 20 * mm
+    # 4. Inserir o QR Code (CALIBRADO)
+    qr_size = 26 * mm      # Levemente ajustado para encaixar bonito na margem branca
+    qr_x = 101.5 * mm      # Empurrado ligeiramente para a esquerda
+    qr_y = 30 * mm         # Subiu de 20mm para 30mm para entrar no quadrado perfeito
 
-    # Fundo branco para garantir a leitura do QR Code
+    # Fundo branco (ajustado para ser imperceptível, servindo apenas de segurança para a leitura)
     c.setFillColor(colors.white)
     c.setStrokeColor(colors.white)
     c.rect(qr_x, qr_y, qr_size, qr_size, fill=1, stroke=0)
