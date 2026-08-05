@@ -67,40 +67,36 @@ def _foto_circular_sem_borda(c, x, y, diametro, foto_url):
     centro_x = x + raio
     centro_y = y + raio
 
-    desenhada = False
     try:
         if foto_url:
-            if not foto_url.startswith("http"):
-                resposta_supabase = supabase.storage.from_("comprovantes").create_signed_url(foto_url, 60)
-                if isinstance(resposta_supabase, dict) and "signedURL" in resposta_supabase:
-                    foto_url = resposta_supabase["signedURL"]
-                elif isinstance(resposta_supabase, str):
-                    foto_url = resposta_supabase
+            c.saveState()
+            p = c.beginPath()
+            p.circle(centro_x, centro_y, raio) 
+            c.clipPath(p, stroke=0)
 
-            resposta = requests.get(foto_url, timeout=10)
-            if resposta.status_code == 200:
-                img_data = BytesIO(resposta.content)
-                c.saveState()
-                p = c.beginPath()
-                # A máscara interna para deixar redondinho
-                p.circle(centro_x, centro_y, raio) 
-                c.clipPath(p, stroke=0)
-                c.drawImage(ImageReader(img_data), x, y, width=diametro, height=diametro, mask='auto', preserveAspectRatio=True)
-                c.restoreState()
-                desenhada = True
+            import os
+            # NOVA LÓGICA: Se for um caminho no teu Mac, ele lê direto do disco!
+            if os.path.exists(foto_url):
+                c.drawImage(ImageReader(foto_url), x, y, width=diametro, height=diametro, mask='auto', preserveAspectRatio=True)
+            else:
+                # Se não for local, faz o download normal do Supabase
+                if not foto_url.startswith("http"):
+                    resposta_supabase = supabase.storage.from_("comprovantes").create_signed_url(foto_url, 60)
+                    if isinstance(resposta_supabase, dict) and "signedURL" in resposta_supabase:
+                        foto_url = resposta_supabase["signedURL"]
+                    elif isinstance(resposta_supabase, str):
+                        foto_url = resposta_supabase
+
+                resposta = requests.get(foto_url, timeout=10)
+                if resposta.status_code == 200:
+                    img_data = BytesIO(resposta.content)
+                    c.drawImage(ImageReader(img_data), x, y, width=diametro, height=diametro, mask='auto', preserveAspectRatio=True)
+            
+            c.restoreState()
     except Exception as e:
         print(f"Erro ao desenhar foto circular: {e}")
         pass
 
-    # Se não tiver foto, deixa em branco (transparente) para mostrar o fundo do Canva
-    if not desenhada:
-        pass
-
-
-# ─── GERAÇÃO DA CARTEIRA DIGITAL DE RESIDENTE ───────────────────────────────
-# ─── GERAÇÃO DA CARTEIRA DIGITAL DE RESIDENTE ───────────────────────────────
-# ─── GERAÇÃO DA CARTEIRA DIGITAL DE RESIDENTE ───────────────────────────────
-# ─── GERAÇÃO DA CARTEIRA DIGITAL DE RESIDENTE ───────────────────────────────
 def gerar_pdf_carteira(residente_data: dict, token: str) -> str:
     os.makedirs("tmp_pdfs", exist_ok=True)
     nome_pessoa_limpo = _safe(residente_data.get('nome'), 'Residente').replace(' ', '_')
@@ -110,7 +106,7 @@ def gerar_pdf_carteira(residente_data: dict, token: str) -> str:
     largura, altura = 135 * mm, 83 * mm
     c = canvas.Canvas(caminho_pdf, pagesize=(largura, altura))
 
-    # 1. Desenha o fundo usando a URL pública do Supabase
+    # 1. Desenha o fundo
     url_fundo = "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/carteira/fundo.jpg"
     
     try:
@@ -118,44 +114,42 @@ def gerar_pdf_carteira(residente_data: dict, token: str) -> str:
         if resposta_fundo.status_code == 200:
             img_fundo = ImageReader(BytesIO(resposta_fundo.content))
             c.drawImage(img_fundo, 0, 0, width=largura, height=altura)
-        else:
-            print(f"Erro ao baixar fundo: Status {resposta_fundo.status_code}")
     except Exception as e:
-        print(f"ERRO CRÍTICO AO BAIXAR FUNDO DA URL: {e}")
         c.setFillColor(colors.HexColor("#f0f0f0"))
         c.rect(0, 0, largura, altura, fill=1, stroke=0)
 
-    # 2. Inserir a Foto do Residente (CALIBRADO)
-    foto_diam = 41.5 * mm  # Reduzido ligeiramente para caber perfeitamente DENTRO da borda
-    foto_x = 9 * mm        # Puxado para a esquerda
-    foto_y = 18.5 * mm     # Descido para centralizar na argola do layout
+    # 2. Inserir a Foto
+    foto_diam = 39.1 * mm
+    foto_x = 2.5 * mm    
+    foto_y = 19.5 * mm    
     _foto_circular_sem_borda(c, foto_x, foto_y, foto_diam, residente_data.get('foto_url'))
 
-    # 3. Inserir os Textos Dinâmicos (CALIBRADO)
-    # Empurrado para a direita (68mm) para não sobrepor os rótulos estáticos do fundo
-    x_dados = 68 * mm 
+    # 3. Textos Dinâmicos (Variáveis independentes para ajuste fino horizontal)
     c.setFillColor(colors.HexColor("#1e293b")) 
+    
+    x_nome = 53 * mm
+    x_cpf = 50.9 * mm
+    x_validade = 56.9 * mm
 
-    # Nome (Descido de 56mm para 49mm para alinhar com o "Nome:")
     nome_reduzido = _primeiro_ultimo_nome(residente_data.get('nome'))
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(x_dados, 49 * mm, nome_reduzido)
-
-    # CPF (Descido de 40mm para 36.5mm para alinhar com o "CPF:")
+    
+    # Nome (Restaurado para Helvetica-Bold)
+    c.setFont("Helvetica-Bold", 11)
+    c.drawString(x_nome, 42.7 * mm, nome_reduzido)
+    
+    # CPF (Restaurado para Helvetica-Bold)
     c.setFont("Helvetica-Bold", 10)
-    c.drawString(x_dados, 36.5 * mm, _safe(residente_data.get('cpf'), "—"))
-
-    # Validade (Mantido e afinado para alinhar com "Validade:")
+    c.drawString(x_cpf, 34.5 * mm, _safe(residente_data.get('cpf'), "—"))
+    
+    # Validade (Mantém a fonte anterior, ou seja, Helvetica-Bold tamanho 10)
     validade = (datetime.now() + timedelta(days=365)).strftime("%d/%m/%Y")
-    c.setFont("Helvetica-Bold", 10)
-    c.drawString(x_dados, 24.5 * mm, validade)
+    c.drawString(x_validade, 27.5 * mm, validade)
 
-    # 4. Inserir o QR Code (CALIBRADO)
-    qr_size = 26 * mm      # Levemente ajustado para encaixar bonito na margem branca
-    qr_x = 101.5 * mm      # Empurrado ligeiramente para a esquerda
-    qr_y = 30 * mm         # Subiu de 20mm para 30mm para entrar no quadrado perfeito
+    # 4. QR Code
+    qr_size = 25 * mm
+    qr_x = 103.5 * mm      
+    qr_y = 25 * mm          
 
-    # Fundo branco (ajustado para ser imperceptível, servindo apenas de segurança para a leitura)
     c.setFillColor(colors.white)
     c.setStrokeColor(colors.white)
     c.rect(qr_x, qr_y, qr_size, qr_size, fill=1, stroke=0)
