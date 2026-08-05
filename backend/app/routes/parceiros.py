@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Request
 from pydantic import BaseModel
 import os
 from supabase import create_client, Client
@@ -123,33 +123,76 @@ def calcular_recorte_guia_pacote(guia_id: str, checkin_str: str, checkout_str: s
         print(f"[ERRO CALCULO RECORTE GUIA] {e}")
         return 0.0
 
-# ── ROTA DE AUTENTICAÇÃO DO PARCEIRO ──
+# ... (tudo o que está antes, os teus imports, modelos e funções auxiliares ficam iguais) ...
+
+# ── ROTAS DE AUTENTICAÇÃO E REGISTO DO PARCEIRO (NOVO FLUXO LGPD) ──
+
+@router.post("/api/v1/parceiros/registrar", tags=["Portal dos Parceiros"])
+async def registrar_parceiro(request: Request):
+    """Rota usada pelo Link Secreto para criar a senha e ativar a conta"""
+    try:
+        dados = await request.json()
+        
+        # 1. Criar o parceiro no cofre secreto do Supabase (auth.users)
+        auth_response = supabase.auth.sign_up({
+            "email": dados.get("email"),
+            "password": dados.get("senha")
+        })
+        
+        # Verifica se o Supabase devolveu um utilizador com sucesso
+        if not auth_response.user:
+             return {"sucesso": False, "mensagem": "Não foi possível criar o utilizador no cofre de segurança."}
+             
+        user_id = auth_response.user.id
+        
+        # 2. Gravar os dados públicos na tabela parceiros
+        novo_parceiro = {
+            "id": user_id,
+            "nome_negocio": dados.get("nome_negocio"),
+            "tipo_parceiro": dados.get("tipo_parceiro"),
+            "email": dados.get("email"),
+            "telefone": dados.get("telefone"),
+            "status": "ativo"
+        }
+        
+        supabase.table("parceiros").insert(novo_parceiro).execute()
+        
+        return {"sucesso": True, "mensagem": "Conta criada e ativada com sucesso!"}
+        
+    except Exception as e:
+        print(f"[ERRO REGISTO PARCEIRO] {str(e)}")
+        # Um erro comum aqui é se o e-mail já existir no cofre
+        return {"sucesso": False, "mensagem": "Erro ao criar conta. O e-mail já pode estar em uso ou a senha é muito fraca."}
+
 
 @router.post("/api/v1/parceiros/login", tags=["Portal dos Parceiros"])
 async def login_parceiro(payload: LoginParceiroSchema):
+    """Rota de login que agora valida contra o cofre do Supabase Auth"""
     try:
-        res = supabase.table("parceiros") \
-            .select("*") \
-            .eq("email", payload.email.strip()) \
-            .execute()
+        # 1. Tenta abrir o cofre com o email e a senha (o Supabase faz a magia)
+        auth_response = supabase.auth.sign_in_with_password({
+            "email": payload.email.strip(),
+            "password": payload.senha
+        })
+        
+        # Se passar daqui, a senha está correta! Pegamos o ID seguro.
+        user_id = auth_response.user.id
+        
+        # 2. Busca os dados públicos do parceiro usando esse ID
+        res = supabase.table("parceiros").select("*").eq("id", user_id).single().execute()
             
         if not res.data:
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Credenciais inválidas ou utilizador não cadastrado."
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Conta de utilizador validada, mas perfil de parceiro não encontrado na tabela."
             )
             
-        parceiro = res.data[0]
-        if parceiro.get("senha") != payload.senha:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Credenciais inválidas. Verifique a palavra-passe."
-            )
+        parceiro = res.data
             
         if parceiro.get("status") != "ativo":
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="A sua conta ainda está em fase de análise ou encontra-se suspensa pela Secretaria de Turismo."
+                detail="A sua conta encontra-se suspensa pela Secretaria de Turismo."
             )
             
         return {
@@ -157,15 +200,19 @@ async def login_parceiro(payload: LoginParceiroSchema):
             "mensagem": "Autenticação realizada com sucesso!",
             "parceiro_id": parceiro.get("id"),
             "nome_negocio": parceiro.get("nome_negocio"),
-            "tipo": parceiro.get("tipo")
+            "tipo": parceiro.get("tipo_parceiro") # Corrigido para buscar 'tipo_parceiro' que é o nome correto da coluna
         }
         
-    except HTTPException as http_err:
-        raise http_err
     except Exception as e:
         print(f"[ERRO LOGIN PARCEIRO] {e}")
-        raise HTTPException(status_code=500, detail="Erro interno ao processar a autenticação.")
+        # A API Python do Supabase levanta uma exceção se a senha estiver errada
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, 
+            detail="Credenciais inválidas. Verifique o seu e-mail e a palavra-passe."
+        )
 
+# ── ROTA PARA RECEBER O PEDIDO DE INTERESSE E ENVIAR E-MAIL ──
+# ... (O resto do ficheiro continua igual) ...
 # ── ROTA PARA RECEBER O PEDIDO DE INTERESSE E ENVIAR E-MAIL ──
 
 @router.post("/api/v1/parceiros/interesse", tags=["Portal dos Parceiros"])
