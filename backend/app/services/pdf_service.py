@@ -61,38 +61,29 @@ def gerar_qr_code_em_memoria(conteudo: str) -> BytesIO:
     qr_io.seek(0)
     return qr_io
 
-def _foto_circular(c, x, y, diametro, foto_url):
+def _foto_circular_sem_borda(c, x, y, diametro, foto_url):
+    """Desenha apenas a foto recortada em círculo, sem bordas adicionais"""
     raio = diametro / 2
     centro_x = x + raio
     centro_y = y + raio
 
-    # Borda Grossa da Foto
-    c.setStrokeColor(COR_PRIMARIA)
-    c.setLineWidth(3.5)
-    c.circle(centro_x, centro_y, raio, fill=0, stroke=1)
-
     desenhada = False
     try:
         if foto_url:
-            # ◄── INÍCIO DA MÁGICA DA SEGURANÇA ──►
-            # Se for um caminho interno (não começa por http), geramos a URL temporária
             if not foto_url.startswith("http"):
-                # Pede ao cofre uma chave válida por 60 segundos
                 resposta_supabase = supabase.storage.from_("comprovantes").create_signed_url(foto_url, 60)
-                
-                # A biblioteca do Supabase Python devolve um dicionário com a chave "signedURL"
                 if isinstance(resposta_supabase, dict) and "signedURL" in resposta_supabase:
                     foto_url = resposta_supabase["signedURL"]
                 elif isinstance(resposta_supabase, str):
                     foto_url = resposta_supabase
-            # ◄── FIM DA MÁGICA ──►
 
             resposta = requests.get(foto_url, timeout=10)
             if resposta.status_code == 200:
                 img_data = BytesIO(resposta.content)
                 c.saveState()
                 p = c.beginPath()
-                p.circle(centro_x, centro_y, raio - 1.8) # Máscara interna
+                # A máscara interna para deixar redondinho
+                p.circle(centro_x, centro_y, raio) 
                 c.clipPath(p, stroke=0)
                 c.drawImage(ImageReader(img_data), x, y, width=diametro, height=diametro, mask='auto', preserveAspectRatio=True)
                 c.restoreState()
@@ -101,9 +92,10 @@ def _foto_circular(c, x, y, diametro, foto_url):
         print(f"Erro ao desenhar foto circular: {e}")
         pass
 
+    # Se não tiver foto, deixa em branco (transparente) para mostrar o fundo do Canva
     if not desenhada:
-        c.setFillColor(colors.HexColor("#cccccc"))
-        c.circle(centro_x, centro_y, raio - 1.8, fill=1, stroke=0)
+        pass
+
 
 # ─── GERAÇÃO DA CARTEIRA DIGITAL DE RESIDENTE ───────────────────────────────
 def gerar_pdf_carteira(residente_data: dict, token: str) -> str:
@@ -115,106 +107,48 @@ def gerar_pdf_carteira(residente_data: dict, token: str) -> str:
     largura, altura = 135 * mm, 83 * mm
     c = canvas.Canvas(caminho_pdf, pagesize=(largura, altura))
 
-    # 1. Fundo Bege do Cartão
-    c.setFillColor(COR_FUNDO_CARD)
-    c.rect(0, 0, largura, altura, fill=1, stroke=0)
+    # 1. Desenha o fundo feito no Canva
+ 
+    caminho_fundo = os.path.abspath("../frontend/public/carteira.png")
+    try:
+        c.drawImage(caminho_fundo, 0, 0, width=largura, height=altura)
+    except Exception as e:
+        print(f"Aviso: Não encontrou o fundo carteira.png no caminho {caminho_fundo}. Erro: {e}")
 
-    # (Marca d'água removida para garantir um design mais limpo e profissional)
+    # 2. Inserir a Foto do Residente
+    # Valores estimados (ajuste os milímetros se a foto não encaixar perfeitamente no seu círculo)
+    foto_diam = 35 * mm
+    foto_x = 9 * mm
+    foto_y = 19 * mm
+    _foto_circular_sem_borda(c, foto_x, foto_y, foto_diam, residente_data.get('foto_url'))
 
-    # 2. Header
-    h_header = 16 * mm
-    c.setFillColor(COR_PRIMARIA)
-    c.rect(0, altura - h_header, largura, h_header, fill=1, stroke=0)
+    # 3. Inserir os Textos Dinâmicos (Nome, CPF e Validade)
+    # Alinhamento horizontal onde os dados reais vão começar a ser escritos
+    x_dados = 57 * mm 
+    c.setFillColor(colors.HexColor("#1e293b")) # Cor grafite escuro para combinar
 
-    # Logo Institucional Grande no Header
-    logo_src = _obter_logo_institucional()
-    logo_h = 15 * mm
-    logo_x = 6 * mm
-    logo_y = altura - (h_header / 2) - (logo_h / 2)
-
-    if logo_src:
-        c.drawImage(logo_src, logo_x, logo_y, width=logo_h, height=logo_h, mask='auto', preserveAspectRatio=True)
-        texto_x = logo_x + logo_h + 4 * mm
-    else:
-        texto_x = 8 * mm
-
-    # Título do Header
-    c.setFillColor(COR_BRANCO)
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(texto_x, altura - (h_header / 2) - 1.5 * mm, "Cartão Digital do Residente")
-
-    # 3. Linha Divisória Dourada
-    h_divider = 2 * mm
-    c.setFillColor(COR_DESTAQUE)
-    c.rect(0, altura - h_header - h_divider, largura, h_divider, fill=1, stroke=0)
-
-    # 4. Corpo Principal (Área Útil)
-    h_footer = 9 * mm
-    y_corpo_bottom = h_footer
-    area_h = altura - h_header - h_divider - h_footer
-
-    # Coluna Esquerda: Foto Circular
-    foto_diam = 34 * mm
-    foto_x = 8 * mm
-    foto_y = y_corpo_bottom + (area_h - foto_diam) / 2
-    _foto_circular(c, foto_x, foto_y, foto_diam, residente_data.get('foto_url'))
-
-    # Coluna Central: Dados do Residente
-    x_dados = foto_x + foto_diam + 8 * mm
-    y_texto = foto_y + foto_diam - 4 * mm
-
-    # Nome Label
-    c.setFillColor(COR_TEXTO_SUAVE)
-    c.setFont("Helvetica-Bold", 9)
-    c.drawString(x_dados, y_texto, "Nome:")
-
-    # Nome Principal
+    # Nome 
     nome_reduzido = _primeiro_ultimo_nome(residente_data.get('nome'))
-    c.setFillColor(COR_TEXTO_ESCURO)
-    c.setFont("Helvetica-Bold", 13)
-    c.drawString(x_dados, y_texto - 5.5 * mm, nome_reduzido)
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(x_dados, 41 * mm, nome_reduzido)
 
     # CPF
-    c.setFillColor(COR_TEXTO_SUAVE)
-    c.setFont("Helvetica-Bold", 9)
-    c.drawString(x_dados, y_texto - 13 * mm, "CPF:")
-    c.setFillColor(COR_TEXTO_ESCURO)
     c.setFont("Helvetica-Bold", 10)
-    c.drawString(x_dados + 9 * mm, y_texto - 13 * mm, _safe(residente_data.get('cpf'), "—"))
+    c.drawString(x_dados, 28 * mm, _safe(residente_data.get('cpf'), "—"))
 
     # Validade
     validade = (datetime.now() + timedelta(days=365)).strftime("%d/%m/%Y")
-    c.setFillColor(COR_TEXTO_SUAVE)
-    c.setFont("Helvetica-Bold", 9)
-    c.drawString(x_dados, y_texto - 20 * mm, "Validade:")
-    c.setFillColor(COR_TEXTO_ESCURO)
     c.setFont("Helvetica-Bold", 10)
-    c.drawString(x_dados + 15 * mm, y_texto - 20 * mm, validade)
+    c.drawString(x_dados, 15.5 * mm, validade)
 
-    # Coluna Direita: QR Code Isolado
-    qr_size = 24 * mm
-    qr_x = largura - qr_size - 7 * mm
-    qr_y = y_corpo_bottom + (area_h - qr_size) / 2
-
-    c.setFillColor(COR_BRANCO)
-    c.setStrokeColor(colors.HexColor("#E5E7EB"))
-    c.setLineWidth(0.8)
-    c.roundRect(qr_x - 1.5 * mm, qr_y - 1.5 * mm, qr_size + 3 * mm, qr_size + 3 * mm, 1.5 * mm, fill=1, stroke=1)
+    # 4. Inserir o QR Code
+    # Valores estimados para encaixar no quadrado da direita
+    qr_size = 25 * mm
+    qr_x = 103 * mm
+    qr_y = 19 * mm
 
     qr_io = gerar_qr_code_em_memoria(f"https://sagatur.com.br/fiscal/validar/{token}")
     c.drawImage(ImageReader(qr_io), qr_x, qr_y, width=qr_size, height=qr_size)
-
-    # 5. Rodapé Institucional
-    c.setFillColor(COR_PRIMARIA)
-    c.rect(0, 0, largura * 0.2, h_footer, fill=1, stroke=0)
-
-    c.setFillColor(COR_SECUNDARIA)
-    c.rect(largura * 0.2, 0, largura * 0.8, h_footer, fill=1, stroke=0)
-
-    # Texto Oficial da Secretaria no Footer
-    c.setFillColor(COR_BRANCO)
-    c.setFont("Helvetica-Bold", 6.5)
-    c.drawString(largura * 0.2 + 4 * mm, h_footer / 2 - 2 * mm, "Secretaria Municipal de Turismo de São Geraldo do Araguaia - PA")
 
     c.save()
     return caminho_pdf
