@@ -221,6 +221,12 @@ const EMPTY_ROTA = {
   como_chegar: null,
 };
 
+// ─── Componente Principal com Login Multi-Nível ───────────────────────────────
+// ─── Constantes ────────────────────────────────────────────────────────────────
+
+
+// ... (seu código de constantes
+
 // ─── Helpers & micro-components ───────────────────────────────────────────────
 
 const inputCls = "w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-[#00577C] focus:ring-2 focus:ring-[#00577C]/20 transition placeholder:text-slate-400";
@@ -263,23 +269,49 @@ function fmtDatetime(iso: string) {
   return d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
-// ─── Componente Principal com Login ───────────────────────────────────────────
+// ─── Componente Principal com Login Multi-Nível ───────────────────────────────
+
+
+
+// ─── Componente Principal com Login via Supabase RPC ─────────────────────────
 
 export default function PortalServicos() {
-  const [autenticado, setAutenticado] = useState(false);
+  const [role, setRole] = useState<"geral" | "turismo" | "meio_ambiente" | null>(null);
+  const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [erroLogin, setErroLogin] = useState("");
+  const [loadingLogin, setLoadingLogin] = useState(false);
 
-  function handleLogin(e: React.FormEvent) {
+  async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-    if (senha === process.env.NEXT_PUBLIC_PASSWORD_ADMIN) {
-      setAutenticado(true);
-    } else {
-      setErroLogin("Senha incorreta.");
+    setErroLogin("");
+    setLoadingLogin(true);
+
+    try {
+      // Chama a função segura (RPC) do Supabase que ignora o RLS
+      const { data: roleData, error } = await supabase.rpc("verificar_login_admin", {
+        p_email: email,
+        p_senha: senha,
+      });
+
+      if (error) throw error;
+
+      if (roleData) {
+        // Se a função retornou o role, o login está correto
+        setRole(roleData as "geral" | "turismo" | "meio_ambiente");
+      } else {
+        // Se retornou nulo, a combinação email/senha não existe
+        setErroLogin("E-mail ou senha incorretos.");
+      }
+    } catch (error) {
+      console.error("Erro ao verificar login:", error);
+      setErroLogin("Erro de conexão com o servidor.");
+    } finally {
+      setLoadingLogin(false);
     }
   }
 
-  if (!autenticado) {
+  if (!role) {
     return (
       <div className={`${inter.className} min-h-screen bg-[#FDFCF7] flex items-center justify-center p-4`}>
         <div className="w-full max-w-sm">
@@ -288,11 +320,25 @@ export default function PortalServicos() {
               <Image src="/logop.png" alt="Logo" fill className="object-contain" priority />
             </div>
             <h1 className={`${jakarta.className} text-xl font-black text-[#00577C]`}>Portal de Serviços</h1>
-            <p className="text-sm text-slate-500 mt-1">Secretaria Municipal de Turismo</p>
+            <p className="text-sm text-slate-500 mt-1">Acesso Administrativo</p>
           </div>
 
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
             <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <label className="block text-xs font-black text-slate-500 mb-1.5 uppercase tracking-wider">
+                  E-mail de acesso
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => { setEmail(e.target.value); setErroLogin(""); }}
+                  className="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-[#00577C] focus:ring-2 focus:ring-[#00577C]/20 transition"
+                  placeholder="admin@sagaturismo.com.br"
+                  required
+                  autoFocus
+                />
+              </div>
               <div>
                 <label className="block text-xs font-black text-slate-500 mb-1.5 uppercase tracking-wider">
                   Senha de acesso
@@ -303,15 +349,16 @@ export default function PortalServicos() {
                   onChange={(e) => { setSenha(e.target.value); setErroLogin(""); }}
                   className="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-[#00577C] focus:ring-2 focus:ring-[#00577C]/20 transition"
                   placeholder="••••••••"
-                  autoFocus
+                  required
                 />
-                {erroLogin && <p className="text-red-500 text-xs mt-1.5">{erroLogin}</p>}
+                {erroLogin && <p className="text-red-500 text-xs mt-2 font-medium">{erroLogin}</p>}
               </div>
               <button
                 type="submit"
-                className="w-full bg-[#00577C] hover:bg-[#004a6b] text-white font-black rounded-lg py-2.5 text-sm transition shadow-sm uppercase tracking-widest"
+                disabled={loadingLogin}
+                className="w-full bg-[#00577C] hover:bg-[#004a6b] text-white font-black rounded-lg py-3 text-sm transition shadow-sm uppercase tracking-widest mt-2 disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                Entrar
+                {loadingLogin ? "Verificando..." : "Entrar"}
               </button>
             </form>
           </div>
@@ -320,28 +367,49 @@ export default function PortalServicos() {
     );
   }
 
-  return <AdminDashboard onLogout={() => setAutenticado(false)} />;
+  return <AdminDashboard role={role} onLogout={() => { setRole(null); setEmail(""); setSenha(""); }} />;
 }
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
-function AdminDashboard({ onLogout }: { onLogout: () => void }) {
-  const [activeTab, setActiveTab] = useState<
-    "rotas" | "eventos" | "passeios" | "parceiros" | "taxas" | "pedidos" | "pacotes" | "hoteis" | "gastronomia" | "atracoes"
-  >("rotas");
-
-  const tabs = [
+function AdminDashboard({ role, onLogout }: { role: "geral" | "turismo" | "meio_ambiente"; onLogout: () => void }) {
+  // Lista original com todas as abas
+  const allTabs = [
     { id: "rotas",       label: "Rotas Turísticas", icon: "🗺️" },
     { id: "eventos",     label: "Eventos",          icon: "📅" },
     { id: "passeios",    label: "Passeios",         icon: "🥾" },
-    { id: "parceiros",   label: "Parceiros",        icon: "🤝" },
-    { id: "taxas",       label: "Taxas de Serviço", icon: "💰" },
-    { id: "pedidos",     label: "Pedidos",          icon: "🛒" },
     { id: "pacotes",     label: "Pacotes",          icon: "🎒" },
+    { id: "atracoes",    label: "Atrações",         icon: "🏞️" },
+    { id: "parceiros",   label: "Parceiros",        icon: "🤝" },
     { id: "hoteis",      label: "Hotéis",           icon: "🏨" },
     { id: "gastronomia", label: "Gastronomia",      icon: "🍽️" },
-    { id: "atracoes",    label: "Atrações",         icon: "🏞️" },
+    { id: "taxas",       label: "Taxas de Serviço", icon: "💰" },
+    { id: "pedidos",     label: "Pedidos",          icon: "🛒" },
   ] as const;
+
+  // Filtragem inteligente baseada no papel (role) do usuário logado
+  const allowedTabs = allTabs.filter(tab => {
+    if (role === "geral") return true; // Vê tudo
+    
+    if (role === "turismo") {
+      return ["rotas", "eventos", "passeios", "pacotes", "atracoes"].includes(tab.id);
+    }
+    
+    if (role === "meio_ambiente") {
+      return ["parceiros", "taxas", "pedidos", "hoteis", "gastronomia"].includes(tab.id);
+    }
+
+    return false;
+  });
+
+  // Inicia a aba ativa automaticamente na primeira aba disponível para o usuário
+  const [activeTab, setActiveTab] = useState<string>(allowedTabs[0].id);
+
+  // Define o nome da secretaria para mostrar no topo
+  const nomeSecretaria = 
+    role === "turismo" ? "Sec. de Turismo" : 
+    role === "meio_ambiente" ? "Sec. de Meio Ambiente" : 
+    "Administração Geral";
 
   return (
     <div className={`${inter.className} min-h-screen bg-[#FDFCF7] text-slate-800`}>
@@ -351,8 +419,8 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
             <div className="relative w-28 h-8">
               <Image src="/logop.png" alt="Logo" fill className="object-contain object-left" priority />
             </div>
-            <span className="hidden sm:block text-xs text-slate-400 border-l border-slate-200 pl-3">
-              Portal de Serviços
+            <span className="hidden sm:block text-xs font-bold text-slate-500 border-l border-slate-200 pl-3 uppercase tracking-wider">
+              {nomeSecretaria}
             </span>
           </div>
           <button
@@ -370,7 +438,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       <div className="bg-white border-b border-slate-200 overflow-x-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex gap-0 min-w-max">
-            {tabs.map((tab) => (
+            {allowedTabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
@@ -403,6 +471,8 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     </div>
   );
 }
+
+
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ROTAS

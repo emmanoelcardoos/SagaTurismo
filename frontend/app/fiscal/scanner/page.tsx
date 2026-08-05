@@ -51,13 +51,31 @@ export default function ScannerFiscal() {
             
             try {
               const token = decodedText.split('/').pop() || decodedText;
-              const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
               
-              const res = await fetch(`${baseUrl}/api/validar?token=${encodeURIComponent(token)}`);
+              // 1. Aponta para a tua API no Railway (ajusta se tiveres a variável de ambiente diferente)
+              const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://sagaturismo-production.up.railway.app';
+              
+              // 2. Chave do Fiscal (Para funcionar no cliente Next.js, tem de ter o prefixo NEXT_PUBLIC_ no .env)
+              const FISCAL_KEY = process.env.NEXT_PUBLIC_FISCAL_SECRET_KEY || 'SaoGeraldo2026_Secret_Key';
+              
+              // 3. Faz o pedido à rota /fiscal/validar/{token} enviando o cabeçalho exigido
+              const res = await fetch(`${API_URL}/api/v1/fiscal/validar/${encodeURIComponent(token)}`, {
+                headers: {
+                  'x-fiscal-key': FISCAL_KEY 
+                }
+              });
+              
+              if (!res.ok) {
+                 // Se o backend devolver 403, avisa o frontend
+                 setDadosResidente({ sucesso: false, mensagem: "Acesso Negado: App do Fiscal não autenticada." });
+                 return;
+              }
+              
               const data = await res.json();
               setDadosResidente(data);
+              
             } catch (error) {
-              setDadosResidente({ sucesso: false, mensagem: "Erro de conexão com o servidor." });
+              setDadosResidente({ sucesso: false, mensagem: "Erro de comunicação com o servidor central." });
             } finally {
               setLoading(false);
             }
