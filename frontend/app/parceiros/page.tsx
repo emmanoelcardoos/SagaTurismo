@@ -130,9 +130,9 @@ export default function ParceirosPage() {
                   style={{ fontSize: 'clamp(36px, 6vw, 72px)' }}>
                   rede
                 </h1>
-                <h1 className={`${jakarta.className} font-black text-white/30 leading-[0.97]`}
-                  style={{ fontSize: 'clamp(36px, 6vw, 72px)' }}>
-                  começa aqui.
+                <h1 className={`${jakarta.className} font-black text-white leading-[0.97]`}
+                  style={{ fontSize: 'clamp(42px, 5.5vw, 72px)' }}>
+                  começa aqui
                 </h1>
               </div>
 

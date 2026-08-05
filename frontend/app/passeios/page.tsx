@@ -118,9 +118,9 @@ export default function PasseiosPage() {
                   style={{ fontSize: 'clamp(42px, 5.5vw, 72px)' }}>
                   guiadas
                 </h1>
-                <h1 className={`${jakarta.className} font-black text-white/30 leading-[0.97]`}
+                <h1 className={`${jakarta.className} font-black text-white leading-[0.97]`}
                   style={{ fontSize: 'clamp(42px, 5.5vw, 72px)' }}>
-                  em breve.
+                  em breve
                 </h1>
               </div>
 

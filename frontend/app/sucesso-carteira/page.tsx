@@ -223,11 +223,9 @@ function SucessoCarteiraContent() {
            <div className="p-6 md:p-10 lg:p-12">
               <div className="flex flex-col md:flex-row gap-6 md:gap-10 items-center mb-8 border-b border-slate-100 pb-8">
                  <div className="flex-1 text-center md:text-left">
-                    <div className="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg mb-3 text-[#00577C] font-black uppercase text-[9px] md:text-[10px] tracking-widest">
-                       <ShieldCheck size={14}/> Comprovante Oficial Municipal
-                    </div>
+                    
                     <h2 className={`${jakarta.className} text-2xl md:text-3xl font-black text-slate-900 leading-tight mb-2`}>Faturação da Carteira Digital</h2>
-                    <p className="text-slate-500 font-bold text-xs md:text-sm flex items-center justify-center md:justify-start gap-1.5"><MapPin size={14} className="text-[#009640]"/> Válida em São Geraldo do Araguaia - PA</p>
+                    
                  </div>
               </div>
 
