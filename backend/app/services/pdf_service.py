@@ -100,6 +100,7 @@ def _foto_circular_sem_borda(c, x, y, diametro, foto_url):
 # ─── GERAÇÃO DA CARTEIRA DIGITAL DE RESIDENTE ───────────────────────────────
 # ─── GERAÇÃO DA CARTEIRA DIGITAL DE RESIDENTE ───────────────────────────────
 # ─── GERAÇÃO DA CARTEIRA DIGITAL DE RESIDENTE ───────────────────────────────
+# ─── GERAÇÃO DA CARTEIRA DIGITAL DE RESIDENTE ───────────────────────────────
 def gerar_pdf_carteira(residente_data: dict, token: str) -> str:
     os.makedirs("tmp_pdfs", exist_ok=True)
     nome_pessoa_limpo = _safe(residente_data.get('nome'), 'Residente').replace(' ', '_')
@@ -109,15 +110,21 @@ def gerar_pdf_carteira(residente_data: dict, token: str) -> str:
     largura, altura = 135 * mm, 83 * mm
     c = canvas.Canvas(caminho_pdf, pagesize=(largura, altura))
 
-    # 1. Desenha o fundo achando a imagem na MESMA PASTA do script
-    # 1. Desenha o fundo achando a imagem na MESMA PASTA do script
-    diretorio_atual = os.path.dirname(os.path.abspath(__file__))
-    caminho_fundo = os.path.join(diretorio_atual, "fundo.jpg")
+    # 1. Desenha o fundo usando a URL pública do Supabase
+    url_fundo = "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/carteira/fundo.jpg"
     
     try:
-        c.drawImage(caminho_fundo, 0, 0, width=largura, height=altura)
+        # Baixa a imagem da internet direto para a memória e desenha no PDF
+        resposta_fundo = requests.get(url_fundo, timeout=10)
+        if resposta_fundo.status_code == 200:
+            img_fundo = ImageReader(BytesIO(resposta_fundo.content))
+            c.drawImage(img_fundo, 0, 0, width=largura, height=altura)
+        else:
+            print(f"Erro ao baixar fundo: Status {resposta_fundo.status_code}")
     except Exception as e:
-        print(f"ERRO CRÍTICO: Não encontrou o fundo no caminho {caminho_fundo}. Erro: {e}")
+        print(f"ERRO CRÍTICO AO BAIXAR FUNDO DA URL: {e}")
+        c.setFillColor(colors.HexColor("#f0f0f0"))
+        c.rect(0, 0, largura, altura, fill=1, stroke=0)
 
     # 2. Inserir a Foto do Residente
     foto_diam = 51 * mm
