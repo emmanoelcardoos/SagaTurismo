@@ -37,6 +37,26 @@ async def validar_token_fiscal(token: str, x_fiscal_key: str = Header(None)):
             if len(partes) == 3:
                 data_br = f"{partes[2]}/{partes[1]}/{partes[0]}"
 
+        # ◄── NOVA LÓGICA: Geração de URL Assinada (Passe Livre Temporário) ──►
+        foto_url = residente.get("foto_url")
+        foto_assinada = None
+
+        if foto_url:
+            if foto_url.startswith("http"):
+                foto_assinada = foto_url
+            else:
+                try:
+                    # Gera um link temporário válido por 5 minutos (300 segundos) para o ecrã do Fiscal
+                    resposta_supabase = supabase.storage.from_("comprovantes").create_signed_url(foto_url, 300)
+                    
+                    if isinstance(resposta_supabase, dict) and "signedURL" in resposta_supabase:
+                        foto_assinada = resposta_supabase["signedURL"]
+                    elif isinstance(resposta_supabase, str):
+                        foto_assinada = resposta_supabase
+                except Exception as e:
+                    print(f"Erro ao assinar URL da foto: {e}")
+                    foto_assinada = None
+
         # 4. Retorna os dados completos APENAS para o Fiscal
         return {
             "sucesso": True,
@@ -44,7 +64,7 @@ async def validar_token_fiscal(token: str, x_fiscal_key: str = Header(None)):
             "nome": residente.get("nome_completo"),
             "cpf": residente.get("cpf"), # ◄── CPF Completo para o Fiscal conferir a identidade!
             "data_nascimento": data_br,
-            "foto_url": residente.get("foto_url"), # ◄── A FOTO para o Match Visual Antifraude
+            "foto_url": foto_assinada, # ◄── A FOTO agora usa o link temporário desbloqueado!
             "mensagem": "Residente verificado com sucesso."
         }
 
