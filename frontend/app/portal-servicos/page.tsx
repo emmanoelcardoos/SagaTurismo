@@ -909,12 +909,7 @@ function TabEventos() {
         </div>
         <div className="flex items-center gap-3">
           {feedback && <span className="text-xs text-[#009640] font-bold">{feedback}</span>}
-          <button
-            onClick={abrirFormNovo}
-            className="bg-[#00577C] hover:bg-[#004a6b] text-white font-black text-sm px-4 py-2 rounded-lg transition shadow-sm flex items-center gap-1.5 uppercase tracking-wider"
-          >
-            <span className="text-base leading-none">+</span> Novo evento
-          </button>
+          
         </div>
       </div>
 
@@ -1253,12 +1248,18 @@ function TabPasseiosAdmin() {
 // PARCEIROS
 // ═══════════════════════════════════════════════════════════════════════════════
 
+
 function TabParceiros() {
   const [parceiros, setParceiros] = useState<Parceiro[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState<string>("todos");
   const [actionId, setActionId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState("");
+  
+  // ◄── NOVOS ESTADOS PARA O FORMULÁRIO ──►
+  const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({ nome_negocio: "", tipo_parceiro: "hotel", email: "", telefone: "" });
 
   const tipos = ["todos", "hotel", "passeios", "pacotes", "guia"];
 
@@ -1280,6 +1281,41 @@ function TabParceiros() {
     setTimeout(() => setFeedback(""), 3000);
   }
 
+  // ◄── FUNÇÃO PARA ABRIR O FORMULÁRIO LIMPO ──►
+  function abrirFormNovo() {
+    setForm({ nome_negocio: "", tipo_parceiro: "hotel", email: "", telefone: "" });
+    setShowForm(true);
+  }
+
+  // ◄── FUNÇÃO PARA SALVAR O NOVO PARCEIRO NO BANCO DE DADOS ──►
+  async function handleSave() {
+    if (!form.nome_negocio || !form.email) {
+      setFeedback("Nome do negócio e e-mail são obrigatórios.");
+      return;
+    }
+    setSaving(true);
+    
+    const { error } = await supabase.from("parceiros").insert({
+      nome_negocio: form.nome_negocio,
+      tipo_parceiro: form.tipo_parceiro,
+      email: form.email,
+      telefone: form.telefone || null,
+      status: "pendente" // Entra como pendente até a empresa ativar a conta!
+    });
+
+    if (error) {
+      alert("Erro ao cadastrar parceiro: " + error.message);
+      setSaving(false);
+      return;
+    }
+
+    setFeedback("Parceiro pré-cadastrado com sucesso!");
+    setShowForm(false);
+    setSaving(false);
+    fetchParceiros();
+    setTimeout(() => setFeedback(""), 3000);
+  }
+
   const filtered = filtro === "todos" ? parceiros : parceiros.filter((p) => p.tipo_parceiro === filtro);
   const pendentes = parceiros.filter((p) => p.status === "pendente");
 
@@ -1290,17 +1326,70 @@ function TabParceiros() {
           <h2 className={`${jakarta.className} text-lg font-black text-[#00577C]`}>Gestão de Parceiros</h2>
           <p className="text-xs text-slate-500">{parceiros.length} parceiros · {pendentes.length} pendente(s)</p>
         </div>
-        {feedback && <span className="text-xs text-[#009640] font-bold">{feedback}</span>}
+        <div className="flex items-center gap-3">
+          {feedback && <span className="text-xs text-[#009640] font-bold">{feedback}</span>}
+          {/* ◄── BOTÃO ADICIONADO AQUI ──► */}
+          <button 
+            onClick={abrirFormNovo} 
+            className="bg-[#00577C] hover:bg-[#004a6b] text-white font-black text-sm px-4 py-2 rounded-lg transition shadow-sm flex items-center gap-1.5 uppercase tracking-wider"
+          >
+            <span className="text-base leading-none">+</span> Novo parceiro
+          </button>
+        </div>
       </div>
 
+      {/* ◄── TELA ESCURA DO FORMULÁRIO (MODAL) ──► */}
+      {showForm && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+            <div className="flex items-center justify-between p-5 border-b border-slate-200">
+              <h3 className={`${jakarta.className} font-black text-slate-800`}>Pré-cadastrar Parceiro</h3>
+              <button onClick={() => setShowForm(false)} className="text-slate-400 hover:text-slate-700 transition text-lg leading-none">✕</button>
+            </div>
+            <div className="p-5 space-y-4">
+              <FormField label="Nome do Negócio *">
+                <input value={form.nome_negocio} onChange={(e) => setForm({ ...form, nome_negocio: e.target.value })} className={inputCls} placeholder="Ex: Pousada Paraíso" />
+              </FormField>
+              <FormField label="Tipo de Parceiro">
+                <select value={form.tipo_parceiro} onChange={(e) => setForm({ ...form, tipo_parceiro: e.target.value })} className={inputCls}>
+                  <option value="hotel">Hotel</option>
+                  <option value="passeios">Passeios</option>
+                  <option value="pacotes">Pacotes</option>
+                  <option value="guia">Guia</option>
+                </select>
+              </FormField>
+              <FormField label="E-mail *">
+                <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className={inputCls} placeholder="contato@empresa.com" />
+              </FormField>
+              <FormField label="Telefone / WhatsApp">
+                <input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} className={inputCls} placeholder="(00) 00000-0000" />
+              </FormField>
+              
+              <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 mt-2">
+                <p className="text-xs text-blue-700 font-medium">
+                  Após cadastrar, a empresa deverá ir à página de "Ativar Conta" e usar este e-mail para criar a sua senha.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2 p-5 border-t border-slate-200">
+              <button onClick={() => setShowForm(false)} className="flex-1 py-2 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 transition">Cancelar</button>
+              <button onClick={handleSave} disabled={saving} className="flex-1 py-2 rounded-lg bg-[#00577C] hover:bg-[#004a6b] text-white font-black text-sm transition disabled:opacity-50 shadow-sm uppercase tracking-wider">
+                {saving ? "Salvando…" : "Cadastrar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ◄── ALERTAS DE PENDENTES ──► */}
       {pendentes.length > 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-          <p className="text-sm font-semibold text-amber-700 mb-3">⏳ {pendentes.length} parceiro(s) aguardando validação</p>
+          <p className="text-sm font-semibold text-amber-700 mb-3">⏳ {pendentes.length} parceiro(s) aguardando ativação de senha</p>
           <div className="space-y-2">
             {pendentes.map((p) => (
               <div key={p.id} className="flex items-center justify-between bg-white border border-amber-100 rounded-lg px-3 py-2">
                 <div><p className="text-sm text-slate-800 font-medium">{p.nome_negocio}</p><p className="text-xs text-slate-500">{p.email} · {p.tipo_parceiro}</p></div>
-                <button onClick={() => alterarStatus(p.id, "ativo")} disabled={actionId === p.id} className="text-xs bg-[#009640] hover:bg-[#007a33] text-white font-semibold px-3 py-1 rounded-md transition shadow-sm">Aprovar</button>
+                <button onClick={() => alterarStatus(p.id, "ativo")} disabled={actionId === p.id} className="text-xs bg-[#009640] hover:bg-[#007a33] text-white font-semibold px-3 py-1 rounded-md transition shadow-sm">Aprovar Manualmente</button>
               </div>
             ))}
           </div>
@@ -1582,7 +1671,6 @@ function TabPacotes() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div><h2 className={`${jakarta.className} text-lg font-black text-[#00577C]`}>Pacotes</h2><p className="text-xs text-slate-500">{pacotes.length} pacotes</p></div>
-        <div className="flex gap-3">{feedback && <span className="text-xs text-[#009640] font-bold">{feedback}</span>}<button onClick={abrirFormNovo} className="bg-[#00577C] hover:bg-[#004a6b] text-white font-black text-sm px-4 py-2 rounded-lg">+ Novo pacote</button></div>
       </div>
 
       {showForm && (
