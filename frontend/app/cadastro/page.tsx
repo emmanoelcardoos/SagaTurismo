@@ -646,7 +646,7 @@ export default function CadastroPage() {
                       <div className="rounded-2xl border-2 border-green-50 bg-green-50/50 p-5 md:p-6">
                         <div className="mb-3 md:mb-4 flex items-center gap-3"><CheckCircle2 className="h-5 w-5 md:h-6 md:w-6 shrink-0 text-[#009640]" /><p className="font-black text-[#009640] text-sm md:text-base">Documentos Aceitos</p></div>
                         <ul className="ml-7 md:ml-9 list-disc space-y-1.5 md:space-y-2 text-xs md:text-sm text-slate-600 font-medium">
-                          <li><strong className="text-[#009640]">Para provar morada:</strong> Contas (Energia, Água, Internet) ou Título de Eleitor de SGA recentes.</li>
+                          <li><strong className="text-[#009640]">Para provar morada:</strong> Contas (Energia, Água, Internet) ou Título de Eleitor de São Geraldo do Araguaia.</li>
                           <li><strong className="text-[#009640]">Para comprovar idade:</strong> RG, CNH, Passaporte ou Certidão de Nascimento.</li>
                           <li><strong className="text-[#009640]">Para classes especiais:</strong> Contracheque/Contrato (Professores), Identidade Militar, ou Laudo Médico (PCD).</li>
                         </ul>
