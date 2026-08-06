@@ -24,7 +24,7 @@ export default function FiscalLogin() {
         
         // ◄── Redireciona o fiscal direto para a página do leitor
         // Atenção: Se a sua pasta do scanner se chamar apenas "scanner", mude para '/fiscal/scanner'
-        router.push('/fiscal/login/scanner'); 
+        router.push('/fiscal/login');
       } else {
         setErro('Credencial inválida. Acesso restrito a fiscais.');
         setLoading(false);
