@@ -9,6 +9,7 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
+    unoptimized: true, // ◄── A MÁGICA QUE PARA O CONSUMO NA VERCEL ESTÁ AQUI!
     remotePatterns: [
       {
         protocol: 'https',
@@ -24,7 +25,12 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'live.staticflickr.com', // 👈 isto resolve
+        hostname: 'live.staticflickr.com',
+      },
+      { 
+        protocol: 'http', 
+        hostname: '127.0.0.1', 
+        port: '8000' // ◄── Adicionado do teu ficheiro .ts
       },
     ],
   },
