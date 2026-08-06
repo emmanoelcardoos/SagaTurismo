@@ -2,7 +2,10 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
-import { ShieldAlert, CheckCircle2, AlertTriangle, XCircle, User, ShieldCheck, ScanLine, RefreshCcw, Camera } from 'lucide-react';
+import { 
+  ShieldAlert, CheckCircle2, AlertTriangle, XCircle, User, 
+  ShieldCheck, ScanLine, RefreshCcw, Camera, Calendar, FileText 
+} from 'lucide-react';
 
 interface ValidarResponse {
   sucesso: boolean;
@@ -109,18 +112,19 @@ export default function ScannerFiscal() {
     setPermissaoErro(null);
   };
 
+  // Nova configuração de temas inspirada na página de validação
   const getTheme = () => {
-    if (!dadosResidente?.sucesso) return { color: 'border-red-600', bg: 'bg-red-600', text: 'text-red-700', icon: <XCircle className="w-10 h-10 text-white" />, label: 'ACESSO NEGADO' };
+    if (!dadosResidente?.sucesso) return { border: 'border-red-500', bg: 'bg-red-500', title: 'ACESSO NEGADO', subtitle: 'Documento Inválido / Pendente', icon: <XCircle className="w-12 h-12 flex-shrink-0" />, alertBg: 'bg-red-50', alertText: 'text-red-800' };
     
     if (dadosResidente.status === 'expirado') {
-      return { color: 'border-amber-500', bg: 'bg-amber-500', text: 'text-amber-700', icon: <AlertTriangle className="w-10 h-10 text-white" />, label: 'EXPIRADO' };
+      return { border: 'border-amber-500', bg: 'bg-amber-500', title: 'DOC. EXPIRADO', subtitle: 'Validade Ultrapassada', icon: <AlertTriangle className="w-12 h-12 flex-shrink-0" />, alertBg: 'bg-amber-50', alertText: 'text-amber-800' };
     }
     
     if (dadosResidente.status === 'ativo') {
-      return { color: 'border-[#4F772D]', bg: 'bg-[#4F772D]', text: 'text-[#4F772D]', icon: <CheckCircle2 className="w-10 h-10 text-white" />, label: 'ACESSO LIBERADO' };
+      return { border: 'border-[#009640]', bg: 'bg-[#009640]', title: 'PODE ENTRAR', subtitle: 'Residente Confirmado', icon: <CheckCircle2 className="w-12 h-12 flex-shrink-0" />, alertBg: 'bg-green-50', alertText: 'text-green-800' };
     }
 
-    return { color: 'border-red-600', bg: 'bg-red-600', text: 'text-red-700', icon: <XCircle className="w-10 h-10 text-white" />, label: 'BLOQUEADO' };
+    return { border: 'border-red-500', bg: 'bg-red-500', title: 'BLOQUEADO', subtitle: 'Status Desconhecido', icon: <XCircle className="w-12 h-12 flex-shrink-0" />, alertBg: 'bg-red-50', alertText: 'text-red-800' };
   };
 
   return (
@@ -132,28 +136,30 @@ export default function ScannerFiscal() {
 
       <div className="w-full max-w-md space-y-6 relative z-10">
         
-        {/* Cabeçalho Institucional */}
-        <div className="flex flex-col items-center justify-center gap-3 text-center mb-2">
-          <img 
-            src="https://sagatur.com.br/logop.png" 
-            alt="Logo SagaTurismo" 
-            className="h-12 w-auto object-contain drop-shadow-lg"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-              document.getElementById('fallback-icon-scan')?.classList.remove('hidden');
-            }}
-          />
-          <div id="fallback-icon-scan" className="hidden w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-white backdrop-blur-sm">
-            <ShieldCheck size={24} />
-          </div>
-          <div>
-            <div className="flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[#D4C345] mb-1">
-              <ShieldAlert className="w-4 h-4" />
-              Terminal de Fiscalização
+        {/* Cabeçalho Institucional (Visível apenas quando a câmera está ativa para não poluir o resultado) */}
+        {(!scanResult && !loading) && (
+          <div className="flex flex-col items-center justify-center gap-3 text-center mb-2 animate-in fade-in zoom-in duration-500">
+            <img 
+              src="https://sagatur.com.br/logop.png" 
+              alt="Logo SagaTurismo" 
+              className="h-12 w-auto object-contain drop-shadow-lg"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+                document.getElementById('fallback-icon-scan')?.classList.remove('hidden');
+              }}
+            />
+            <div id="fallback-icon-scan" className="hidden w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-white backdrop-blur-sm">
+              <ShieldCheck size={24} />
             </div>
-            <h1 className="text-2xl font-black tracking-tight text-white">Leitor de Residentes</h1>
+            <div>
+              <div className="flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[#D4C345] mb-1">
+                <ShieldAlert className="w-4 h-4" />
+                Terminal de Fiscalização
+              </div>
+              <h1 className="text-2xl font-black tracking-tight text-white">Leitor de Residentes</h1>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* ERRO DE PERMISSÃO DA CÂMARA */}
         {permissaoErro && !scanResult && (
@@ -171,7 +177,7 @@ export default function ScannerFiscal() {
           </div>
         )}
 
-        {/* TELA DA CÂMARA - Ajustada para Quadrado Perfeito */}
+        {/* TELA DA CÂMARA - Quadrado Perfeito */}
         {!scanResult && !permissaoErro && (
           <div className="bg-white rounded-[2.5rem] overflow-hidden border border-white/20 p-2.5 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
             <div className="relative w-full aspect-square bg-black rounded-3xl overflow-hidden">
@@ -189,89 +195,127 @@ export default function ScannerFiscal() {
 
         {/* ESTADO DE CARREGAMENTO */}
         {loading && (
-          <div className="bg-white/5 backdrop-blur-lg rounded-[2rem] p-12 text-center border border-white/10 shadow-2xl">
+          <div className="bg-white/5 backdrop-blur-lg rounded-[2rem] p-12 text-center border border-white/10 shadow-2xl mt-10">
             <RefreshCcw className="w-10 h-10 mx-auto mb-5 text-[#D4C345] animate-spin" />
             <p className="font-bold uppercase tracking-widest text-white/70 text-xs">Acessando banco de dados...</p>
           </div>
         )}
 
-        {/* CARTÃO DE RESULTADO */}
+        {/* NOVO CARTÃO DE RESULTADO (IDÊNTICO À PÁGINA VALIDAR) */}
         {dadosResidente && !loading && (() => {
           const theme = getTheme();
           
           return (
-            <div className={`rounded-[2rem] border-2 overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] bg-white ${theme.color} relative`}>
-              
-              <div className={`px-6 py-5 flex items-center justify-between gap-4 ${theme.bg}`}>
-                <div>
-                  <p className="text-xl font-black tracking-tight leading-none text-white">
-                    {theme.label}
-                  </p>
-                  <p className="text-white/90 text-[10px] font-bold uppercase mt-1.5 tracking-widest">
-                    {dadosResidente.mensagem || 'Validação concluída com sucesso'}
-                  </p>
-                </div>
-                <div className="flex-shrink-0 drop-shadow-md">
+            <div className="animate-in slide-in-from-bottom-10 fade-in duration-500">
+              <div className={`rounded-[2.5rem] border-4 shadow-2xl overflow-hidden bg-white ${theme.border}`}>
+                
+                {/* Cabeçalho do Cartão */}
+                <div className={`px-8 py-6 flex items-center gap-5 text-white ${theme.bg}`}>
                   {theme.icon}
+                  <div>
+                    <p className="text-2xl font-black tracking-tight leading-none">
+                      {theme.title}
+                    </p>
+                    <p className="text-white/90 text-xs font-bold uppercase mt-1 tracking-wider">
+                      {theme.subtitle}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-8 space-y-6">
+                  
+                  {/* Foto do Residente */}
+                  {dadosResidente.sucesso && (
+                    <div className="flex flex-col items-center">
+                      <div className="w-40 h-52 bg-stone-100 rounded-3xl overflow-hidden border-4 border-stone-100 shadow-lg relative">
+                        {dadosResidente.foto_url ? (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img 
+                            src={dadosResidente.foto_url} 
+                            alt="Foto de Identidade" 
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <User className="w-16 h-16 text-stone-300" />
+                          </div>
+                        )}
+                        <div className={`absolute bottom-2 right-2 text-white p-1.5 rounded-full shadow-md ${theme.bg}`}>
+                          <ShieldCheck className="w-4 h-4" />
+                        </div>
+                      </div>
+                      <p className="text-[10px] font-black text-stone-400 mt-3 uppercase tracking-widest text-center">
+                        Conferir Rosto com Documento Oficial
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Informações do Residente no Estilo Linhas */}
+                  {dadosResidente.nome && (
+                    <div className="space-y-3">
+                      
+                      {/* Nome */}
+                      <div className="flex items-center gap-4 bg-stone-50 rounded-2xl px-5 py-4 border border-stone-100">
+                        <User className="w-5 h-5 text-stone-400 flex-shrink-0" />
+                        <div className="overflow-hidden">
+                          <p className="text-[10px] text-stone-400 font-black uppercase tracking-wider">Titular do Benefício</p>
+                          <p className="font-black text-[#00577C] text-lg leading-tight uppercase truncate">{dadosResidente.nome}</p>
+                        </div>
+                      </div>
+
+                      {/* Validade */}
+                      {dadosResidente.data_expiracao && (
+                        <div className="flex items-center gap-4 bg-stone-50 rounded-2xl px-5 py-4 border border-stone-100">
+                          <Calendar className="w-5 h-5 text-stone-400 flex-shrink-0" />
+                          <div>
+                            <p className="text-[10px] text-stone-400 font-black uppercase tracking-wider">Validade do Cartão</p>
+                            <p className={`font-bold text-sm uppercase ${dadosResidente.status === 'expirado' ? 'text-amber-600' : 'text-stone-700'}`}>
+                              {dadosResidente.data_expiracao}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Status */}
+                      {dadosResidente.status && (
+                        <div className="flex items-center gap-4 bg-stone-50 rounded-2xl px-5 py-4 border border-stone-100">
+                          <FileText className="w-5 h-5 text-stone-400 flex-shrink-0" />
+                          <div>
+                            <p className="text-[10px] text-stone-400 font-black uppercase tracking-wider">Situação Atual</p>
+                            <p className="font-bold text-stone-700 uppercase">{dadosResidente.status}</p>
+                          </div>
+                        </div>
+                      )}
+
+                    </div>
+                  )}
+
+                  {/* Alertas / Mensagens */}
+                  {dadosResidente.mensagem && (
+                    <div className={`flex items-start gap-3 rounded-2xl px-5 py-4 ${theme.alertBg} ${theme.alertText}`}>
+                      <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                      <p className="text-sm font-medium leading-relaxed">{dadosResidente.mensagem}</p>
+                    </div>
+                  )}
+
+                  {/* Botão de Novo Escaneamento */}
+                  <div className="pt-2">
+                    <button 
+                      onClick={resetScanner}
+                      className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#0A3D4A] text-white py-4 font-bold uppercase tracking-widest text-xs shadow-lg shadow-[#0A3D4A]/30 hover:bg-[#072a33] transition-all active:scale-95"
+                    >
+                      <ScanLine className="w-4 h-4" />
+                      Novo Escaneamento
+                    </button>
+                  </div>
+
                 </div>
               </div>
-
-              <div className="p-6 space-y-6">
-                {dadosResidente.sucesso && (
-                  <div className="flex flex-col items-center mt-2">
-                    <div className={`w-32 h-40 bg-slate-100 rounded-2xl overflow-hidden border-4 shadow-lg relative ${theme.color}`}>
-                      {dadosResidente.foto_url ? (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img src={dadosResidente.foto_url} alt="Foto do Residente" className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <User className="w-12 h-12 text-slate-300" />
-                        </div>
-                      )}
-                      <div className={`absolute bottom-2 right-2 text-white p-1.5 rounded-full shadow-md ${theme.bg}`}>
-                        <ShieldCheck className="w-4 h-4" />
-                      </div>
-                    </div>
-                    <p className="text-[9px] font-bold text-slate-400 mt-3 uppercase tracking-widest">Conferir Identidade Visual</p>
-                  </div>
-                )}
-
-                {dadosResidente.nome && (
-                  <div className="space-y-4">
-                    <div className="text-center">
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Titular do Documento</p>
-                      <p className="font-black text-slate-800 text-xl leading-tight uppercase">{dadosResidente.nome}</p>
-                    </div>
-
-                    <div className="flex gap-3 justify-center">
-                      {dadosResidente.data_expiracao && (
-                        <div className="bg-slate-50 rounded-xl px-4 py-3 border border-slate-100 text-center flex-1">
-                          <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Validade</p>
-                          <p className={`font-black text-sm mt-0.5 ${dadosResidente.status === 'expirado' ? 'text-amber-600' : 'text-slate-700'}`}>
-                            {dadosResidente.data_expiracao}
-                          </p>
-                        </div>
-                      )}
-                      {dadosResidente.status && (
-                        <div className="bg-slate-50 rounded-xl px-4 py-3 border border-slate-100 text-center flex-1">
-                          <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Status</p>
-                          <p className={`font-black text-sm uppercase mt-0.5 ${theme.text}`}>
-                            {dadosResidente.status}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                <button 
-                  onClick={resetScanner}
-                  className="w-full mt-2 flex items-center justify-center gap-2 rounded-xl bg-[#0A3D4A] text-white py-4 font-bold uppercase tracking-widest text-xs shadow-lg shadow-[#0A3D4A]/30 hover:bg-[#072a33] transition-all active:scale-95"
-                >
-                  <ScanLine className="w-4 h-4" />
-                  Novo Escaneamento
-                </button>
-              </div>
+              
+              {/* Instrução ao fiscal abaixo do cartão */}
+              <p className="text-center text-[10px] text-stone-400 font-medium px-8 mt-4 leading-relaxed">
+                <strong>Atenção Fiscal:</strong> Em caso de divergência na foto ou suspeita de fraude, solicite o documento de identidade original.
+              </p>
             </div>
           );
         })()}

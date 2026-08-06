@@ -35,7 +35,7 @@ const TOC = [
 
 export default function PoliticaDePrivacidadePage() {
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50 font-sans text-slate-800">
+    <div className="flex min-h-screen flex-col bg-slate-50 font-['Helvetica'] font-bold text-slate-800">
       <Header />
 
       <main className="flex-1">

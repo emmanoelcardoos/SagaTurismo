@@ -32,7 +32,8 @@ const TOC = [
 
 export default function TermosDeUsoPage() {
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50 font-sans text-slate-800">
+    // Aplicação da fonte Helvetica Bold na div raiz
+    <div className="flex min-h-screen flex-col bg-slate-50 font-['Helvetica'] font-bold text-slate-800">
       <Header />
 
       <main className="flex-1">
@@ -41,17 +42,17 @@ export default function TermosDeUsoPage() {
           <div className="mb-8 flex flex-col gap-6 border-b border-slate-200 pb-8 sm:flex-row sm:items-end sm:justify-between print:hidden">
             <div>
               
-              <h1 className="mt-4 text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
+              <h1 className="mt-4 text-3xl font-black tracking-tight text-slate-900 md:text-4xl">
                 Termos de Uso
               </h1>
-              <p className="mt-2 text-sm text-slate-500">
+              <p className="mt-2 text-sm text-slate-500 font-bold">
                 Plataforma SagaTurismo · Última atualização: 03 de Agosto de 2026 · Versão preliminar 0.2
               </p>
             </div>
 
             <button
               onClick={() => window.print()}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#00577C] px-5 py-3 text-sm font-semibold text-white shadow-sm shadow-[#00577C]/20 transition hover:bg-[#00445f] focus:outline-none focus:ring-2 focus:ring-[#00577C] focus:ring-offset-2"
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#00577C] px-5 py-3 text-sm font-black text-white shadow-sm shadow-[#00577C]/20 transition hover:bg-[#00445f] focus:outline-none focus:ring-2 focus:ring-[#00577C] focus:ring-offset-2"
             >
               <Download className="h-4 w-4" />
               Baixar como PDF
@@ -75,7 +76,7 @@ export default function TermosDeUsoPage() {
                   Ao acessar a Plataforma, preencher o cadastro ou solicitar a Carteira Digital de
                   Residente, o usuário declara ter lido, compreendido e aceitado integralmente estes
                   Termos e a{' '}
-                  <Link href="/privacidade" className="font-medium text-[#00577C] underline underline-offset-2">
+                  <Link href="/privacidade" className="font-black text-[#00577C] underline underline-offset-2">
                     Política de Privacidade
                   </Link>{' '}
                   da Plataforma. Caso não concorde com qualquer disposição, o usuário não deve utilizar a
@@ -180,7 +181,7 @@ export default function TermosDeUsoPage() {
                 </Ul>
                 <P>
                   Mais detalhes sobre esse tratamento constam na{' '}
-                  <Link href="/privacidade" className="font-medium text-[#00577C] underline underline-offset-2">
+                  <Link href="/privacidade" className="font-black text-[#00577C] underline underline-offset-2">
                     Política de Privacidade
                   </Link>
                   , que integra estes Termos.
@@ -247,7 +248,7 @@ export default function TermosDeUsoPage() {
                 <P>
                   O tratamento de dados pessoais realizado pela Plataforma observa a Lei nº 13.709/2018
                   (Lei Geral de Proteção de Dados — LGPD) e está detalhado na{' '}
-                  <Link href="/privacidade" className="font-medium text-[#00577C] underline underline-offset-2">
+                  <Link href="/privacidade" className="font-black text-[#00577C] underline underline-offset-2">
                     Política de Privacidade
                   </Link>
                   , documento que integra estes Termos e deve ser lido em conjunto com eles.
@@ -305,12 +306,12 @@ function Header() {
             className="h-10 w-auto"
           />
           <div className="leading-tight">
-            <p className="text-sm font-bold text-slate-900">SagaTurismo</p>
-            <p className="text-xs text-slate-500">Secretaria Municipal de Turismo · SGA</p>
+            <p className="text-sm font-black text-slate-900">SagaTurismo</p>
+            <p className="text-xs text-slate-500 font-bold">Secretaria Municipal de Turismo · SGA</p>
           </div>
         </Link>
 
-        <nav className="hidden items-center gap-6 text-sm font-medium text-slate-600 sm:flex">
+        <nav className="hidden items-center gap-6 text-sm font-black text-slate-600 sm:flex">
           <Link href="/termos" className="text-[#00577C]">
             Termos de Uso
           </Link>
@@ -327,7 +328,7 @@ function Header() {
 function Footer() {
   return (
     <footer className="border-t border-slate-200 bg-white print:hidden">
-      <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-10 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-10 text-sm font-bold text-slate-500 sm:flex-row sm:items-center sm:justify-between">
         <p>
           © {new Date().getFullYear()} Prefeitura Municipal de São Geraldo do Araguaia — Secretaria
           Municipal de Turismo.
@@ -349,10 +350,10 @@ function TableOfContents() {
   return (
     <aside className="hidden lg:block">
       <div className="sticky top-28 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+        <p className="mb-3 text-xs font-black uppercase tracking-wide text-slate-400">
           Nesta página
         </p>
-        <nav className="space-y-2.5 text-sm">
+        <nav className="space-y-2.5 text-sm font-bold">
           {TOC.map((item) => (
             <a
               key={item.id}
@@ -382,11 +383,11 @@ function Section({
   return (
     <section id={id} className="scroll-mt-28 py-8 first:pt-0">
       <div className="flex items-start gap-4">
-        <span className="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-[#00577C] text-sm font-bold text-white">
+        <span className="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-[#00577C] text-sm font-black text-white">
           {number}
         </span>
         <div className="min-w-0 flex-1 pt-1">
-          <h2 className="text-xl font-bold tracking-tight text-slate-900 md:text-2xl">{title}</h2>
+          <h2 className="text-xl font-black tracking-tight text-slate-900 md:text-2xl">{title}</h2>
           <div className="mt-3 space-y-3">{children}</div>
         </div>
       </div>
@@ -395,7 +396,7 @@ function Section({
 }
 
 function P({ children }: { children: ReactNode }) {
-  return <p className="leading-relaxed text-slate-600">{children}</p>;
+  return <p className="leading-relaxed font-bold text-slate-600">{children}</p>;
 }
 
 function Ul({ children }: { children: ReactNode }) {
@@ -406,7 +407,7 @@ function Li({ children }: { children: ReactNode }) {
   return (
     <li className="flex gap-3">
       <span className="mt-2 h-1.5 w-1.5 flex-none rounded-full bg-[#009640]" />
-      <span className="leading-relaxed text-slate-600">{children}</span>
+      <span className="leading-relaxed font-bold text-slate-600">{children}</span>
     </li>
   );
 }
