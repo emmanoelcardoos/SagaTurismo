@@ -227,6 +227,20 @@ export default function CadastroPage() {
     setDependentes(newDeps);
   };
 
+  const formatarNome = (texto: string) => {
+    return texto
+      .toLowerCase()
+      .split(' ')
+      .map((palavra) => {
+        if (palavra.length === 0) return palavra;
+        // Mantém as preposições em minúsculo
+        if (['de', 'da', 'do', 'das', 'dos'].includes(palavra)) return palavra;
+        // Capitaliza a primeira letra das outras palavras
+        return palavra.charAt(0).toUpperCase() + palavra.slice(1);
+      })
+      .join(' ');
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setApiError(null);
@@ -499,14 +513,14 @@ export default function CadastroPage() {
 
                   <div className="grid gap-5 md:gap-6">
                     <div className="space-y-2">
-                      <label className="block text-[10px] font-black uppercase tracking-widest text-[#00577C]">Nome completo *</label>
+                      <label className="block text-[10px] font-black uppercase tracking-widest text-[#00577C]">Nome completo (Primeiro e Último Nome)</label>
                       <div className="relative">
                         <User className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
                         <input
                           type="text"
-                          placeholder="Ex: João da Silva Santos"
+                          placeholder="Ex: João Santos"
                           value={nome}
-                          onChange={(e) => setNome(e.target.value)}
+                          onChange={(e) => setNome(formatarNome(e.target.value))}
                           className={`w-full rounded-2xl border-2 bg-slate-50 py-3 md:py-4 pl-12 pr-4 text-sm font-bold text-slate-800 outline-none transition-colors focus:bg-white ${errors.nome ? 'border-red-300 focus:border-red-500' : 'border-slate-100 hover:border-slate-200 focus:border-[#00577C]'}`}
                         />
                       </div>
@@ -586,7 +600,7 @@ export default function CadastroPage() {
                         </h4>
                         <div className="space-y-2 text-left">
                           <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Nome Completo</label>
-                          <input type="text" placeholder="Nome completo" value={dep.nome} onChange={(e) => updateDependente(index, 'nome', e.target.value)} className={`w-full rounded-xl border-2 bg-slate-50 px-4 py-3 text-sm font-bold outline-none transition-colors focus:bg-white ${errors.dependentes?.[index]?.nome ? 'border-red-300 focus:border-red-500' : 'border-slate-100 hover:border-slate-200 focus:border-[#00577C]'}`} />
+                          <input type="text" placeholder="Primeiro e Último Nome" value={dep.nome} onChange={(e) => updateDependente(index, 'nome', formatarNome(e.target.value))}className={`w-full rounded-xl border-2 bg-slate-50 px-4 py-3 text-sm font-bold outline-none transition-colors focus:bg-white ${errors.dependentes?.[index]?.nome ? 'border-red-300 focus:border-red-500' : 'border-slate-100 hover:border-slate-200 focus:border-[#00577C]'}`} />
                           {errors.dependentes?.[index]?.nome && <p className="text-[10px] font-bold text-red-500">⚠ {errors.dependentes[index].nome}</p>}
                         </div>
                         <div className="space-y-2 text-left">

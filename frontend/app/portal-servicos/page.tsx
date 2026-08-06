@@ -288,24 +288,33 @@ export default function PortalServicos() {
     setLoadingLogin(true);
 
     try {
-      // Chama a função segura (RPC) do Supabase que ignora o RLS
-      const { data: roleData, error } = await supabase.rpc("verificar_login_admin", {
+      // 1. FAZ O LOGIN OFICIAL NO SUPABASE (Gera o crachá de segurança / Token)
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: senha,
+      });
+
+      if (authError) {
+        throw new Error("Credenciais inválidas no sistema principal.");
+      }
+
+      // 2. BUSCA O CARGO DO USUÁRIO (Exatamente como já fazias)
+      const { data: roleData, error: roleError } = await supabase.rpc("verificar_login_admin", {
         p_email: email,
         p_senha: senha,
       });
 
-      if (error) throw error;
+      if (roleError) throw roleError;
 
       if (roleData) {
-        // Se a função retornou o role, o login está correto
+        // Sucesso total!
         setRole(roleData as "geral" | "turismo" | "meio_ambiente");
       } else {
-        // Se retornou nulo, a combinação email/senha não existe
-        setErroLogin("E-mail ou senha incorretos.");
+        setErroLogin("Usuário sem permissões administrativas.");
       }
     } catch (error) {
       console.error("Erro ao verificar login:", error);
-      setErroLogin("Erro de conexão com o servidor.");
+      setErroLogin("E-mail ou senha incorretos.");
     } finally {
       setLoadingLogin(false);
     }
@@ -367,7 +376,12 @@ export default function PortalServicos() {
     );
   }
 
-  return <AdminDashboard role={role} onLogout={() => { setRole(null); setEmail(""); setSenha(""); }} />;
+  return <AdminDashboard role={role} onLogout={() => { 
+    supabase.auth.signOut(); 
+    setRole(null); 
+    setEmail(""); 
+    setSenha(""); 
+}} />;
 }
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
@@ -575,11 +589,21 @@ function TabRotas() {
     };
 
     if (editando) {
-      await supabase.from("rotas").update(payload).eq("id", editando.id);
+      const { error } = await supabase.from("rotas").update(payload).eq("id", editando.id);
+      if (error) {
+        alert("Erro ao atualizar: " + error.message);
+        setSaving(false);
+        return;
+      }
       setFeedback("Rota atualizada!");
     } else {
       const novaOrdem = await getProximaOrdem();
-      await supabase.from("rotas").insert({ ...payload, ordem: novaOrdem });
+      const { error } = await supabase.from("rotas").insert({ ...payload, ordem: novaOrdem });
+      if (error) {
+        alert("Erro ao inserir: " + error.message);
+        setSaving(false);
+        return;
+      }
       setFeedback("Rota criada!");
     }
 
