@@ -2,10 +2,9 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useEffect, useState, useRef, ReactNode } from 'react';
+import { useState, useEffect } from 'react'; // ← ADICIONEI useEffect de volta
 import { 
-  ArrowLeft, MapPin, Menu, ChevronRight, 
-  Ticket, CalendarDays, Loader2, X, Clock, Info, Navigation, ShieldCheck
+  MapPin, Menu, Ticket, CalendarDays, Loader2, X, Clock, Info, Navigation, ShieldCheck
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -13,39 +12,6 @@ import { supabase } from '@/lib/supabase';
 // ── FONTES PADRÃO DO SITE ──
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['600', '700', '800'] });
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'] });
-
-// ── MOTOR DE ANIMAÇÕES DE SCROLL ──
-function useScrollAnimation(threshold = 0.1) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        setIsVisible(true);
-        observer.unobserve(entry.target); 
-      }
-    }, { threshold });
-    if (ref.current) observer.observe(ref.current);
-    return () => { if (ref.current) observer.unobserve(ref.current); };
-  }, [threshold]);
-
-  return { ref, isVisible };
-}
-
-function AnimatedSection({ children, className = "", animation = "fade-up", delay = 0 }: { children: ReactNode; className?: string; animation?: "fade-up" | "fade-left" | "fade-right" | "zoom-in"; delay?: number; }) {
-  const { ref, isVisible } = useScrollAnimation();
-  let hiddenClass = "opacity-0 translate-y-12";
-  if (animation === "fade-left") hiddenClass = "opacity-0 translate-x-12";
-  if (animation === "fade-right") hiddenClass = "opacity-0 -translate-x-12";
-  if (animation === "zoom-in") hiddenClass = "opacity-0 scale-95";
-  
-  return (
-    <div ref={ref} className={`transition-all duration-1000 ease-out will-change-transform ${isVisible ? "opacity-100 translate-y-0 translate-x-0 scale-100" : hiddenClass} ${className}`} style={{ transitionDelay: `${delay}ms` }}>
-      {children}
-    </div>
-  );
-}
 
 // ── TIPAGEM ──
 type Evento = {
@@ -70,7 +36,7 @@ export default function EventoDetalhePage({ params }: { params: { id: string } }
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
 
-  // FETCH REAL NA SUPABASE
+  // FETCH REAL NA SUPABASE (mantido pois precisa carregar os dados)
   useEffect(() => {
     async function fetchEventoReal() {
       try {
@@ -128,12 +94,11 @@ export default function EventoDetalhePage({ params }: { params: { id: string } }
   return (
     <main className={`${inter.className} min-h-screen bg-[#FDFCF7] text-slate-900 overflow-x-hidden`}>
       
-      {/* ── HEADER ESTÁTICO (Fica no topo, não acompanha o scroll) ── */}
+      {/* ── HEADER ESTÁTICO ── */}
       <header className="relative z-50 w-full bg-white border-b border-slate-200 py-4">
         <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6">
           <Link href="/" className="flex items-center gap-3">
              <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
-                {/* Removido o filtro invertido para manter as cores originais da logo */}
                 <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain" />
              </div>
           </Link>
@@ -168,14 +133,14 @@ export default function EventoDetalhePage({ params }: { params: { id: string } }
         )}
       </header>
 
-      {/* ── HERO SECTION DO EVENTO ── */}
+      {/* ── HERO SECTION ESTÁTICA ── */}
       <section className="relative h-[50vh] md:h-[70vh] flex items-end pb-14 overflow-hidden bg-[#002f40]">
         {evento.imagem_url ? (
           <Image 
             src={evento.imagem_url} 
             alt={evento.titulo} 
             fill 
-            className="object-cover opacity-90 scale-100 animate-[spin_120s_linear_infinite]" 
+            className="object-cover opacity-90" 
             priority 
           />
         ) : (
@@ -183,33 +148,29 @@ export default function EventoDetalhePage({ params }: { params: { id: string } }
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-[#002f40] via-[#002f40]/40 to-transparent" />
         
-        {/* pb-16 lg:pb-32 garante que o título não bate no cartão de informações */}
         <div className="relative z-10 max-w-[1400px] mx-auto w-full px-6 pb-16 lg:pb-24">
-          <AnimatedSection animation="fade-right">
-            <br />
-            {evento.categoria && (
-              <span className={`${jakarta.className} inline-block bg-[#F9C400] text-[#002f40] px-4 py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest mb-4 shadow-lg`}>
-                {evento.categoria}
-              </span>
-            )}
-            
-            {/* Título reduzido para caber melhor na tela */}
-            <h1 className={`${jakarta.className} text-4xl md:text-5xl lg:text-6xl font-black text-white leading-tight tracking-tight max-w-4xl drop-shadow-2xl`}>
-              {evento.titulo}
-            </h1>
-          </AnimatedSection>
+          <br />
+          {evento.categoria && (
+            <span className={`${jakarta.className} inline-block bg-[#F9C400] text-[#002f40] px-4 py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest mb-4 shadow-lg`}>
+              {evento.categoria}
+            </span>
+          )}
+          
+          <h1 className={`${jakarta.className} text-4xl md:text-5xl lg:text-6xl font-black text-white leading-tight tracking-tight max-w-4xl drop-shadow-2xl`}>
+            {evento.titulo}
+          </h1>
         </div>
       </section>
 
-      {/* ── CONTEÚDO PRINCIPAL (CARD STACKING) ── */}
+      {/* ── CONTEÚDO PRINCIPAL ESTÁTICO ── */}
       <section className="relative z-20 bg-[#FDFCF7] -mt-16 rounded-t-[3rem] shadow-[0_-20px_50px_rgba(0,0,0,0.15)] py-20 px-6">
         <div className="max-w-[1400px] mx-auto flex flex-col lg:flex-row gap-12 lg:gap-20">
           
-          {/* Lado Esquerdo: Barra de Informações Flutuante */}
+          {/* Lado Esquerdo: Barra de Informações Estática */}
           <aside className="w-full lg:w-[350px] shrink-0">
-            <AnimatedSection animation="fade-up" className="bg-white rounded-[2.5rem] p-8 shadow-xl border border-slate-100 lg:-mt-32 relative z-30">
+            <div className="bg-white rounded-[2.5rem] p-8 shadow-xl border border-slate-100 lg:-mt-32 relative z-30">
               
-              {/* Highlight de Data */}
+              {/* Data */}
               <div className="flex items-center gap-6 mb-10 pb-10 border-b border-slate-100">
                  <div className="text-center">
                     <p className={`${jakarta.className} text-5xl md:text-6xl font-black text-[#009640] leading-none tracking-tighter`}>{diaMes}</p>
@@ -267,23 +228,24 @@ export default function EventoDetalhePage({ params }: { params: { id: string } }
                   </Link>
                 </div>
               )}
-            </AnimatedSection>
+            </div>
           </aside>
 
           {/* Lado Direito: Descrição e Mapa */}
           <div className="flex-1 max-w-4xl space-y-20">
             
-            <AnimatedSection animation="fade-left">
+            {/* Seção Sobre o Evento - Estática */}
+            <div>
               <h2 className={`${jakarta.className} text-3xl md:text-4xl font-black text-slate-900 mb-8 flex items-center gap-4`}>
                 <span className="w-8 h-1 bg-[#F9C400] rounded-full" /> Sobre o Evento
               </h2>
               <div className="text-lg md:text-xl text-slate-600 font-medium leading-relaxed whitespace-pre-wrap">
                 {evento.descricao || "Este evento não possui descrição detalhada no momento. Para mais informações, contate a Secretaria Municipal de Turismo."}
               </div>
-            </AnimatedSection>
+            </div>
 
-            {/* Bento Grid para Localização */}
-            <AnimatedSection animation="fade-up">
+            {/* Seção Localização - Estática */}
+            <div>
               <h2 className={`${jakarta.className} text-3xl md:text-4xl font-black text-slate-900 mb-8 flex items-center gap-4`}>
                 <span className="w-8 h-1 bg-[#009640] rounded-full" /> Onde Vai Acontecer
               </h2>
@@ -301,7 +263,7 @@ export default function EventoDetalhePage({ params }: { params: { id: string } }
                   </Link>
                 </div>
 
-                {/* Google Maps iframe CORRIGIDO */}
+                {/* Google Maps iframe */}
                 <div className="w-full md:w-2/3 h-[300px] md:h-auto rounded-[2rem] overflow-hidden bg-slate-100">
                   <iframe
                     width="100%"
@@ -314,40 +276,40 @@ export default function EventoDetalhePage({ params }: { params: { id: string } }
                   ></iframe>
                 </div>
               </div>
-            </AnimatedSection>
+            </div>
             
           </div>
         </div>
       </section>
 
       {/* FOOTER INSTITUCIONAL */}
-            <footer className="py-20 px-8 border-t border-slate-200 bg-white text-left">
-              <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
-                <div className="flex flex-col items-center md:items-start gap-4">
-                  <div className="flex items-center gap-6">
-                    <Image src="/logop.png" alt="SagaTurismo" width={160} height={50} className="object-contain" />
-                    <div className="w-px h-12 bg-slate-200 hidden md:block" />
-                    <Image src="/prefeitura.png" alt="Prefeitura de São Geraldo do Araguaia" width={140} height={50} className="object-contain" />
-                  </div>
-                  <div className="text-left space-y-1">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                      © 2026 Secretaria Municipal de Turismo - SGA | Todos os direitos reservados
-                    </p>
-                    <p className="text-[10px] font-bold text-slate-400/80">
-                      CNPJ: 10.249.241/0001-22
-                    </p>
-                  </div>
-                </div>
-      
-                <div className="flex gap-10">
-                  <div className="text-left border-l-2 border-slate-100 pl-9">
-                    <p className="text-[10px] font-black text-[#00577C] uppercase mb-1">Contato Oficial</p>
-                    <p className="text-xs font-bold text-slate-500 tracking-tight">setursaga@gmail.com</p>
-                  </div>
-                  <ShieldCheck size={40} className="text-[#009640] opacity-30" />
-                </div>
-              </div>
-            </footer>
+      <footer className="py-20 px-8 border-t border-slate-200 bg-white text-left">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
+          <div className="flex flex-col items-center md:items-start gap-4">
+            <div className="flex items-center gap-6">
+              <Image src="/logop.png" alt="SagaTurismo" width={160} height={50} className="object-contain" />
+              <div className="w-px h-12 bg-slate-200 hidden md:block" />
+              <Image src="/prefeitura.png" alt="Prefeitura de São Geraldo do Araguaia" width={140} height={50} className="object-contain" />
+            </div>
+            <div className="text-left space-y-1">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                © 2026 Secretaria Municipal de Turismo - SGA | Todos os direitos reservados
+              </p>
+              <p className="text-[10px] font-bold text-slate-400/80">
+                CNPJ: 10.249.241/0001-22
+              </p>
+            </div>
+          </div>
+
+          <div className="flex gap-10">
+            <div className="text-left border-l-2 border-slate-100 pl-9">
+              <p className="text-[10px] font-black text-[#00577C] uppercase mb-1">Contato Oficial</p>
+              <p className="text-xs font-bold text-slate-500 tracking-tight">setursaga@gmail.com</p>
+            </div>
+            <ShieldCheck size={40} className="text-[#009640] opacity-30" />
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }

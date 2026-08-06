@@ -126,7 +126,7 @@ export default function AldeiasPage() {
         </header>
 
         {/* ── HERO ── */}
-        <section className="relative min-h-[80vh] md:min-h-screen flex flex-col items-center justify-center overflow-hidden">
+        <section className="relative min-h-[90vh] md:min-h-screen flex flex-col items-center justify-center overflow-hidden">
           <div className="absolute inset-0 z-0">
             <Image
               src="https://images.pexels.com/photos/12434691/pexels-photo-12434691.jpeg"
@@ -138,18 +138,8 @@ export default function AldeiasPage() {
             <div className="absolute inset-0 bg-gradient-to-b from-[#001f2e]/85 via-[#00577C]/70 to-[#001f2e]/95" />
           </div>
 
-          <div className="absolute top-[60px] md:top-[72px] left-0 right-0 z-10 opacity-60">
-            <PatternBorder />
-          </div>
-
           <div className="relative z-10 mx-auto max-w-5xl px-5 text-center pt-24 md:pt-32 pb-16 md:pb-24">
-            <div className="inline-flex items-center gap-2 md:gap-3 mb-6 md:mb-8">
-              <span className="h-px w-6 md:w-12 bg-[#F9C400]" />
-              <span className="text-[#F9C400] text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] md:tracking-[0.3em]">
-                Patrimônio Vivo do Araguaia
-              </span>
-              <span className="h-px w-6 md:w-12 bg-[#F9C400]" />
-            </div>
+            
 
             <h1 className={`${jakarta.className} text-4xl sm:text-6xl md:text-8xl font-black text-white leading-tight md:leading-none mb-6`}>
               Povos{' '}
@@ -160,9 +150,7 @@ export default function AldeiasPage() {
               — suas histórias, tradições e o pulso vivo da cultura nativa.
             </p>
 
-            <div className="mt-12 md:mt-16 flex justify-center animate-bounce text-[#F9C400]/70">
-              <ChevronDown size={32} className="md:w-9 md:h-9" />
-            </div>
+            
           </div>
 
           <div className="absolute bottom-0 left-0 right-0 z-10">
@@ -170,37 +158,11 @@ export default function AldeiasPage() {
           </div>
         </section>
 
-        {/* ── INTRO ── */}
-        <section className="bg-[#00577C] text-white py-12 md:py-16 px-5 text-left">
-          <div className="mx-auto max-w-5xl flex flex-col md:flex-row gap-8 md:gap-10 items-center">
-            <div className="flex-shrink-0 w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-[#F9C400] flex items-center justify-center bg-[#004a6b]">
-              <svg viewBox="0 0 80 80" className="w-12 h-12 md:w-16 md:h-16" fill="none">
-                <circle cx="40" cy="40" r="36" stroke="#F9C400" strokeWidth="2" />
-                <path d="M40 10 L50 30 L40 25 L30 30 Z" fill="#F9C400" />
-                <path d="M40 70 L50 50 L40 55 L30 50 Z" fill="#009640" />
-                <path d="M10 40 L30 30 L25 40 L30 50 Z" fill="#009640" />
-                <path d="M70 40 L50 30 L55 40 L50 50 Z" fill="#F9C400" />
-                <circle cx="40" cy="40" r="8" fill="#F9C400" opacity="0.3" />
-              </svg>
-            </div>
-            <div className="text-center md:text-left">
-              <h2 className={`${jakarta.className} text-2xl md:text-3xl font-bold mb-4`}>
-                A Terra que Pulsa com Memória
-              </h2>
-              <p className="text-blue-100 leading-relaxed text-sm md:text-base text-justify md:text-left">
-                O município de São Geraldo do Araguaia é lar de povos indígenas que mantêm viva uma das mais ricas
-                heranças culturais do Brasil. Cada aldeia é um universo próprio de língua, ritual, arte e saber.
-                Ao visitá-las — com respeito e escuta — o visitante se conecta com a verdadeira alma do território.
-              </p>
-            </div>
-          </div>
-        </section>
-
         {/* ── GRID DE ALDEIAS ── */}
         <section className="mx-auto max-w-7xl px-5 py-16 md:py-20 text-left">
           <div className="flex flex-col md:flex-row items-start md:items-end justify-between mb-10 md:mb-12 gap-4">
             <div>
-              <p className="text-[#009640] text-[10px] md:text-xs font-bold uppercase tracking-[0.25em] mb-2">Comunidades cadastradas</p>
+              
               <h2 className={`${jakarta.className} text-3xl md:text-5xl font-black text-[#00577C]`}>
                 Aldeias do Município
               </h2>
