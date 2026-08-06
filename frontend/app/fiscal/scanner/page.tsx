@@ -117,7 +117,6 @@ export default function ScannerFiscal() {
     }
     
     if (dadosResidente.status === 'ativo') {
-      // Utilizando o verde institucional para acesso liberado
       return { color: 'border-[#4F772D]', bg: 'bg-[#4F772D]', text: 'text-[#4F772D]', icon: <CheckCircle2 className="w-10 h-10 text-white" />, label: 'ACESSO LIBERADO' };
     }
 
@@ -127,7 +126,7 @@ export default function ScannerFiscal() {
   return (
     <div className="min-h-screen flex flex-col items-center py-6 px-4 bg-gradient-to-br from-[#051c22] to-[#0A3D4A] relative overflow-hidden text-white selection:bg-[#4F772D]/30">
       
-      {/* Efeitos de luz no fundo escuro (consistente com o login) */}
+      {/* Efeitos de luz no fundo escuro */}
       <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-[#4F772D] rounded-full mix-blend-multiply filter blur-[128px] opacity-20 pointer-events-none"></div>
       <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-[#D4C345] rounded-full mix-blend-multiply filter blur-[128px] opacity-10 pointer-events-none"></div>
 
@@ -172,13 +171,18 @@ export default function ScannerFiscal() {
           </div>
         )}
 
-        {/* TELA DA CÂMARA */}
+        {/* TELA DA CÂMARA - Ajustada para Quadrado Perfeito */}
         {!scanResult && !permissaoErro && (
-          <div className="bg-white rounded-[2rem] overflow-hidden border border-white/20 p-2 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
-            <div id="reader" className="w-full bg-slate-900 rounded-3xl overflow-hidden [&_video]:w-full [&_video]:object-cover aspect-square"></div>
+          <div className="bg-white rounded-[2.5rem] overflow-hidden border border-white/20 p-2.5 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+            <div className="relative w-full aspect-square bg-black rounded-3xl overflow-hidden">
+              <div 
+                id="reader" 
+                className="absolute inset-0 w-full h-full [&_video]:w-full [&_video]:h-full [&_video]:object-cover"
+              ></div>
+            </div>
             
-            <div className="p-4 pt-5 text-center text-sm font-bold text-[#0A3D4A] flex items-center justify-center gap-2">
-              <ScanLine className="w-5 h-5 text-[#4F772D]" /> Posicione o QR Code no centro
+            <div className="p-3 pt-4 text-center text-sm font-bold text-[#0A3D4A] flex items-center justify-center gap-2">
+              <ScanLine className="w-5 h-5 text-[#4F772D]" /> Centralize o QR Code na tela
             </div>
           </div>
         )}
