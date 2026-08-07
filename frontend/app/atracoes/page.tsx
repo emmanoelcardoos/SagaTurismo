@@ -38,11 +38,11 @@ export default function AtracoesPage() {
           alt="Belezas naturais de São Geraldo do Araguaia"
           fill
           // Foco mais à direita no mobile, centro no desktop. Opacidade reduzida no mobile.
-          className="object-cover object-[70%_center] md:object-center opacity-15 md:opacity-20"
+          className="object-cover object-[70%_center] md:object-center opacity-40 md:opacity-50"
           priority
         />
-        {/* Máscara inteligente: Escura no topo no mobile para proteger o texto */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#002f40] via-[#002f40]/90 to-[#002f40]/20 md:from-[#002f40]/30 md:via-[#002f40]/20 md:to-[#002f40]/30" />
+        {/* Máscara inteligente: Protege o topo, mas deixa a foto brilhar */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#002f40]/90 via-[#002f40]/40 to-[#002f40]/10 md:from-[#002f40]/60 md:via-[#002f40]/20 md:to-transparent" />
       </div>
 
       {/* Halo amarelo — canto superior direito */}
