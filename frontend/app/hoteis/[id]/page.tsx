@@ -123,7 +123,12 @@ function HotelDetalheContent() {
     if (id) fetchHotelEQuartos();
   }, [id]);
 
-  // 2. REATIVIDADE: ATUALIZAÇÃO PREÇOS DIÁRIOS VIA API RAILWAY EM LOTE
+  // ── FUNÇÃO DE FORMATAÇÃO DE DATA ──
+  const formatarDataIso = (data: Date) => {
+    return `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`;
+  };
+
+  // 2. REATIVIDADE: ATUALIZAÇÃO PREÇOS DIÁRIOS VIA SUPABASE (Cálculo Local Rápido)
   useEffect(() => {
     if (!hotel || quartosDb.length === 0) return;
 
@@ -140,27 +145,51 @@ function HotelDetalheContent() {
       setCalculandoPreco(true);
       const checkinStr = formatarDataIso(checkin!);
       const checkoutStr = formatarDataIso(checkout!);
+      const noites = Math.ceil((checkout!.getTime() - checkin!.getTime()) / (1000 * 3600 * 24));
 
       try {
-        const promessas = quartosDb.map(quarto => 
-          fetch(`https://sagaturismo-production.up.railway.app/api/v1/public/hoteis/${id}/calcular-preco?tipo_quarto=${encodeURIComponent(quarto.nome_quarto)}&checkin=${checkinStr}&checkout=${checkoutStr}&quantidade=${qtdQuartosSelecionados}&adultos=${adultos}`)
-            .then(res => res.json())
-            .then(data => ({ id: quarto.id, data }))
-        );
+        // Busca as regras de calendário deste hotel (bloqueios e preços especiais) para as datas selecionadas
+        const { data: regrasCalendario, error } = await supabase
+          .from('disponibilidade_hoteis')
+          .select('*')
+          .eq('hotel_id', id)
+          .lte('data_inicio', checkoutStr)
+          .gte('data_fim', checkinStr);
 
-        const resultados = await Promise.all(promessas);
-        
         const novosPrecos: Record<string, PrecoDinamico> = {};
-        resultados.forEach(res => {
-          if (res.data.sucesso) {
-            novosPrecos[res.id] = {
-              valor_total: res.data.valor_total,
-              disponivel: res.data.disponivel,
-              noites: res.data.noites
-            };
-          } else {
-            novosPrecos[res.id] = { valor_total: 0, disponivel: false, noites: 0 };
+
+        quartosDb.forEach(quarto => {
+          let disponivel = true;
+          let precoTotalQuarto = 0;
+
+          // Filtra as regras que se aplicam apenas a este quarto específico
+          const regrasDesteQuarto = regrasCalendario?.filter(r => r.tipo_quarto === quarto.nome_quarto) || [];
+
+          // Calcula o preço dia-a-dia
+          for (let i = 0; i < noites; i++) {
+            const dataAtual = new Date(checkin!);
+            dataAtual.setDate(dataAtual.getDate() + i);
+            const dataAtualStr = formatarDataIso(dataAtual);
+
+            // Verifica se há alguma regra/bloqueio para este dia específico
+            const regraDoDia = regrasDesteQuarto.find(r => dataAtualStr >= r.data_inicio && dataAtualStr <= r.data_fim);
+
+            if (regraDoDia) {
+              if (!regraDoDia.disponivel) {
+                disponivel = false; // Bateu num dia bloqueado pelo hoteleiro!
+                break;
+              }
+              precoTotalQuarto += regraDoDia.preco; // Usa a tarifa especial do hoteleiro
+            } else {
+              precoTotalQuarto += quarto.preco_quarto; // Usa o preço base normal
+            }
           }
+
+          novosPrecos[quarto.id] = {
+            valor_total: precoTotalQuarto * qtdQuartosSelecionados,
+            disponivel: disponivel,
+            noites: noites
+          };
         });
 
         setPrecosDinâmicos(novosPrecos);
@@ -200,9 +229,6 @@ function HotelDetalheContent() {
     }
   };
 
-  const formatarDataIso = (data: Date) => {
-    return `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`;
-  };
 
   const handleReserva = (quarto: QuartoFisico) => {
     if (!checkin || !checkout) {

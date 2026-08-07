@@ -75,18 +75,38 @@ export default function ExtranetDisponibilidadePage() {
   const [vendaAtiva, setVendaAtiva] = useState(true);
   const [hoverDate, setHoverDate] = useState<Date | null>(null);
 
+  // ◄── BUSCA O HOTEL CORRETO DO PARCEIRO ──►
   useEffect(() => {
-    const id = localStorage.getItem("parceiro_id");
-    const nome = localStorage.getItem("nome_negocio");
-    if (!id) {
+    const parceiroId = localStorage.getItem("parceiro_id");
+    
+    if (!parceiroId) {
       router.push('/parceiros');
-    } else {
-      setHotelId(id);
-      setNomeHotel(nome || 'Alojamento Autorizado');
+      return;
+    }
+
+    async function buscarHotelDoParceiro() {
+      // Pergunta à base de dados qual é o hotel deste parceiro
+      const { data, error } = await supabase
+        .from('hoteis')
+        .select('id, nome')
+        .eq('parceiro_id', parceiroId)
+        .single();
+
+      if (error || !data) {
+        alert("O seu hotel ainda não foi configurado pela prefeitura. Por favor, aguarde.");
+        router.push('/parceiros');
+        return;
+      }
+
+      setHotelId(data.id); // Agora sim, guardamos o ID real do Hotel!
+      setNomeHotel(data.nome);
       setLoadingSessao(false);
     }
+
+    buscarHotelDoParceiro();
   }, [router]);
 
+  // Carrega os dados depois de descobrirmos o hotelId verdadeiro
   useEffect(() => {
     if (!hotelId) return;
 
@@ -105,7 +125,7 @@ export default function ExtranetDisponibilidadePage() {
         }
       }
 
-      // 2. Carrega a configuração de juros direto da tabela pai (hoteis) ◄── NOVO!
+      // 2. Carrega a configuração de juros
       const { data: hData } = await supabase
         .from('hoteis')
         .select('max_parcelas_sem_juros')
@@ -116,7 +136,7 @@ export default function ExtranetDisponibilidadePage() {
         setMaxParcelasSemJuros(hData.max_parcelas_sem_juros || 0);
       }
 
-      // 3. Carrega o calendário de restrições temporárias
+      // 3. Carrega o calendário de restrições
       const { data: dData } = await supabase
         .from('disponibilidade_hoteis')
         .select('*')
@@ -152,7 +172,6 @@ export default function ExtranetDisponibilidadePage() {
 
   const formatarMoeda = (valor: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
 
-  // ── ATUALIZAÇÃO DA POLÍTICA DE JUROS INDEPENDENTE ──►
   const handleAtualizarPoliticaJuros = async (numParcelas: number) => {
     if (!hotelId) return;
     setSalvandoConfigFinanceira(true);
@@ -187,12 +206,12 @@ export default function ExtranetDisponibilidadePage() {
       const nomeFicheiroUnico = `${hotelId}_${Date.now()}.${extensaoFicheiro}`;
       
       const { error: uploadError } = await supabase.storage
-        .from('galeria')
+        .from('hoteis')
         .upload(nomeFicheiroUnico, fImagem);
 
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage.from('galeria').getPublicUrl(nomeFicheiroUnico);
+      const { data: urlData } = supabase.storage.from('hoteis').getPublicUrl(nomeFicheiroUnico);
       const publicImageUrl = urlData.publicUrl;
 
       const precoNumber = parseFloat(fPrecoBase.replace(',', '.'));
@@ -213,6 +232,16 @@ export default function ExtranetDisponibilidadePage() {
         }]);
 
       if (dbError) throw dbError;
+
+      // ◄── A MAGIA ACONTECE AQUI ──►
+      // Atualiza o hotel para que a página pública saiba que já há quartos à venda!
+      await supabase
+        .from('hoteis')
+        .update({ preco_medio: `A partir de R$ ${precoNumber.toFixed(2)}` })
+        .eq('id', hotelId);
+
+      setStatusFeedback({ tipo: 'sucesso', texto: 'Acomodação adicionada ao inventário com sucesso!' });
+
 
       setStatusFeedback({ tipo: 'sucesso', texto: 'Acomodação adicionada ao inventário com sucesso!' });
       setMostrarFormQuarto(false);
@@ -253,29 +282,29 @@ export default function ExtranetDisponibilidadePage() {
     const nomeDoQuartoAlvo = quartoSelecionado ? (quartoSelecionado.nome_quarto || quartoSelecionado.nome) : 'standard';
 
     const payload = {
+      hotel_id: hotelId, // <- O banco de dados agora exige saber o ID do hotel
       tipo_quarto: nomeDoQuartoAlvo,
       data_inicio: formatarDataIso(dataInicio),
       data_fim: formatarDataIso(dataFim),
-      preco: precoCustomizado ? parseFloat(precoCustomizado.replace(',', '.')) : null,
+      preco: precoCustomizado ? parseFloat(precoCustomizado.replace(',', '.')) : (quartoSelecionado?.preco_quarto || 0),
       disponivel: vendaAtiva
     };
 
     try {
-      const response = await fetch(`https://sagaturismo-production.up.railway.app/api/v1/parceiros/${hotelId}/disponibilidade`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+      // ◄── AGORA GRAVA DIRETO NO SUPABASE ──►
+      const { error } = await supabase.from('disponibilidade_hoteis').insert(payload);
+      
+      if (error) throw error;
 
-      if (response.ok) {
-        setStatusFeedback({ tipo: 'sucesso', texto: 'Sincronização concluída! Os preços e bloqueios estão ativos.' });
-        setDataInicio(null); setDataFim(null); setPrecoCustomizado('');
-      } else {
-        const errData = await response.json();
-        throw new Error(errData.detail || 'Erro na comunicação assíncrona.');
-      }
+      setStatusFeedback({ tipo: 'sucesso', texto: 'Sincronização concluída! Os preços e bloqueios estão ativos.' });
+      setDataInicio(null); setDataFim(null); setPrecoCustomizado('');
+      
+      // Atualiza o ecrã com a nova tarifa
+      const { data: dData } = await supabase.from('disponibilidade_hoteis').select('*').eq('hotel_id', hotelId);
+      if (dData) setHistoricoDisponibilidade(dData as RestricaoDisponibilidade[]);
+      
     } catch (err: any) {
-      setStatusFeedback({ tipo: 'erro', texto: err.message || 'Falha de comunicação com a API.' });
+      setStatusFeedback({ tipo: 'erro', texto: err.message || 'Falha ao salvar no calendário.' });
     } finally {
       setIsSubmitting(false);
     }
@@ -358,7 +387,7 @@ export default function ExtranetDisponibilidadePage() {
         {abaAtiva === 'quartos' && (
           <div className="space-y-8">
             
-            {/* ◄── 💳 NOVO CARD: CONFIGURAÇÃO FINANCEIRA DE PARCELAMENTO SELETIVO ──► */}
+            {/* 💳 CARD DE CONFIGURAÇÃO FINANCEIRA */}
             <section className="bg-white border-2 border-dashed border-[#0085FF]/20 rounded-[2rem] p-6 md:p-8 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
               <div className="flex items-start gap-4 text-left">
                 <div className="bg-blue-50 p-4 rounded-2xl text-[#0085FF] shrink-0 border border-blue-100 shadow-sm">
@@ -383,7 +412,7 @@ export default function ExtranetDisponibilidadePage() {
                   <option value={0}>Bloqueado (Juros por conta do Cliente)</option>
                   <option value={2}>Até 2x Sem Juros (Hotel assume)</option>
                   <option value={3}>Até 3x Sem Juros (Hotel assume)</option>
-                  <option value = {4}>Até 4x Sem Juros (Hotel assume)</option>
+                  <option value={4}>Até 4x Sem Juros (Hotel assume)</option>
                   <option value={5}>Até 5x Sem Juros (Hotel assume)</option>
                   <option value={6}>Até 6x Sem Juros (Hotel assume)</option>
                   <option value={10}>Até 10x Sem Juros (Hotel assume)</option>
