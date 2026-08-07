@@ -5,7 +5,7 @@ import Image from "next/image";
 import { Plus_Jakarta_Sans, Inter } from "next/font/google";
 import { supabase } from "@/lib/supabase";
 import { 
-  Calendar, Bell, CheckCircle2, Clock, Map, Package, Activity, AlertCircle,
+  Calendar as CalendarIcon, Bell, CheckCircle2, Clock, Map, Package, Activity, AlertCircle,
   Upload, Image as ImageIcon, Save, Loader2, FileSpreadsheet, Utensils, MapPin, Phone, Plus, Trash2 
 } from 'lucide-react';
 
@@ -247,7 +247,6 @@ function AdminDashboard({ role, onLogout }: { role: "geral" | "turismo" | "meio_
   });
 
   const [activeTab, setActiveTab] = useState<string>(allowedTabs[0].id);
-
   const nomeSecretaria = role === "turismo" ? "Sec. de Turismo" : role === "meio_ambiente" ? "Sec. de Meio Ambiente" : "Administração Geral";
 
   return (
@@ -389,7 +388,7 @@ function TabDashboard() {
 
         <section className="bg-white border border-slate-200 rounded-[2rem] p-6 shadow-sm">
           <div className="flex items-center gap-3 border-b border-slate-100 pb-4 mb-4">
-            <div className="bg-[#00577C]/10 text-[#00577C] p-2 rounded-xl"><Calendar size={20}/></div>
+            <div className="bg-[#00577C]/10 text-[#00577C] p-2 rounded-xl"><CalendarIcon size={20}/></div>
             <h3 className={`${jakarta.className} text-xl font-black text-slate-800`}>Eventos (Próximos 7 Dias)</h3>
           </div>
 
@@ -425,7 +424,7 @@ function TabDashboard() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// ROTAS - CONSTRUTOR DE VITRINE
+// ROTAS
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function TabRotas() {
@@ -530,16 +529,14 @@ function TabRotas() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-8">
-            {/* Esquerda: Textos */}
             <div className="space-y-5">
               <h4 className="font-black text-[#00577C] border-b pb-2">Informações da Rota</h4>
               <FormField label="Título da Rota *"><input value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value })} className={inputCls} placeholder="Ex: Rota das Cachoeiras" /></FormField>
               <FormField label="Descrição Curta (Resumo) *"><textarea value={form.descricao_curta} onChange={(e) => setForm({ ...form, descricao_curta: e.target.value })} rows={2} className={inputCls} placeholder="Aparece no cartão principal..." /></FormField>
-              <FormField label="Descrição Longa (História)"><textarea value={form.descricao_longa || ""} onChange={(e) => setForm({ ...form, descricao_longa: e.target.value })} rows={4} className={inputCls} placeholder="Conte todos os detalhes deste roteiro..." /></FormField>
-              <FormField label="Como Chegar (Instruções)"><textarea value={form.como_chegar || ""} onChange={(e) => setForm({ ...form, como_chegar: e.target.value })} rows={3} className={inputCls} placeholder="Ex: Acesso pela via BR..."/></FormField>
+              <FormField label="Descrição Longa (História)"><textarea value={form.descricao_longa || ""} onChange={(e) => setForm({ ...form, descricao_longa: e.target.value || null })} rows={4} className={inputCls} placeholder="Conte todos os detalhes deste roteiro..." /></FormField>
+              <FormField label="Como Chegar (Instruções)"><textarea value={form.como_chegar || ""} onChange={(e) => setForm({ ...form, como_chegar: e.target.value || null })} rows={3} className={inputCls} placeholder="Ex: Acesso pela via BR..."/></FormField>
             </div>
             
-            {/* Direita: Tags e Mídia */}
             <div className="space-y-5">
               <h4 className="font-black text-[#00577C] border-b pb-2">Especificações e Mídia</h4>
               <div className="grid grid-cols-2 gap-4">
@@ -600,15 +597,53 @@ function TabRotas() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// EVENTOS
+// EVENTOS - GESTÃO COMPLETA (EM LOTE E MANUAL)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function TabEventos() {
-  const [fase, setFase] = useState<'inicio' | 'preview' | 'salvando' | 'sucesso'>('inicio');
+  const [fase, setFase] = useState<'inicio' | 'preview' | 'salvando' | 'sucesso' | 'manual'>('inicio');
+  const [eventosList, setEventosList] = useState<Evento[]>([]);
+  const [loadingList, setLoadingList] = useState(true);
+  
+  // ── ESTADOS DO CSV ──
   const [eventosPreview, setEventosPreview] = useState<any[]>([]);
   const [imagensMap, setImagensMap] = useState<{ [key: number]: File }>({});
   const [feedback, setFeedback] = useState("");
 
+  // ── ESTADOS DO MANUAL ──
+  const [formManual, setFormManual] = useState<any>({ destaque: false, categoria: 'Cultura' });
+  const [imagemManual, setImagemManual] = useState<File | null>(null);
+  const [savingManual, setSavingManual] = useState(false);
+
+  useEffect(() => {
+    fetchEventos();
+  }, []);
+
+  async function fetchEventos() {
+    setLoadingList(true);
+    
+    // 1. Pega a data de hoje e formata para 'YYYY-MM-DD' (ex: 2026-08-07)
+    const hoje = new Date().toISOString().split('T')[0];
+
+    // 2. Busca apenas eventos de hoje em diante (.gte = greater than or equal)
+    // E muda a ordem para 'ascending: true' (para mostrar o evento mais próximo primeiro)
+    const { data } = await supabase
+      .from('eventos')
+      .select('*')
+      .gte('data', hoje)
+      .order('data', { ascending: true });
+      
+    setEventosList(data || []);
+    setLoadingList(false);
+  }
+
+  async function handleDeleteEvento(id: string) {
+    if(!confirm("Remover este evento permanentemente?")) return;
+    await supabase.from('eventos').delete().eq('id', id);
+    fetchEventos();
+  }
+
+  // ── 1. MOTOR DE LEITURA DO CSV ──
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -631,11 +666,13 @@ function TabEventos() {
     for (let i = 1; i < linhas.length; i++) {
       const valores = linhas[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
       const evento: any = {};
+      
       cabecalhos.forEach((cabecalho, index) => {
         let valor = valores[index] ? valores[index].trim() : '';
         if (valor.startsWith('"') && valor.endsWith('"')) valor = valor.substring(1, valor.length - 1);
         evento[cabecalho] = valor;
       });
+      
       if (evento.titulo) eventosLidos.push({ ...evento, destaque: false, data: evento.data || null });
     }
     setEventosPreview(eventosLidos);
@@ -644,6 +681,7 @@ function TabEventos() {
 
   const handleImagemChange = (index: number, file: File) => setImagensMap(prev => ({ ...prev, [index]: file }));
 
+  // ── 2. ENVIO EM LOTE (CSV) ──
   const handleSalvarTudo = async () => {
     setFase('salvando');
     setFeedback("A iniciar a sincronização com o banco de dados...");
@@ -680,29 +718,186 @@ function TabEventos() {
     setFase('sucesso');
   };
 
-  const resetar = () => { setFase('inicio'); setEventosPreview([]); setImagensMap({}); setFeedback(""); };
+  // ── 3. ENVIO MANUAL ──
+  const abrirFormManual = () => {
+    setFormManual({ destaque: false, categoria: 'Cultura' });
+    setImagemManual(null);
+    setFase('manual');
+  };
+
+  const handleSalvarManual = async () => {
+    if (!formManual.titulo || !formManual.data || !formManual.local) {
+      alert("Título, Data e Local são obrigatórios.");
+      return;
+    }
+    setSavingManual(true);
+    setFeedback("A publicar evento...");
+
+    let imagem_url = "";
+    if (imagemManual) {
+      const ext = imagemManual.name.split('.').pop();
+      const nomeFicheiro = `evento_manual_${Date.now()}.${ext}`;
+      const { error: uploadErr } = await supabase.storage.from('eventos').upload(nomeFicheiro, imagemManual);
+      if (!uploadErr) {
+        const { data: pubUrl } = supabase.storage.from('eventos').getPublicUrl(nomeFicheiro);
+        imagem_url = pubUrl.publicUrl;
+      }
+    }
+
+    const { error: dbError } = await supabase.from('eventos').insert([{
+      titulo: formManual.titulo,
+      subtitulo: formManual.subtitulo || null,
+      descricao: formManual.descricao || null,
+      data: formManual.data,
+      horario: formManual.horario || null,
+      duracao: formManual.duracao || null,
+      local: formManual.local,
+      categoria: formManual.categoria,
+      preco: formManual.preco || null,
+      classificacao: formManual.classificacao || null,
+      link_bilheteira: formManual.link_bilheteira || null,
+      imagem_url: imagem_url || null,
+      destaque: String(formManual.destaque) === 'true'
+    }]);
+
+    if (dbError) {
+      alert("Erro ao salvar: " + dbError.message);
+      setSavingManual(false);
+      return;
+    }
+
+    setFeedback("Evento manual publicado com sucesso!");
+    setFase('sucesso');
+    setSavingManual(false);
+  };
+
+  const resetar = () => { setFase('inicio'); setEventosPreview([]); setImagensMap({}); setFeedback(""); fetchEventos(); };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div><h2 className={`${jakarta.className} text-xl font-black text-[#00577C]`}>Gestão de Eventos (Em Lote)</h2><p className="text-xs text-slate-500 mt-1">Ferramenta exclusiva da Prefeitura para popular o calendário anual.</p></div>
+        <div>
+          <h2 className={`${jakarta.className} text-xl font-black text-[#00577C]`}>Gestão de Eventos</h2>
+          <p className="text-xs text-slate-500 mt-1">Ferramenta exclusiva da Prefeitura para o calendário da cidade.</p>
+        </div>
         {fase !== 'inicio' && (<button onClick={resetar} className="text-xs text-slate-500 font-bold hover:text-slate-800 underline">Cancelar e Voltar</button>)}
       </div>
 
+      {/* TELA 1: ESCOLHA DE MÉTODO (CSV ou MANUAL) + TABELA DE EVENTOS */}
       {fase === 'inicio' && (
-        <div className="border-2 border-dashed border-slate-300 rounded-[2rem] p-12 text-center bg-white hover:bg-slate-50 transition-colors relative group">
-          <input type="file" accept=".csv" onChange={handleFileUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
-          <div className="flex flex-col items-center gap-4">
-            <div className="w-16 h-16 bg-[#00577C]/10 text-[#00577C] rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform"><FileSpreadsheet size={32} /></div>
-            <div>
-              <p className={`${jakarta.className} text-lg font-black text-slate-800`}>Arraste o seu ficheiro CSV de Eventos</p>
-              <p className="text-sm font-medium text-slate-500 mt-2 max-w-sm mx-auto">Certifique-se que o Excel tem o cabeçalho: <br/><code className="text-xs bg-slate-100 p-1 rounded font-bold text-[#00577C]">titulo, descricao, data, local, categoria</code></p>
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Opção Lote */}
+            <div className="border-2 border-dashed border-slate-300 rounded-[2rem] p-10 text-center bg-white hover:bg-slate-50 transition-colors relative group flex flex-col items-center justify-center">
+              <input type="file" accept=".csv" onChange={handleFileUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+              <div className="w-16 h-16 bg-[#00577C]/10 text-[#00577C] rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform mb-4"><FileSpreadsheet size={32} /></div>
+              <h3 className={`${jakarta.className} text-xl font-black text-slate-800`}>Importação em Lote</h3>
+              <p className="text-xs font-medium text-slate-500 mt-2">Arraste o seu ficheiro CSV (Excel) para carregar dezenas de eventos de uma só vez.</p>
+              <button className="mt-6 bg-[#00577C] text-white px-6 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest shadow-md">Selecionar CSV</button>
             </div>
-            <button className="mt-4 bg-[#00577C] text-white px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest shadow-md">Selecionar Ficheiro do Computador</button>
+
+            {/* Opção Manual */}
+            <div className="border border-slate-200 rounded-[2rem] p-10 text-center bg-white hover:shadow-xl transition-all flex flex-col items-center justify-center">
+              <div className="w-16 h-16 bg-[#009640]/10 text-[#009640] rounded-2xl flex items-center justify-center mb-4"><Plus size={32} /></div>
+              <h3 className={`${jakarta.className} text-xl font-black text-slate-800`}>Cadastro Manual</h3>
+              <p className="text-xs font-medium text-slate-500 mt-2">Crie um evento único preenchendo o formulário completo de publicação.</p>
+              <button onClick={abrirFormManual} className="mt-6 bg-[#009640] hover:bg-green-700 text-white px-6 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest shadow-md transition-colors">Criar Evento Manual</button>
+            </div>
+          </div>
+
+          <div className="pt-4">
+            <h3 className={`${jakarta.className} text-lg font-black text-[#00577C] mb-4`}>Eventos Cadastrados</h3>
+            {loadingList ? (
+              <Skeleton rows={5} />
+            ) : (
+              <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-200 bg-slate-50">
+                      <Th>Cartaz</Th><Th>Título</Th><Th>Data</Th><Th>Local</Th><Th>Categoria</Th><Th className="text-right">Ações</Th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {eventosList.map((ev) => (
+                      <tr key={ev.id} className="border-b border-slate-100 hover:bg-slate-50 transition">
+                        <td className="px-4 py-3"><img src={ev.imagem_url || "/placeholder.png"} alt={ev.titulo} className="w-10 h-10 rounded-lg object-cover" /></td>
+                        <td className="px-4 py-3 font-medium text-slate-800">{ev.titulo}</td>
+                        <td className="px-4 py-3 text-slate-600 whitespace-nowrap">{fmtData(ev.data)}</td>
+                        <td className="px-4 py-3 text-slate-600">{ev.local}</td>
+                        <td className="px-4 py-3 text-slate-600">{ev.categoria}</td>
+                        <td className="px-4 py-3 text-right">
+                          <button onClick={() => handleDeleteEvento(ev.id)} className="text-xs text-red-500 hover:text-red-600 border border-red-200 bg-red-50 px-2.5 py-1 rounded-md transition">Remover</button>
+                        </td>
+                      </tr>
+                    ))}
+                    {eventosList.length === 0 && (<tr><td colSpan={6} className="px-4 py-10 text-center text-slate-400">Nenhum evento cadastrado.</td></tr>)}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       )}
 
+      {/* TELA 2: FORMULÁRIO MANUAL */}
+      {fase === 'manual' && (
+        <div className="bg-white rounded-[2rem] p-8 shadow-lg border border-slate-100 animate-in fade-in slide-in-from-bottom-4">
+          <div className="flex items-center justify-between mb-8 border-b border-slate-100 pb-4">
+            <h3 className={`${jakarta.className} text-2xl font-black text-slate-800 flex items-center gap-2`}><CalendarIcon className="text-[#F9C400]" /> Construtor de Evento</h3>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-6">
+            <div className="space-y-4">
+              <h4 className="font-black text-[#00577C] border-b pb-2">Informações Base</h4>
+              <FormField label="Título do Evento *"><input value={formManual.titulo || ""} onChange={(e) => setFormManual({ ...formManual, titulo: e.target.value })} className={inputCls} placeholder="Ex: Festival de Verão" /></FormField>
+              <FormField label="Subtítulo"><input value={formManual.subtitulo || ""} onChange={(e) => setFormManual({ ...formManual, subtitulo: e.target.value })} className={inputCls} placeholder="Frase de chamariz..." /></FormField>
+              <FormField label="Descrição"><textarea value={formManual.descricao || ""} onChange={(e) => setFormManual({ ...formManual, descricao: e.target.value })} rows={4} className={inputCls} /></FormField>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField label="Categoria"><input value={formManual.categoria || ""} onChange={(e) => setFormManual({ ...formManual, categoria: e.target.value })} className={inputCls} placeholder="Ex: Música, Cultura..." /></FormField>
+                <FormField label="Destaque?">
+                  <select value={String(formManual.destaque)} onChange={(e) => setFormManual({ ...formManual, destaque: e.target.value })} className={inputCls}>
+                    <option value="false">Não</option><option value="true">Sim (Banner Principal)</option>
+                  </select>
+                </FormField>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h4 className="font-black text-[#00577C] border-b pb-2">Logística e Mídia</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField label="Data *"><input type="date" value={formManual.data || ""} onChange={(e) => setFormManual({ ...formManual, data: e.target.value })} className={inputCls} /></FormField>
+                <FormField label="Horário de Início"><input type="time" value={formManual.horario || ""} onChange={(e) => setFormManual({ ...formManual, horario: e.target.value })} className={inputCls} /></FormField>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField label="Duração Estimada"><input value={formManual.duracao || ""} onChange={(e) => setFormManual({ ...formManual, duracao: e.target.value })} className={inputCls} placeholder="Ex: 3 dias, 4 horas..." /></FormField>
+                <FormField label="Classificação Etária"><input value={formManual.classificacao || ""} onChange={(e) => setFormManual({ ...formManual, classificacao: e.target.value })} className={inputCls} placeholder="Ex: Livre, +18..." /></FormField>
+              </div>
+              <FormField label="Local do Evento *"><div className="relative"><MapPin size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" /><input value={formManual.local || ""} onChange={(e) => setFormManual({ ...formManual, local: e.target.value })} className={`${inputCls} pl-9`} placeholder="Ex: Praça Central" /></div></FormField>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <FormField label="Preço (Deixe vazio se grátis)"><input value={formManual.preco || ""} onChange={(e) => setFormManual({ ...formManual, preco: e.target.value })} className={inputCls} placeholder="R$ 50,00" /></FormField>
+                <FormField label="Link Bilheteira"><input value={formManual.link_bilheteira || ""} onChange={(e) => setFormManual({ ...formManual, link_bilheteira: e.target.value })} className={inputCls} placeholder="https://..." /></FormField>
+              </div>
+
+              <FormField label="Cartaz Oficial (Imagem)">
+                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 text-slate-500 p-4 rounded-xl cursor-pointer hover:border-[#00577C] transition-colors mt-1">
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => setImagemManual(e.target.files?.[0] || null)} />
+                  <ImageIcon size={18} /> {imagemManual ? imagemManual.name : "Clique para anexar Cartaz"}
+                </label>
+              </FormField>
+            </div>
+          </div>
+
+          <div className="mt-8 flex items-center justify-between pt-6 border-t border-slate-100">
+            <span className="text-sm font-bold text-[#009640]">{feedback}</span>
+            <button onClick={handleSalvarManual} disabled={savingManual} className="bg-[#009640] hover:bg-green-700 text-white px-10 py-3.5 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg flex items-center gap-2 transition-all">
+              {savingManual ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Publicar Evento
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* TELA 3: PREVIEW DO CSV */}
       {fase === 'preview' && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
           <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-start gap-3">
@@ -737,12 +932,13 @@ function TabEventos() {
         </div>
       )}
 
+      {/* TELA 4: FEEDBACK DE SALVAMENTO */}
       {(fase === 'salvando' || fase === 'sucesso') && (
         <div className="bg-white rounded-3xl p-12 text-center shadow-sm border border-slate-100">
           {fase === 'salvando' ? (<Loader2 size={48} className="mx-auto text-[#00577C] animate-spin mb-6" />) : (<CheckCircle2 size={48} className="mx-auto text-[#009640] mb-6" />)}
-          <h3 className={`${jakarta.className} text-2xl font-black text-slate-900 mb-2`}>{fase === 'salvando' ? 'A Sincronizar Calendário...' : 'Sincronização Concluída!'}</h3>
+          <h3 className={`${jakarta.className} text-2xl font-black text-slate-900 mb-2`}>{fase === 'salvando' ? 'A Sincronizar Calendário...' : 'Evento(s) Guardado(s) com Sucesso!'}</h3>
           <p className="text-slate-500 font-medium mb-8">{feedback}</p>
-          {fase === 'sucesso' && (<button onClick={resetar} className="bg-[#00577C] text-white px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest shadow-md">Importar mais Eventos</button>)}
+          {fase === 'sucesso' && (<button onClick={resetar} className="bg-[#00577C] text-white px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest shadow-md">Voltar ao Início</button>)}
         </div>
       )}
     </div>
@@ -936,7 +1132,9 @@ function TabParceiros() {
         ))}
       </div>
 
-      {loading ? <Skeleton rows={4} /> : (
+      {loading ? (
+        <Skeleton rows={4} />
+      ) : (
         <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm">
           <table className="w-full text-sm">
             <thead><tr className="border-b border-slate-200 bg-slate-50"><Th>Parceiro</Th><Th>Tipo</Th><Th>Contacto</Th><Th>Registado em</Th><Th>Estado</Th><Th className="text-right">Ações</Th></tr></thead>
@@ -1046,7 +1244,7 @@ function TabPedidos() {
         <div><h2 className={`${jakarta.className} text-lg font-black text-[#00577C]`}>Pedidos</h2><p className="text-xs text-slate-500">Total: {pedidos.length} pedidos</p></div>
         <div className="flex gap-2">
           <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)} className="text-xs border border-slate-200 rounded-lg px-2 py-1"><option value="todos">Todos os status</option><option value="pago">Pago</option><option value="aguardando">Aguardando</option><option value="cancelado">Cancelado</option></select>
-          <select value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value)} className="text-xs border border-slate-200 rounded-lg px-2 py-1"><option value="todos">Todos os tipos</option><option value="hotel">Hotel</option><option value="passeio">Passeio</option><option value="pacote">Pacote</option></select>
+          <select value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value)} className="text-xs border border-slate-200 rounded-lg px-2 py-1"><option value="todos">Todos os tipos</option><option value="hotel">Hotel</option><option value="passeio">Passeio</option><option value="pacote">Pacote</option><option value="carteira">Carteira</option></select>
         </div>
       </div>
 
@@ -1264,7 +1462,7 @@ function TabHoteis() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// GASTRONOMIA
+// GASTRONOMIA - CONSTRUTOR DE VITRINE
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function TabGastronomia() {
@@ -1273,6 +1471,7 @@ function TabGastronomia() {
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState("");
+
   const [form, setForm] = useState({ titulo: "", descricao_curta: "", sobre_nos_texto: "", whatsapp: "", link_google_maps: "", ordem: 1, ativo: true });
   const [imagemPrincipal, setImagemPrincipal] = useState<File | null>(null);
   const [fotoEquipe, setFotoEquipe] = useState<File | null>(null);
@@ -1337,7 +1536,7 @@ function TabGastronomia() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div><h2 className={`${jakarta.className} text-xl font-black text-[#00577C]`}>Vitrine Gastronômica</h2><p className="text-xs text-slate-500 mt-1">{restaurantes.length} estabelecimentos</p></div>
+        <div><h2 className={`${jakarta.className} text-xl font-black text-[#00577C]`}>Vitrine Gastronómica</h2><p className="text-xs text-slate-500 mt-1">{restaurantes.length} estabelecimentos</p></div>
         <button onClick={abrirNovoFormulario} className="bg-[#00577C] text-white font-black text-sm px-5 py-2.5 rounded-xl flex items-center gap-2"><Plus size={16} /> Novo Restaurante</button>
       </div>
 
@@ -1363,10 +1562,10 @@ function TabGastronomia() {
                   <ImageIcon size={18} /> {imagemPrincipal ? imagemPrincipal.name : 'Clique para anexar Capa'}
                 </label>
               </FormField>
-              <FormField label="Foto da Equipe / Local">
+              <FormField label="Foto da Equipa / Local">
                 <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 text-slate-500 p-4 rounded-xl cursor-pointer hover:border-[#00577C] transition-colors">
                   <input type="file" accept="image/*" className="hidden" onChange={e => setFotoEquipe(e.target.files?.[0] || null)} />
-                  <ImageIcon size={18} /> {fotoEquipe ? fotoEquipe.name : 'Clique para anexar Foto da Equipe'}
+                  <ImageIcon size={18} /> {fotoEquipe ? fotoEquipe.name : 'Clique para anexar Foto da Equipa'}
                 </label>
               </FormField>
               <FormField label="Galeria de Pratos">
@@ -1415,7 +1614,7 @@ function TabGastronomia() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// ATRAÇÕES - CONSTRUTOR DE VITRINE
+// ATRAÇÕES
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function TabAtracoes() {
