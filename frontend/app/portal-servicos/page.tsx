@@ -1728,16 +1728,119 @@ function TabPacotes() {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function TabHoteis() {
-  const [hoteis, setHoteis] = useState<Hotel[]>([]);
+  const [hoteis, setHoteis] = useState<any[]>([]);
+  const [parceiros, setParceiros] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editando, setEditando] = useState<any | null>(null);
+  const [form, setForm] = useState<any>({});
+  const [imagemFile, setImagemFile] = useState<File | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [feedback, setFeedback] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { fetchHoteis(); }, []);
+  useEffect(() => { 
+    fetchHoteis(); 
+    fetchParceirosAtivos();
+  }, []);
 
   async function fetchHoteis() {
     setLoading(true);
-    const { data } = await supabase.from("hoteis").select("*").order("nome");
+    // Traz os hotéis e puxa magicamente o nome do parceiro dono dele!
+    const { data } = await supabase
+      .from("hoteis")
+      .select("*, parceiros(nome_negocio)")
+      .order("nome");
     setHoteis(data || []);
     setLoading(false);
+  }
+
+  async function fetchParceirosAtivos() {
+    // Traz apenas os parceiros ativos para aparecerem no select
+    const { data } = await supabase
+      .from("parceiros")
+      .select("id, nome_negocio, tipo_parceiro")
+      .eq("status", "ativo");
+    setParceiros(data || []);
+  }
+
+  function abrirFormNovo() {
+    setEditando(null);
+    setForm({ 
+      nome: "", 
+      tipo: "Pousada", 
+      descricao: "", 
+      estrelas: 3, 
+      parceiro_id: "", 
+      imagem_url: "" 
+    });
+    setImagemFile(null);
+    setShowForm(true);
+  }
+
+  function abrirFormEditar(h: any) {
+    setEditando(h);
+    setForm({ ...h });
+    setImagemFile(null);
+    setShowForm(true);
+  }
+
+  async function handleSave() {
+    if (!form.nome || !form.parceiro_id) { 
+      setFeedback("Nome do hotel e Parceiro são obrigatórios."); 
+      return; 
+    }
+    setSaving(true);
+    
+    let imagem_url = form.imagem_url;
+    
+    // A Mágica do Upload
+    if (imagemFile) {
+      const ext = imagemFile.name.split(".").pop();
+      const path = `capas/${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("hoteis").upload(path, imagemFile, { upsert: true });
+      
+      if (upErr) {
+        alert("Erro ao enviar a foto: " + upErr.message);
+        setSaving(false);
+        return;
+      }
+      
+      const { data: pub } = supabase.storage.from("hoteis").getPublicUrl(path);
+      imagem_url = pub.publicUrl;
+    }
+
+    // Apenas os campos da "casca" inicial
+    const payload = { 
+      nome: form.nome,
+      tipo: form.tipo,
+      descricao: form.descricao,
+      estrelas: form.estrelas,
+      parceiro_id: form.parceiro_id,
+      imagem_url: imagem_url
+    };
+
+    if (editando) {
+      const { error } = await supabase.from("hoteis").update(payload).eq("id", editando.id);
+      if (error) alert("Erro ao atualizar: " + error.message);
+      else setFeedback("Hotel atualizado!");
+    } else {
+      const { error } = await supabase.from("hoteis").insert(payload);
+      if (error) alert("Erro ao inserir: " + error.message);
+      else setFeedback("Hotel pré-cadastrado!");
+    }
+
+    setShowForm(false);
+    setSaving(false);
+    fetchHoteis();
+    setTimeout(() => setFeedback(""), 3000);
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm("Remover este hotel permanentemente?")) return;
+    const { error } = await supabase.from("hoteis").delete().eq("id", id);
+    if (error) alert("Erro ao deletar: " + error.message);
+    fetchHoteis();
   }
 
   return (
@@ -1745,21 +1848,85 @@ function TabHoteis() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className={`${jakarta.className} text-lg font-black text-[#00577C]`}>Hotéis e Alojamentos</h2>
-          <p className="text-xs text-slate-500">{hoteis.length} unidades</p>
+          <p className="text-xs text-slate-500">{hoteis.length} unidades cadastradas</p>
+        </div>
+        <div className="flex gap-3">
+          {feedback && <span className="text-xs text-[#009640] font-bold">{feedback}</span>}
+          <button onClick={abrirFormNovo} className="bg-[#00577C] hover:bg-[#004a6b] text-white font-black text-sm px-4 py-2 rounded-lg transition">+ Novo Hotel</button>
         </div>
       </div>
+
+      {showForm && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full p-5 space-y-4">
+            <div className="flex justify-between border-b pb-3">
+              <h3 className="font-black text-slate-800">Cadastro Inicial de Hotel</h3>
+              <button onClick={() => setShowForm(false)} className="text-slate-400">✕</button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField label="Nome do Estabelecimento *">
+                <input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} className={inputCls} />
+              </FormField>
+              
+              <FormField label="Tipo">
+                <select value={form.tipo} onChange={(e) => setForm({ ...form, tipo: e.target.value })} className={inputCls}>
+                  <option value="Hotel">Hotel</option>
+                  <option value="Pousada">Pousada</option>
+                  <option value="Resort">Resort</option>
+                  <option value="Hostel">Hostel</option>
+                </select>
+              </FormField>
+
+              <FormField label="Parceiro Dono (Obrigatório) *" className="md:col-span-2">
+                <select value={form.parceiro_id} onChange={(e) => setForm({ ...form, parceiro_id: e.target.value })} className={inputCls}>
+                  <option value="">Selecione o parceiro ativo...</option>
+                  {parceiros.map(p => (
+                    <option key={p.id} value={p.id}>{p.nome_negocio} ({p.tipo_parceiro})</option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-slate-400 mt-1">O parceiro precisa estar com a conta "Ativa" para aparecer nesta lista.</p>
+              </FormField>
+
+              <FormField label="Descrição Curta" className="md:col-span-2">
+                <textarea value={form.descricao || ""} onChange={(e) => setForm({ ...form, descricao: e.target.value })} rows={2} className={inputCls} />
+              </FormField>
+
+              <FormField label="Estrelas">
+                <input type="number" min="1" max="5" value={form.estrelas} onChange={(e) => setForm({ ...form, estrelas: parseInt(e.target.value) })} className={inputCls} />
+              </FormField>
+
+              <FormField label="Foto Principal (Capa)">
+                {form.imagem_url && !imagemFile && <img src={form.imagem_url} alt="Capa" className="h-12 rounded mb-2 object-cover" />}
+                <input ref={fileRef} type="file" accept="image/*" onChange={(e) => setImagemFile(e.target.files?.[0] || null)} className="hidden" />
+                <button type="button" onClick={() => fileRef.current?.click()} className="text-xs border border-dashed border-slate-300 px-3 py-2 rounded-lg w-full">
+                  {imagemFile ? imagemFile.name : "Escolher Imagem"}
+                </button>
+              </FormField>
+            </div>
+
+            <div className="flex gap-2 border-t pt-4">
+              <button onClick={() => setShowForm(false)} className="flex-1 py-2 border rounded-lg text-sm text-slate-600">Cancelar</button>
+              <button onClick={handleSave} disabled={saving} className="flex-1 py-2 bg-[#00577C] text-white font-black text-sm rounded-lg">{saving ? "Salvando…" : "Salvar Casca Inicial"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {loading ? <Skeleton rows={5} /> : (
         <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm overflow-x-auto">
           <table className="w-full text-sm min-w-[700px]">
-            <thead><tr className="border-b bg-slate-50"><Th>Imagem</Th><Th>Nome</Th><Th>Tipo</Th><Th>Estrelas</Th><Th>Preço médio</Th><Th>WhatsApp</Th></tr></thead>
+            <thead><tr className="border-b bg-slate-50"><Th>Foto</Th><Th>Nome</Th><Th>Parceiro</Th><Th>Tipo</Th><Th className="text-right">Ações</Th></tr></thead>
             <tbody>{hoteis.map(h => (
               <tr key={h.id} className="border-b">
                 <td className="px-4 py-3"><img src={h.imagem_url || "/placeholder.png"} className="w-10 h-10 rounded-lg object-cover" /></td>
                 <td className="px-4 py-3 font-medium">{h.nome}</td>
+                <td className="px-4 py-3 text-xs text-slate-500">{h.parceiros?.nome_negocio || "Sem dono"}</td>
                 <td className="px-4 py-3 capitalize">{h.tipo}</td>
-                <td className="px-4 py-3">{"★".repeat(h.estrelas)}</td>
-                <td className="px-4 py-3">{h.preco_medio || "—"}</td>
-                <td className="px-4 py-3">{h.whatsapp || "—"}</td>
+                <td className="px-4 py-3 text-right">
+                  <button onClick={() => abrirFormEditar(h)} className="text-xs text-[#00577C] border border-[#00577C]/20 px-2 py-1 rounded-md">Editar</button>
+                  <button onClick={() => handleDelete(h.id)} className="ml-2 text-xs text-red-500 border border-red-200 px-2 py-1 rounded-md">Remover</button>
+                </td>
               </tr>
             ))}</tbody>
           </table>
@@ -1843,10 +2010,6 @@ function TabGastronomia() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div><h2 className={`${jakarta.className} text-lg font-black text-[#00577C]`}>Gastronomia</h2><p className="text-xs text-slate-500">{restaurantes.length} restaurantes</p></div>
-        <button onClick={abrirFormNovo} className="bg-[#00577C] hover:bg-[#004a6b] text-white font-black text-sm px-4 py-2 rounded-lg">+ Novo restaurante</button>
-      </div>
 
       {showForm && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
