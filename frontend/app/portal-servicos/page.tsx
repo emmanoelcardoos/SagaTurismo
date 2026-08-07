@@ -350,23 +350,7 @@ function TabDashboard() {
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
-      <div className="bg-gradient-to-r from-[#002f40] to-[#00577C] rounded-[2rem] p-8 text-white shadow-lg flex flex-col md:flex-row items-center justify-between gap-6">
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-widest text-[#F9C400] mb-2">{dataHoje}</p>
-          <h2 className={`${jakarta.className} text-3xl font-black`}>Bom dia, Equipa da Prefeitura!</h2>
-          <p className="text-sm text-blue-100 mt-2 max-w-xl">Bem-vindos à central de controlo do turismo. Aqui está o resumo de tudo o que precisa da vossa atenção hoje.</p>
-        </div>
-        <div className="flex gap-4">
-          <div className="bg-white/10 border border-white/20 p-4 rounded-2xl text-center backdrop-blur-sm min-w-[120px]">
-             <p className={`${jakarta.className} text-3xl font-black text-[#F9C400]`}>{stats.parceiros}</p>
-             <p className="text-[10px] font-bold uppercase tracking-widest text-blue-100">Parceiros Ativos</p>
-          </div>
-          <div className="bg-white/10 border border-white/20 p-4 rounded-2xl text-center backdrop-blur-sm min-w-[120px]">
-             <p className={`${jakarta.className} text-3xl font-black text-[#F9C400]`}>{stats.hoteis}</p>
-             <p className="text-[10px] font-bold uppercase tracking-widest text-blue-100">Hotéis Cadastrados</p>
-          </div>
-        </div>
-      </div>
+      
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <section className="bg-white border border-slate-200 rounded-[2rem] p-6 shadow-sm">
@@ -441,7 +425,7 @@ function TabDashboard() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// ROTAS
+// ROTAS - CONSTRUTOR DE VITRINE
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function TabRotas() {
@@ -453,10 +437,7 @@ function TabRotas() {
   const [imagemCapaFile, setImagemCapaFile] = useState<File | null>(null);
   const [galeriaFiles, setGaleriaFiles] = useState<File[]>([]);
   const [saving, setSaving] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState("");
-  const fileCapaRef = useRef<HTMLInputElement>(null);
-  const fileGaleriaRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { fetchRotas(); }, []);
 
@@ -485,7 +466,7 @@ function TabRotas() {
 
   async function handleSave() {
     if (!form.titulo || !form.descricao_curta) { setFeedback("Título e descrição curta são obrigatórios."); return; }
-    setSaving(true);
+    setSaving(true); setFeedback("Salvando...");
 
     let imagem_url = form.imagem_url;
     if (imagemCapaFile) {
@@ -511,112 +492,108 @@ function TabRotas() {
 
     const payload = { ...form, imagem_url, galeria: galeriaUrls.length ? galeriaUrls : (form.galeria || null) };
 
-    if (editando) {
-      const { error } = await supabase.from("rotas").update(payload).eq("id", editando.id);
-      if (error) { alert("Erro ao atualizar: " + error.message); setSaving(false); return; }
-      setFeedback("Rota atualizada!");
-    } else {
+    if (editando) await supabase.from("rotas").update(payload).eq("id", editando.id);
+    else {
       const novaOrdem = await getProximaOrdem();
-      const { error } = await supabase.from("rotas").insert({ ...payload, ordem: novaOrdem });
-      if (error) { alert("Erro ao inserir: " + error.message); setSaving(false); return; }
-      setFeedback("Rota criada!");
+      await supabase.from("rotas").insert({ ...payload, ordem: novaOrdem });
     }
 
-    setShowForm(false); setSaving(false); fetchRotas(); setTimeout(() => setFeedback(""), 3000);
+    setFeedback(editando ? "Rota atualizada com sucesso!" : "Rota publicada!");
+    setTimeout(() => { setShowForm(false); setSaving(false); fetchRotas(); setFeedback(""); }, 2000);
   }
 
   async function handleDelete(id: string) {
     if (!confirm("Remover esta rota permanentemente?")) return;
-    setDeletingId(id); await supabase.from("rotas").delete().eq("id", id); setDeletingId(null); fetchRotas();
+    await supabase.from("rotas").delete().eq("id", id); 
+    fetchRotas();
   }
 
-  const f = (field: keyof typeof form, value: any) => setForm((prev: any) => ({ ...prev, [field]: value }));
-
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div><h2 className={`${jakarta.className} text-lg font-black text-[#00577C]`}>Rotas Turísticas</h2><p className="text-xs text-slate-500">{rotas.length} rotas cadastradas</p></div>
-        <div className="flex items-center gap-3">
-          {feedback && <span className="text-xs text-[#009640] font-bold">{feedback}</span>}
-          <button onClick={abrirFormNovo} className="bg-[#00577C] hover:bg-[#004a6b] text-white font-black text-sm px-4 py-2 rounded-lg transition shadow-sm flex items-center gap-1.5 uppercase tracking-wider"><span className="text-base leading-none">+</span> Nova rota</button>
+        <div>
+          <h2 className={`${jakarta.className} text-xl font-black text-[#00577C]`}>Vitrine de Rotas</h2>
+          <p className="text-xs text-slate-500 mt-1">{rotas.length} roteiros em exibição</p>
         </div>
+        <button onClick={abrirFormNovo} className="bg-[#00577C] hover:bg-[#004a6b] text-white font-black text-sm px-5 py-2.5 rounded-xl transition shadow-md flex items-center gap-2">
+          <Plus size={16} /> Novo Roteiro
+        </button>
       </div>
 
-      {showForm && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-5 border-b border-slate-200">
-              <h3 className={`${jakarta.className} font-black text-slate-800`}>{editando ? "Editar rota" : "Nova rota"}</h3>
-              <button onClick={() => setShowForm(false)} className="text-slate-400 hover:text-slate-700 transition text-lg leading-none">✕</button>
+      {showForm ? (
+        <div className="bg-white rounded-[2rem] p-8 shadow-lg border border-slate-100 animate-in fade-in slide-in-from-bottom-4">
+          <div className="flex items-center justify-between mb-8 border-b border-slate-100 pb-4">
+            <h3 className={`${jakarta.className} text-2xl font-black text-slate-800 flex items-center gap-2`}>
+              <Map className="text-[#F9C400]" /> {editando ? "Editar Rota" : "Construtor de Página de Rota"}
+            </h3>
+            <button onClick={() => setShowForm(false)} className="text-sm font-bold text-slate-400 hover:text-slate-800">Cancelar</button>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-8">
+            {/* Esquerda: Textos */}
+            <div className="space-y-5">
+              <h4 className="font-black text-[#00577C] border-b pb-2">Informações da Rota</h4>
+              <FormField label="Título da Rota *"><input value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value })} className={inputCls} placeholder="Ex: Rota das Cachoeiras" /></FormField>
+              <FormField label="Descrição Curta (Resumo) *"><textarea value={form.descricao_curta} onChange={(e) => setForm({ ...form, descricao_curta: e.target.value })} rows={2} className={inputCls} placeholder="Aparece no cartão principal..." /></FormField>
+              <FormField label="Descrição Longa (História)"><textarea value={form.descricao_longa || ""} onChange={(e) => setForm({ ...form, descricao_longa: e.target.value })} rows={4} className={inputCls} placeholder="Conte todos os detalhes deste roteiro..." /></FormField>
+              <FormField label="Como Chegar (Instruções)"><textarea value={form.como_chegar || ""} onChange={(e) => setForm({ ...form, como_chegar: e.target.value })} rows={3} className={inputCls} placeholder="Ex: Acesso pela via BR..."/></FormField>
             </div>
-            <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField label="Título *" className="md:col-span-2"><input value={form.titulo} onChange={(e) => f("titulo", e.target.value)} className={inputCls} /></FormField>
-              <FormField label="Descrição curta *" className="md:col-span-2"><textarea value={form.descricao_curta} onChange={(e) => f("descricao_curta", e.target.value)} rows={2} className={inputCls + " resize-none"} /></FormField>
-              <FormField label="Descrição longa" className="md:col-span-2"><textarea value={form.descricao_longa || ""} onChange={(e) => f("descricao_longa", e.target.value || null)} rows={5} className={inputCls + " resize-none"} /></FormField>
-              <FormField label="Ativo"><select value={String(form.ativo)} onChange={(e) => f("ativo", e.target.value === "true")} className={inputCls}><option value="true">Sim</option><option value="false">Não</option></select></FormField>
-              <FormField label="Duração"><select value={form.duracao || ""} onChange={(e) => f("duracao", e.target.value || null)} className={inputCls}><option value="">Selecione</option>{DURACAO_OPCOES.map(opt => <option key={opt}>{opt}</option>)}</select></FormField>
-              <FormField label="Dificuldade"><select value={form.dificuldade || ""} onChange={(e) => f("dificuldade", e.target.value || null)} className={inputCls}><option value="">Selecione</option>{DIFICULDADE_OPCOES.map(opt => <option key={opt}>{opt}</option>)}</select></FormField>
-              <FormField label="Grupo"><select value={form.grupo || ""} onChange={(e) => f("grupo", e.target.value || null)} className={inputCls}><option value="">Selecione</option>{GRUPO_OPCOES.map(opt => <option key={opt}>{opt}</option>)}</select></FormField>
-              <FormField label="Guia"><select value={form.guia || ""} onChange={(e) => f("guia", e.target.value || null)} className={inputCls}><option value="">Selecione</option>{GUIA_OPCOES.map(opt => <option key={opt}>{opt}</option>)}</select></FormField>
-              <FormField label="Como chegar" className="md:col-span-2"><textarea value={form.como_chegar || ""} onChange={(e) => f("como_chegar", e.target.value || null)} rows={3} className={inputCls + " resize-none"} /></FormField>
-              <FormField label="Imagem de capa" className="md:col-span-2">
-                {form.imagem_url && !imagemCapaFile && (<img src={form.imagem_url} alt="Capa atual" className="h-24 w-auto rounded-lg mb-2 object-cover border border-slate-200" />)}
-                {imagemCapaFile && <p className="text-xs text-[#00577C] mb-1">📎 {imagemCapaFile.name}</p>}
-                <input ref={fileCapaRef} type="file" accept="image/*" className="hidden" onChange={(e) => setImagemCapaFile(e.target.files?.[0] || null)} />
-                <button type="button" onClick={() => fileCapaRef.current?.click()} className="text-xs border border-dashed border-slate-300 hover:border-[#00577C] text-slate-400 hover:text-[#00577C] px-3 py-2 rounded-lg transition w-full">{imagemCapaFile ? "Trocar imagem" : "Escolher imagem de capa"}</button>
+            
+            {/* Direita: Tags e Mídia */}
+            <div className="space-y-5">
+              <h4 className="font-black text-[#00577C] border-b pb-2">Especificações e Mídia</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField label="Duração"><select value={form.duracao || ""} onChange={(e) => setForm({ ...form, duracao: e.target.value })} className={inputCls}><option value="">Selecione</option>{DURACAO_OPCOES.map(opt => <option key={opt}>{opt}</option>)}</select></FormField>
+                <FormField label="Dificuldade"><select value={form.dificuldade || ""} onChange={(e) => setForm({ ...form, dificuldade: e.target.value })} className={inputCls}><option value="">Selecione</option>{DIFICULDADE_OPCOES.map(opt => <option key={opt}>{opt}</option>)}</select></FormField>
+                <FormField label="Tamanho do Grupo"><select value={form.grupo || ""} onChange={(e) => setForm({ ...form, grupo: e.target.value })} className={inputCls}><option value="">Selecione</option>{GRUPO_OPCOES.map(opt => <option key={opt}>{opt}</option>)}</select></FormField>
+                <FormField label="Exigência de Guia"><select value={form.guia || ""} onChange={(e) => setForm({ ...form, guia: e.target.value })} className={inputCls}><option value="">Selecione</option>{GUIA_OPCOES.map(opt => <option key={opt}>{opt}</option>)}</select></FormField>
+              </div>
+              
+              <FormField label="Imagem de Capa">
+                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 text-slate-500 p-4 rounded-xl cursor-pointer hover:border-[#00577C] transition-colors">
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => setImagemCapaFile(e.target.files?.[0] || null)} />
+                  <ImageIcon size={18} /> {imagemCapaFile ? imagemCapaFile.name : form.imagem_url ? "Trocar imagem atual" : "Clique para anexar Capa da Rota"}
+                </label>
               </FormField>
-              <FormField label="Galeria de imagens" className="md:col-span-2">
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {form.galeria?.map((url: string, idx: number) => (<div key={idx} className="relative w-16 h-16 rounded-lg border border-slate-200 overflow-hidden"><img src={url} alt={`galeria-${idx}`} className="w-full h-full object-cover" /></div>))}
-                  {galeriaFiles.map((file, idx) => (<div key={idx} className="relative w-16 h-16 rounded-lg border border-slate-200 overflow-hidden bg-slate-100 flex items-center justify-center text-xs">📷 {file.name.slice(0, 8)}</div>))}
-                </div>
-                <input ref={fileGaleriaRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => setGaleriaFiles(Array.from(e.target.files || []))} />
-                <button type="button" onClick={() => fileGaleriaRef.current?.click()} className="text-xs border border-dashed border-slate-300 hover:border-[#00577C] text-slate-400 hover:text-[#00577C] px-3 py-2 rounded-lg transition w-full">Adicionar imagens à galeria</button>
+
+              <FormField label="Galeria de Fotos do Local (Múltiplas)">
+                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 text-slate-500 p-4 rounded-xl cursor-pointer hover:border-[#00577C] transition-colors">
+                  <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => { if (e.target.files) setGaleriaFiles(Array.from(e.target.files)); }} />
+                  <ImageIcon size={18} /> {galeriaFiles.length > 0 ? `${galeriaFiles.length} fotos selecionadas` : "Selecionar várias fotos para galeria"}
+                </label>
               </FormField>
-            </div>
-            <div className="flex gap-2 p-5 border-t border-slate-200">
-              <button onClick={() => setShowForm(false)} className="flex-1 py-2 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 transition">Cancelar</button>
-              <button onClick={handleSave} disabled={saving} className="flex-1 py-2 rounded-lg bg-[#00577C] hover:bg-[#004a6b] text-white font-black text-sm transition disabled:opacity-50 shadow-sm uppercase tracking-wider">{saving ? "Salvando…" : editando ? "Salvar alterações" : "Criar rota"}</button>
             </div>
           </div>
-        </div>
-      )}
 
-      {loading ? <Skeleton rows={4} /> : (
-        <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50">
-                <Th>Ordem</Th><Th>Rota</Th><Th>Duração</Th><Th>Dificuldade</Th><Th>Grupo</Th><Th>Guia</Th><Th>Ativo</Th><Th className="text-right">Ações</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {rotas.map((rota) => (
-                <tr key={rota.id} className="border-b border-slate-100 hover:bg-slate-50 transition">
-                  <td className="px-4 py-3 font-mono text-slate-600">{rota.ordem}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      {rota.imagem_url ? (<img src={rota.imagem_url} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />) : (<div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 text-xs shrink-0">🗺️</div>)}
-                      <div><p className="font-medium text-slate-800 leading-tight">{rota.titulo}</p><p className="text-xs text-slate-400 line-clamp-1">{rota.descricao_curta}</p></div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-slate-600">{rota.duracao || "—"}</td>
-                  <td className="px-4 py-3 text-slate-600">{rota.dificuldade || "—"}</td>
-                  <td className="px-4 py-3 text-slate-600">{rota.grupo || "—"}</td>
-                  <td className="px-4 py-3 text-slate-600">{rota.guia || "—"}</td>
-                  <td className="px-4 py-3"><span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${rota.ativo ? "bg-[#009640]/10 text-[#009640] border-[#009640]/20" : "bg-slate-100 text-slate-500 border-slate-200"}`}>{rota.ativo ? "Sim" : "Não"}</span></td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-end gap-2">
-                      <button onClick={() => abrirFormEditar(rota)} className="text-xs text-[#00577C] hover:text-[#004a6b] border border-[#00577C]/20 bg-[#00577C]/5 px-2.5 py-1 rounded-md transition font-medium">Editar</button>
-                      <button onClick={() => handleDelete(rota.id)} disabled={deletingId === rota.id} className="text-xs text-red-500 hover:text-red-600 border border-red-200 bg-red-50 px-2.5 py-1 rounded-md transition disabled:opacity-40">{deletingId === rota.id ? "…" : "Remover"}</button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {rotas.length === 0 && (<tr><td colSpan={8} className="px-4 py-10 text-center text-slate-400 text-sm">Nenhuma rota cadastrada.</td></tr>)}
-            </tbody>
-          </table>
+          <div className="mt-10 flex items-center justify-between pt-6 border-t border-slate-100">
+            <span className="text-sm font-bold text-[#009640]">{feedback}</span>
+            <button onClick={handleSave} disabled={saving} className="bg-[#009640] hover:bg-green-700 text-white px-10 py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg flex items-center gap-2 transition-all">
+              {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Publicar Rota
+            </button>
+          </div>
         </div>
+      ) : (
+        loading ? <div className="py-12 flex justify-center"><Loader2 size={32} className="text-[#00577C] animate-spin" /></div> : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {rotas.map((rota) => (
+              <div key={rota.id} className={`bg-white rounded-[2rem] border border-slate-200 p-4 flex flex-col hover:shadow-xl transition-all ${!rota.ativo ? 'opacity-60 grayscale-[30%]' : ''}`}>
+                <div className="relative w-full h-48 rounded-2xl overflow-hidden bg-slate-100 mb-4">
+                  <img src={rota.imagem_url || "/placeholder.png"} alt={rota.titulo} className="object-cover w-full h-full" />
+                  <div className="absolute top-3 left-3 bg-white/90 backdrop-blur px-2 py-1 rounded text-[10px] font-black text-[#00577C] shadow-sm uppercase">{rota.dificuldade || 'Turismo'}</div>
+                </div>
+                <div className="px-2 pb-2 flex-1 flex flex-col">
+                  <h3 className={`${jakarta.className} text-xl font-black text-slate-800 mb-1`}>{rota.titulo}</h3>
+                  <p className="text-xs font-medium text-slate-500 line-clamp-2 mb-4">{rota.descricao_curta}</p>
+                  
+                  <div className="mt-auto flex items-center justify-between pt-4 border-t border-slate-100">
+                    <button onClick={() => abrirFormEditar(rota)} className="text-xs font-bold text-[#00577C] hover:underline">Editar Rota</button>
+                    <button onClick={() => handleDelete(rota.id)} className="text-xs font-bold text-red-500 hover:underline">Remover</button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )
       )}
     </div>
   );
@@ -652,7 +629,7 @@ function TabEventos() {
     const eventosLidos = [];
     
     for (let i = 1; i < linhas.length; i++) {
-      const valores = linhas[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || linhas[i].split(',');
+      const valores = linhas[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
       const evento: any = {};
       cabecalhos.forEach((cabecalho, index) => {
         let valor = valores[index] ? valores[index].trim() : '';
@@ -1360,7 +1337,7 @@ function TabGastronomia() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div><h2 className={`${jakarta.className} text-xl font-black text-[#00577C]`}>Vitrine Gastronómica</h2><p className="text-xs text-slate-500 mt-1">{restaurantes.length} estabelecimentos</p></div>
+        <div><h2 className={`${jakarta.className} text-xl font-black text-[#00577C]`}>Vitrine Gastronômica</h2><p className="text-xs text-slate-500 mt-1">{restaurantes.length} estabelecimentos</p></div>
         <button onClick={abrirNovoFormulario} className="bg-[#00577C] text-white font-black text-sm px-5 py-2.5 rounded-xl flex items-center gap-2"><Plus size={16} /> Novo Restaurante</button>
       </div>
 
@@ -1386,10 +1363,10 @@ function TabGastronomia() {
                   <ImageIcon size={18} /> {imagemPrincipal ? imagemPrincipal.name : 'Clique para anexar Capa'}
                 </label>
               </FormField>
-              <FormField label="Foto da Equipa / Local">
+              <FormField label="Foto da Equipe / Local">
                 <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 text-slate-500 p-4 rounded-xl cursor-pointer hover:border-[#00577C] transition-colors">
                   <input type="file" accept="image/*" className="hidden" onChange={e => setFotoEquipe(e.target.files?.[0] || null)} />
-                  <ImageIcon size={18} /> {fotoEquipe ? fotoEquipe.name : 'Clique para anexar Foto da Equipa'}
+                  <ImageIcon size={18} /> {fotoEquipe ? fotoEquipe.name : 'Clique para anexar Foto da Equipe'}
                 </label>
               </FormField>
               <FormField label="Galeria de Pratos">
@@ -1438,7 +1415,7 @@ function TabGastronomia() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// ATRAÇÕES
+// ATRAÇÕES - CONSTRUTOR DE VITRINE
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function TabAtracoes() {
@@ -1450,7 +1427,6 @@ function TabAtracoes() {
   const [imagemFile, setImagemFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState("");
-  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { fetchAtracoes(); }, []);
 
@@ -1462,18 +1438,24 @@ function TabAtracoes() {
   }
 
   function abrirFormNovo() {
-    setEditando(null); setForm({ nome: "", tipo: "", descricao: "", imagem_url: "", preco_entrada: 0, pagbank_recebedor_id: null, whatsapp: null, link_google_maps: null, link_hospedagem: null, galeria: null });
-    setImagemFile(null); setShowForm(true);
+    setEditando(null); 
+    setForm({ nome: "", tipo: "", descricao: "", imagem_url: "", preco_entrada: 0, whatsapp: "", link_google_maps: "" });
+    setImagemFile(null); 
+    setShowForm(true);
   }
 
   function abrirFormEditar(a: Atracao) {
-    setEditando(a); setForm({ ...a }); setImagemFile(null); setShowForm(true);
+    setEditando(a); 
+    setForm({ ...a }); 
+    setImagemFile(null); 
+    setShowForm(true);
   }
 
   async function handleSave() {
     if (!form.nome) { setFeedback("Nome obrigatório."); return; }
     setSaving(true);
     let imagem_url = form.imagem_url;
+    
     if (imagemFile) {
       const ext = imagemFile.name.split(".").pop();
       const path = `atracoes/${Date.now()}.${ext}`;
@@ -1483,61 +1465,98 @@ function TabAtracoes() {
         imagem_url = pub.publicUrl;
       }
     }
+    
     const payload = { ...form, imagem_url };
     if (editando) await supabase.from("atracoes").update(payload).eq("id", editando.id);
     else await supabase.from("atracoes").insert(payload);
-    setFeedback(editando ? "Atração atualizada!" : "Atração criada!");
-    setShowForm(false); setSaving(false); fetchAtracoes(); setTimeout(() => setFeedback(""), 3000);
+    
+    setFeedback(editando ? "Atração atualizada!" : "Atração publicada com sucesso!");
+    setTimeout(() => { setShowForm(false); setSaving(false); fetchAtracoes(); setFeedback(""); }, 2000);
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Remover esta atração?")) return;
-    await supabase.from("atracoes").delete().eq("id", id); fetchAtracoes();
+    if (!confirm("Remover esta atração da vitrine?")) return;
+    await supabase.from("atracoes").delete().eq("id", id); 
+    fetchAtracoes();
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div><h2 className={`${jakarta.className} text-lg font-black text-[#00577C]`}>Atrações</h2><p className="text-xs text-slate-500">{atracoes.length} atrações</p></div>
-        <button onClick={abrirFormNovo} className="bg-[#00577C] hover:bg-[#004a6b] text-white font-black text-sm px-4 py-2 rounded-lg">+ Nova atração</button>
+        <div>
+          <h2 className={`${jakarta.className} text-xl font-black text-[#00577C]`}>Vitrine de Atrações</h2>
+          <p className="text-xs text-slate-500 mt-1">{atracoes.length} pontos turísticos em exibição</p>
+        </div>
+        <button onClick={abrirFormNovo} className="bg-[#00577C] hover:bg-[#004a6b] text-white font-black text-sm px-5 py-2.5 rounded-xl transition shadow-md flex items-center gap-2">
+          <Plus size={16} /> Nova Atração
+        </button>
       </div>
 
-      {showForm && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-5 space-y-4">
-            <FormField label="Nome"><input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} className={inputCls} /></FormField>
-            <FormField label="Tipo"><input value={form.tipo} onChange={(e) => setForm({ ...form, tipo: e.target.value })} className={inputCls} /></FormField>
-            <FormField label="Descrição"><textarea value={form.descricao || ""} onChange={(e) => setForm({ ...form, descricao: e.target.value })} rows={3} className={inputCls} /></FormField>
-            <FormField label="Preço de entrada (R$)"><input type="number" step="0.01" value={form.preco_entrada} onChange={(e) => setForm({ ...form, preco_entrada: parseFloat(e.target.value) })} className={inputCls} /></FormField>
-            <FormField label="WhatsApp"><input value={form.whatsapp || ""} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })} className={inputCls} /></FormField>
-            <FormField label="Link Google Maps"><input value={form.link_google_maps || ""} onChange={(e) => setForm({ ...form, link_google_maps: e.target.value })} className={inputCls} /></FormField>
-            <FormField label="Imagem"><input ref={fileRef} type="file" accept="image/*" onChange={(e) => setImagemFile(e.target.files?.[0] || null)} className={inputCls} /></FormField>
-            <div className="flex gap-2">
-              <button onClick={() => setShowForm(false)} className="flex-1 py-2 border rounded-lg">Cancelar</button>
-              <button onClick={handleSave} disabled={saving} className="flex-1 py-2 bg-[#00577C] text-white rounded-lg font-black">{saving ? "Salvando…" : "Salvar"}</button>
+      {showForm ? (
+        <div className="bg-white rounded-[2rem] p-8 shadow-lg border border-slate-100 animate-in fade-in slide-in-from-bottom-4">
+          <div className="flex items-center justify-between mb-8 border-b border-slate-100 pb-4">
+            <h3 className={`${jakarta.className} text-2xl font-black text-slate-800 flex items-center gap-2`}>
+              <MapPin className="text-[#F9C400]" /> {editando ? "Editar Atração" : "Construtor de Página da Atração"}
+            </h3>
+            <button onClick={() => setShowForm(false)} className="text-sm font-bold text-slate-400 hover:text-slate-800">Cancelar</button>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-8">
+            <div className="space-y-5">
+              <h4 className="font-black text-[#00577C] border-b pb-2">Informações Principais</h4>
+              <FormField label="Nome da Atração *"><input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} className={inputCls} placeholder="Ex: Mirante da Serra" /></FormField>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField label="Tipo"><input value={form.tipo} onChange={(e) => setForm({ ...form, tipo: e.target.value })} className={inputCls} placeholder="Ex: Natureza, Museu..." /></FormField>
+                <FormField label="Preço de entrada (R$)"><input type="number" step="0.01" value={form.preco_entrada} onChange={(e) => setForm({ ...form, preco_entrada: parseFloat(e.target.value) })} className={inputCls} /></FormField>
+              </div>
+              <FormField label="Descrição Detalhada"><textarea value={form.descricao || ""} onChange={(e) => setForm({ ...form, descricao: e.target.value })} rows={5} className={inputCls} placeholder="Descreva os encantos desta atração..." /></FormField>
+            </div>
+            
+            <div className="space-y-5">
+              <h4 className="font-black text-[#00577C] border-b pb-2">Localização e Mídia</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField label="WhatsApp de Contato"><div className="relative"><Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" /><input value={form.whatsapp || ""} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })} className={`${inputCls} pl-10`} placeholder="94 90000-0000" /></div></FormField>
+                <FormField label="Link Google Maps"><div className="relative"><MapPin size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" /><input value={form.link_google_maps || ""} onChange={(e) => setForm({ ...form, link_google_maps: e.target.value })} className={`${inputCls} pl-10`} placeholder="https://maps..." /></div></FormField>
+              </div>
+              <FormField label="Fotografia de Capa">
+                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 text-slate-500 p-6 rounded-xl cursor-pointer hover:border-[#00577C] transition-colors">
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => setImagemFile(e.target.files?.[0] || null)} />
+                  <ImageIcon size={18} /> {imagemFile ? imagemFile.name : form.imagem_url ? "Trocar imagem atual" : "Clique para anexar Capa da Atração"}
+                </label>
+                {form.imagem_url && !imagemFile && <img src={form.imagem_url} alt="Capa atual" className="mt-3 h-24 w-full object-cover rounded-xl border border-slate-200" />}
+              </FormField>
             </div>
           </div>
-        </div>
-      )}
 
-      {loading ? <Skeleton rows={4} /> : (
-        <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm overflow-x-auto">
-          <table className="w-full text-sm min-w-[600px]">
-            <thead><tr className="border-b bg-slate-50"><Th>Imagem</Th><Th>Nome</Th><Th>Tipo</Th><Th>Preço</Th><Th className="text-right">Ações</Th></tr></thead>
-            <tbody>{atracoes.map(a => (
-              <tr key={a.id} className="border-b">
-                <td className="px-4 py-3"><img src={a.imagem_url || "/placeholder.png"} className="w-10 h-10 rounded-lg object-cover" /></td>
-                <td className="px-4 py-3 font-medium">{a.nome}</td>
-                <td className="px-4 py-3">{a.tipo}</td>
-                <td className="px-4 py-3">R$ {a.preco_entrada.toFixed(2)}</td>
-                <td className="px-4 py-3 text-right">
-                  <button onClick={() => abrirFormEditar(a)} className="text-xs text-[#00577C] border border-[#00577C]/20 px-2 py-1 rounded-md">Editar</button>
-                  <button onClick={() => handleDelete(a.id)} className="ml-2 text-xs text-red-500 border border-red-200 px-2 py-1 rounded-md">Remover</button>
-                </td>
-              </tr>
-            ))}</tbody>
-          </table>
+          <div className="mt-10 flex items-center justify-between pt-6 border-t border-slate-100">
+            <span className="text-sm font-bold text-[#009640]">{feedback}</span>
+            <button onClick={handleSave} disabled={saving} className="bg-[#009640] hover:bg-green-700 text-white px-10 py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg flex items-center gap-2 transition-all">
+              {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Publicar Atração
+            </button>
+          </div>
         </div>
+      ) : (
+        loading ? <div className="py-12 flex justify-center"><Loader2 size={32} className="text-[#00577C] animate-spin" /></div> : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {atracoes.map((a) => (
+              <div key={a.id} className="bg-white rounded-[2rem] border border-slate-200 p-4 flex flex-col hover:shadow-xl transition-shadow">
+                <div className="relative w-full h-48 rounded-2xl overflow-hidden bg-slate-100 mb-4">
+                  <img src={a.imagem_url || "/placeholder.png"} alt={a.nome} className="object-cover w-full h-full" />
+                  <div className="absolute top-3 right-3 bg-white/90 backdrop-blur px-2 py-1 rounded text-[10px] font-black text-[#00577C] shadow-sm uppercase">{a.tipo}</div>
+                </div>
+                <div className="px-2 pb-2 flex-1 flex flex-col">
+                  <h3 className={`${jakarta.className} text-xl font-black text-slate-800 mb-1`}>{a.nome}</h3>
+                  <p className="text-xs font-bold text-[#009640] mb-3">R$ {a.preco_entrada.toFixed(2)}</p>
+                  
+                  <div className="mt-auto flex items-center justify-between pt-4 border-t border-slate-100">
+                    <button onClick={() => abrirFormEditar(a)} className="text-xs font-bold text-[#00577C] hover:underline">Editar Atração</button>
+                    <button onClick={() => handleDelete(a.id)} className="text-xs font-bold text-red-500 hover:underline">Remover</button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )
       )}
     </div>
   );
