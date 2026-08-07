@@ -471,6 +471,7 @@ function AdminDashboard({ role, onLogout }: { role: "geral" | "turismo" | "meio_
       </div>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+        {activeTab === "dashboard"   && <TabDashboard />}
         {activeTab === "rotas"       && <TabRotas />}
         {activeTab === "eventos"     && <TabEventos />}
         {activeTab === "passeios"    && <TabPasseiosAdmin />}
@@ -485,6 +486,188 @@ function AdminDashboard({ role, onLogout }: { role: "geral" | "turismo" | "meio_
     </div>
   );
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// DASHBOARD CENTRAL - VISÃO GERAL E NOTIFICAÇÕES
+// ═══════════════════════════════════════════════════════════════════════════════
+
+import React, { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+import { Calendar, Bell, CheckCircle2, Clock, Map, Package, Activity, AlertCircle } from 'lucide-react';
+import { Plus_Jakarta_Sans } from 'next/font/google';
+
+const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['600', '700', '800'] });
+
+function TabDashboard() {
+  const [eventos, setEventos] = useState<any[]>([]);
+  const [pendentes, setPendentes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({ parceiros: 0, hoteis: 0 });
+
+  // Data de hoje formatada (Ex: "sexta-feira, 7 de agosto de 2026")
+  const dataHoje = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+  useEffect(() => {
+    carregarDashboard();
+  }, []);
+
+  async function carregarDashboard() {
+    setLoading(true);
+    
+    // 1. Lógica de Datas (Hoje até +7 dias)
+    const hoje = new Date();
+    const daquiA7Dias = new Date();
+    daquiA7Dias.setDate(hoje.getDate() + 7);
+    
+    const hojeIso = hoje.toISOString().split('T')[0];
+    const daquiA7DiasIso = daquiA7Dias.toISOString().split('T')[0];
+
+    // 2. Buscar Eventos dos próximos 7 dias
+    const { data: eventosData } = await supabase
+      .from('eventos')
+      .select('titulo, data, local')
+      .gte('data', hojeIso)
+      .lte('data', daquiA7DiasIso)
+      .order('data', { ascending: true });
+
+    setEventos(eventosData || []);
+
+    // 3. Buscar Notificações (Passeios e Pacotes Pendentes)
+    // Assumimos que as tabelas "passeios" e "pacotes" têm uma coluna "status" = 'pendente'
+    const { data: passeiosData } = await supabase.from('passeios').select('id, titulo, parceiro_id').eq('status', 'pendente');
+    const { data: pacotesData } = await supabase.from('pacotes').select('id, titulo, parceiro_id').eq('status', 'pendente');
+    const { data: parceirosPendentes } = await supabase.from('parceiros').select('id, nome_negocio, tipo_parceiro').eq('status', 'pendente');
+
+    const listaPendentes = [
+      ...(passeiosData || []).map(p => ({ ...p, tipo: 'passeios', icone: Map })),
+      ...(pacotesData || []).map(p => ({ ...p, tipo: 'pacotes', icone: Package })),
+      ...(parceirosPendentes || []).map(p => ({ ...p, titulo: p.nome_negocio, tipo: 'parceiros', icone: Bell }))
+    ];
+
+    setPendentes(listaPendentes);
+
+    // 4. Buscar Estatísticas Rápidas
+    const { count: countParceiros } = await supabase.from('parceiros').select('*', { count: 'exact', head: true }).eq('status', 'ativo');
+    const { count: countHoteis } = await supabase.from('hoteis').select('*', { count: 'exact', head: true });
+    
+    setStats({ parceiros: countParceiros || 0, hoteis: countHoteis || 0 });
+    
+    setLoading(false);
+  }
+
+  async function aprovarItem(id: string, tabela: string) {
+    if (!confirm(`Deseja aprovar este item e publicá-lo no portal?`)) return;
+    
+    const statusField = tabela === 'parceiros' ? 'ativo' : 'aprovado'; // Ajusta dependendo de como guardas o status aprovado
+    const statusValue = tabela === 'parceiros' ? 'ativo' : 'aprovado';
+    
+    await supabase.from(tabela).update({ status: statusValue }).eq('id', id);
+    carregarDashboard(); // Recarrega para sumir da lista
+  }
+
+  if (loading) return <div className="py-20 flex justify-center"><Activity className="animate-spin text-[#00577C]" size={32}/></div>;
+
+  return (
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+      
+      {/* HEADER DO DASHBOARD */}
+      <div className="bg-gradient-to-r from-[#002f40] to-[#00577C] rounded-[2rem] p-8 text-white shadow-lg flex flex-col md:flex-row items-center justify-between gap-6">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-widest text-[#F9C400] mb-2">{dataHoje}</p>
+          <h2 className={`${jakarta.className} text-3xl font-black`}>Bom dia, Equipa da Prefeitura!</h2>
+          <p className="text-sm text-blue-100 mt-2 max-w-xl">Bem-vindos à central de controlo do turismo. Aqui está o resumo de tudo o que precisa da vossa atenção hoje.</p>
+        </div>
+        <div className="flex gap-4">
+          <div className="bg-white/10 border border-white/20 p-4 rounded-2xl text-center backdrop-blur-sm min-w-[120px]">
+             <p className={`${jakarta.className} text-3xl font-black text-[#F9C400]`}>{stats.parceiros}</p>
+             <p className="text-[10px] font-bold uppercase tracking-widest text-blue-100">Parceiros Ativos</p>
+          </div>
+          <div className="bg-white/10 border border-white/20 p-4 rounded-2xl text-center backdrop-blur-sm min-w-[120px]">
+             <p className={`${jakarta.className} text-3xl font-black text-[#F9C400]`}>{stats.hoteis}</p>
+             <p className="text-[10px] font-bold uppercase tracking-widest text-blue-100">Hotéis Cadastrados</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        {/* COLUNA 1: NOTIFICAÇÕES & APROVAÇÕES */}
+        <section className="bg-white border border-slate-200 rounded-[2rem] p-6 shadow-sm">
+          <div className="flex items-center gap-3 border-b border-slate-100 pb-4 mb-4">
+            <div className="bg-amber-100 text-amber-600 p-2 rounded-xl"><Bell size={20}/></div>
+            <h3 className={`${jakarta.className} text-xl font-black text-slate-800`}>Fila de Aprovação</h3>
+            {pendentes.length > 0 && <span className="ml-auto bg-amber-500 text-white text-[10px] font-black px-2 py-1 rounded-full">{pendentes.length}</span>}
+          </div>
+
+          {pendentes.length === 0 ? (
+            <div className="text-center py-12">
+              <CheckCircle2 size={40} className="mx-auto text-slate-200 mb-3"/>
+              <p className="font-bold text-slate-400">Tudo em dia!</p>
+              <p className="text-xs text-slate-400">Nenhum passeio ou pacote aguardando aprovação.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {pendentes.map((item, idx) => {
+                const Icon = item.icone;
+                return (
+                  <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-2xl">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-white p-2 rounded-xl shadow-sm text-slate-400"><Icon size={16}/></div>
+                      <div>
+                        <p className="text-xs font-black uppercase text-slate-400 tracking-wider mb-0.5">Novo {item.tipo.slice(0, -1)}</p>
+                        <p className="font-bold text-sm text-slate-800 line-clamp-1">{item.titulo}</p>
+                      </div>
+                    </div>
+                    <button onClick={() => aprovarItem(item.id, item.tipo)} className="bg-[#009640] hover:bg-green-700 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-colors shadow-sm">
+                      Aprovar
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        {/* COLUNA 2: AGENDA DA SEMANA */}
+        <section className="bg-white border border-slate-200 rounded-[2rem] p-6 shadow-sm">
+          <div className="flex items-center gap-3 border-b border-slate-100 pb-4 mb-4">
+            <div className="bg-[#00577C]/10 text-[#00577C] p-2 rounded-xl"><Calendar size={20}/></div>
+            <h3 className={`${jakarta.className} text-xl font-black text-slate-800`}>Eventos (Próximos 7 Dias)</h3>
+          </div>
+
+          {eventos.length === 0 ? (
+            <div className="text-center py-12">
+              <Clock size={40} className="mx-auto text-slate-200 mb-3"/>
+              <p className="font-bold text-slate-400">Agenda livre.</p>
+              <p className="text-xs text-slate-400">Nenhum evento municipal programado para esta semana.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {eventos.map((ev, idx) => {
+                const [ano, mes, dia] = ev.data.split('-');
+                return (
+                  <div key={idx} className="flex items-center gap-4 p-4 bg-blue-50/50 border border-blue-100 rounded-2xl">
+                    <div className="bg-white border border-blue-100 rounded-xl w-14 h-14 flex flex-col items-center justify-center shrink-0 shadow-sm">
+                      <span className="text-[10px] font-black uppercase text-[#00577C] leading-none mb-1">{new Date(ev.data).toLocaleString('pt-BR', { month: 'short' })}</span>
+                      <span className={`${jakarta.className} text-xl font-black text-slate-900 leading-none`}>{dia}</span>
+                    </div>
+                    <div>
+                      <p className="font-bold text-sm text-slate-800">{ev.titulo}</p>
+                      <p className="text-xs text-slate-500 font-medium flex items-center gap-1 mt-1"><Map size={12}/> {ev.local}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+      </div>
+    </div>
+  );
+}
+
+export default TabDashboard;
 
 
 
@@ -806,211 +989,250 @@ function TabRotas() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// EVENTOS
+// EVENTOS - IMPORTAÇÃO INTELIGENTE EM LOTE (CSV + IMAGENS)
 // ═══════════════════════════════════════════════════════════════════════════════
 
+import { Upload, Image as ImageIcon, Save, Loader2, FileSpreadsheet, CheckCircle2, AlertCircle } from 'lucide-react';
+
 function TabEventos() {
-  const [eventos, setEventos] = useState<Evento[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [editando, setEditando] = useState<Evento | null>(null);
-  const [form, setForm] = useState<Omit<Evento, "id">>({
-    titulo: "", subtitulo: null, descricao: null, data: "",
-    horario: null, duracao: null, local: "", imagem_url: null,
-    categoria: "Turismo", preco: null, classificacao: null,
-    link_bilheteira: null, destaque: false,
-  });
-  const [imagemFile, setImagemFile] = useState<File | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [fase, setFase] = useState<'inicio' | 'preview' | 'salvando' | 'sucesso'>('inicio');
+  const [eventosPreview, setEventosPreview] = useState<any[]>([]);
+  const [imagensMap, setImagensMap] = useState<{ [key: number]: File }>({});
   const [feedback, setFeedback] = useState("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { fetchEventos(); }, []);
+  // ── 1. MOTOR DE LEITURA DO CSV ──
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  async function fetchEventos() {
-    setLoading(true);
-    const { data } = await supabase.from("eventos").select("*").order("data");
-    setEventos(data || []);
-    setLoading(false);
-  }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      processarCSV(text);
+    };
+    reader.readAsText(file);
+  };
 
-  function abrirFormNovo() {
-    setEditando(null);
-    setForm({
-      titulo: "", subtitulo: null, descricao: null, data: "",
-      horario: null, duracao: null, local: "", imagem_url: null,
-      categoria: "Turismo", preco: null, classificacao: null,
-      link_bilheteira: null, destaque: false,
-    });
-    setImagemFile(null);
-    setShowForm(true);
-  }
-
-  function abrirFormEditar(ev: Evento) {
-    setEditando(ev);
-    setForm({
-      titulo: ev.titulo, subtitulo: ev.subtitulo, descricao: ev.descricao,
-      data: ev.data, horario: ev.horario, duracao: ev.duracao, local: ev.local,
-      imagem_url: ev.imagem_url, categoria: ev.categoria, preco: ev.preco,
-      classificacao: ev.classificacao, link_bilheteira: ev.link_bilheteira,
-      destaque: ev.destaque,
-    });
-    setImagemFile(null);
-    setShowForm(true);
-  }
-
-  async function handleSave() {
-    if (!form.titulo || !form.data || !form.local) {
-      setFeedback("Título, data e local são obrigatórios.");
+  const processarCSV = (csvText: string) => {
+    // Separa as linhas ignorando linhas vazias
+    const linhas = csvText.split('\n').filter(linha => linha.trim() !== '');
+    if (linhas.length < 2) {
+      alert("O ficheiro parece estar vazio ou sem os cabeçalhos.");
       return;
     }
-    setSaving(true);
-    let imagem_url = form.imagem_url;
-    if (imagemFile) {
-      const ext = imagemFile.name.split(".").pop();
-      const path = `eventos/${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage.from("eventos").upload(path, imagemFile, { upsert: true });
-      if (!upErr) {
-        const { data: pub } = supabase.storage.from("eventos").getPublicUrl(path);
-        imagem_url = pub.publicUrl;
+
+    // Lê os cabeçalhos
+    const cabecalhos = linhas[0].toLowerCase().split(',').map(c => c.trim());
+    
+    const eventosLidos = [];
+    
+    // Lê os dados (Começa na linha 1 para ignorar os cabeçalhos)
+    for (let i = 1; i < linhas.length; i++) {
+      // RegEx mágica para separar por vírgulas, mas ignorar vírgulas dentro de aspas
+      const valores = linhas[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || linhas[i].split(',');
+      
+      const evento: any = {};
+      cabecalhos.forEach((cabecalho, index) => {
+        let valor = valores[index] ? valores[index].trim() : '';
+        // Remove aspas extras se houver
+        if (valor.startsWith('"') && valor.endsWith('"')) {
+          valor = valor.substring(1, valor.length - 1);
+        }
+        evento[cabecalho] = valor;
+      });
+
+      // Só adiciona se tiver pelo menos o título
+      if (evento.titulo) {
+        eventosLidos.push({
+          ...evento,
+          destaque: false, // Padrão
+          data: evento.data || null // Proteção de dados nulos
+        });
       }
     }
-    const payload = { ...form, imagem_url };
-    if (editando) {
-      await supabase.from("eventos").update(payload).eq("id", editando.id);
-    } else {
-      await supabase.from("eventos").insert(payload);
+
+    setEventosPreview(eventosLidos);
+    setFase('preview');
+  };
+
+  // ── 2. SELEÇÃO DE IMAGENS ──
+  const handleImagemChange = (index: number, file: File) => {
+    setImagensMap(prev => ({ ...prev, [index]: file }));
+  };
+
+  // ── 3. O GRANDE ENVIO PARA O SUPABASE ──
+  const handleSalvarTudo = async () => {
+    setFase('salvando');
+    setFeedback("A iniciar a sincronização com o banco de dados...");
+
+    let sucessos = 0;
+
+    for (let i = 0; i < eventosPreview.length; i++) {
+      const evento = eventosPreview[i];
+      const imagemFile = imagensMap[i];
+      let imagem_url = "";
+
+      try {
+        setFeedback(`A processar o evento: ${evento.titulo} (${i + 1}/${eventosPreview.length})...`);
+
+        // A. Se a pessoa selecionou uma imagem para este evento, faz o upload!
+        if (imagemFile) {
+          const ext = imagemFile.name.split('.').pop();
+          const nomeFicheiro = `evento_${Date.now()}_${i}.${ext}`;
+          
+          const { error: uploadErr } = await supabase.storage
+            .from('eventos') // Certifica-te de que este bucket existe no Supabase!
+            .upload(nomeFicheiro, imagemFile);
+
+          if (!uploadErr) {
+            const { data: pubUrl } = supabase.storage.from('eventos').getPublicUrl(nomeFicheiro);
+            imagem_url = pubUrl.publicUrl;
+          }
+        }
+
+        // B. Salva os dados na tabela Eventos
+        const { error: dbError } = await supabase.from('eventos').insert([{
+          titulo: evento.titulo,
+          subtitulo: evento.subtitulo || null,
+          descricao: evento.descricao || null,
+          data: evento.data || null,
+          horario: evento.horario || null,
+          local: evento.local || null,
+          categoria: evento.categoria || 'Cultura',
+          preco: evento.preco || null,
+          imagem_url: imagem_url || null, // Se não tiver foto, vai nulo
+          destaque: false
+        }]);
+
+        if (dbError) {
+          console.error(`Erro ao salvar ${evento.titulo}:`, dbError);
+        } else {
+          sucessos++;
+        }
+      } catch (err) {
+        console.error(`Falha fatal no evento ${evento.titulo}:`, err);
+      }
     }
-    setFeedback(editando ? "Evento atualizado!" : "Evento criado!");
-    setShowForm(false);
-    setSaving(false);
-    fetchEventos();
-    setTimeout(() => setFeedback(""), 3000);
-  }
 
-  async function handleDelete(id: string) {
-    if (!confirm("Remover este evento?")) return;
-    setDeletingId(id);
-    await supabase.from("eventos").delete().eq("id", id);
-    setDeletingId(null);
-    fetchEventos();
-  }
+    setFeedback(`${sucessos} de ${eventosPreview.length} eventos foram guardados com sucesso!`);
+    setFase('sucesso');
+  };
 
-  const f = (field: keyof typeof form, val: string | boolean | null) =>
-    setForm((prev) => ({ ...prev, [field]: val }));
+  const resetar = () => {
+    setFase('inicio');
+    setEventosPreview([]);
+    setImagensMap({});
+    setFeedback("");
+  };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className={`${jakarta.className} text-lg font-black text-[#00577C]`}>Eventos</h2>
-          <p className="text-xs text-slate-500">{eventos.length} eventos cadastrados</p>
+          <h2 className={`${jakarta.className} text-xl font-black text-[#00577C]`}>Gestão de Eventos (Em Lote)</h2>
+          <p className="text-xs text-slate-500 mt-1">Ferramenta exclusiva da Prefeitura para popular o calendário anual.</p>
         </div>
-        <div className="flex items-center gap-3">
-          {feedback && <span className="text-xs text-[#009640] font-bold">{feedback}</span>}
-          
-        </div>
+        {fase !== 'inicio' && (
+          <button onClick={resetar} className="text-xs text-slate-500 font-bold hover:text-slate-800 underline">Cancelar e Voltar</button>
+        )}
       </div>
 
-      {showForm && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-5 border-b border-slate-200">
-              <h3 className={`${jakarta.className} font-black text-slate-800`}>
-                {editando ? "Editar evento" : "Novo evento"}
-              </h3>
-              <button onClick={() => setShowForm(false)} className="text-slate-400 hover:text-slate-700 transition text-lg leading-none">✕</button>
+      {/* TELA 1: UPLOAD DO CSV */}
+      {fase === 'inicio' && (
+        <div className="border-2 border-dashed border-slate-300 rounded-[2rem] p-12 text-center bg-white hover:bg-slate-50 transition-colors relative group">
+          <input type="file" accept=".csv" onChange={handleFileUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-16 h-16 bg-[#00577C]/10 text-[#00577C] rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+              <FileSpreadsheet size={32} />
             </div>
-            <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <FormField label="Título *" className="sm:col-span-2">
-                <input value={form.titulo} onChange={(e) => f("titulo", e.target.value)} className={inputCls} />
-              </FormField>
-              <FormField label="Subtítulo">
-                <input value={form.subtitulo || ""} onChange={(e) => f("subtitulo", e.target.value || null)} className={inputCls} />
-              </FormField>
-              <FormField label="Local *">
-                <input value={form.local} onChange={(e) => f("local", e.target.value)} className={inputCls} />
-              </FormField>
-              <FormField label="Data *">
-                <input type="date" value={form.data} onChange={(e) => f("data", e.target.value)} className={inputCls} />
-              </FormField>
-              <FormField label="Horário">
-                <input type="time" value={form.horario || ""} onChange={(e) => f("horario", e.target.value || null)} className={inputCls} />
-              </FormField>
-              <FormField label="Categoria">
-                <select value={form.categoria} onChange={(e) => f("categoria", e.target.value)} className={inputCls}>
-                  {CATEGORIAS_EVENTO.map((c) => <option key={c}>{c}</option>)}
-                </select>
-              </FormField>
-              <FormField label="Preço">
-                <input value={form.preco || ""} onChange={(e) => f("preco", e.target.value || null)} placeholder="gratuito" className={inputCls} />
-              </FormField>
-              <FormField label="Link Bilheteira">
-                <input value={form.link_bilheteira || ""} onChange={(e) => f("link_bilheteira", e.target.value || null)} className={inputCls} />
-              </FormField>
-              <FormField label="Descrição" className="sm:col-span-2">
-                <textarea value={form.descricao || ""} onChange={(e) => f("descricao", e.target.value || null)} rows={3} className={inputCls + " resize-none"} />
-              </FormField>
-              <FormField label="Imagem de Capa" className="sm:col-span-2">
-                {form.imagem_url && !imagemFile && <img src={form.imagem_url} alt="" className="h-24 w-auto rounded-lg mb-2 object-cover" />}
-                {imagemFile && <p className="text-xs text-[#00577C] mb-1">📎 {imagemFile.name}</p>}
-                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => setImagemFile(e.target.files?.[0] || null)} />
-                <button type="button" onClick={() => fileInputRef.current?.click()} className="text-xs border border-dashed border-slate-300 hover:border-[#00577C] text-slate-400 hover:text-[#00577C] px-3 py-2 rounded-lg transition w-full">
-                  {imagemFile ? "Trocar imagem" : "Escolher imagem"}
-                </button>
-              </FormField>
-              <FormField label="" className="sm:col-span-2">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={form.destaque} onChange={(e) => f("destaque", e.target.checked)} className="accent-[#F9C400] w-4 h-4" />
-                  <span className="text-sm text-slate-600">Marcar como destaque</span>
-                </label>
-              </FormField>
+            <div>
+              <p className={`${jakarta.className} text-lg font-black text-slate-800`}>Arraste o seu ficheiro CSV de Eventos</p>
+              <p className="text-sm font-medium text-slate-500 mt-2 max-w-sm mx-auto">
+                Certifique-se que o Excel tem o cabeçalho: <br/>
+                <code className="text-xs bg-slate-100 p-1 rounded font-bold text-[#00577C]">titulo, descricao, data, local, categoria</code>
+              </p>
             </div>
-            <div className="flex gap-2 p-5 border-t border-slate-200">
-              <button onClick={() => setShowForm(false)} className="flex-1 py-2 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 transition">Cancelar</button>
-              <button onClick={handleSave} disabled={saving} className="flex-1 py-2 rounded-lg bg-[#00577C] hover:bg-[#004a6b] text-white font-black text-sm transition disabled:opacity-50 shadow-sm uppercase tracking-wider">
-                {saving ? "Salvando…" : editando ? "Salvar alterações" : "Criar evento"}
-              </button>
-            </div>
+            <button className="mt-4 bg-[#00577C] text-white px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest shadow-md">
+              Selecionar Ficheiro do Computador
+            </button>
           </div>
         </div>
       )}
 
-      {loading ? (
-        <Skeleton rows={6} />
-      ) : (
-        <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50">
-                <Th>Evento</Th><Th>Data</Th><Th>Local</Th><Th>Categoria</Th><Th>Destaque</Th><Th className="text-right">Ações</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {eventos.map((ev) => (
-                <tr key={ev.id} className="border-b border-slate-100 hover:bg-slate-50 transition">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      {ev.imagem_url ? <img src={ev.imagem_url} alt="" className="w-10 h-10 rounded-lg object-cover" /> : <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400">📅</div>}
-                      <div><p className="font-medium text-slate-800">{ev.titulo}</p>{ev.subtitulo && <p className="text-xs text-slate-400">{ev.subtitulo}</p>}</div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-slate-600 whitespace-nowrap">{fmtData(ev.data)}</td>
-                  <td className="px-4 py-3 text-slate-600">{ev.local}</td>
-                  <td className="px-4 py-3"><span className="text-xs bg-[#00577C]/10 text-[#00577C] border border-[#00577C]/20 px-2 py-0.5 rounded-full font-medium">{ev.categoria}</span></td>
-                  <td className="px-4 py-3 text-center">{ev.destaque ? <span className="text-[#F9C400] text-base">★</span> : <span className="text-slate-200 text-base">★</span>}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex justify-end gap-2">
-                      <button onClick={() => abrirFormEditar(ev)} className="text-xs text-[#00577C] hover:text-[#004a6b] border border-[#00577C]/20 hover:border-[#00577C]/40 bg-[#00577C]/5 hover:bg-[#00577C]/10 px-2.5 py-1 rounded-md transition font-medium">Editar</button>
-                      <button onClick={() => handleDelete(ev.id)} disabled={deletingId === ev.id} className="text-xs text-red-500 hover:text-red-600 border border-red-200 hover:border-red-300 bg-red-50 hover:bg-red-100 px-2.5 py-1 rounded-md transition disabled:opacity-40">{deletingId === ev.id ? "…" : "Remover"}</button>
-                    </div>
-                  </td>
+      {/* TELA 2: PREVIEW E ANEXO DE IMAGENS */}
+      {fase === 'preview' && (
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+          <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-start gap-3">
+             <AlertCircle className="text-amber-600 shrink-0 mt-0.5" size={18} />
+             <div>
+                <p className="text-sm font-bold text-amber-800">Foram identificados {eventosPreview.length} eventos no ficheiro!</p>
+                <p className="text-xs text-amber-700 mt-1">Anexe as fotos oficiais de cada um abaixo e clique no botão verde para guardar tudo no portal.</p>
+             </div>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-slate-50 text-slate-500 text-[10px] uppercase font-black tracking-widest">
+                <tr>
+                  <th className="p-4 border-b">Festa / Evento</th>
+                  <th className="p-4 border-b">Data e Local</th>
+                  <th className="p-4 border-b">Categoria</th>
+                  <th className="p-4 border-b">Upload do Cartaz</th>
                 </tr>
-              ))}
-              {eventos.length === 0 && <tr><td colSpan={6} className="px-4 py-10 text-center text-slate-400">Nenhum evento cadastrado.</td></tr>}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {eventosPreview.map((ev, idx) => (
+                  <tr key={idx} className="hover:bg-slate-50/50">
+                    <td className="p-4">
+                      <p className="font-bold text-slate-900">{ev.titulo}</p>
+                      <p className="text-xs text-slate-500 line-clamp-1">{ev.descricao}</p>
+                    </td>
+                    <td className="p-4 text-xs font-bold text-slate-600">
+                      <p>{ev.data}</p>
+                      <p className="text-slate-400 font-medium">{ev.local}</p>
+                    </td>
+                    <td className="p-4"><span className="bg-slate-100 text-slate-600 px-2 py-1 rounded text-[10px] font-black uppercase">{ev.categoria || 'Geral'}</span></td>
+                    <td className="p-4">
+                       <label className="flex items-center justify-center gap-2 border border-slate-200 hover:border-[#00577C] bg-white text-slate-600 hover:text-[#00577C] px-3 py-2 rounded-lg cursor-pointer transition-colors text-xs font-bold">
+                         <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+                            if (e.target.files) handleImagemChange(idx, e.target.files[0]);
+                         }} />
+                         <ImageIcon size={14} />
+                         {imagensMap[idx] ? <span className="text-[#009640]">Imagem Selecionada ✓</span> : <span>Anexar Foto</span>}
+                       </label>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="flex justify-end pt-4 border-t border-slate-200">
+             <button onClick={handleSalvarTudo} className="bg-[#009640] hover:bg-green-700 text-white px-8 py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg flex items-center gap-2 transition-all">
+                <Save size={18} /> Salvar {eventosPreview.length} Eventos no Portal
+             </button>
+          </div>
+        </div>
+      )}
+
+      {/* TELA 3 e 4: FEEDBACK DE SALVAMENTO */}
+      {(fase === 'salvando' || fase === 'sucesso') && (
+        <div className="bg-white rounded-3xl p-12 text-center shadow-sm border border-slate-100">
+          {fase === 'salvando' ? (
+             <Loader2 size={48} className="mx-auto text-[#00577C] animate-spin mb-6" />
+          ) : (
+             <CheckCircle2 size={48} className="mx-auto text-[#009640] mb-6" />
+          )}
+          <h3 className={`${jakarta.className} text-2xl font-black text-slate-900 mb-2`}>
+            {fase === 'salvando' ? 'A Sincronizar Calendário...' : 'Sincronização Concluída!'}
+          </h3>
+          <p className="text-slate-500 font-medium mb-8">{feedback}</p>
+          
+          {fase === 'sucesso' && (
+             <button onClick={resetar} className="bg-[#00577C] text-white px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest shadow-md">
+               Importar mais Eventos
+             </button>
+          )}
         </div>
       )}
     </div>
@@ -1043,19 +1265,7 @@ function TabPasseiosAdmin() {
     setLoading(false);
   }
 
-  function abrirFormNovo() {
-    setEditando(null);
-    setForm({
-      titulo: "", descricao_curta: null, descricao_completa: null, imagem_principal: null,
-      imagens_galeria: null, data_passeio: "", horario_saida: null, ponto_encontro: null,
-      coordenadas_google_maps: null, nome_guia: null, guia_id: null, valor_total: 0,
-      taxa_prefeitura: 0, vagas_totais: 0, vagas_disponiveis: 0, ativo: true, destaque: false,
-      categoria: null
-    });
-    setImagemFile(null);
-    setGaleriaFiles([]);
-    setShowForm(true);
-  }
+  
 
   function abrirFormEditar(p: Passeio) {
     setEditando(p);
@@ -1063,46 +1273,6 @@ function TabPasseiosAdmin() {
     setImagemFile(null);
     setGaleriaFiles([]);
     setShowForm(true);
-  }
-
-  async function handleSave() {
-    if (!form.titulo || !form.data_passeio) {
-      setFeedback("Título e data do passeio são obrigatórios.");
-      return;
-    }
-    setSaving(true);
-    let imagem_principal = form.imagem_principal;
-    if (imagemFile) {
-      const ext = imagemFile.name.split(".").pop();
-      const path = `passeios/capas/${Date.now()}.${ext}`;
-      const { error } = await supabase.storage.from("imagens-passeios").upload(path, imagemFile, { upsert: true });
-      if (!error) {
-        const { data: pub } = supabase.storage.from("imagens-passeios").getPublicUrl(path);
-        imagem_principal = pub.publicUrl;
-      }
-    }
-    let galeriaUrls: string[] = form.imagens_galeria ? [...form.imagens_galeria] : [];
-    for (const file of galeriaFiles) {
-      const ext = file.name.split(".").pop();
-      const path = `passeios/galeria/${Date.now()}-${Math.random()}.${ext}`;
-      const { error } = await supabase.storage.from("imagens-passeios").upload(path, file, { upsert: true });
-      if (!error) {
-        const { data: pub } = supabase.storage.from("imagens-passeios").getPublicUrl(path);
-        galeriaUrls.push(pub.publicUrl);
-      }
-    }
-    const payload = { ...form, imagem_principal, imagens_galeria: galeriaUrls.length ? galeriaUrls : form.imagens_galeria };
-    if (editando) {
-      await supabase.from("passeios").update(payload).eq("id", editando.id);
-      setFeedback("Passeio atualizado!");
-    } else {
-      await supabase.from("passeios").insert({ ...payload, vagas_disponiveis: payload.vagas_totais });
-      setFeedback("Passeio criado!");
-    }
-    setShowForm(false);
-    setSaving(false);
-    fetchPasseios();
-    setTimeout(() => setFeedback(""), 3000);
   }
 
   async function toggleAtivo(id: string, ativo: boolean) {
@@ -1937,120 +2107,286 @@ function TabHoteis() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// GASTRONOMIA
+// GASTRONOMIA - CONSTRUTOR DE VITRINE
 // ═══════════════════════════════════════════════════════════════════════════════
 
+import React, { useState, useEffect, useRef } from 'react';
+import { supabase } from '@/lib/supabase';
+import { Plus, Trash2, Save, Image as ImageIcon, Loader2, Utensils, MapPin, Phone } from 'lucide-react';
+import { Plus_Jakarta_Sans } from 'next/font/google';
+
+const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['600', '700', '800'] });
+
 function TabGastronomia() {
-  const [restaurantes, setRestaurantes] = useState<Gastronomia[]>([]);
+  const [restaurantes, setRestaurantes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [editando, setEditando] = useState<Gastronomia | null>(null);
-  const [form, setForm] = useState<any>({});
-  const [imagemFile, setImagemFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState("");
-  const fileRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { fetchRestaurantes(); }, []);
+  // ── ESTADOS DO FORMULÁRIO ──
+  const [form, setForm] = useState({
+    titulo: "", descricao_curta: "", sobre_nos_texto: "",
+    whatsapp: "", link_google_maps: "", ordem: 1, ativo: true
+  });
+  
+  // ── ESTADOS DE FICHEIROS (UPLOAD) ──
+  const [imagemPrincipal, setImagemPrincipal] = useState<File | null>(null);
+  const [fotoEquipe, setFotoEquipe] = useState<File | null>(null);
+  const [galeriaFiles, setGaleriaFiles] = useState<File[]>([]);
+
+  // ── ESTADO DO CARDÁPIO DINÂMICO ──
+  const [cardapio, setCardapio] = useState([{ prato: "", desc: "", preco: "" }]);
+
+  useEffect(() => {
+    fetchRestaurantes();
+  }, []);
 
   async function fetchRestaurantes() {
     setLoading(true);
-    const { data } = await supabase.from("gastronomia").select("*").order("ordem");
+    const { data } = await supabase.from('gastronomia').select('*').order('ordem', { ascending: true });
     setRestaurantes(data || []);
     setLoading(false);
   }
 
-  function abrirFormNovo() {
-    setEditando(null);
-    setForm({ titulo: "", descricao_curta: "", imagem_url: "", ordem: 0, ativo: true, whatsapp: null, link_google_maps: null, sobre_nos_texto: null, foto_equipe_url: null, galeria: null, cardapio: null });
-    setImagemFile(null);
+  function abrirNovoFormulario() {
+    setForm({ titulo: "", descricao_curta: "", sobre_nos_texto: "", whatsapp: "", link_google_maps: "", ordem: restaurantes.length + 1, ativo: true });
+    setImagemPrincipal(null);
+    setFotoEquipe(null);
+    setGaleriaFiles([]);
+    setCardapio([{ prato: "", desc: "", preco: "" }]);
     setShowForm(true);
   }
 
-  function abrirFormEditar(r: Gastronomia) {
-    setEditando(r);
-    setForm({ ...r });
-    setImagemFile(null);
-    setShowForm(true);
+  // Lógica do Cardápio Dinâmico
+  const addPrato = () => setCardapio([...cardapio, { prato: "", desc: "", preco: "" }]);
+  const removePrato = (index: number) => setCardapio(cardapio.filter((_, i) => i !== index));
+  const handlePratoChange = (index: number, field: string, value: string) => {
+    const novoCardapio = [...cardapio];
+    novoCardapio[index] = { ...novoCardapio[index], [field]: value };
+    setCardapio(novoCardapio);
+  };
+
+  // ── FUNÇÃO DE UPLOAD GENÉRICA ──
+  async function uploadImagem(file: File, pasta: string): Promise<string | null> {
+    const ext = file.name.split('.').pop();
+    const path = `${pasta}/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+    const { error } = await supabase.storage.from('gastronomia').upload(path, file);
+    if (error) return null;
+    const { data } = supabase.storage.from('gastronomia').getPublicUrl(path);
+    return data.publicUrl;
   }
 
-  async function handleSave() {
-    if (!form.titulo) { setFeedback("Título obrigatório."); return; }
-    setSaving(true);
-    let imagem_url = form.imagem_url;
-    if (imagemFile) {
-      const ext = imagemFile.name.split(".").pop();
-      const path = `gastronomia/${Date.now()}.${ext}`;
-      const { error } = await supabase.storage.from("galeria").upload(path, imagemFile, { upsert: true });
-      if (!error) {
-        const { data: pub } = supabase.storage.from("galeria").getPublicUrl(path);
-        imagem_url = pub.publicUrl;
-      }
+  async function handleSalvar() {
+    if (!form.titulo) {
+      alert("O nome do restaurante é obrigatório!");
+      return;
     }
-    const payload = { ...form, imagem_url };
-    if (editando) await supabase.from("gastronomia").update(payload).eq("id", editando.id);
-    else await supabase.from("gastronomia").insert(payload);
-    setFeedback(editando ? "Restaurante atualizado!" : "Restaurante criado!");
-    setShowForm(false);
-    setSaving(false);
-    fetchRestaurantes();
-    setTimeout(() => setFeedback(""), 3000);
-  }
+    setSaving(true);
+    setFeedback("A enviar fotografias...");
 
-  async function toggleAtivo(id: string, ativo: boolean) {
-    await supabase.from("gastronomia").update({ ativo: !ativo }).eq("id", id);
-    fetchRestaurantes();
+    try {
+      // 1. Upload Imagem Principal
+      let urlPrincipal = "";
+      if (imagemPrincipal) urlPrincipal = await uploadImagem(imagemPrincipal, 'capas') || "";
+
+      // 2. Upload Foto Equipe
+      let urlEquipe = "";
+      if (fotoEquipe) urlEquipe = await uploadImagem(fotoEquipe, 'equipes') || "";
+
+      // 3. Upload Galeria (Múltiplas)
+      const urlsGaleria: string[] = [];
+      for (const file of galeriaFiles) {
+        const url = await uploadImagem(file, 'galeria');
+        if (url) urlsGaleria.push(url);
+      }
+
+      // 4. Limpar o Cardápio (remover pratos vazios)
+      const cardapioLimpo = cardapio.filter(c => c.prato.trim() !== "");
+
+      setFeedback("A guardar restaurante na base de dados...");
+
+      // 5. Inserir no Supabase
+      const payload = {
+        ...form,
+        imagem_url: urlPrincipal || null,
+        foto_equipe_url: urlEquipe || null,
+        galeria: urlsGaleria.length > 0 ? urlsGaleria : null,
+        cardapio: cardapioLimpo.length > 0 ? cardapioLimpo : null, // O Supabase guarda isto como JSON automaticamente
+      };
+
+      const { error } = await supabase.from('gastronomia').insert([payload]);
+
+      if (error) throw error;
+
+      setFeedback("Restaurante publicado com sucesso!");
+      setTimeout(() => {
+        setShowForm(false);
+        setFeedback("");
+        fetchRestaurantes();
+      }, 2000);
+
+    } catch (err: any) {
+      alert("Erro ao salvar: " + err.message);
+      setFeedback("");
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Remover este restaurante?")) return;
-    await supabase.from("gastronomia").delete().eq("id", id);
+    if (!confirm("Remover este restaurante da vitrine?")) return;
+    await supabase.from('gastronomia').delete().eq('id', id);
     fetchRestaurantes();
   }
 
-  return (
-    <div className="space-y-4">
+  const inputCls = "w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-[#00577C]";
+  const labelCls = "text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2";
 
-      {showForm && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-5 space-y-4">
-            <FormField label="Título"><input value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value })} className={inputCls} /></FormField>
-            <FormField label="Descrição curta"><textarea value={form.descricao_curta || ""} onChange={(e) => setForm({ ...form, descricao_curta: e.target.value })} rows={2} className={inputCls} /></FormField>
-            <FormField label="Ordem"><input type="number" value={form.ordem} onChange={(e) => setForm({ ...form, ordem: parseInt(e.target.value) })} className={inputCls} /></FormField>
-            <FormField label="Ativo"><select value={String(form.ativo)} onChange={(e) => setForm({ ...form, ativo: e.target.value === "true" })} className={inputCls}><option value="true">Sim</option><option value="false">Não</option></select></FormField>
-            <FormField label="WhatsApp"><input value={form.whatsapp || ""} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })} className={inputCls} /></FormField>
-            <FormField label="Link Google Maps"><input value={form.link_google_maps || ""} onChange={(e) => setForm({ ...form, link_google_maps: e.target.value })} className={inputCls} /></FormField>
-            <FormField label="Imagem"><input ref={fileRef} type="file" accept="image/*" onChange={(e) => setImagemFile(e.target.files?.[0] || null)} className={inputCls} /></FormField>
-            <div className="flex gap-2">
-              <button onClick={() => setShowForm(false)} className="flex-1 py-2 border rounded-lg">Cancelar</button>
-              <button onClick={handleSave} disabled={saving} className="flex-1 py-2 bg-[#00577C] text-white rounded-lg font-black">{saving ? "Salvando…" : "Salvar"}</button>
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className={`${jakarta.className} text-xl font-black text-[#00577C]`}>Vitrine Gastronómica</h2>
+          <p className="text-xs text-slate-500 mt-1">{restaurantes.length} estabelecimentos em exibição</p>
+        </div>
+        <button onClick={abrirNovoFormulario} className="bg-[#00577C] hover:bg-[#004a6b] text-white font-black text-sm px-5 py-2.5 rounded-xl transition shadow-md flex items-center gap-2">
+          <Plus size={16} /> Novo Restaurante
+        </button>
+      </div>
+
+      {showForm ? (
+        <div className="bg-white rounded-[2rem] p-8 shadow-lg border border-slate-100 animate-in fade-in slide-in-from-bottom-4">
+          <div className="flex items-center justify-between mb-8 border-b border-slate-100 pb-4">
+            <h3 className={`${jakarta.className} text-2xl font-black text-slate-800 flex items-center gap-2`}><Utensils className="text-[#F9C400]" /> Construtor de Página do Restaurante</h3>
+            <button onClick={() => setShowForm(false)} className="text-sm font-bold text-slate-400 hover:text-slate-800">Cancelar</button>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-8">
+            {/* BLOCO 1: Informações Básicas */}
+            <div className="space-y-5">
+              <h4 className="font-black text-[#00577C] border-b pb-2">Informações Básicas</h4>
+              <div>
+                <label className={labelCls}>Nome do Estabelecimento *</label>
+                <input type="text" value={form.titulo} onChange={e => setForm({...form, titulo: e.target.value})} className={inputCls} placeholder="Ex: Churrascaria Guedes" />
+              </div>
+              <div>
+                <label className={labelCls}>Descrição Curta (Aparece no Card)</label>
+                <textarea rows={2} value={form.descricao_curta} onChange={e => setForm({...form, descricao_curta: e.target.value})} className={inputCls} placeholder="Resumo atrativo do local..." />
+              </div>
+              <div>
+                <label className={labelCls}>A Nossa História (Sobre Nós)</label>
+                <textarea rows={4} value={form.sobre_nos_texto} onChange={e => setForm({...form, sobre_nos_texto: e.target.value})} className={inputCls} placeholder="Começámos na cozinha da nossa casa..." />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={labelCls}>WhatsApp (Reservas)</label>
+                  <div className="relative">
+                    <Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input type="text" value={form.whatsapp} onChange={e => setForm({...form, whatsapp: e.target.value})} className={`${inputCls} pl-10`} placeholder="94 99999-9999" />
+                  </div>
+                </div>
+                <div>
+                  <label className={labelCls}>Link do Google Maps</label>
+                  <div className="relative">
+                    <MapPin size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input type="text" value={form.link_google_maps} onChange={e => setForm({...form, link_google_maps: e.target.value})} className={`${inputCls} pl-10`} placeholder="https://maps.app.goo.gl/..." />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* BLOCO 2: Mídias */}
+            <div className="space-y-5">
+              <h4 className="font-black text-[#00577C] border-b pb-2">Fotografias</h4>
+              <div>
+                <label className={labelCls}>Foto Principal (Capa)</label>
+                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 text-slate-500 p-4 rounded-xl cursor-pointer hover:border-[#00577C] transition-colors">
+                  <input type="file" accept="image/*" className="hidden" onChange={e => setImagemPrincipal(e.target.files?.[0] || null)} />
+                  <ImageIcon size={18} /> {imagemPrincipal ? imagemPrincipal.name : 'Clique para anexar Capa'}
+                </label>
+              </div>
+              <div>
+                <label className={labelCls}>Foto da Equipa / Local (Sobre Nós)</label>
+                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 text-slate-500 p-4 rounded-xl cursor-pointer hover:border-[#00577C] transition-colors">
+                  <input type="file" accept="image/*" className="hidden" onChange={e => setFotoEquipe(e.target.files?.[0] || null)} />
+                  <ImageIcon size={18} /> {fotoEquipe ? fotoEquipe.name : 'Clique para anexar Foto da Equipa'}
+                </label>
+              </div>
+              <div>
+                <label className={labelCls}>Galeria de Pratos e Ambiente (Múltiplas)</label>
+                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 text-slate-500 p-4 rounded-xl cursor-pointer hover:border-[#00577C] transition-colors">
+                  <input type="file" accept="image/*" multiple className="hidden" onChange={e => {
+                    if (e.target.files) setGaleriaFiles(Array.from(e.target.files));
+                  }} />
+                  <ImageIcon size={18} /> {galeriaFiles.length > 0 ? `${galeriaFiles.length} imagens selecionadas` : 'Selecionar várias fotos'}
+                </label>
+              </div>
             </div>
           </div>
-        </div>
-      )}
 
-      {loading ? <Skeleton rows={4} /> : (
-        <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm overflow-x-auto">
-          <table className="w-full text-sm min-w-[600px]">
-            <thead><tr className="border-b bg-slate-50"><Th>Imagem</Th><Th>Título</Th><Th>Ordem</Th><Th>Ativo</Th><Th className="text-right">Ações</Th></tr></thead>
-            <tbody>{restaurantes.map(r => (
-              <tr key={r.id} className="border-b">
-                <td className="px-4 py-3"><img src={r.imagem_url || "/placeholder.png"} className="w-10 h-10 rounded-lg object-cover" /></td>
-                <td className="px-4 py-3 font-medium">{r.titulo}</td>
-                <td className="px-4 py-3">{r.ordem}</td>
-                <td className="px-4 py-3"><button onClick={() => toggleAtivo(r.id, r.ativo)} className={`text-xs px-2 py-1 rounded-full ${r.ativo ? "bg-[#009640]/10 text-[#009640]" : "bg-slate-100 text-slate-500"}`}>{r.ativo ? "Ativo" : "Inativo"}</button></td>
-                <td className="px-4 py-3 text-right">
-                  <button onClick={() => abrirFormEditar(r)} className="text-xs text-[#00577C] border border-[#00577C]/20 px-2 py-1 rounded-md">Editar</button>
-                  <button onClick={() => handleDelete(r.id)} className="ml-2 text-xs text-red-500 border border-red-200 px-2 py-1 rounded-md">Remover</button>
-                </td>
-              </tr>
-            ))}</tbody>
-          </table>
+          {/* BLOCO 3: Cardápio Dinâmico */}
+          <div className="mt-12 space-y-4">
+            <div className="flex items-center justify-between border-b pb-2">
+              <h4 className="font-black text-[#00577C]">Destaques do Cardápio</h4>
+              <button onClick={addPrato} className="text-xs font-bold text-[#009640] flex items-center gap-1 hover:underline"><Plus size={14}/> Adicionar Prato</button>
+            </div>
+            
+            <div className="space-y-3">
+              {cardapio.map((item, index) => (
+                <div key={index} className="flex flex-col md:flex-row gap-3 items-start bg-slate-50 p-4 rounded-xl border border-slate-200">
+                  <div className="flex-1 w-full">
+                    <input type="text" value={item.prato} onChange={e => handlePratoChange(index, 'prato', e.target.value)} placeholder="Nome do Prato (Ex: Tucunaré na Brasa)" className={inputCls} />
+                  </div>
+                  <div className="flex-[2] w-full">
+                    <input type="text" value={item.desc} onChange={e => handlePratoChange(index, 'desc', e.target.value)} placeholder="Descrição (Ex: Acompanha arroz branco e farofa...)" className={inputCls} />
+                  </div>
+                  <div className="w-full md:w-40 flex gap-2">
+                    <input type="text" value={item.preco} onChange={e => handlePratoChange(index, 'preco', e.target.value)} placeholder="R$ 85,00" className={inputCls} />
+                    <button onClick={() => removePrato(index)} className="p-3 bg-red-50 text-red-500 rounded-xl hover:bg-red-100 border border-red-200"><Trash2 size={18} /></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-10 flex items-center justify-between pt-6 border-t border-slate-100">
+            <span className="text-sm font-bold text-[#009640]">{feedback}</span>
+            <button onClick={handleSalvar} disabled={saving} className="bg-[#009640] hover:bg-green-700 text-white px-10 py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg flex items-center gap-2 transition-all">
+              {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Publicar Restaurante
+            </button>
+          </div>
         </div>
+      ) : (
+        /* LISTAGEM DOS RESTAURANTES */
+        loading ? (
+          <div className="py-12 flex justify-center"><Loader2 size={32} className="text-[#00577C] animate-spin" /></div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {restaurantes.map((rest) => (
+              <div key={rest.id} className="bg-white rounded-[2rem] border border-slate-200 p-4 flex flex-col hover:shadow-xl transition-shadow">
+                <div className="relative w-full h-48 rounded-2xl overflow-hidden bg-slate-100 mb-4">
+                  <img src={rest.imagem_url || "/logop.png"} alt={rest.titulo} className="object-cover w-full h-full" />
+                </div>
+                <div className="px-2 pb-2 flex-1 flex flex-col">
+                  <h3 className={`${jakarta.className} text-xl font-black text-slate-800 mb-1`}>{rest.titulo}</h3>
+                  <p className="text-xs font-medium text-slate-500 line-clamp-2 mb-4">{rest.descricao_curta}</p>
+                  
+                  <div className="mt-auto flex items-center justify-between pt-4 border-t border-slate-100">
+                    <span className="text-[10px] font-black uppercase text-[#009640] flex items-center gap-1"><Utensils size={12}/> Ativo na Vitrine</span>
+                    <button onClick={() => handleDelete(rest.id)} className="text-xs font-bold text-red-500 hover:underline">Remover</button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )
       )}
     </div>
   );
 }
+
+export default TabGastronomia;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ATRAÇÕES
