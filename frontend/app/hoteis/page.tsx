@@ -31,33 +31,35 @@ export default function HoteisPage() {
   return (
     <main className={`${inter.className} min-h-screen flex flex-col bg-[#002f40] relative overflow-hidden`}>
 
-      {/* Foto de fundo com overlay */}
+      {/* ── BACKGROUND MOBILE FIRST ── */}
       <div className="absolute inset-0 z-0">
         <Image
           src="https://images.pexels.com/photos/28468079/pexels-photo-28468079.jpeg?_gl=1*1e0dwdp*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3ODU2OTY0OTYkbzcwJGcxJHQxNzg1Njk4NzE4JGoyMCRsMCRoMA.."
           alt="Alojamentos em São Geraldo do Araguaia"
           fill
-          className="object-cover opacity-60"
+          // Foco mais à direita no mobile, centro no desktop. Opacidade reduzida no mobile.
+          className="object-cover object-[70%_center] md:object-center opacity-15 md:opacity-20"
           priority
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#002f40]/40 via-[#002f40]/40 to-[#002f40]/20" />
+        {/* Máscara inteligente: Escura no topo no mobile para proteger o texto */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#002f40] via-[#002f40]/90 to-[#002f40]/20 md:from-[#002f40]/30 md:via-[#002f40]/20 md:to-[#002f40]/30" />
       </div>
 
       {/* Halo amarelo — canto superior direito */}
-      <div className="absolute top-0 right-0 z-0 w-[500px] h-[500px] pointer-events-none"
+      <div className="absolute top-0 right-0 z-0 w-[300px] h-[300px] md:w-[500px] md:h-[500px] pointer-events-none"
         style={{ background: 'radial-gradient(ellipse at top right, rgba(249,196,0,0.12) 0%, transparent 65%)' }} />
 
       {/* Halo verde — canto inferior esquerdo */}
-      <div className="absolute bottom-0 left-0 z-0 w-[460px] h-[360px] pointer-events-none"
+      <div className="absolute bottom-0 left-0 z-0 w-[250px] h-[250px] md:w-[460px] md:h-[360px] pointer-events-none"
         style={{ background: 'radial-gradient(ellipse at bottom left, rgba(0,150,64,0.12) 0%, transparent 65%)' }} />
 
-      {/* ── HEADER ORIGINAL (COMPLETO E NAVEGÁVEL) ── */}
+      {/* ── HEADER ORIGINAL ── */}
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${showHeader ? 'translate-y-0' : '-translate-y-full'} ${isScrolled ? 'bg-[#002f40]/95 backdrop-blur-md shadow-sm border-b border-white/10' : 'bg-transparent'}`}
       >
-        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4">
+        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-5 py-4 md:px-6">
           <Link href="/" className="flex items-center gap-3">
-            <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
+            <div className="relative h-9 w-24 md:h-12 md:w-36 shrink-0">
               <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain brightness-0 invert" />
             </div>
           </Link>
@@ -83,7 +85,7 @@ export default function HoteisPage() {
         </div>
 
         {isMobileMenuOpen && (
-          <div className="absolute top-full left-0 w-full bg-[#002f40] border-b border-white/10 p-6 flex flex-col gap-4 shadow-2xl lg:hidden z-50">
+          <div className="absolute top-full left-0 w-full bg-[#002f40] border-b border-white/10 p-5 flex flex-col gap-4 shadow-2xl lg:hidden z-50">
             {['Hoteis', 'Pacotes', 'Atracoes', 'Passeios', 'Biodiversidade', 'Parceiros'].map(item => (
               <Link key={item} href={`/${item.toLowerCase()}`}
                 onClick={() => setIsMobileMenuOpen(false)}
@@ -100,43 +102,45 @@ export default function HoteisPage() {
         )}
       </header>
 
-      {/* ── CONTEÚDO PRINCIPAL (LAYOUT IDÊNTICO AO DA HOMEPAGE) ── */}
-      <div className="relative z-10 flex-1 flex items-center mt-12 md:mt-16">
-        <div className="w-full max-w-[1400px] mx-auto px-8 md:px-14 py-16 md:py-0">
-          <div className="grid md:grid-cols-2 gap-14 md:gap-20 items-center">
+      {/* ── CONTEÚDO PRINCIPAL (MOBILE FIRST) ── */}
+      <div className="relative z-10 flex-1 flex flex-col justify-center mt-24 md:mt-20">
+        <div className="w-full max-w-[1400px] mx-auto px-5 md:px-14 py-10 md:py-0">
+          <div className="grid md:grid-cols-2 gap-12 md:gap-20 items-center">
 
             {/* Coluna esquerda — texto */}
-            <div className="flex flex-col gap-10">
+            <div className="flex flex-col gap-6 md:gap-10">
 
               {/* Título */}
               <div className="flex flex-col gap-1">
-                <h1 className={`${jakarta.className} font-black text-white leading-[0.97]`}
+                <h1 className={`${jakarta.className} font-black text-white leading-[1.05] md:leading-[0.97]`}
                   style={{ fontSize: 'clamp(42px, 5.5vw, 72px)' }}>
                   A sua próxima
                 </h1>
-                <h1 className={`${jakarta.className} font-black text-[#F9C400] leading-[0.97]`}
+                <h1 className={`${jakarta.className} font-black text-[#F9C400] leading-[1.05] md:leading-[0.97]`}
                   style={{ fontSize: 'clamp(42px, 5.5vw, 72px)' }}>
                   hospedagem
                 </h1>
-                <h1 className={`${jakarta.className} font-black text-white/30 leading-[0.97]`}
+                <h1 className={`${jakarta.className} font-black text-white/30 leading-[1.05] md:leading-[0.97]`}
                   style={{ fontSize: 'clamp(42px, 5.5vw, 72px)' }}>
                   em breve.
                 </h1>
               </div>
 
               {/* Descrição */}
-              <p className={`${inter.className} text-white/50 text-base md:text-lg leading-relaxed max-w-md`}>
+              <p className={`${inter.className} text-white/60 md:text-white/50 text-base md:text-lg leading-relaxed max-w-md`}>
                 Estamos preparando um sistema completo para que possa descobrir e reservar os melhores hotéis, pousadas e alojamentos locais de São Geraldo do Araguaia diretamente por aqui.
               </p>
 
               {/* CTA */}
-              <Link
-                href="/"
-                className={`${jakarta.className} group inline-flex items-center gap-3 self-start bg-white/10 hover:bg-white/20 active:scale-95 text-white px-9 py-4 rounded-full font-black text-sm uppercase tracking-widest transition-all duration-200 border border-white/5`}
-              >
-                <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
-                Voltar ao Início
-              </Link>
+              <div className="flex w-full max-w-md mt-2 md:mt-0">
+                <Link
+                  href="/"
+                  className={`${jakarta.className} group w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-white/10 hover:bg-white/20 active:scale-95 text-white px-7 py-4 rounded-xl md:rounded-full font-black text-xs uppercase tracking-widest transition-all duration-200 border border-white/5`}
+                >
+                  <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
+                  Voltar ao Início
+                </Link>
+              </div>
             </div>
 
             {/* Coluna direita — foto */}
@@ -172,9 +176,9 @@ export default function HoteisPage() {
       </div>
 
       {/* ── FOOTER ── */}
-      <footer className="relative z-10 py-7">
-        <div className="w-full max-w-[1400px] mx-auto px-8 md:px-14">
-          <p className={`${jakarta.className} text-[10px] font-bold text-white/20 uppercase tracking-widest`}>
+      <footer className="relative z-10 py-6 md:py-7 border-t border-white/5 mt-8 md:mt-0">
+        <div className="w-full max-w-[1400px] mx-auto px-5 md:px-14 flex justify-center md:justify-start">
+          <p className={`${jakarta.className} text-[9px] md:text-[10px] font-bold text-white/20 uppercase tracking-widest text-center md:text-left`}>
             © {new Date().getFullYear()} Prefeitura Municipal de São Geraldo do Araguaia — Todos os direitos reservados.
           </p>
         </div>

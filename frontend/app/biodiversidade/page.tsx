@@ -53,7 +53,7 @@ function Reveal({ children, className = "", anim = "up", delay = 0 }: { children
 // DADOS — FAUNA
 // ==========================================
 const fauna = [
-  { nome: "Arara-canindé", cientifico: "Ara ararauna", habitat: "Floresta Amazônica", imagem: "https://images.pexels.com/photos/36052063/pexels-photo-36052063.jpeg?_gl=1*tsn53b*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzk1NDAyNDckbzUzJGcxJHQxNzc5NTQwNTgyJGozNSRsMCRoMA..", cor: "#1a6b3c", tag: "Ave", ameaca: "Vulnerável" },
+  { nome: "Arara-canindé", cientifico: "Ara ararauna", habitat: "Floresta Amazônica", imagem: "https://images.pexels.com/photos/36052063/pexels-photo-36052063.jpeg?_gl=1*tsn53b*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzk1NDAyNDckbzUzJGcxJHQxNzc5NTQwNTgyJGozNSRsMCRoMA..", cor: "#1a6b3c", tag: "Ave", ameaca: "Pouco Preocupante" },
   { nome: "Onça-pintada", cientifico: "Panthera onca", habitat: "Cerrado / Amazônia", imagem: "https://images.pexels.com/photos/11630694/pexels-photo-11630694.jpeg?_gl=1*56kp8k*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzk1NDAyNDckbzUzJGcxJHQxNzc5NTQwNjYzJGo0MyRsMCRoMA..", cor: "#8b5e0a", tag: "Mamífero", ameaca: "Vulnerável" },
   { nome: "Lobo-guará", cientifico: "Chrysocyon brachyurus", habitat: "Cerrado", imagem: "https://images.unsplash.com/photo-1474511320723-9a56873867b5?w=600&q=80", cor: "#c2440c", tag: "Mamífero", ameaca: "Quase ameaçado" },
   { nome: "Tucano-toco", cientifico: "Ramphastos toco", habitat: "Floresta / Cerrado", imagem: "https://images.pexels.com/photos/35098811/pexels-photo-35098811.jpeg?_gl=1*vp3cdd*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzk1NDAyNDckbzUzJGcxJHQxNzc5NTQwNDk1JGozMiRsMCRoMA..", cor: "#00577C", tag: "Ave", ameaca: "Pouco preocupante" },
@@ -164,16 +164,11 @@ function HeroBiodiversidade() {
             Bio<br />
             <span className="text-[#009640] italic">diversidade</span>
           </h1>
-          <p className="text-white/60 text-base md:text-xl max-w-lg mb-10 font-medium leading-relaxed">
-            Onde a Amazônia encontra o Cerrado.
-          </p>
+         
         </div>
       </div>
 
-      <div className="absolute bottom-8 right-8 md:right-12 z-10 flex flex-col items-center gap-2">
-        <p className="text-white/30 font-black text-[8px] uppercase tracking-widest [writing-mode:vertical-lr]">Scroll</p>
-        <ChevronDown size={16} className="text-white/30 animate-bounce" />
-      </div>
+      
 
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 hidden md:flex gap-8">
         {[
@@ -201,14 +196,14 @@ function SecParque() {
         <Reveal anim="up" className="mb-20">
           <div className="flex flex-col md:flex-row gap-12 md:gap-24 items-end">
             <div className="flex-1">
-              <p className="text-[#009640] font-black text-[9px] uppercase tracking-[0.3em] mb-4">Unidade de Conservação — PA</p>
+             
               <h2 className={`${jakarta.className} text-5xl md:text-7xl font-black text-white leading-[0.9]`}>
                 Serra das<br /><span className="text-[#F9C400] italic">Andorinhas</span>
               </h2>
             </div>
             <div className="flex-1 max-w-md">
               <p className="text-white/50 text-lg leading-relaxed">
-                Criado em 1995, o Parque Estadual Serra das Andorinhas protege uma das últimas faixas intactas da transição entre a Floresta Amazônica e o Cerrado no estado do Pará — um mosaico de ecossistemas de valor científico inestimável.
+                Criado em 1995, o Parque Estadual Serra das Andorinhas/Martírios protege uma das últimas faixas intactas da transição entre a Floresta Amazônica e o Cerrado no estado do Pará — um mosaico de ecossistemas de valor científico inestimável.
               </p>
             </div>
           </div>
@@ -382,11 +377,9 @@ function SecFauna() {
         <Reveal anim="up" className="mb-16">
           <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-8">
             <div>
-              <p className="text-[#009640] font-black text-[9px] uppercase tracking-[0.35em] mb-4 flex items-center gap-3">
-                <span className="w-6 h-[1px] bg-[#009640]" /> Fauna Local
-              </p>
+              
               <h2 className={`${jakarta.className} text-5xl md:text-8xl font-black text-white leading-[0.88]`}>
-                Animais<br /><span className="italic text-[#009640]">da Serra</span>
+                Animais <span className="text-[#009640] italic">da Serra</span>
               </h2>
             </div>
             <p className="text-white/30 max-w-xs text-sm leading-relaxed">
@@ -465,11 +458,9 @@ function SecFlora() {
         <Reveal anim="up" className="mb-16">
           <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-8">
             <div>
-              <p className="text-[#009640] font-black text-[9px] uppercase tracking-[0.35em] mb-4 flex items-center gap-3">
-                <span className="w-6 h-[1px] bg-[#009640]" /> Vegetação & Flora
-              </p>
+             
               <h2 className={`${jakarta.className} text-5xl md:text-8xl font-black text-slate-900 leading-[0.88]`}>
-                Árvores<br /><span className="italic text-[#009640]">Protetoras</span>
+                Árvores <span className="text-[#009640] italic">da Serra</span>
               </h2>
             </div>
             <p className="text-slate-400 max-w-xs text-sm leading-relaxed">
@@ -682,9 +673,7 @@ export default function BiodiversidadePage() {
           <p className={`${jakarta.className} text-[10px] font-bold text-white/20 uppercase tracking-widest`}>
             © {new Date().getFullYear()} Prefeitura Municipal de São Geraldo do Araguaia — Todos os direitos reservados.
           </p>
-          <div className="flex items-center gap-2 text-white/30 text-xs">
-            <Leaf size={14} /> Guia de Biodiversidade
-          </div>
+          
         </div>
       </footer>
     </main>
