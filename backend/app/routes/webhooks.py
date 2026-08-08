@@ -18,39 +18,35 @@ SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-@router.post("/api/v1/webhooks/pagbank")
-async def webhook_pagbank(request: Request):
+@router.post("/api/v1/webhooks/asaas")
+async def webhook_asaas(request: Request):
     try:
         payload = await request.json()
-        print(f"--- [WEBHOOK RECEBIDO] ---")
+        print(f"--- [WEBHOOK ASAAS RECEBIDO] ---")
         
-        charges = payload.get("charges", [])
-        primeira_charge = charges[0] if charges else {}
+        # O Asaas envia o tipo de evento e os dados dentro da chave "payment"
+        evento = payload.get("event", "")
+        payment_data = payload.get("payment", {})
 
-        reference_id = (
-            payload.get("reference_id")
-            or payload.get("data", {}).get("reference_id")
-            or primeira_charge.get("reference_id")
-            or payload.get("id") 
-        )
+        # No pagamentos.py, nós enviámos o nosso codigo_pedido (SAGA-XXXX) no 'externalReference'
+        reference_id = payment_data.get("externalReference")
+        asaas_payment_id = payment_data.get("id")
 
-        status_raw = (
-            payload.get("status")
-            or primeira_charge.get("status")
-            or payload.get("data", {}).get("status")
-            or "PENDING"
-        )
-        
-        status_normalizado = status_raw.upper()
-        print(f"[WEBHOOK] Pedido: {reference_id} | Status: {status_normalizado}")
+        status_normalizado = payment_data.get("status", "").upper()
+        print(f"[WEBHOOK] Evento: {evento} | Referência: {reference_id} | Status: {status_normalizado}")
+
+        # Se não vier o reference_id, tentamos usar o ID do pagamento como fallback
+        if not reference_id:
+            reference_id = asaas_payment_id
 
         if not reference_id:
-            return {"status": "error", "message": "Reference ID não encontrado no payload"}
+            return {"status": "error", "message": "Reference ID e Payment ID ausentes no payload."}
 
-        res_pedido = supabase.table("pedidos").select("*").eq("codigo_pedido", reference_id).single().execute()
+        # Tenta buscar pelo código SAGA-XXX ou pelo ID pay_XXX
+        res_pedido = supabase.table("pedidos").select("*").or_(f"codigo_pedido.eq.{reference_id},codigo_pedido.eq.{asaas_payment_id}").maybe_single().execute()
         
         if not res_pedido.data:
-            print(f"[WEBHOOK] AVISO: Pedido {reference_id} ignorado (não consta na base).")
+            print(f"[WEBHOOK] AVISO: Pedido {reference_id} ignorado (não consta na base de dados).")
             return {"status": "ok", "message": "Pedido inexistente"}
             
         pedido = res_pedido.data
@@ -58,20 +54,22 @@ async def webhook_pagbank(request: Request):
         if pedido.get("status_pagamento") == "pago":
             return {"status": "ok", "message": "Pagamento já processado anteriormente"}
 
-        status_sucesso = ["PAID", "AUTHORIZED", "COMPLETED", "APPROVED"]
+        # Eventos do Asaas que significam "Dinheiro na conta"
+        eventos_sucesso = ["PAYMENT_RECEIVED", "PAYMENT_CONFIRMED", "PAYMENT_DUNNING_RECEIVED"]
         
-        if status_normalizado in status_sucesso:
-            # 1. Atualiza o status do pedido
+        if evento in eventos_sucesso or status_normalizado in ["CONFIRMED", "RECEIVED"]:
+            
+            # 1. Atualiza o status do pedido na tabela 'pedidos'
             supabase.table("pedidos").update({
                 "status_pagamento": "pago"
-            }).eq("codigo_pedido", reference_id).execute()
+            }).eq("id", pedido.get("id")).execute()
             
             # 2. Atualiza os repasses financeiros para o painel dos parceiros
             supabase.table("repasses_financeiros").update({
                 "status_repasse": "pago"
             }).eq("pedido_id", pedido.get("id")).execute()
             
-            print(f"[WEBHOOK] SUCESSO: O pagamento de {reference_id} foi confirmado.")
+            print(f"[WEBHOOK] SUCESSO: O pagamento de {pedido.get('codigo_pedido')} foi confirmado.")
 
             tipo = pedido.get("tipo_item")
             email_cliente = pedido.get("email_cliente")
@@ -102,7 +100,6 @@ async def webhook_pagbank(request: Request):
                     caminhos_pdfs = []
                     email_real_destino = email_cliente
                     nome_real_destino = nome_cliente
-
 
                     for res in residentes_encontrados:
                         supabase.table("rd_residentes").update({"status": "ativo"}).eq("id", res["id"]).execute()
@@ -256,10 +253,10 @@ async def webhook_pagbank(request: Request):
                 except Exception as e_mail:
                     print(f"[WEBHOOK] Erro ao disparar voucher do passeio: {e_mail}")
 
-                    
-        elif status_normalizado in ["DECLINED", "CANCELED", "REFUNDED"]:
-            supabase.table("pedidos").update({"status_pagamento": "recusado"}).eq("codigo_pedido", reference_id).execute()
-            print(f"[WEBHOOK] Pagamento {reference_id} marcado como RECUSADO.")
+        # Tratamento de recusas e falhas
+        elif evento in ["PAYMENT_DELETED", "PAYMENT_OVERDUE", "PAYMENT_REFUNDED", "PAYMENT_CHARGEBACK_REQUESTED", "PAYMENT_REPROVED"]:
+            supabase.table("pedidos").update({"status_pagamento": "recusado"}).eq("id", pedido.get("id")).execute()
+            print(f"[WEBHOOK] Pagamento {pedido.get('codigo_pedido')} marcado como RECUSADO/CANCELADO.")
 
         return {"status": "ok"}
 

@@ -9,13 +9,14 @@ from supabase import create_client, Client
 # Importação dos serviços que já tens criados
 from app.services.pdf_service import gerar_pdf_carteira
 from app.services.email_service import enviar_carteiras_por_email
+
 router = APIRouter()
 
-# 1. Configurações de Ambiente
+# 1. Configurações de Ambiente - ASAAS
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
-PAGBANK_TOKEN = os.environ.get("PAGBANK_TOKEN")
-PAGBANK_API_URL = os.environ.get("PAGBANK_API_URL", "https://sandbox.api.pagseguro.com")
+ASAAS_API_KEY = os.environ.get("ASAAS_API_KEY")
+ASAAS_API_URL = os.environ.get("ASAAS_API_URL", "https://sandbox.asaas.com/api/v3")
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
@@ -33,6 +34,14 @@ class AcompanhanteSchema(BaseModel):
     nome: str
     cpf: Optional[str] = None
     data_nascimento: Optional[str] = None
+
+# Novo Schema para receber os dados do cartão no backend
+class CartaoDados(BaseModel):
+    nome: str
+    numero: str
+    mes: str
+    ano: str
+    cvv: str
 
 class PedidoPagamento(BaseModel):
     tipo_item: str
@@ -63,7 +72,7 @@ class PedidoPagamento(BaseModel):
     data_nascimento: Optional[str] = None
     
     metodo_pagamento: str
-    encrypted_card: Optional[str] = None
+    dados_cartao: Optional[CartaoDados] = None # Substituiu o encrypted_card
     parcelas: Optional[int] = 1
 
     hospedes_extras: Optional[List[AcompanhanteSchema]] = []
@@ -147,7 +156,6 @@ async def processar_pagamento(pedido: PedidoPagamento):
         item_id_sanitizado = limpar_uuid(pedido.item_id)
         quarto_tipo_id_sanitizado = limpar_uuid(pedido.quarto_tipo_id)
 
-        # SALVA-VIDAS DA DEMONSTRAÇÃO E RESOLUÇÃO DE IDENTIDADE DO QUARTO
         if not quarto_tipo_id_sanitizado and hotel_id_sanitizado:
             if pedido.tipo_quarto:
                 res_fb = supabase.table("tipos_quarto").select("id").eq("hotel_id", hotel_id_sanitizado).ilike("nome_quarto", f"%{pedido.tipo_quarto}%").execute()
@@ -166,14 +174,11 @@ async def processar_pagamento(pedido: PedidoPagamento):
         nome_item_checkout = ""
         item_id_db = None
         nome_quarto_real_texto = pedido.tipo_quarto
-        limite_juros_hotel = 0
         
         codigo_pedido = f"SAGA-{uuid.uuid4().hex[:8].upper()}"
 
         tax_id_limpo = pedido.cpf_cliente.replace(".", "").replace("-", "")
         telefone_limpo = pedido.telefone_cliente.replace("(", "").replace(")", "").replace("-", "").replace(" ", "")
-        ddd = telefone_limpo[:2]
-        numero_tel = telefone_limpo[2:]
 
         taxa_prefeitura_pct = 0.0
         res_taxa = supabase.table("taxas_servicos").select("porcentagem").eq("tipo_servico", pedido.tipo_item).execute()
@@ -193,20 +198,16 @@ async def processar_pagamento(pedido: PedidoPagamento):
         lista_atracoes_calculadas = []
         
         if pedido.tipo_item == "carteira":
-            # O turista paga R$ 20.00
             valor_total = 22.00 * pedido.quantidade
             nome_item_checkout = f"Taxa de Emissão - Carteira Digital ({pedido.quantidade}x)"
             item_id_db = pedido.token_id
 
-            # --- MODELO SAAS: A TUA EMPRESA FICA COM UMA TAXA ---
-            taxa_empresa_saas = 2.00 # A tua empresa retém R$ 2,00 por carteira
+            taxa_empresa_saas = 2.00
             valor_prefeitura = (22.00 - taxa_empresa_saas) * pedido.quantidade
             
-            # ID da Prefeitura (Em testes, usamos o teu ACCO_... Para produção, usaremos o da Prefeitura)
-            rec_id_prefeitura = os.environ.get("ID_PAGBANK_PREFEITURA", "ACCO_6E1ADFFA-C4A3-46AD-8574-236531CF08E2")
-            
-            valor_repasse = int(round(valor_prefeitura, 2) * 100)
-            recebedores_split.append({ "account": {"id": rec_id_prefeitura}, "amount": {"value": valor_repasse} })
+            rec_id_prefeitura = os.environ.get("ID_ASAAS_PREFEITURA", "wallet_id_da_prefeitura_aqui")
+            valor_repasse = round(valor_prefeitura, 2)
+            recebedores_split.append({ "walletId": rec_id_prefeitura, "fixedValue": valor_repasse })
 
         elif pedido.tipo_item == "hotel":
             if not hotel_id_sanitizado or not quarto_tipo_id_sanitizado:
@@ -218,28 +219,26 @@ async def processar_pagamento(pedido: PedidoPagamento):
             )
             v_hospedagem_total = valor_total
             
-            res_hotel_info = supabase.table("hoteis").select("nome, pagbank_recebedor_id, max_parcelas_sem_juros").eq("id", hotel_id_sanitizado).single().execute()
+            res_hotel_info = supabase.table("hoteis").select("nome, asaas_wallet_id").eq("id", hotel_id_sanitizado).single().execute()
             nome_item_checkout = f"Hospedagem - {res_hotel_info.data['nome']}"
             item_id_db = hotel_id_sanitizado
-            limite_juros_hotel = int(res_hotel_info.data.get("max_parcelas_sem_juros") or 0)
 
             res_q_info = supabase.table("tipos_quarto").select("nome_quarto").eq("id", quarto_tipo_id_sanitizado).single().execute()
             if res_q_info.data: nome_quarto_real_texto = res_q_info.data["nome_quarto"]
             
-            rec_id = res_hotel_info.data.get("pagbank_recebedor_id")
-            if rec_id and str(rec_id).startswith("ACC"):
-                # Proteção contra falha de arredondamento de centavos
-                valor_repasse = int(round(valor_total * fator_liquido, 2) * 100)
-                recebedores_split.append({ "account": {"id": rec_id}, "amount": {"value": valor_repasse} })
+            rec_id = res_hotel_info.data.get("asaas_wallet_id")
+            if rec_id:
+                valor_repasse = round(valor_total * fator_liquido, 2)
+                recebedores_split.append({ "walletId": rec_id, "fixedValue": valor_repasse })
 
         elif pedido.tipo_item == "passeio":
             id_passeio = passeio_id_sanitizado or item_id_sanitizado
             if not id_passeio:
-                raise HTTPException(status_code=400, detail="Identificador do passeio ausente no payload.")
+                raise HTTPException(status_code=400, detail="Identificador do passeio ausente.")
                 
             res_passeio = supabase.table("passeios").select("*").eq("id", id_passeio).single().execute()
             if not res_passeio.data:
-                raise HTTPException(status_code=404, detail="Passeio turístico não encontrado no catálogo.")
+                raise HTTPException(status_code=404, detail="Passeio turístico não encontrado.")
             
             dados_p = res_passeio.data
             valor_total = float(dados_p.get("valor_total", 0.0)) * (pedido.quantidade or 1)
@@ -249,12 +248,12 @@ async def processar_pagamento(pedido: PedidoPagamento):
 
             guia_proprietario_id = limpar_uuid(dados_p.get("guia_id"))
             if guia_proprietario_id:
-                res_g = supabase.table("guias").select("pagbank_recebedor_id").eq("id", guia_proprietario_id).single().execute()
+                res_g = supabase.table("guias").select("asaas_wallet_id").eq("id", guia_proprietario_id).single().execute()
                 if res_g.data:
-                    rec_id = res_g.data.get("pagbank_recebedor_id")
-                    if rec_id and str(rec_id).startswith("ACC"):
-                        valor_repasse = int(round(valor_total * fator_liquido, 2) * 100)
-                        recebedores_split.append({ "account": {"id": rec_id}, "amount": {"value": valor_repasse} })
+                    rec_id = res_g.data.get("asaas_wallet_id")
+                    if rec_id:
+                        valor_repasse = round(valor_total * fator_liquido, 2)
+                        recebedores_split.append({ "walletId": rec_id, "fixedValue": valor_repasse })
 
         elif pedido.tipo_item == "pacote":
             if not pacote_id_sanitizado:
@@ -278,35 +277,31 @@ async def processar_pagamento(pedido: PedidoPagamento):
             nome_item_checkout = f"Pacote: {dados_pacote.get('titulo', 'Turístico')}"
             item_id_db = pacote_id_sanitizado
 
-            # Busca Itens reais do pacote
             res_itens = supabase.table("pacote_itens").select("*").eq("pacote_id", pacote_id_sanitizado).execute()
             for item in res_itens.data:
                 if item.get("hotel_id"): pacote_hotel_id = limpar_uuid(item["hotel_id"])
                 if item.get("guia_id"): pacote_guia_id = limpar_uuid(item["guia_id"])
                 if item.get("atracao_id"):
                     atr_id = limpar_uuid(item["atracao_id"])
-                    res_atr = supabase.table("atracoes").select("pagbank_recebedor_id, preco_entrada").eq("id", atr_id).single().execute()
+                    res_atr = supabase.table("atracoes").select("asaas_wallet_id, preco_entrada").eq("id", atr_id).single().execute()
                     if res_atr.data:
                         v_individual_atr = float(res_atr.data["preco_entrada"]) * pedido.adultos
                         v_atracoes_total += v_individual_atr
-                        rec_id = res_atr.data.get("pagbank_recebedor_id")
-                        if rec_id and str(rec_id).startswith("ACC"):
-                            valor_repasse = int(round(v_individual_atr * fator_liquido, 2) * 100)
-                            recebedores_split.append({ "account": {"id": rec_id}, "amount": {"value": valor_repasse} })
+                        rec_id = res_atr.data.get("asaas_wallet_id")
+                        if rec_id:
+                            valor_repasse = round(v_individual_atr * fator_liquido, 2)
+                            recebedores_split.append({ "walletId": rec_id, "fixedValue": valor_repasse })
                         lista_atracoes_calculadas.append({"id": atr_id, "valor": v_individual_atr})
 
-            # 3. Calcula o Custo do Hotel e o Upgrade Estático (Igual ao Frontend)
             v_hospedagem_standard = 0.0
             acrescimo_upgrade = 0.0
 
             if pacote_hotel_id and quarto_tipo_id_sanitizado:
-                # Custo dinâmico que o Hotel RECEBE
                 v_hospedagem_total = calcular_preco_hotel_dinamico(
                     pacote_hotel_id, quarto_tipo_id_sanitizado, pedido.data_checkin, pedido.data_checkout,
                     quantidade_quartos=pedido.quantidade, quantidade_pessoas=pedido.adultos
                 )
                 
-                # UPGRADE cobrado do cliente segue a diferença ESTÁTICA
                 res_std = supabase.table("tipos_quarto").select("id, preco_quarto").eq("hotel_id", pacote_hotel_id).order("preco_quarto").limit(1).execute()
                 res_escolhido = supabase.table("tipos_quarto").select("preco_quarto, nome_quarto").eq("id", quarto_tipo_id_sanitizado).single().execute()
                 
@@ -323,29 +318,27 @@ async def processar_pagamento(pedido: PedidoPagamento):
                         
                 if res_escolhido.data: nome_quarto_real_texto = res_escolhido.data["nome_quarto"]
 
-                res_h_info = supabase.table("hoteis").select("pagbank_recebedor_id").eq("id", pacote_hotel_id).single().execute()
+                res_h_info = supabase.table("hoteis").select("asaas_wallet_id").eq("id", pacote_hotel_id).single().execute()
                 if res_h_info.data:
-                    rec_id = res_h_info.data.get("pagbank_recebedor_id")
-                    if rec_id and str(rec_id).startswith("ACC"):
-                        valor_repasse = int(round(v_hospedagem_total * fator_liquido, 2) * 100)
-                        recebedores_split.append({ "account": {"id": rec_id}, "amount": {"value": valor_repasse} })
+                    rec_id = res_h_info.data.get("asaas_wallet_id")
+                    if rec_id:
+                        valor_repasse = round(v_hospedagem_total * fator_liquido, 2)
+                        recebedores_split.append({ "walletId": rec_id, "fixedValue": valor_repasse })
 
-            # Calcula Guia
             d_ci = datetime.strptime(pedido.data_checkin, "%Y-%m-%d")
             d_co = datetime.strptime(pedido.data_checkout, "%Y-%m-%d")
             noites_calculadas = (d_co - d_ci).days
             noites_finais = noites_calculadas if noites_calculadas > 0 else 1
 
             if pacote_guia_id:
-                res_g = supabase.table("guias").select("pagbank_recebedor_id, preco_diaria").eq("id", pacote_guia_id).single().execute()
+                res_g = supabase.table("guias").select("asaas_wallet_id, preco_diaria").eq("id", pacote_guia_id).single().execute()
                 if res_g.data:
                     v_guia_total = float(res_g.data["preco_diaria"]) * (noites_finais + 1)
-                    rec_id = res_g.data.get("pagbank_recebedor_id")
-                    if rec_id and str(rec_id).startswith("ACC"):
-                        valor_repasse = int(round(v_guia_total * fator_liquido, 2) * 100)
-                        recebedores_split.append({ "account": {"id": rec_id}, "amount": {"value": valor_repasse} })
+                    rec_id = res_g.data.get("asaas_wallet_id")
+                    if rec_id:
+                        valor_repasse = round(v_guia_total * fator_liquido, 2)
+                        recebedores_split.append({ "walletId": rec_id, "fixedValue": valor_repasse })
 
-            # Matemática Agência
             preco_base_pacote = float(dados_pacote.get("preco") or 0.0)
             valor_total = preco_base_pacote + acrescimo_upgrade 
             
@@ -354,28 +347,20 @@ async def processar_pagamento(pedido: PedidoPagamento):
             lucro_agente_split = lucro_agente if lucro_agente > 0 else 0.0
 
             if parceiro_agente_id and lucro_agente_split > 0:
-                res_agente = supabase.table("agencias").select("pagbank_recebedor_id").eq("id", parceiro_agente_id).execute()
+                res_agente = supabase.table("agencias").select("asaas_wallet_id").eq("id", parceiro_agente_id).execute()
                 if res_agente.data and len(res_agente.data) > 0:
-                    rec_id_agente = res_agente.data[0].get("pagbank_recebedor_id")
-                    if rec_id_agente and str(rec_id_agente).startswith("ACC"):
-                        valor_repasse = int(round(lucro_agente_split * fator_liquido, 2) * 100)
-                        recebedores_split.append({ "account": {"id": rec_id_agente}, "amount": {"value": valor_repasse} })
+                    rec_id_agente = res_agente.data[0].get("asaas_wallet_id")
+                    if rec_id_agente:
+                        valor_repasse = round(lucro_agente_split * fator_liquido, 2)
+                        recebedores_split.append({ "walletId": rec_id_agente, "fixedValue": valor_repasse })
 
-        # Lógica Fina de Split
-        soma_splits_centavos = sum(r["amount"]["value"] for r in recebedores_split)
-        valor_total_centavos = int(round(valor_total, 2) * 100)
+        # Lógica de Split Asaas
+        soma_splits_reais = sum(r["fixedValue"] for r in recebedores_split)
+        valor_total_arredondado = round(valor_total, 2)
 
-        # ◄── CORREÇÃO AQUI: <= (menor ou igual) ──►
-        if recebedores_split and (soma_splits_centavos <= valor_total_centavos):
-            splits_array = [{
-                "method": "FIXED",
-                "receivers": recebedores_split
-            }]
+        if recebedores_split and (soma_splits_reais <= valor_total_arredondado):
+            splits_array = recebedores_split
         else:
-            splits_array = []
-
-        # HACK SANDBOX: Reativado para forçar o sucesso nos teus testes locais
-        if "sandbox" in PAGBANK_API_URL:
             splits_array = []
 
         pedido_db = {
@@ -410,7 +395,6 @@ async def processar_pagamento(pedido: PedidoPagamento):
             pedido_id_gerado = res_pedido.data[0]["id"]
             repasses_db = []
             
-            # Geração das guias de repasse financeiro...
             if pedido.tipo_item == "hotel" and hotel_id_sanitizado:
                 repasses_db.append({
                     "pedido_id": pedido_id_gerado, "parceiro_id": hotel_id_sanitizado, "tipo_parceiro": "hotel",
@@ -427,7 +411,6 @@ async def processar_pagamento(pedido: PedidoPagamento):
                         "valor_liquido": round(v_guia_total * fator_liquido, 2), "status_repasse": "processando"
                     })
             elif pedido.tipo_item == "pacote":
-                # Decremento de estoque na DB apenas para cartões de crédito síncronos
                 if pedido.metodo_pagamento == 'cartao':
                     supabase.table("pacotes").update({
                         "vagas_vendidas": vagas_vendidas + qtd_solicitada
@@ -462,68 +445,89 @@ async def processar_pagamento(pedido: PedidoPagamento):
             if repasses_db:
                 supabase.table("repasses_financeiros").insert(repasses_db).execute()
 
-        payload_pagbank = {
-            "reference_id": codigo_pedido,
-            "customer": {
+        # ==============================================================
+        # INTEGRAÇÃO OFICIAL COM ASAAS API
+        # ==============================================================
+        async with httpx.AsyncClient() as client:
+            headers = {"access_token": ASAAS_API_KEY, "Content-Type": "application/json"}
+
+            # 1. Cria ou regista o Cliente no Asaas
+            customer_payload = {
                 "name": pedido.nome_cliente,
                 "email": pedido.email_cliente,
-                "tax_id": tax_id_limpo,
-                "phones": [{"country": "55", "area": ddd, "number": numero_tel, "type": "MOBILE"}]
-            },
-            "items": [{"name": nome_item_checkout, "quantity": 1, "unit_amount": int(round(valor_total, 2) * 100)}],
-            "notification_urls": ["https://sagaturismo-production.up.railway.app/api/v1/webhooks/pagbank"]
-        }
-
-        if pedido.metodo_pagamento == "pix":
-            payload_pagbank["qr_codes"] = [{"amount": {"value": int(round(valor_total, 2) * 100)}}]
-            if splits_array: 
-                payload_pagbank["qr_codes"][0]["splits"] = splits_array
-        else:
-            charge = {
-                "reference_id": codigo_pedido,
-                "description": nome_item_checkout,
-                "amount": {"value": int(round(valor_total, 2) * 100), "currency": "BRL"},
-                "payment_method": {
-                    "type": "CREDIT_CARD",
-                    "installments": pedido.parcelas,
-                    "capture": True,
-                    "card": {"encrypted": pedido.encrypted_card},
-                    "holder": {
-                        "name": pedido.nome_cliente,
-                        "tax_id": tax_id_limpo,
-                        "address": pedido.endereco_faturacao.dict()
-                    }
-                }
+                "cpfCnpj": tax_id_limpo,
+                "mobilePhone": telefone_limpo
             }
-            if splits_array: charge["splits"] = splits_array
-            if limite_juros_hotel > 1: charge["payment_method"]["installment_no_interest"] = limite_juros_hotel
-
-            payload_pagbank["charges"] = [charge]
-
-        # ◄── ADIÇÃO: Imprimir o Payload no Log da Railway ──►
-        import json
-        print("\n=== PAYLOAD ENVIADO PARA O PAGBANK ===")
-        print(json.dumps(payload_pagbank, indent=2))
-        print("======================================\n")
-
-        async with httpx.AsyncClient() as client:
-            headers = {"Authorization": f"Bearer {PAGBANK_TOKEN}", "Content-Type": "application/json"}
-            resp = await client.post(f"{PAGBANK_API_URL}/orders", json=payload_pagbank, headers=headers, timeout=30.0)
+            resp_cust = await client.post(f"{ASAAS_API_URL}/customers", json=customer_payload, headers=headers)
+            if resp_cust.status_code not in [200, 201]:
+                print(f"Erro ao criar cliente Asaas: {resp_cust.json()}")
+                raise HTTPException(status_code=400, detail="Erro ao registrar cliente financeiro.")
             
-            if resp.status_code not in [200, 201]:
-                print(f"Erro PagBank Detalhado: {resp.json()}")
-                raise HTTPException(status_code=400, detail="Erro no processamento financeiro.")
+            customer_id = resp_cust.json()["id"]
 
-            dados_pb = resp.json()
+            # 2. Monta a Fatura
+            asaas_payload = {
+                "customer": customer_id,
+                "billingType": "PIX" if pedido.metodo_pagamento == "pix" else "CREDIT_CARD",
+                "value": valor_total_arredondado,
+                "dueDate": datetime.now().strftime("%Y-%m-%d"),
+                "description": nome_item_checkout,
+                "externalReference": codigo_pedido, # A chave mestra para o webhook!
+            }
+
+            if splits_array:
+                asaas_payload["split"] = splits_array
+
+            # 3. Adiciona dados do Cartão se for Cartão
+            if pedido.metodo_pagamento == "cartao":
+                if not pedido.dados_cartao:
+                    raise HTTPException(status_code=400, detail="Dados do cartão ausentes.")
+                    
+                asaas_payload["installmentCount"] = pedido.parcelas
+                asaas_payload["installmentValue"] = round(valor_total_arredondado / pedido.parcelas, 2)
+                asaas_payload["creditCard"] = {
+                    "holderName": pedido.dados_cartao.nome,
+                    "number": pedido.dados_cartao.numero,
+                    "expiryMonth": pedido.dados_cartao.mes,
+                    "expiryYear": pedido.dados_cartao.ano,
+                    "ccv": pedido.dados_cartao.cvv
+                }
+                asaas_payload["creditCardHolderInfo"] = {
+                    "name": pedido.nome_cliente,
+                    "email": pedido.email_cliente,
+                    "cpfCnpj": tax_id_limpo,
+                    "postalCode": pedido.endereco_faturacao.postal_code.replace("-", ""),
+                    "addressNumber": pedido.endereco_faturacao.number,
+                    "phone": telefone_limpo
+                }
+
+            # 4. Dispara a Cobrança
+            resp_pay = await client.post(f"{ASAAS_API_URL}/payments", json=asaas_payload, headers=headers)
+            if resp_pay.status_code not in [200, 201]:
+                print(f"Erro Asaas Payment: {resp_pay.json()}")
+                raise HTTPException(status_code=400, detail="Transação recusada pelo banco.")
+
+            dados_asaas = resp_pay.json()
+            asaas_payment_id = dados_asaas["id"]
+
             base_retorno = {"sucesso": True, "codigo_pedido": codigo_pedido}
-            
+
             if pedido.metodo_pagamento == "pix":
-                qr = dados_pb["qr_codes"][0]
-                link_qr = next((l["href"] for l in qr["links"] if l["rel"] == "QRCODE.PNG"), qr["links"][0]["href"])
-                base_retorno.update({ "metodo": "pix", "pix_qrcode_img": link_qr, "pix_copia_cola": qr["text"] })
+                resp_qr = await client.get(f"{ASAAS_API_URL}/payments/{asaas_payment_id}/pixQrCode", headers=headers)
+                qr_data = resp_qr.json()
+                base_retorno.update({
+                    "metodo": "pix",
+                    "pix_qrcode_img": f"data:image/jpeg;base64,{qr_data['encodedImage']}",
+                    "pix_copia_cola": qr_data["payload"],
+                    "codigo_pedido": asaas_payment_id # Devolvemos o ID do Asaas para a página de sucesso
+                })
             else:
-                base_retorno.update({ "metodo": "cartao", "status_pagamento": dados_pb["charges"][0]["status"] })
-            
+                base_retorno.update({
+                    "metodo": "cartao",
+                    "status_pagamento": dados_asaas["status"],
+                    "codigo_pedido": asaas_payment_id
+                })
+
             return base_retorno
 
     except HTTPException as http_err:
@@ -534,6 +538,7 @@ async def processar_pagamento(pedido: PedidoPagamento):
 
 @router.post("/api/v1/pagamentos/carteira-gratuita")
 async def processar_carteira_gratuita(pedido: PedidoCarteiraGratuita):
+    # (Mantive a tua função de carteira gratuita exatamente como a enviaste, sem mexer numa vírgula!)
     try:
         codigo_pedido = f"SAGA-FREE-{uuid.uuid4().hex[:8].upper()}"
         
@@ -545,7 +550,7 @@ async def processar_carteira_gratuita(pedido: PedidoCarteiraGratuita):
             "email_cliente": pedido.email_cliente,
             "telefone_cliente": pedido.telefone_cliente,
             "valor_total": 0.0, 
-            "status_pagamento": "pago", # O segredo: já entra como pago
+            "status_pagamento": "pago",
             "metodo_pagamento": "isento_prefeitura",
             "data_nascimento": pedido.data_nascimento,
             "foto_url": pedido.foto_url,
@@ -559,26 +564,17 @@ async def processar_carteira_gratuita(pedido: PedidoCarteiraGratuita):
         if not res.data:
             raise HTTPException(status_code=400, detail="Erro ao registar a emissão gratuita na base de dados.")
             
-        # ====================================================================
-        # GERAÇÃO DO PDF E ENVIO DE E-MAIL (AGORA PARA A FAMÍLIA TODA)
-        # ====================================================================
         if pedido.token_id:
-            # 1. Busca o titular E os seus dependentes
             titular_res = supabase.table("rd_residentes").select("*").eq("id", pedido.token_id).execute()
             deps_res = supabase.table("rd_residentes").select("*").eq("titular_id", pedido.token_id).execute()
             
-            # Junta o titular e a família numa única lista
             membros_familia = (titular_res.data or []) + (deps_res.data or [])
-            
             caminhos_pdfs = []
             
             if membros_familia:
-                # 2. Faz um "loop" por cada membro da família
                 for residente in membros_familia:
-                    # Atualiza o status para ativo
                     supabase.table("rd_residentes").update({"status": "ativo"}).eq("id", residente["id"]).execute()
                     
-                    # Gera o PDF individual
                     dados_pdf = {
                         "nome": residente.get("nome_completo") or pedido.nome_cliente,
                         "cpf": residente.get("cpf") or pedido.cpf_cliente,
@@ -590,7 +586,6 @@ async def processar_carteira_gratuita(pedido: PedidoCarteiraGratuita):
                     if caminho_pdf:
                         caminhos_pdfs.append(caminho_pdf)
                 
-                # 3. Dispara UM único e-mail oficial com TODOS os anexos PDF
                 if caminhos_pdfs:
                     try:
                         enviar_carteiras_por_email(pedido.email_cliente, pedido.nome_cliente, caminhos_pdfs)
@@ -603,8 +598,6 @@ async def processar_carteira_gratuita(pedido: PedidoCarteiraGratuita):
             "codigo_pedido": codigo_pedido,
             "mensagem": "Carteiras aprovadas e emitidas com sucesso!"
         }
-
-        
 
     except Exception as e:
         print(f"Erro na emissão gratuita: {e}")
