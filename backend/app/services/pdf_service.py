@@ -12,6 +12,7 @@ from reportlab.graphics import renderPDF
 from svglib.svglib import svg2rlg
 from supabase import create_client, Client
 from dotenv import load_dotenv
+from reportlab.lib.pagesizes import A4
 
 load_dotenv()
 SUPABASE_URL = os.getenv("SUPABASE_URL")
