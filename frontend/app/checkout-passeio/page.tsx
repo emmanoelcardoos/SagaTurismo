@@ -3,24 +3,18 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';  // <-- CORREÇÃO: importação adicionada
+import Image from 'next/image';
 import { 
   Loader2, MapPin, ShieldCheck, QrCode, CheckCircle2, 
   User, Mail, Copy, AlertCircle, CreditCard, Lock, 
   ShieldAlert, Clock, Check, ChevronRight, Wallet,
   Smartphone, Users, Calendar, Compass, Menu, X, UserPlus
-} from 'lucide-react'; // <-- CORREÇÃO: removidos isMobileMenuOpen e setIsMobileMenuOpen
+} from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
 
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '700', '800'] });
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
-
-declare global {
-  interface Window {
-    PagSeguro?: any;
-  }
-}
 
 type Passeio = {
   id: string;
@@ -50,12 +44,6 @@ const formatarData = (dataStr: string) => {
   if (!dataStr) return '';
   const [ano, mes, dia] = dataStr.split('-');
   return `${dia}/${mes}/${ano}`;
-};
-
-const formatarParaBackend = (dataBr: string): string => {
-  if (!dataBr || dataBr.length < 10) return '';
-  const [dia, mes, ano] = dataBr.split('/');
-  return `${ano}-${mes}-${dia}`;
 };
 
 function SectionCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
@@ -122,8 +110,7 @@ function CheckoutPasseioContent() {
 
   const [passeio, setPasseio] = useState<Passeio | null>(null);
   const [loadingInitial, setLoadingInitial] = useState(true);
-  const [showHeader, setShowHeader] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Form Fields
   const [nome, setNome] = useState('');
@@ -133,9 +120,6 @@ function CheckoutPasseioContent() {
   
   // Estado Dinâmico para Acompanhantes Extras
   const [hospedesExtras, setHospedesExtras] = useState<Acompanhante[]>([]);
-
-  // CORREÇÃO: estados para o menu mobile
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const numAcompanhantes = Math.max(0, pessoasParam - 1);
@@ -177,26 +161,6 @@ function CheckoutPasseioContent() {
   const custoTaxaPrefeitura = (passeio?.taxa_prefeitura || 0) * pessoasParam;
   const valorTotalFinal = custoBasePasseio + custoTaxaPrefeitura;
 
-  // Injeção do SDK PagBank
-  useEffect(() => {
-    if (typeof window !== 'undefined' && !window.PagSeguro) {
-      const script = document.createElement('script');
-      script.src = "https://assets.pagseguro.com.br/checkout-sdk-js/rc/dist/browser/pagseguro.min.js";
-      script.async = true;
-      document.body.appendChild(script);
-    }
-  }, []);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const cur = window.scrollY;
-      setShowHeader(cur < 80 || cur < lastScrollY);
-      setLastScrollY(cur);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [lastScrollY]);
-
   // Carregar dados estruturais do passeio
   useEffect(() => {
     if (!passeioId) { router.push('/roteiro'); return; }
@@ -223,13 +187,13 @@ function CheckoutPasseioContent() {
     obterPasseioDB();
   }, [passeioId, router]);
 
+  // ── FUNÇÃO DE PAGAMENTO APONTADA PARA O PYTHON (RAILWAY) ──
   const handleProcessarTransacao = async (e: React.FormEvent) => {
     e.preventDefault();
     setErroApi('');
     if (cpf.length < 14) { setErroApi('CPF inválido para emissão do voucher.'); return; }
     if (telefone.length < 14) { setErroApi('WhatsApp obrigatório para avisos de saída.'); return; }
 
-    // Validação preventiva das máscaras dinâmicas antes do POST
     for (let i = 0; i < hospedesExtras.length; i++) {
       if (hospedesExtras[i].data_nascimento.length < 10) {
         setErroApi(`Por favor, preencha a data de nascimento completa do Acompanhante #${i + 1}.`);
@@ -239,84 +203,75 @@ function CheckoutPasseioContent() {
 
     setIsSubmitting(true);
 
-    const acompanhantesFormatados = hospedesExtras.map(h => ({
-      nome: h.nome,
-      cpf: h.cpf.replace(/\D/g, ''),
-      data_nascimento: formatarParaBackend(h.data_nascimento)
-    }));
-
-    const payload: any = {
-      tipo_item: "passeio", 
-      item_id: passeioId,
-      quantidade_pessoas: pessoasParam,
-      nome_cliente: nome, 
-      cpf_cliente: cpf.replace(/\D/g, ''), 
-      email_cliente: email,
-      telefone_cliente: telefone.replace(/\D/g, ''), 
-      valor_total: valorTotalFinal,
-      metodo_pagamento: metodoPagamento,
-      data_checkin: passeio?.data_passeio,
-      hospedes_extras: acompanhantesFormatados,
-      endereco_faturacao: {
-        street: "Centro Municipal",
-        number: "S/N",
-        locality: "Centro",
-        city: "São Geraldo do Araguaia",
-        region_code: "PA",
-        country: "BRA",
-        postal_code: "68570000"
-      }
-    };
-
     try {
-      if (metodoPagamento === 'cartao') {
-        if (!window.PagSeguro || typeof window.PagSeguro.encryptCard !== 'function') {
-          throw new Error('Módulo de criptografia PagBank carregando. Tente novamente em 2 segundos.');
+      const acompanhantesFormatados = hospedesExtras.map(h => ({
+        nome: h.nome,
+        cpf: h.cpf.replace(/\D/g, ''),
+        data_nascimento: formatarParaBackend(h.data_nascimento)
+      }));
+
+      const payload: any = {
+        tipo_item: "passeio", 
+        item_id: passeioId,
+        quantidade_pessoas: pessoasParam,
+        quantidade: pessoasParam,
+        nome_cliente: nome, 
+        cpf_cliente: cpf.replace(/\D/g, ''), 
+        email_cliente: email,
+        telefone_cliente: telefone.replace(/\D/g, ''), 
+        metodo_pagamento: metodoPagamento,
+        data_checkin: passeio?.data_passeio,
+        hospedes_extras: acompanhantesFormatados,
+        endereco_faturacao: {
+          street: "Centro Municipal",
+          number: "S/N",
+          locality: "Centro",
+          city: "São Geraldo do Araguaia",
+          region_code: "PA",
+          country: "BRA",
+          postal_code: "68570000"
         }
-        
-        const key = process.env.NEXT_PUBLIC_PAGBANK_PUBLIC_KEY;
-        if (!key) throw new Error('Chave de encriptação financeira em falta.');
+      };
 
-        const cardData = window.PagSeguro.encryptCard({
-          publicKey: key,
-          holder: nomeCartao,
-          number: numeroCartao.replace(/\D/g, ''),
-          expMonth: mesCartao,
-          expYear: anoCartao,
-          securityCode: cvvCartao
-        });
-
-        if (cardData.hasErrors) throw new Error('Cartão recusado pela operadora ou gateway.');
-
-        payload.encrypted_card = cardData.encryptedCard;
+      if (metodoPagamento === 'cartao') {
         payload.parcelas = 1;
+        payload.dados_cartao = {
+          nome: nomeCartao,
+          numero: numeroCartao.replace(/\D/g, ''),
+          mes: mesCartao,
+          ano: anoCartao,
+          cvv: cvvCartao
+        };
       }
 
+      // CHAMA A TUA API PYTHON OFICIAL!
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://sagaturismo-production.up.railway.app';
       const res = await fetch(`${apiUrl}/api/v1/pagamentos/processar`, {
-        method: 'POST', 
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
+
       const data = await res.json();
 
-      if (data.sucesso) {
-        if (metodoPagamento === 'pix') {
-          setQrCodeData({ 
-            link: data.pix_qrcode_img || data.qr_code_link, 
-            texto: data.pix_copia_cola || data.qr_code_text, 
-            id_pedido: data.codigo_pedido 
-          });
-        } else {
-          router.push(`/sucesso?pedido=${data.codigo_pedido}`);
-        }
-      } else {
-        setErroApi(data.detail || data.mensagem || 'Falha operacional no gateway PagBank.');
+      if (!res.ok || !data.sucesso) {
+        throw new Error(data.detail || data.mensagem || 'Erro ao processar pagamento no banco.');
       }
-    } catch (err: any) { 
-      setErroApi(err.message || 'Erro de conexão.'); 
-    } finally { 
-      setIsSubmitting(false); 
+
+      if (metodoPagamento === 'pix') {
+        setQrCodeData({ 
+          link: data.pix_qrcode_img, 
+          texto: data.pix_copia_cola, 
+          id_pedido: data.codigo_pedido 
+        });
+      } else {
+        router.push(`/sucesso?pedido=${data.codigo_pedido}`);
+      }
+
+    } catch (err: any) {
+      setErroApi(err.message || 'Erro de conexão com o servidor financeiro.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -500,7 +455,7 @@ function CheckoutPasseioContent() {
                  {!pixExpirado && <CronometroPix onExpirado={() => setPixExpirado(true)} />}
 
                  <div className="w-64 h-64 bg-slate-50 mx-auto rounded-[3rem] p-6 border-4 border-dashed border-slate-200 mb-8 flex items-center justify-center shadow-inner relative">
-                    <img src={qrCodeData.link} alt="QR Code PIX" className="w-full h-full mix-blend-multiply relative z-10" />
+                    <img src={`data:image/jpeg;base64,${qrCodeData.link}`} alt="QR Code PIX" className="w-full h-full mix-blend-multiply relative z-10" />
                  </div>
                  
                  <div className="w-full max-w-md mx-auto text-left">
@@ -509,6 +464,10 @@ function CheckoutPasseioContent() {
                     
                     <button onClick={() => {navigator.clipboard.writeText(qrCodeData.texto); setCopiado(true); setTimeout(()=>setCopiado(false),2000)}} className={`w-full py-5 rounded-2xl text-white font-black text-lg flex items-center justify-center gap-3 shadow-xl transition-colors cursor-pointer ${copiado ? 'bg-[#00577C]' : 'bg-[#009640] hover:bg-green-700'}`}>
                         {copiado ? <Check size={20}/> : <Copy size={20}/>} {copiado ? 'Copiado com Sucesso!' : 'Copiar Chave PIX'}
+                    </button>
+                    
+                    <button onClick={() => router.push(`/sucesso?pedido=${qrCodeData.id_pedido}`)} className="w-full py-4 mt-3 rounded-2xl text-slate-600 font-bold text-sm bg-white border-2 border-slate-200 hover:bg-slate-50 transition-colors flex items-center justify-center gap-2">
+                       Já paguei, ver minha reserva <ChevronRight size={18} />
                     </button>
                  </div>
               </SectionCard>
@@ -582,7 +541,7 @@ function CheckoutPasseioContent() {
             </SectionCard>
             
             <div className="flex items-center justify-center gap-2 text-[9px] font-black text-slate-400 uppercase tracking-widest text-center opacity-60">
-               <ShieldCheck size={12}/> PagSeguro Internet S.A.
+               <ShieldCheck size={12}/> Processamento Seguro via Asaas
             </div>
           </aside>
 

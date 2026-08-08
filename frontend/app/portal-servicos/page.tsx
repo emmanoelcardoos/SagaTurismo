@@ -69,7 +69,7 @@ interface Hotel {
   id: string; nome: string; tipo: string; descricao: string; estrelas: number;
   imagem_url: string; whatsapp: string | null; endereco: string | null;
   preco_medio: string | null; comodidades: string[] | null; galeria: string[] | null;
-  pagbank_recebedor_id: string | null; quarto_standard_nome: string | null;
+  asaas_wallet_id: string | null; quarto_standard_nome: string | null;
   quarto_standard_preco: number; quarto_luxo_nome: string | null; quarto_luxo_preco: number;
   quarto_standard_comodidades: string[] | null; quarto_luxo_comodidades: string[] | null;
   quarto_standard_imagens: string[] | null; quarto_luxo_imagens: string[] | null;
@@ -86,7 +86,7 @@ interface Gastronomia {
 
 interface Atracao {
   id: string; nome: string; tipo: string; descricao: string; imagem_url: string;
-  preco_entrada: number; pagbank_recebedor_id: string | null; whatsapp: string | null;
+  preco_entrada: number; asaas_wallet_id: string | null; whatsapp: string | null;
   link_google_maps: string | null; link_hospedagem: string | null; galeria: string[] | null;
 }
 

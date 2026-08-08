@@ -3,24 +3,18 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image'; // <-- adicionado
+import Image from 'next/image';
 import { 
   Loader2, MapPin, ShieldCheck, Bed, QrCode, CheckCircle2, 
   Users, Calendar, Clock, Copy, AlertCircle, 
   CreditCard, Lock, ShieldAlert, Home, Check, ChevronRight,
   Wallet, ChevronLeft, UserPlus, Menu, X, CalendarDays
-} from 'lucide-react'; // <-- removidos isMobileMenuOpen e setIsMobileMenuOpen
+} from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
 
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '700', '800'] });
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
-
-declare global {
-  interface Window {
-    PagSeguro?: any;
-  }
-}
 
 type Hotel = { 
   id: string; nome: string; imagem_url: string;
@@ -197,15 +191,6 @@ function CheckoutHotelContent() {
   const passoPagamento = 3 + hospedesExtras.length;
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && !window.PagSeguro) {
-      const script = document.createElement('script');
-      script.src = "https://assets.pagseguro.com.br/checkout-sdk-js/rc/dist/browser/pagseguro.min.js";
-      script.async = true;
-      document.body.appendChild(script);
-    }
-  }, []);
-
-  useEffect(() => {
     const handleScroll = () => {
       const cur = window.scrollY;
       setShowHeader(cur < 80 || cur < lastScrollY);
@@ -311,91 +296,76 @@ function CheckoutHotelContent() {
   };
 
 
+  // ── FUNÇÃO DE PAGAMENTO UNIFICADA COM O ASAAS ──
   const handlePagamento = async (e: React.FormEvent) => {
     e.preventDefault();
     setErroApi('');
     if (!acomodacaoDisponivel) { setErroApi('Impossível prosseguir. Quarto esgotado.'); return; }
     if (cpf.length < 14) { setErroApi('CPF inválido.'); return; }
 
+    for (let i = 0; i < hospedesExtras.length; i++) {
+      if (hospedesExtras[i].data_nascimento.length < 10) {
+        setErroApi(`Por favor, preencha a data de nascimento completa do Acompanhante #${i + 1}.`);
+        return;
+      }
+    }
+
     setIsSubmitting(true);
 
-    const acompanhantesFormatados = hospedesExtras.map(h => ({
-      nome: h.nome,
-      cpf: h.cpf.replace(/\D/g, ''),
-      data_nascimento: formatarParaBackend(h.data_nascimento)
-    }));
-
-    const payload: any = {
-      tipo_item: "hotel", 
-      hotel_id: hotelId, 
-      tipo_quarto: quartoNomeReal, 
-      data_checkin: checkinData, 
-      data_checkout: checkoutData,
-      adultos: adultosParam, 
-      quantidade: quartosParam,
-      nome_cliente: nome, 
-      cpf_cliente: cpf.replace(/\D/g, ''), 
-      email_cliente: email,
-      telefone_cliente: telefone.replace(/\D/g, ''), 
-      hospedes_extras: acompanhantesFormatados,
-      endereco_faturacao: {
-        street: rua, number: numero, locality: bairro, city: cidade, 
-        region_code: estado.replace(/\s/g, ''), country: "BRA", postal_code: cep.replace(/\D/g, '')
-      }
-    };
-
     try {
+      const payload: any = {
+        touristName: nome,
+        touristEmail: email,
+        touristCpf: cpf,
+        touristPhone: telefone,
+        amount: valorTotalReserva,
+        description: `Reserva Hotel: ${hotel?.nome} - ${quartoNomeReal}`,
+        partnerWalletId: "WALLET_ID_TESTE", // Placeholder. Futuramente buscamos do Supabase
+        partnerPercentual: 90,             
+        paymentMethod: metodoPagamento
+      };
+
       if (metodoPagamento === 'cartao') {
-        if (!window.PagSeguro || typeof window.PagSeguro.encryptCard !== 'function') {
-          throw new Error('O sistema de segurança do cartão ainda está a carregar. Aguarde 2 segundos e tente de novo.');
-        }
-        
-        const key = process.env.NEXT_PUBLIC_PAGBANK_PUBLIC_KEY;
-        if (!key) throw new Error('Chave pública do PagBank não localizada.');
-
-        const cardData = window.PagSeguro.encryptCard({
-          publicKey: key,
-          holder: nomeCartao,
+        payload.installmentCount = parcelas;
+        payload.cardData = {
+          holderName: nomeCartao,
           number: numeroCartao.replace(/\D/g, ''),
-          expMonth: mesCartao,
-          expYear: anoCartao,
-          securityCode: cvvCartao
-        });
-
-        if (cardData.hasErrors) {
-          throw new Error('Dados do cartão recusados pelo gateway de segurança do PagBank.');
-        }
-
-        payload.metodo_pagamento = 'cartao';
-        payload.encrypted_card = cardData.encryptedCard;
-        payload.parcelas = parcelas;
-      } else {
-        payload.metodo_pagamento = 'pix';
+          expiryMonth: mesCartao,
+          expiryYear: anoCartao,
+          ccv: cvvCartao
+        };
+        payload.billingAddress = {
+          postalCode: cep.replace(/\D/g, ''),
+          addressNumber: numero
+        };
       }
 
-      const res = await fetch(`https://sagaturismo-production.up.railway.app/api/v1/pagamentos/processar`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+      const res = await fetch('/api/asaas/create-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
+
       const data = await res.json();
 
-      if (data.sucesso) {
-        if (metodoPagamento === 'pix') {
-          setQrCodeData({ 
-            link: data.pix_qrcode_img, 
-            texto: data.pix_copia_cola, 
-            id_pedido: data.codigo_pedido 
-          });
-        } else {
-          router.push(`/sucesso?pedido=${data.codigo_pedido}`);
-        }
-      } else {
-        setErroApi(data.detail || data.mensagem || 'Ocorreu um erro no processamento financeiro.');
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Erro ao processar pagamento no banco.');
       }
-    } catch (err: any) { 
-      setErroApi(err.message || 'Erro inesperado na assinatura eletrónica.'); 
-    } finally { 
-      setIsSubmitting(false); 
+
+      if (metodoPagamento === 'pix') {
+        setQrCodeData({ 
+          link: data.pixQrCodeImage, 
+          texto: data.pixCopiaECola, 
+          id_pedido: data.paymentId  
+        });
+      } else {
+        router.push(`/sucesso?pedido=${data.paymentId}`);
+      }
+
+    } catch (err: any) {
+      setErroApi(err.message || 'Erro de conexão com o servidor financeiro.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -689,10 +659,13 @@ function CheckoutHotelContent() {
                  <h2 className={`${jakarta.className} text-3xl md:text-4xl font-black text-slate-900 mb-4`}>Pedido Criado!</h2>
                  <p className="text-slate-500 mb-10 text-lg">Conclua o pagamento via PIX para garantir sua reserva imediatamente.</p>
                  <div className="w-64 h-64 bg-slate-50 mx-auto rounded-[3rem] p-6 border-4 border-dashed border-slate-200 mb-8 flex items-center justify-center shadow-inner relative">
-                    <img src={qrCodeData.link} alt="QR Code" className="w-full h-full mix-blend-multiply relative z-10" />
+                    <img src={`data:image/jpeg;base64,${qrCodeData.link}`} alt="QR Code" className="w-full h-full mix-blend-multiply relative z-10" />
                  </div>
                  <button onClick={() => {navigator.clipboard.writeText(qrCodeData.texto); alert('Código PIX Copiado!')}} className="w-full py-5 rounded-2xl bg-[#009640] hover:bg-[#007a33] text-white font-black text-lg flex items-center justify-center gap-3 shadow-xl mb-8 transition-colors active:scale-95">
                     <Copy size={20}/> Copiar Código PIX
+                 </button>
+                 <button onClick={() => router.push(`/sucesso?pedido=${qrCodeData.id_pedido}`)} className="w-full py-4 rounded-2xl text-slate-600 font-bold text-sm bg-white border-2 border-slate-200 hover:bg-slate-50 transition-colors flex items-center justify-center gap-2">
+                    Já paguei, ver minha reserva <ChevronRight size={18} />
                  </button>
               </SectionCard>
             )}
