@@ -182,7 +182,7 @@ export default function PasseiosPage() {
       <footer className="relative z-10 py-6 md:py-7 border-t border-white/5 mt-8 md:mt-0">
         <div className="w-full max-w-[1400px] mx-auto px-5 md:px-14 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className={`${jakarta.className} text-[9px] md:text-[10px] font-bold text-white/20 uppercase tracking-widest text-center md:text-left`}>
-            © {new Date().getFullYear()} Prefeitura Municipal de São Geraldo do Araguaia — Todos os direitos reservados.
+            © {new Date().getFullYear()} Secretaria Municipal de Turismo de São Geraldo do Araguaia. Todos os direitos reservados.
           </p>
         </div>
       </footer>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, Suspense } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -454,8 +455,8 @@ function CheckoutPasseioContent() {
                  
                  {!pixExpirado && <CronometroPix onExpirado={() => setPixExpirado(true)} />}
 
-                 <div className="w-64 h-64 bg-slate-50 mx-auto rounded-[3rem] p-6 border-4 border-dashed border-slate-200 mb-8 flex items-center justify-center shadow-inner relative">
-                    <img src={`data:image/jpeg;base64,${qrCodeData.link}`} alt="QR Code PIX" className="w-full h-full mix-blend-multiply relative z-10" />
+                 <div className="w-64 h-64 bg-white mx-auto rounded-[3rem] p-6 border-4 border-dashed border-slate-200 mb-8 flex items-center justify-center shadow-inner relative">
+                    <QRCodeSVG value={qrCodeData.texto} size={200} level="M" />
                  </div>
                  
                  <div className="w-full max-w-md mx-auto text-left">
