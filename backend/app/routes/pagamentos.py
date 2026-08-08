@@ -515,11 +515,16 @@ async def processar_pagamento(pedido: PedidoPagamento):
             if pedido.metodo_pagamento == "pix":
                 resp_qr = await client.get(f"{ASAAS_API_URL}/payments/{asaas_payment_id}/pixQrCode", headers=headers)
                 qr_data = resp_qr.json()
+                
+                # Tratamento seguro caso o Asaas demore a gerar a imagem
+                base64_img = qr_data.get('encodedImage') or ''
+                payload_copia_cola = qr_data.get('payload') or ''
+
                 base_retorno.update({
                     "metodo": "pix",
-                    "pix_qrcode_img": f"data:image/jpeg;base64,{qr_data['encodedImage']}",
-                    "pix_copia_cola": qr_data["payload"],
-                    "codigo_pedido": asaas_payment_id # Devolvemos o ID do Asaas para a página de sucesso
+                    "pix_qrcode_img": f"data:image/jpeg;base64,{base64_img}" if base64_img else "",
+                    "pix_copia_cola": payload_copia_cola,
+                    "codigo_pedido": asaas_payment_id 
                 })
             else:
                 base_retorno.update({
