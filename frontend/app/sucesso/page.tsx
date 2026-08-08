@@ -68,7 +68,9 @@ function SucessoContent() {
       }
 
       try {
-        const res = await fetch(`/api/asaas/check-payment?paymentId=${pedidoId}`);
+        // CHAMA A TUA API PYTHON OFICIAL!
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://sagaturismo-production.up.railway.app';
+        const res = await fetch(`${apiUrl}/api/v1/pagamentos/status/${pedidoId}`);
         const data = await res.json();
 
         if (!res.ok || !data.success) {
