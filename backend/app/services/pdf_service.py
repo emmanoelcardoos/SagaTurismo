@@ -28,6 +28,27 @@ COR_TEXTO_ESCURO = colors.HexColor("#1A1A1A")   # Preto principal
 COR_TEXTO_SUAVE = colors.HexColor("#374151")    # Cinza escuro para labels
 COR_BRANCO = colors.white
 
+# ─── CONSTANTES DE MARGEM E CORES DO VOUCHER ───
+MARGIN_X = 15 * mm
+MARGIN_Y = 15 * mm
+COR_LINHA = colors.HexColor("#E5E7EB")
+COR_TEXTO_MEDIO = colors.HexColor("#4B5563")
+COR_FUNDO_BOX = colors.HexColor("#F9FAFB")
+COR_FUNDO_DESTAQUE = colors.HexColor("#EFF6FF")
+
+# ─── FUNÇÕES DE FORMATAÇÃO DO VOUCHER ───
+def _formatar_data_br(data_str: str) -> str:
+    if not data_str: return "—"
+    try:
+        partes = str(data_str).split("T")[0].split("-")
+        if len(partes) == 3: return f"{partes[2]}/{partes[1]}/{partes[0]}"
+    except: pass
+    return str(data_str)
+
+def formatar_moeda(valor) -> str:
+    try: return f"R$ {float(valor):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    except: return "R$ 0,00"
+
 LOGO_URL = "https://sagatur.com.br/logop.png"
 
 # ─── FUNÇÕES AUXILIARES GERAIS E DESIGN ─────────────────────────────────────
