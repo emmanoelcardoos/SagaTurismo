@@ -157,6 +157,33 @@ function CheckoutPasseioContent() {
   const [pixExpirado, setPixExpirado] = useState(false);
   const [copiado, setCopiado] = useState(false);
 
+  // ── RADAR DE REDIRECIONAMENTO AUTOMÁTICO (POLLING) ──
+  useEffect(() => {
+    let interval;
+    // Só ativa o radar se houver um QR Code gerado na tela
+    if (qrCodeData && qrCodeData.id_pedido) {
+      interval = setInterval(async () => {
+        try {
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://sagaturismo-production.up.railway.app';
+          const res = await fetch(`${apiUrl}/api/v1/pagamentos/status/${qrCodeData.id_pedido}`);
+          const data = await res.json();
+          
+          // Se o Asaas responder que já recebeu o dinheiro, cancela o radar e redireciona!
+          if (data.success && (data.status === 'RECEIVED' || data.status === 'CONFIRMED')) {
+            clearInterval(interval);
+            router.push(`/sucesso?pedido=${qrCodeData.id_pedido}`);
+          }
+        } catch (err) {
+          console.error("Erro no radar de pagamento:", err);
+        }
+      }, 5000); // Pergunta ao banco de 5 em 5 segundos
+    }
+    
+    // Limpa o radar se o utilizador sair da página
+    return () => clearInterval(interval);
+  }, [qrCodeData, router]);
+
+  
   // Custos Operacionais Computados
   const custoBasePasseio = (passeio?.valor_total || 0) * pessoasParam;
   const custoTaxaPrefeitura = (passeio?.taxa_prefeitura || 0) * pessoasParam;
@@ -355,7 +382,7 @@ function CheckoutPasseioContent() {
                     <div className="grid gap-5 md:gap-6 sm:grid-cols-2">
                       <div className="sm:col-span-2">
                         <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Nome Completo *</label>
-                        <input required value={nome} onChange={e => setNome(e.target.value)} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF] focus:bg-white" placeholder="Nome completo para o manifesto de embarque" />
+                        <input required value={nome} onChange={e => setNome(e.target.value)} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#0085FF] focus:bg-white" placeholder="ex: João Silva" />
                       </div>
                       <div>
                         <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">CPF *</label>
@@ -526,18 +553,12 @@ function CheckoutPasseioContent() {
 
                  <div className="pt-6 border-t-2 border-slate-100 flex flex-col gap-3">
                     <div className="flex items-center justify-between">
-                       <p className="text-xs font-black uppercase text-slate-400 tracking-widest">Total a Liquidar</p>
-                       <div className="bg-green-50 px-2.5 py-1 rounded-full flex items-center gap-1 text-[#009640] text-[9px] font-black uppercase border border-green-100"><Check size={10} strokeWidth={4}/> Garantido</div>
+                       <p className="text-xs font-black uppercase text-slate-400 tracking-widest">Total a Pagar</p>
                     </div>
                     <p className={`${jakarta.className} text-4xl font-black text-[#00577C] tabular-nums leading-none`}>
                       {formatarMoeda(valorTotalFinal)}
                     </p>
                  </div>
-              </div>
-
-              <div className="p-5 md:p-6 bg-slate-900 text-white flex items-center gap-4">
-                 <ShieldAlert size={26} className="text-[#F9C400] shrink-0" />
-                 <p className="text-[10px] font-bold text-slate-300 uppercase tracking-wider text-left leading-relaxed">Voucher oficial homologado e monitorado pela central municipal de turismo.</p>
               </div>
             </SectionCard>
             
