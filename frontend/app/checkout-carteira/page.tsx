@@ -525,16 +525,8 @@ function CheckoutCarteiraContent() {
                     </p>
                  </div>
               </div>
-
-              <div className="p-6 md:p-8 bg-slate-900 text-white flex items-center gap-4">
-                 <ShieldAlert size={28} className="text-[#009640] shrink-0" />
-                 <p className="text-[10px] md:text-xs font-medium text-slate-300 uppercase tracking-wider text-left">O valor total é destinado exclusivamente aos cofres da Prefeitura Municipal.</p>
-              </div>
             </SectionCard>
-            
-            <div className="flex items-center justify-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center opacity-60">
-               <ShieldCheck size={14}/> PagSeguro Internet S.A.
-            </div>
+          
           </aside>
         </div>
       </div>
