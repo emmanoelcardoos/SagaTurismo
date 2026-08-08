@@ -607,3 +607,22 @@ async def processar_carteira_gratuita(pedido: PedidoCarteiraGratuita):
     except Exception as e:
         print(f"Erro na emissão gratuita: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/api/v1/pagamentos/status/{payment_id}")
+async def verificar_status_pagamento(payment_id: str):
+    try:
+        headers = {"access_token": ASAAS_API_KEY}
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(f"{ASAAS_API_URL}/payments/{payment_id}", headers=headers)
+            if resp.status_code == 200:
+                data = resp.json()
+                return {
+                    "success": True,
+                    "status": data.get("status"),
+                    "value": data.get("value"),
+                    "description": data.get("description"),
+                    "billingType": data.get("billingType")
+                }
+            return {"success": False, "error": "Pagamento não encontrado no Asaas."}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
