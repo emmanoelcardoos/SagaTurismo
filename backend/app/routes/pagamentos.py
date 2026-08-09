@@ -626,3 +626,39 @@ async def verificar_status_pagamento(payment_id: str):
             return {"success": False, "error": "Pagamento não encontrado no Asaas."}
     except Exception as e:
         return {"success": False, "error": str(e)}
+
+@router.post("/api/v1/parceiros/criar-carteira")
+async def criar_carteira_asaas(dados: dict):
+    try:
+        headers = {
+            "access_token": ASAAS_API_KEY,
+            "Content-Type": "application/json"
+        }
+        
+        # O Asaas exige estes campos para criar uma subconta (carteira)
+        payload_asaas = {
+            "name": dados.get("name"),
+            "email": dados.get("email"),
+            "loginEmail": dados.get("email"),
+            "cpfCnpj": dados.get("cpfCnpj"),
+            "phone": dados.get("phone"),
+            "mobilePhone": dados.get("phone"),
+            "postalCode": dados.get("postalCode"),
+            "address": dados.get("address"),
+            "addressNumber": dados.get("addressNumber"),
+            "province": dados.get("province"),
+        }
+        
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(f"{ASAAS_API_URL}/accounts", json=payload_asaas, headers=headers)
+            data = resp.json()
+            
+            if resp.status_code == 200 and data.get("walletId"):
+                return {"sucesso": True, "asaas_wallet_id": data["walletId"]}
+            else:
+                # Captura a mensagem de erro exata do Asaas (ex: CNPJ inválido, etc)
+                erro_msg = data.get("errors", [{"description": "Erro ao criar carteira no Asaas"}])[0]["description"]
+                return {"sucesso": False, "erro": erro_msg}
+                
+    except Exception as e:
+        return {"sucesso": False, "erro": str(e)}
