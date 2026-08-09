@@ -258,33 +258,38 @@ export default function CriarPacotePage() {
 
       const { data: urlPublica } = supabase.storage.from('imagens-passeios').getPublicUrl(pathCapa);
 
-      const { data: novoPacote, error: errPacote } = await supabase
-        .from('pacotes')
-        .insert([{
-          titulo: formData.titulo,
-          descricao_curta: formData.descricao_curta,
-          roteiro_detalhado: formData.roteiro_detalhado,
-          imagem_principal: urlPublica.publicUrl,
-          dias: duracaoDias,
-          noites: duracaoDias - 1,
-          preco: precoFinal,
-          categoria: formData.categoria,
-          horarios_info: formData.horarios_info || null,
-          vagas_totais: parseInt(formData.vagas_totais) || 0,
-          parceiro_id: parceiroId, 
-          ativo: formData.ativo,
-          periodo_inicio: periodoInicio || null,
-          periodo_fim: periodoFim || null,
-          dias_inicio_semana: diasSemana.length ? diasSemana : null,
-          duracao_fixa: true
-        }])
-        .select().single();
+      // Enviamos os dados para a nossa Ponte Segura no Next.js
+      const res = await fetch('/api/v1/pacotes/criar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pacoteData: {
+            titulo: formData.titulo,
+            descricao_curta: formData.descricao_curta,
+            roteiro_detalhado: formData.roteiro_detalhado,
+            imagem_principal: urlPublica.publicUrl,
+            dias: duracaoDias,
+            noites: duracaoDias - 1,
+            preco: precoFinal,
+            categoria: formData.categoria,
+            horarios_info: formData.horarios_info || null,
+            vagas_totais: parseInt(formData.vagas_totais) || 0,
+            parceiro_id: parceiroId,
+            ativo: formData.ativo,
+            periodo_inicio: periodoInicio || null,
+            periodo_fim: periodoFim || null,
+            dias_inicio_semana: diasSemana.length ? diasSemana : null,
+            duracao_fixa: true
+          },
+          itensData: {
+            hotel_id: selectedHotelId,
+            guia_id: selectedGuiaId
+          }
+        })
+      });
 
-      const { error: errItens } = await supabase
-        .from('pacote_itens')
-        .insert([{ pacote_id: novoPacote.id, hotel_id: selectedHotelId, guia_id: selectedGuiaId }]);
-
-      if (errItens) throw errItens;
+      const dataResposta = await res.json();
+      if (!dataResposta.sucesso) throw new Error(dataResposta.error);
 
       setSucesso(true);
       setTimeout(() => router.push('/parceiros/dashboard-agencia'), 2000);

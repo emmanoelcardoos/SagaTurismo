@@ -4,13 +4,13 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
+import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
+import { supabase } from '@/lib/supabase';
 import { 
   Loader2, LogOut, Map, 
   TrendingUp, Users, Plus, Bed, Compass, 
-  Calendar, ArrowRight
+  Calendar, ArrowRight, Wallet, CheckCircle2 
 } from 'lucide-react';
-import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
-import { supabase } from '@/lib/supabase';
 
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['600', '700', '800'] });
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
@@ -18,18 +18,17 @@ const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] }
 type Pacote = {
   id: string;
   titulo: string;
-  descricao_curta: string; // ◄── Corrigido de acordo com o Schema
+  descricao_curta: string;
   imagem_principal?: string;
-  dias: number; // ◄── Corrigido de acordo com o Schema
-  noites: number; // ◄── Corrigido de acordo com o Schema
+  dias: number;
+  noites: number;
   preco: number;
   ativo?: boolean;
 };
 
 type MetricasAgencia = {
   total_vendido: number;
-  repasse_hoteis: number;
-  repasse_guias: number;
+  total_pedidos: number;
 };
 
 export default function DashboardAgenciaPage() {
@@ -38,8 +37,13 @@ export default function DashboardAgenciaPage() {
   const [nomeNegocio, setNomeNegocio] = useState<string>('');
   
   const [loading, setLoading] = useState(true);
-  const [metricas, setMetricas] = useState<MetricasAgencia>({ total_vendido: 0, repasse_hoteis: 0, repasse_guias: 0 });
+  const [metricas, setMetricas] = useState<MetricasAgencia>({ total_vendido: 0, total_pedidos: 0 });
   const [pacotes, setPacotes] = useState<Pacote[]>([]);
+
+  // ── ESTADOS DA CHAVE PIX ──
+  const [chavePix, setChavePix] = useState('');
+  const [salvandoPix, setSalvandoPix] = useState(false);
+  const [mensagemPix, setMensagemPix] = useState('');
 
   // 1. VALIDAÇÃO DE SESSÃO DA AGÊNCIA
   useEffect(() => {
@@ -65,37 +69,44 @@ export default function DashboardAgenciaPage() {
         const { data: dadosPacotes, error: errPacotes } = await supabase
           .from('pacotes')
           .select('id, titulo, descricao_curta, imagem_principal, dias, noites, preco, ativo')
-          .eq('parceiro_id', parceiroId); // ◄── TRAVA 1: Filtra apenas os pacotes deste parceiro
+          .eq('parceiro_id', parceiroId);
 
         let pacotesDaAgenciaIds: string[] = [];
 
         if (!errPacotes && dadosPacotes) {
           setPacotes(dadosPacotes as Pacote[]);
-          // Guarda os IDs dos pacotes desta agência para usarmos nas métricas financeiras
           pacotesDaAgenciaIds = dadosPacotes.map(p => p.id); 
         }
 
         // B) Buscar o histórico de vendas mapeando também o item_id
         const { data: dadosPedidos, error: errPedidos } = await supabase
           .from('pedidos')
-          .select('valor_total, repasse_hotel, repasse_guia, tipo_item, status_pagamento, item_id'); // ◄── Adicionado o item_id
+          .select('valor_total, repasse_hotel, repasse_guia, tipo_item, status_pagamento, item_id');
 
         if (!errPedidos && dadosPedidos) {
-          
-          // Filtra os pedidos para somar APENAS os pacotes que pertencem à lista de IDs desta agência
           const totais = dadosPedidos
             .filter(pedido => 
                pedido.tipo_item?.toLowerCase().trim() === 'pacote' && 
                pedido.status_pagamento?.toLowerCase().trim() === 'pago' &&
-               pacotesDaAgenciaIds.includes(pedido.item_id) // ◄── TRAVA 2: Só conta dinheiro dos pacotes dela
+               pacotesDaAgenciaIds.includes(pedido.item_id)
             )
             .reduce((acc, pedido) => ({
               total_vendido: acc.total_vendido + (Number(pedido.valor_total) || 0),
-              repasse_hoteis: acc.repasse_hoteis + (Number(pedido.repasse_hotel) || 0),
-              repasse_guias: acc.repasse_guias + (Number(pedido.repasse_guia) || 0),
-            }), { total_vendido: 0, repasse_hoteis: 0, repasse_guias: 0 });
+              total_pedidos: acc.total_pedidos + 1,
+            }), { total_vendido: 0, total_pedidos: 0 });
 
           setMetricas(totais);
+        }
+
+        // C) Buscar a Chave PIX atual do parceiro
+        const { data: parceiroData } = await supabase
+          .from('parceiros')
+          .select('chave_pix')
+          .eq('id', parceiroId)
+          .single();
+          
+        if (parceiroData?.chave_pix) {
+          setChavePix(parceiroData.chave_pix);
         }
 
       } catch (error) {
@@ -107,6 +118,25 @@ export default function DashboardAgenciaPage() {
     
     carregarDashboard();
   }, [parceiroId]);
+
+  const handleSalvarPix = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSalvandoPix(true);
+    setMensagemPix('');
+    try {
+      const { error } = await supabase
+        .from('parceiros')
+        .update({ chave_pix: chavePix })
+        .eq('id', parceiroId);
+      if (error) throw error;
+      setMensagemPix('Chave PIX atualizada! O saque automático está ativado.');
+    } catch (err) {
+      setMensagemPix('Erro ao guardar a chave PIX. Tente novamente.');
+    } finally {
+      setSalvandoPix(false);
+      setTimeout(() => setMensagemPix(''), 4000);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.clear();
@@ -159,14 +189,44 @@ export default function DashboardAgenciaPage() {
 
       <div className="mx-auto w-full max-w-7xl px-4 md:px-10 py-8 flex-1 space-y-10">
         
-        {/* BALANÇO FINANCEIRO DE DISTRIBUIÇÃO */}
+        {/* ── CONFIGURAÇÕES FINANCEIRAS (CHAVE PIX) ── */}
+        <section className="bg-white rounded-[2rem] border border-slate-200 p-6 md:p-8 shadow-sm flex flex-col lg:flex-row items-center gap-8">
+           <div className="flex-1 text-left">
+             <div className="flex items-center gap-3 mb-2">
+                <div className="bg-[#009640]/10 text-[#009640] p-2.5 rounded-xl shadow-sm"><Wallet size={20}/></div>
+                <h2 className={`${jakarta.className} text-xl md:text-2xl font-black text-slate-800`}>Recebimento Automático</h2>
+             </div>
+             <p className="text-sm font-medium text-slate-500 max-w-md mt-2">
+               Defina a sua Chave PIX para receber automaticamente o repasse das suas vendas. O saldo será transferido da sua Wallet no Asaas diretamente para a sua conta bancária sem taxas ocultas.
+             </p>
+           </div>
+           
+           <div className="flex-1 w-full bg-slate-50 border border-slate-100 p-5 rounded-2xl text-left">
+             <form onSubmit={handleSalvarPix} className="flex flex-col gap-3">
+                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Sua Chave PIX (Telefone, CPF/CNPJ, E-mail ou Aleatória)</label>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <input required type="text" value={chavePix} onChange={(e) => setChavePix(e.target.value)} placeholder="Insira a sua Chave PIX..." className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3.5 text-sm font-bold text-slate-700 outline-none focus:border-[#009640] transition-colors shadow-sm" />
+                  <button type="submit" disabled={salvandoPix} className="bg-[#009640] hover:bg-green-700 disabled:opacity-50 disabled:active:scale-100 text-white font-black text-xs uppercase tracking-widest px-6 py-3.5 rounded-xl shadow-md transition-all shrink-0 active:scale-95">
+                    {salvandoPix ? 'A Guardar...' : 'Salvar Chave'}
+                  </button>
+                </div>
+                {mensagemPix && (
+                  <p className={`text-xs font-bold mt-1 ${mensagemPix.includes('Erro') ? 'text-red-500' : 'text-[#009640]'} flex items-center gap-1.5 animate-in fade-in`}>
+                    <CheckCircle2 size={14}/> {mensagemPix}
+                  </p>
+                )}
+             </form>
+           </div>
+        </section>
+
+        {/* BALANÇO FINANCEIRO DE VENDAS */}
         <section>
           <div className="flex items-center justify-between mb-5">
-             <h2 className={`${jakarta.className} text-xl font-black text-slate-800`}>Balanço de Distribuição</h2>
+             <h2 className={`${jakarta.className} text-xl font-black text-slate-800`}>Balanço de Vendas</h2>
              <span className="bg-slate-200 text-slate-500 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full">Sincronizado</span>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
             {/* TOTAL VENDIDO */}
             <div className="bg-white rounded-[2rem] border border-slate-200 p-8 shadow-md flex flex-col justify-between group relative overflow-hidden">
@@ -178,42 +238,28 @@ export default function DashboardAgenciaPage() {
                   <p className={`${jakarta.className} text-4xl font-black text-slate-900`}>{formatarMoeda(metricas.total_vendido)}</p>
                </div>
                <div className="mt-6 border-t border-slate-100 pt-4 relative z-10">
-                 <p className="text-xs font-bold text-slate-500">Volume Bruto captado de pacotes.</p>
+                 <p className="text-xs font-bold text-slate-500">Volume Bruto captado pela agência.</p>
                </div>
             </div>
 
-            {/* REPASSE HOTEIS */}
-            <div className="bg-white rounded-[2rem] border border-slate-200 p-8 shadow-md flex flex-col justify-between group relative overflow-hidden">
-               <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-700"></div>
-               <div className="relative z-10">
-                  <p className="text-[10px] font-black text-slate-400 tracking-widest mb-3 flex items-center gap-2 uppercase">
-                    <Bed size={14} className="text-amber-500"/> Repassado a Hotéis
-                  </p>
-                  <p className={`${jakarta.className} text-4xl font-black text-amber-500`}>{formatarMoeda(metricas.repasse_hoteis)}</p>
-               </div>
-               <div className="mt-6 border-t border-slate-100 pt-4 relative z-10 flex items-center justify-between">
-                 <p className="text-xs font-bold text-slate-500">Custos de alojamento.</p>
-                 <span className="text-[10px] font-black bg-amber-50 text-amber-600 px-2 py-1 rounded">HOSPEDAGEM</span>
-               </div>
-            </div>
-
-            {/* REPASSE GUIAS */}
+            {/* QUANTIDADE DE PACOTES VENDIDOS */}
             <div className="bg-white rounded-[2rem] border border-slate-200 p-8 shadow-md flex flex-col justify-between group relative overflow-hidden">
                <div className="absolute top-0 right-0 w-32 h-32 bg-[#009640]/5 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-700"></div>
                <div className="relative z-10">
                   <p className="text-[10px] font-black text-slate-400 tracking-widest mb-3 flex items-center gap-2 uppercase">
-                    <Compass size={14} className="text-[#009640]"/> Repassado a Guias
+                    <Users size={14} className="text-[#009640]"/> Pacotes Vendidos
                   </p>
-                  <p className={`${jakarta.className} text-4xl font-black text-[#009640]`}>{formatarMoeda(metricas.repasse_guias)}</p>
+                  <p className={`${jakarta.className} text-4xl font-black text-[#009640]`}>{metricas.total_pedidos}</p>
                </div>
                <div className="mt-6 border-t border-slate-100 pt-4 relative z-10 flex items-center justify-between">
-                 <p className="text-xs font-bold text-slate-500">Custos de condução local.</p>
-                 <span className="text-[10px] font-black bg-green-50 text-green-700 px-2 py-1 rounded">SERVIÇO</span>
+                 <p className="text-xs font-bold text-slate-500">Reservas confirmadas e pagas.</p>
+                 <span className="text-[10px] font-black bg-green-50 text-green-700 px-2 py-1 rounded">SUCESSO</span>
                </div>
             </div>
 
           </div>
         </section>
+        
 
         {/* LISTAGEM DE PACOTES ATIVOS */}
         <section>
