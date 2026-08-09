@@ -108,6 +108,7 @@ export default function AtivarContaPage() {
           name: parceiro.nome_negocio,
           email: email,
           cpfCnpj: cleanCpfCnpj,
+          birthDate: dataNascimento,
           phone: cleanTelefone,
           postalCode: cleanCep,
           address: endereco,
