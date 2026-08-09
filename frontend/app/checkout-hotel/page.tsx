@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
+import { QRCodeSVG } from 'qrcode.react';
 
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '700', '800'] });
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
@@ -296,7 +297,7 @@ function CheckoutHotelContent() {
   };
 
 
-  // ── FUNÇÃO DE PAGAMENTO UNIFICADA COM O ASAAS ──
+  // ── FUNÇÃO DE PAGAMENTO UNIFICADA COM O PYTHON ──
   const handlePagamento = async (e: React.FormEvent) => {
     e.preventDefault();
     setErroApi('');
@@ -313,34 +314,51 @@ function CheckoutHotelContent() {
     setIsSubmitting(true);
 
     try {
+      const acompanhantesFormatados = hospedesExtras.map(h => ({
+        nome: h.nome,
+        cpf: h.cpf.replace(/\D/g, ''),
+        data_nascimento: formatarParaBackend(h.data_nascimento)
+      }));
+
       const payload: any = {
-        touristName: nome,
-        touristEmail: email,
-        touristCpf: cpf,
-        touristPhone: telefone,
-        amount: valorTotalReserva,
-        description: `Reserva Hotel: ${hotel?.nome} - ${quartoNomeReal}`,
-        partnerWalletId: "WALLET_ID_TESTE", // Placeholder. Futuramente buscamos do Supabase
-        partnerPercentual: 90,             
-        paymentMethod: metodoPagamento
+        tipo_item: "hotel", 
+        hotel_id: hotelId,
+        tipo_quarto: quartoNomeReal, 
+        data_checkin: checkinData,
+        data_checkout: checkoutData,
+        quantidade: quartosParam,
+        adultos: adultosParam,
+        nome_cliente: nome, 
+        cpf_cliente: cpf.replace(/\D/g, ''), 
+        email_cliente: email,
+        telefone_cliente: telefone.replace(/\D/g, ''), 
+        hospedes_extras: acompanhantesFormatados,
+        endereco_faturacao: {
+          street: rua,
+          number: numero,
+          locality: bairro,
+          city: cidade,
+          region_code: estado.replace(/\s/g, ''),
+          country: "BRA",
+          postal_code: cep.replace(/\D/g, '')
+        },
+        metodo_pagamento: metodoPagamento
       };
 
       if (metodoPagamento === 'cartao') {
-        payload.installmentCount = parcelas;
-        payload.cardData = {
-          holderName: nomeCartao,
-          number: numeroCartao.replace(/\D/g, ''),
-          expiryMonth: mesCartao,
-          expiryYear: anoCartao,
-          ccv: cvvCartao
-        };
-        payload.billingAddress = {
-          postalCode: cep.replace(/\D/g, ''),
-          addressNumber: numero
+        payload.parcelas = parcelas;
+        payload.dados_cartao = {
+          nome: nomeCartao,
+          numero: numeroCartao.replace(/\D/g, ''),
+          mes: mesCartao,
+          ano: anoCartao,
+          cvv: cvvCartao
         };
       }
 
-      const res = await fetch('/api/asaas/create-payment', {
+      // Comunicação direta com a API Python
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://sagaturismo-production.up.railway.app';
+      const res = await fetch(`${apiUrl}/api/v1/pagamentos/processar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -348,18 +366,18 @@ function CheckoutHotelContent() {
 
       const data = await res.json();
 
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Erro ao processar pagamento no banco.');
+      if (!res.ok || !data.sucesso) {
+        throw new Error(data.error || data.detail || data.mensagem || 'Erro ao processar pagamento no banco.');
       }
 
       if (metodoPagamento === 'pix') {
         setQrCodeData({ 
-          link: data.pixQrCodeImage, 
-          texto: data.pixCopiaECola, 
-          id_pedido: data.paymentId  
+          link: data.pix_qrcode_img, 
+          texto: data.pix_copia_cola, 
+          id_pedido: data.codigo_pedido  
         });
       } else {
-        router.push(`/sucesso?pedido=${data.paymentId}`);
+        router.push(`/sucesso?pedido=${data.codigo_pedido}`);
       }
 
     } catch (err: any) {
@@ -368,6 +386,28 @@ function CheckoutHotelContent() {
       setIsSubmitting(false);
     }
   };
+
+  // ── RADAR DE REDIRECIONAMENTO AUTOMÁTICO (POLLING) ──
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (qrCodeData && qrCodeData.id_pedido) {
+      interval = setInterval(async () => {
+        try {
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://sagaturismo-production.up.railway.app';
+          const res = await fetch(`${apiUrl}/api/v1/pagamentos/status/${qrCodeData.id_pedido}`);
+          const data = await res.json();
+          
+          if (data.success && (data.status === 'RECEIVED' || data.status === 'CONFIRMED')) {
+            clearInterval(interval);
+            router.push(`/sucesso?pedido=${qrCodeData.id_pedido}`);
+          }
+        } catch (err) {
+          console.error("Erro no radar de pagamento:", err);
+        }
+      }, 5000);
+    }
+    return () => clearInterval(interval);
+  }, [qrCodeData, router]);
 
   const precoBaseDiaria = quartoSelecionado ? Number(quartoSelecionado.preco_quarto) : 0;
   const valorBaseMatematico = precoBaseDiaria * numNoites * quartosParam;
@@ -658,8 +698,8 @@ function CheckoutHotelContent() {
                  <div className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6"><CheckCircle2 size={48} className="text-[#009640]"/></div>
                  <h2 className={`${jakarta.className} text-3xl md:text-4xl font-black text-slate-900 mb-4`}>Pedido Criado!</h2>
                  <p className="text-slate-500 mb-10 text-lg">Conclua o pagamento via PIX para garantir sua reserva imediatamente.</p>
-                 <div className="w-64 h-64 bg-slate-50 mx-auto rounded-[3rem] p-6 border-4 border-dashed border-slate-200 mb-8 flex items-center justify-center shadow-inner relative">
-                    <img src={`data:image/jpeg;base64,${qrCodeData.link}`} alt="QR Code" className="w-full h-full mix-blend-multiply relative z-10" />
+                 <div className="w-64 h-64 bg-white mx-auto rounded-[3rem] p-6 border-4 border-dashed border-slate-200 mb-8 flex items-center justify-center shadow-inner relative">
+                    <QRCodeSVG value={qrCodeData.texto} size={200} level="M" />
                  </div>
                  <button onClick={() => {navigator.clipboard.writeText(qrCodeData.texto); alert('Código PIX Copiado!')}} className="w-full py-5 rounded-2xl bg-[#009640] hover:bg-[#007a33] text-white font-black text-lg flex items-center justify-center gap-3 shadow-xl mb-8 transition-colors active:scale-95">
                     <Copy size={20}/> Copiar Código PIX

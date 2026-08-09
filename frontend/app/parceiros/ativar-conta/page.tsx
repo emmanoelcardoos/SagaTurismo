@@ -99,8 +99,9 @@ export default function AtivarContaPage() {
       if (cleanCep.length !== 8) throw new Error("Insira um CEP válido.");
       if (!dataNascimento) throw new Error("Data de nascimento/fundação é obrigatória.");
 
-      // 1. Cria a conta no Asaas
-      const resAsaas = await fetch('/api/asaas/create-subaccount', {
+      // 1. Cria a conta no Asaas via API Python
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://sagaturismo-production.up.railway.app';
+      const resAsaas = await fetch(`${apiUrl}/api/v1/parceiros/criar-carteira`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -111,16 +112,14 @@ export default function AtivarContaPage() {
           postalCode: cleanCep,
           address: endereco,
           addressNumber: numero,
-          province: bairro,
-          birthDate: dataNascimento // O input type="date" já devolve YYYY-MM-DD
+          province: bairro
         })
       });
 
       const dataAsaas = await resAsaas.json();
 
-      if (!resAsaas.ok) {
-        console.error("Erro Asaas:", dataAsaas.details);
-        throw new Error(dataAsaas.details?.errors?.[0]?.description || "Erro ao criar carteira financeira. Verifique os dados.");
+      if (!dataAsaas.sucesso) {
+        throw new Error(dataAsaas.erro || "Erro ao criar carteira financeira. Verifique os dados.");
       }
 
       const walletId = dataAsaas.asaas_wallet_id;
