@@ -138,6 +138,66 @@ export default function AtivarContaPage() {
 
       if (updateError) throw new Error("Conta financeira criada, mas erro ao ativar perfil.");
 
+      // 4. CRIAÇÃO AUTOMÁTICA DA FICHA DO HOTEL (Com base na tabela real)
+      const { data: hotelExistente } = await supabase
+        .from('hoteis')
+        .select('id')
+        .eq('parceiro_id', parceiro.id)
+        .maybeSingle();
+
+      if (!hotelExistente) {
+        // Cria uma ficha de hotel genérica para este parceiro não ficar bloqueado
+        const { error: hotelError } = await supabase.from('hoteis').insert({
+          parceiro_id: parceiro.id,
+          asaas_wallet_id: walletId,
+          nome: parceiro.nome_negocio,
+          tipo: 'Hotel', // Valor padrão, ele pode alterar depois
+          descricao: 'Hotel parceiro oficial da Secretaria de Turismo de São Geraldo do Araguaia.',
+          estrelas: 3,
+          imagem_url: 'https://images.unsplash.com/photo-1564501049412-61c2a3083791?q=80&w=1989', // Imagem tapa-buraco
+          whatsapp: telefone,
+          endereco: `${endereco}, ${numero}, ${bairro} - CEP: ${cep}`,
+          preco_medio: 'Sob consulta',
+          comodidades: ["Wi-Fi Grátis", "Estacionamento", "Recepção 24h"],
+          
+          // Estrutura de Quartos (Valores zerados para ele configurar depois)
+          quarto_standard_nome: 'Quarto Standard',
+          quarto_standard_preco: 0.00,
+          quarto_standard_comodidades: ["Wi-Fi", "Ventilador", "Cama Casal"],
+          quarto_standard_imagens: [],
+          
+          quarto_luxo_nome: 'Suíte Luxo',
+          quarto_luxo_preco: 0.00,
+          quarto_luxo_comodidades: ["Ar-condicionado", "Frigobar", "TV"],
+          quarto_luxo_imagens: [],
+          
+          // Configurações JSON obrigatórias para a página não quebrar
+          politicas: {
+            "checkin_checkout": "Check-in: depois das 14:00 | Check-out: até às 12:00",
+            "idade_minima": "O hóspede responsável pela reserva deve ter no mínimo 18 anos."
+          },
+          contatos: {
+            "email": email,
+            "telefone": telefone
+          },
+          avaliacoes_info: {
+            "nota": 0,
+            "texto": "Novo",
+            "total": 0,
+            "limpeza": 0,
+            "atendimento": 0,
+            "comodidades": 0,
+            "localizacao": 0
+          },
+          porcentagem_acompanhante: 0.00,
+          max_parcelas_sem_juros: 1
+        });
+
+        if (hotelError) {
+          console.error("Aviso: Falha ao criar a ficha do hotel:", hotelError);
+        }
+      }
+
       setSucesso(true);
       setTimeout(() => router.push('/parceiros'), 3000);
       
