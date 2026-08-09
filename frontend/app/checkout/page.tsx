@@ -126,6 +126,7 @@ function CheckoutPacoteContent() {
   const [numNoites, setNumNoites] = useState<number>(1);
   const [loadingPreco, setLoadingPreco] = useState<boolean>(false);
   const [pacoteDisponivel, setPacoteDisponivel] = useState<boolean>(true);
+  const [taxaServico, setTaxaServico] = useState<number>(0);
 
   // Estados do Titular
   const [nome, setNome] = useState('');
@@ -190,6 +191,16 @@ function CheckoutPacoteContent() {
       if (hotelId) setHotelSel(pct.pacote_itens.map(i => i.hoteis).find(h => h?.id === hotelId) || null);
       if (guiaId) setGuiaSel(pct.pacote_itens.map(i => i.guias).find(g => g?.id === guiaId) || null);
       setAtracoes(pct.pacote_itens.map(i => i.atracoes).filter(Boolean) as Atracao[]);
+
+      // ◄── BUSCAR A TAXA DE SERVIÇO DA PLATAFORMA ──►
+      const { data: taxaData } = await supabase
+        .from('taxas_servicos')
+        .select('porcentagem')
+        .eq('tipo_servico', 'pacotes')
+        .single();
+        
+      if (taxaData) setTaxaServico(taxaData.porcentagem);
+
       setLoadingInitial(false);
     }
     carregarResumo();
@@ -226,7 +237,9 @@ function CheckoutPacoteContent() {
     obterPrecoDin();
   }, [hotelId, quartoTipo, checkinData, checkoutData, quartosParam, adultosParam]);
 
-  const totalPagamento = precoParam;
+  // ◄── CÁLCULO DO TOTAL COM A TAXA ──►
+  const valorTaxa = (precoParam * taxaServico) / 100;
+  const totalPagamento = precoParam + valorTaxa;
 
   const handleAvançarPasso = () => {
     setErroApi('');
@@ -664,9 +677,19 @@ function CheckoutPacoteContent() {
                     <span>{hotelSel.nome}</span>
                   </div>
                 )}
-                <div className="pt-4 border-t-2 border-slate-100 flex justify-between items-center">
-                  <span className="text-xs font-black uppercase text-slate-400">Total</span>
-                  <span className={`${jakarta.className} text-3xl font-black text-[#00577C]`}>{formatarMoeda(totalPagamento)}</span>
+                <div className="pt-4 border-t-2 border-slate-100 space-y-3">
+                  <div className="flex justify-between items-center text-sm font-bold text-slate-500">
+                    <span>Subtotal do Pacote</span>
+                    <span>{formatarMoeda(precoParam)}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm font-bold text-slate-500">
+                    <span>Taxa de Serviço ({taxaServico}%)</span>
+                    <span className="text-amber-600">+{formatarMoeda(valorTaxa)}</span>
+                  </div>
+                  <div className="pt-3 flex justify-between items-center border-t border-slate-100">
+                    <span className="text-xs font-black uppercase text-slate-400">Total a Pagar</span>
+                    <span className={`${jakarta.className} text-3xl font-black text-[#00577C]`}>{formatarMoeda(totalPagamento)}</span>
+                  </div>
                 </div>
               </div>
             </SectionCard>
