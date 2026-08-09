@@ -234,13 +234,18 @@ export default function ExtranetDisponibilidadePage() {
       if (dbError) throw dbError;
 
       // ◄── A MAGIA ACONTECE AQUI ──►
-      // Atualiza o hotel para que a página pública saiba que já há quartos à venda!
+      // 1. Atualiza as colunas numéricas estruturais para o motor de reservas reconhecer
       await supabase
         .from('hoteis')
-        .update({ preco_medio: `A partir de R$ ${precoNumber.toFixed(2)}` })
+        .update({ 
+          quarto_standard_nome: fNome,
+          quarto_standard_preco: precoNumber,
+          quarto_standard_comodidades: ["Wi-Fi", "Ventilador", "Cama Casal"], // Exemplo padrão
+          preco_medio: `A partir de R$ ${precoNumber.toFixed(2)}`
+        })
         .eq('id', hotelId);
 
-      setStatusFeedback({ tipo: 'sucesso', texto: 'Acomodação adicionada ao inventário com sucesso!' });
+      setStatusFeedback({ tipo: 'sucesso', texto: 'Acomodação adicionada e hotel disponível para venda!' });
 
 
       setStatusFeedback({ tipo: 'sucesso', texto: 'Acomodação adicionada ao inventário com sucesso!' });
