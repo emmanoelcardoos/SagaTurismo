@@ -94,11 +94,48 @@ function HotelDetalheContent() {
   const [precosDinâmicos, setPrecosDinâmicos] = useState<Record<string, PrecoDinamico>>({});
   const [calculandoPreco, setCalculandoPreco] = useState(false);
 
+  // ── ESTADOS DE AVALIAÇÃO REAIS ──
+  const [avaliacoes, setAvaliacoes] = useState<any[]>([]);
+  const [nomeAutor, setNomeAutor] = useState('');
+  const [nacionalidade, setNacionalidade] = useState('BR');
+  const [notaForm, setNotaForm] = useState<number>(10);
+  const [comentario, setComentario] = useState('');
+  const [enviandoAvaliacao, setEnviandoAvaliacao] = useState(false);
+  const [mensagemAvaliacao, setMensagemAvaliacao] = useState('');
+
+  // ── FUNÇÃO PARA ENVIAR A AVALIAÇÃO ──
+  const handleEnviarAvaliacao = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!nomeAutor || !comentario) return;
+    setEnviandoAvaliacao(true);
+    
+    try {
+      const { data, error } = await supabase.from('avaliacoes_hoteis').insert([{
+        hotel_id: id,
+        nome_autor: nomeAutor,
+        nacionalidade: nacionalidade,
+        nota: notaForm,
+        comentario: comentario
+      }]).select();
+      
+      if (error) throw error;
+      
+      if (data) setAvaliacoes([data[0], ...avaliacoes]);
+      setMensagemAvaliacao('Avaliação publicada com sucesso! Obrigado.');
+      setNomeAutor(''); setComentario(''); setNotaForm(10);
+      setTimeout(() => setMensagemAvaliacao(''), 5000);
+    } catch (err) {
+      setMensagemAvaliacao('Erro ao publicar avaliação. Tente novamente.');
+    } finally {
+      setEnviandoAvaliacao(false);
+    }
+  };
+
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // 1. CARREGAMENTO INICIAL: HOTEL E QUARTOS FÍSICOS
+  // 1. CARREGAMENTO INICIAL: HOTEL, QUARTOS E AVALIAÇÕES
   useEffect(() => {
     async function fetchHotelEQuartos() {
       try {
@@ -108,9 +145,13 @@ function HotelDetalheContent() {
         const { data: quartosData, error: quartosError } = await supabase.from('tipos_quarto').select('*').eq('hotel_id', id).order('preco_quarto', { ascending: true });
         if (quartosError) throw new Error("Erro ao mapear o inventário de quartos.");
 
+        // Busca as avaliações vinculadas a este hotel
+        const { data: avaliacoesData } = await supabase.from('avaliacoes_hoteis').select('*').eq('hotel_id', id).order('criado_em', { ascending: false });
+
         if (hotelData) {
           setHotel(hotelData);
           setQuartosDb(quartosData || []);
+          setAvaliacoes(avaliacoesData || []);
         } else {
           setErro("Hospedagem não encontrada.");
         }
@@ -122,6 +163,11 @@ function HotelDetalheContent() {
     }
     if (id) fetchHotelEQuartos();
   }, [id]);
+
+  // Calcula a Média Dinâmica das Avaliações Reais
+  const notaMedia = avaliacoes.length > 0 
+    ? (avaliacoes.reduce((acc, curr) => acc + curr.nota, 0) / avaliacoes.length).toFixed(1) 
+    : 'N/A';
 
   // ── FUNÇÃO DE FORMATAÇÃO DE DATA ──
   const formatarDataIso = (data: Date) => {
@@ -389,7 +435,7 @@ function HotelDetalheContent() {
                                <div className="flex-1 p-4 md:p-5 border-b sm:border-b-0 sm:border-r border-slate-100 flex flex-col justify-center">
                                   <p className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest mb-3">Resumo</p>
                                   <ul className="space-y-2 md:space-y-3">
-                                     <li className="flex items-start gap-2 text-xs md:text-sm text-[#009640] font-bold"><CheckCircle2 size={16} /> Cancelamento flexível</li>
+                  
                                      <li className="flex items-start gap-2 text-xs md:text-sm text-[#00577C] font-bold"><CreditCard size={16} /> Reserva segura</li>
                                   </ul>
                                </div>
@@ -418,47 +464,116 @@ function HotelDetalheContent() {
           </section>
 
           {/* AVALIAÇÕES E CONTATOS (INALTERADOS) */}
+          {/* ── AVALIAÇÕES REAIS ABERTAS ── */}
           <section className="bg-white rounded-[1.5rem] md:rounded-[2rem] border border-slate-200 shadow-sm p-5 md:p-10 text-left">
-             <h3 className={`${jakarta.className} text-xl md:text-2xl font-black text-[#00577C] mb-6`}>Avaliações dos hóspedes</h3>
-             <div className="flex flex-col lg:flex-row gap-8">
-                <div className="w-full lg:w-1/3">
-                   <div className="flex items-center gap-4 mb-5">
-                      <div className="bg-[#00577C] text-white text-2xl md:text-3xl font-black rounded-xl w-14 h-12 flex items-center justify-center shadow-lg">
-                         {hotel.avaliacoes_info?.nota || 8.8}
+             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+               <h3 className={`${jakarta.className} text-xl md:text-2xl font-black text-[#00577C]`}>Avaliações dos hóspedes</h3>
+               <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-2xl border border-slate-100">
+                  <div className="bg-[#F9C400] text-[#00577C] text-xl font-black rounded-xl w-12 h-10 flex items-center justify-center shadow-sm">
+                     {notaMedia}
+                  </div>
+                  <div>
+                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Média Geral</p>
+                     <p className="text-xs font-bold text-slate-700">{avaliacoes.length} avaliações validadas</p>
+                  </div>
+               </div>
+             </div>
+             
+             <div className="flex flex-col lg:flex-row gap-10">
+                {/* LISTA DE COMENTÁRIOS DA COMUNIDADE */}
+                <div className="w-full lg:w-3/5 space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                   {avaliacoes.length === 0 ? (
+                      <p className="text-sm font-medium text-slate-400 italic bg-slate-50 p-6 rounded-2xl border border-slate-100 text-center">Seja o primeiro a avaliar esta acomodação!</p>
+                   ) : (
+                      avaliacoes.map((av) => (
+                        <div key={av.id} className="bg-slate-50 border border-slate-100 rounded-2xl p-5 hover:bg-slate-100 transition-colors">
+                           <div className="flex justify-between items-start mb-3">
+                              <div>
+                                 <p className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                                    {av.nome_autor}
+                                    <span className="text-lg" title="Nacionalidade">
+                                      {av.nacionalidade === 'BR' ? '🇧🇷' : av.nacionalidade === 'PT' ? '🇵🇹' : av.nacionalidade === 'US' ? '🇺🇸' : '🌍'}
+                                    </span>
+                                 </p>
+                                 <p className="text-[10px] text-slate-400 font-bold">{new Date(av.criado_em).toLocaleDateString('pt-BR')}</p>
+                              </div>
+                              <div className="flex items-center gap-1 bg-white px-2 py-1 rounded-lg border border-slate-200 shadow-sm text-xs font-black text-[#00577C]">
+                                <Star size={12} className="fill-[#F9C400] text-[#F9C400]"/> {av.nota}
+                              </div>
+                           </div>
+                           <p className="text-xs md:text-sm text-slate-600 leading-relaxed font-medium">"{av.comentario}"</p>
+                        </div>
+                      ))
+                   )}
+                </div>
+
+                {/* FORMULÁRIO PÚBLICO DE AVALIAÇÃO */}
+                <div className="w-full lg:w-2/5 border-t lg:border-t-0 lg:border-l border-slate-100 pt-8 lg:pt-0 lg:pl-8">
+                   <h4 className={`${jakarta.className} text-base font-black text-slate-800 mb-4`}>Deixe a sua avaliação</h4>
+                   <form onSubmit={handleEnviarAvaliacao} className="space-y-4 bg-slate-50 p-5 rounded-2xl border border-slate-100">
+                      <div>
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-1.5">Seu Nome</label>
+                        <input required type="text" value={nomeAutor} onChange={e => setNomeAutor(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-[#00577C]" placeholder="Como deseja ser chamado?" />
+                      </div>
+                      <div className="flex gap-4">
+                        <div className="flex-1">
+                          <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-1.5">País</label>
+                          <select value={nacionalidade} onChange={e => setNacionalidade(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-[#00577C]">
+                            <option value="BR">🇧🇷 Brasil</option>
+                            <option value="PT">🇵🇹 Portugal</option>
+                            <option value="US">🇺🇸 Estados Unidos</option>
+                            <option value="OUTRO">🌍 Outro</option>
+                          </select>
+                        </div>
+                        <div className="w-24">
+                          <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-1.5">Nota (1 a 10)</label>
+                          <input required type="number" min="1" max="10" value={notaForm} onChange={e => setNotaForm(Number(e.target.value))} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-black text-center text-[#00577C] outline-none focus:border-[#00577C]" />
+                        </div>
                       </div>
                       <div>
-                         <p className={`${jakarta.className} text-base font-black text-[#00577C] leading-none`}>{hotel.avaliacoes_info?.texto || 'Muito bom'}</p>
-                         <p className="text-[10px] md:text-xs text-slate-500 font-bold mt-1">{hotel.avaliacoes_info?.total || 73} avaliações verificadas</p>
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-1.5">Comentário</label>
+                        <textarea required value={comentario} onChange={e => setComentario(e.target.value)} rows={3} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:border-[#00577C]" placeholder="Conte-nos como foi a sua estadia..." />
                       </div>
-                   </div>
-                   <div className="space-y-3">
-                      {[
-                        { label: 'Limpeza', score: hotel.avaliacoes_info?.limpeza || 9.0 },
-                        { label: 'Comodidades', score: hotel.avaliacoes_info?.comodidades || 8.2 },
-                        { label: 'Localização', score: hotel.avaliacoes_info?.localizacao || 9.6 }
-                      ].map(item => (
-                         <div key={item.label}>
-                            <div className="flex justify-between text-[10px] font-bold text-slate-700 mb-1"><span>{item.label}</span><span>{item.score.toFixed(1)}</span></div>
-                            <div className="w-full bg-slate-200 rounded-full h-1"><div className="bg-[#F9C400] h-1 rounded-full" style={{ width: `${(item.score / 10) * 100}%` }}></div></div>
-                         </div>
-                      ))}
-                   </div>
-                </div>
-                <div className="w-full lg:w-2/3 border-t lg:border-t-0 lg:border-l border-slate-100 pt-5 lg:pt-0 lg:pl-6">
-                   <p className="text-xs md:text-sm text-slate-600 font-medium leading-relaxed italic">"O hotel superou as expectativas. As fotos correspondem perfeitamente à realidade e a gestão de reservas é impecável."</p>
-                   <p className="text-[10px] text-slate-400 font-bold mt-2">— Cliente Verificado, SagaTurismo</p>
+                      <button type="submit" disabled={enviandoAvaliacao} className="w-full bg-[#00577C] hover:bg-[#004466] text-white py-3.5 rounded-xl font-black uppercase text-xs tracking-widest transition-all shadow-md disabled:opacity-50 active:scale-95">
+                         {enviandoAvaliacao ? 'A Publicar...' : 'Publicar Avaliação'}
+                      </button>
+                      {mensagemAvaliacao && <p className="text-[11px] font-black text-[#009640] text-center uppercase tracking-wider">{mensagemAvaliacao}</p>}
+                   </form>
                 </div>
              </div>
           </section>
 
-          <section className="bg-[#002f40] rounded-[1.5rem] md:rounded-[2rem] p-6 md:p-10 text-white relative overflow-hidden text-left">
-             <h3 className={`${jakarta.className} text-xl md:text-2xl font-black mb-2`}>Informações de Contacto</h3>
-             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
-                <div className="bg-white/10 rounded-xl p-4 border border-white/10"><Phone className="text-[#F9C400] mb-2" size={18} /><p className="text-[10px] text-white/50 uppercase tracking-widest">WhatsApp</p><p className="font-bold text-xs md:text-sm truncate mt-1">{hotel.contatos?.telefone || '+55 (94) 90000-0000'}</p></div>
-                <div className="bg-white/10 rounded-xl p-4 border border-white/10"><Mail className="text-[#F9C400] mb-2" size={18} /><p className="text-[10px] text-white/50 uppercase tracking-widest">E-mail</p><p className="font-bold text-xs md:text-sm truncate mt-1">{hotel.contatos?.email || 'contato@hotel.com.br'}</p></div>
-                <div className="bg-white/10 rounded-xl p-4 border border-white/10"><Globe className="text-[#F9C400] mb-2" size={18} /><p className="text-[10px] text-white/50 uppercase tracking-widest">Website</p><p className="font-bold text-xs md:text-sm truncate mt-1">{hotel.contatos?.website || 'www.saga.com.br'}</p></div>
+          {/* ── INFORMAÇÕES DE CONTATO REAIS DO BANCO DE DADOS ── */}
+          <section className="bg-[#002f40] rounded-[1.5rem] md:rounded-[2rem] p-6 md:p-10 text-white relative overflow-hidden text-left shadow-xl">
+             <div className="absolute -right-10 -top-10 opacity-5"><Globe size={200}/></div>
+             <h3 className={`${jakarta.className} text-xl md:text-2xl font-black mb-2 relative z-10`}>Informações de Contato</h3>
+             <p className="text-xs text-white/60 mb-6 relative z-10">Fale diretamente com o estabelecimento oficial.</p>
+             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 relative z-10">
+                <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/10 hover:bg-white/20 transition-colors">
+                  <Phone className="text-[#F9C400] mb-3" size={24} />
+                  <p className="text-[10px] text-white/50 uppercase tracking-widest">WhatsApp / Telefone</p>
+                  <p className="font-bold text-sm truncate mt-1">
+                    {(hotel as any).whatsapp || hotel.contatos?.telefone || 'Não informado'}
+                  </p>
+                </div>
+                <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/10 hover:bg-white/20 transition-colors">
+                  <Mail className="text-[#F9C400] mb-3" size={24} />
+                  <p className="text-[10px] text-white/50 uppercase tracking-widest">E-mail Oficial</p>
+                  <p className="font-bold text-sm truncate mt-1">
+                    {hotel.contatos?.email || 'Não informado'}
+                  </p>
+                </div>
+                <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/10 hover:bg-white/20 transition-colors">
+                  <Globe className="text-[#F9C400] mb-3" size={24} />
+                  <p className="text-[10px] text-white/50 uppercase tracking-widest">Website</p>
+                  <p className="font-bold text-sm truncate mt-1">
+                    {hotel.contatos?.website || 'Não informado'}
+                  </p>
+                </div>
              </div>
           </section>
+
+          
 
         </div>
 

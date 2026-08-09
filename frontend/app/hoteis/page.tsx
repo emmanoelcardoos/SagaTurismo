@@ -41,8 +41,8 @@ export default function HoteisPage() {
           className="object-cover object-[70%_center] md:object-center opacity-40 md:opacity-50"
           priority
         />
-        {/* Máscara inteligente: Protege o topo, mas deixa a foto brilhar */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#002f40]/90 via-[#002f40]/40 to-[#002f40]/10 md:from-[#002f40]/60 md:via-[#002f40]/20 md:to-transparent" />
+      {/* Máscara inteligente: Protege o topo, mas deixa a foto brilhar */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#002f40]/90 via-[#002f40]/40 to-[#002f40]/10 md:from-[#002f40]/60 md:via-[#002f40]/20 md:to-transparent" />
       </div>
 
       {/* Halo amarelo — canto superior direito */}

@@ -114,7 +114,7 @@ function SucessoContent() {
   if (loading) return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center">
       <Loader2 className="animate-spin text-[#009640] w-16 h-16 mb-4" />
-      <p className={`${jakarta.className} text-xs font-black text-slate-400 uppercase tracking-widest`}>Sincronizando sistema financeiro...</p>
+      <p className={`${jakarta.className} text-xs font-black text-slate-400 uppercase tracking-widest`}>Processando Pagamento...</p>
     </div>
   );
 

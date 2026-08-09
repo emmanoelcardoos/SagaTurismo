@@ -503,7 +503,7 @@ function PacoteDetalheContent() {
 
                   {/* Quarto Luxo */}
                   <div className={`border-2 rounded-2xl overflow-hidden shadow-sm flex flex-col relative transition-all cursor-pointer ${tipoQuarto === 'luxo' ? 'border-[#F9C400] ring-4 ring-yellow-50/50' : 'border-slate-200 bg-slate-50/50'}`} onClick={() => setTipoQuarto('luxo')}>
-                    <div className="absolute top-0 right-0 bg-[#00577C] text-white text-[9px] font-black px-3 py-1 rounded-bl-xl">Premium</div>
+                    
                     <div className="flex justify-between items-center p-4 bg-white border-b">
                       <h5 className={`${jakarta.className} font-bold text-[#00577C]`}>{hotelSelecionado.quarto_luxo_nome || 'Suíte Luxo'}</h5>
                       <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${tipoQuarto === 'luxo' ? 'border-[#00577C] bg-[#00577C]' : 'border-slate-300'}`}>
@@ -524,7 +524,7 @@ function PacoteDetalheContent() {
                         </div>
                       </div>
                       <div className="flex-1 p-4 flex flex-col justify-between">
-                        <p className="text-[9px] font-black uppercase text-slate-400">Pequeno-almoço incluso</p>
+                        <p className="text-[9px] font-black uppercase text-slate-400">Café da manhã incluso</p>
                         <div className="mt-auto text-right">
                           <p className="text-[9px] font-black uppercase text-slate-400">Taxa Base / Noite</p>
                           <p className={`${jakarta.className} text-2xl font-black text-[#00577C]`}>{formatarMoeda(parseValor(hotelSelecionado.quarto_luxo_preco))}</p>
@@ -664,13 +664,11 @@ function PacoteDetalheContent() {
                   onClick={handleReserva}
                   className={`${jakarta.className} flex items-center justify-center gap-3 w-full bg-[#00577C] hover:bg-[#004a6b] text-white py-5 rounded-2xl font-black text-lg transition-transform hover:-translate-y-1 shadow-xl ${(!hotelDisponivel || !checkin) ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : ''}`}
                 >
-                  {calculandoPreco ? 'A calcular...' : (!checkin ? 'Selecione uma data' : (!hotelDisponivel ? 'Esgotado' : 'Prosseguir para Checkout'))}
+                  {calculandoPreco ? 'Carregando...' : (!checkin ? 'Selecione uma data' : (!hotelDisponivel ? 'Esgotado' : 'Prosseguir para Checkout'))}
                   {checkin && hotelDisponivel && !calculandoPreco && <ChevronRightIcon size={20} />}
                 </button>
 
-                <p className="mt-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center justify-center gap-1.5">
-                  <ShieldCheck size={13} className="text-[#00577C]" /> Reserva Oficial SagaTurismo
-                </p>
+               
               </div>
 
               {/* BLOCO DO GUIA (igual ao passeio) */}

@@ -134,8 +134,16 @@ export default function CriarPacotePage() {
       const dInicioStr = formatarDataIso(dataInicioDisponibilidade);
       const dFimStr = formatarDataIso(dataFimDisponibilidade);
 
+      // --- [A] BUSCA DE HOTÉIS ULTRA-SEGURA ---
       try {
-        // [A] Hotéis disponíveis (considerando bloqueios)
+        // 1. Busca os hotéis primeiro (garante que temos dados)
+        const { data: todosHoteis, error: errHoteis } = await supabase
+          .from('hoteis')
+          .select('id, nome, tipo, imagem_url, quarto_standard_preco, preco_medio');
+
+        let listaHoteis = todosHoteis || [];
+
+        // 2. Busca os bloqueios de calendário
         const { data: bloqueios } = await supabase
           .from('disponibilidade_hoteis')
           .select('hotel_id, disponivel')
@@ -146,16 +154,22 @@ export default function CriarPacotePage() {
           .filter(b => b.disponivel === false)
           .map(b => b.hotel_id);
 
-        const { data: todosHoteis } = await supabase
-          .from('hoteis')
-          .select('id, nome, tipo, imagem_url, quarto_standard_preco');
+        // 3. Cruza os dados e formata o preço
+        const validados = listaHoteis
+          .filter(h => !hoteisIndisponiveisIds.includes(h.id))
+          .map(h => ({
+            ...h,
+            quarto_standard_preco: h.quarto_standard_preco || 
+              (h.preco_medio ? Number(String(h.preco_medio).replace(/\D/g, '')) / 100 : 150)
+          }));
+          
+        setHoteisDisponiveis(validados as Hotel[]);
+      } catch (err: any) {
+        console.error("Aviso: Falha ao carregar a lista de hotéis.", err);
+      }
 
-        if (todosHoteis) {
-          const validados = todosHoteis.filter(h => !hoteisIndisponiveisIds.includes(h.id));
-          setHoteisDisponiveis(validados as Hotel[]);
-        }
-
-        // [B] Guias disponíveis (sem conflito de data)
+      // --- [B] BUSCA DE GUIAS (COM FALLBACK) ---
+      try {
         const { data: conflitosGuias } = await supabase
           .from('passeios')
           .select('guia_id')
@@ -164,17 +178,23 @@ export default function CriarPacotePage() {
 
         const guiasOcupadosIds = (conflitosGuias || []).map(c => c.guia_id).filter(Boolean);
 
-        const { data: todosGuias } = await supabase
-          .from('guias')
-          .select('id, nome, especialidade, imagem_url, preco_diaria');
-
-        if (todosGuias) {
-          const livres = todosGuias.filter(g => !guiasOcupadosIds.includes(g.id));
-          setGuiasDisponiveis(livres as Guia[]);
+        // Procura os parceiros que são "guias"
+        const { data: parceirosGuias } = await supabase
+          .from('parceiros')
+          .select('id, nome_negocio')
+          .eq('tipo_parceiro', 'guia');
+          
+        if (parceirosGuias) {
+          const livres = parceirosGuias.filter(g => !guiasOcupadosIds.includes(g.id));
+          const guiasMapeados = livres.map(g => ({
+            id: g.id,
+            nome: g.nome_negocio,
+            preco_diaria: 150 // Preço base atribuído para cálculo do pacote
+          }));
+          setGuiasDisponiveis(guiasMapeados as Guia[]);
         }
-      } catch (err) {
-        console.error(err);
-        setErro("Erro ao verificar disponibilidade de parceiros.");
+      } catch (err: any) {
+        console.error("Erro ao carregar guias:", err);
       } finally {
         setVerificandoInventario(false);
       }
@@ -246,12 +266,12 @@ export default function CriarPacotePage() {
           roteiro_detalhado: formData.roteiro_detalhado,
           imagem_principal: urlPublica.publicUrl,
           dias: duracaoDias,
-          noites: duracaoDias - 1, // noites = dias - 1
+          noites: duracaoDias - 1,
           preco: precoFinal,
           categoria: formData.categoria,
           horarios_info: formData.horarios_info || null,
           vagas_totais: parseInt(formData.vagas_totais) || 0,
-          agencia_id: parceiroId,
+          parceiro_id: parceiroId, 
           ativo: formData.ativo,
           periodo_inicio: periodoInicio || null,
           periodo_fim: periodoFim || null,
@@ -259,8 +279,6 @@ export default function CriarPacotePage() {
           duracao_fixa: true
         }])
         .select().single();
-
-      if (errPacote || !novoPacote) throw errPacote;
 
       const { error: errItens } = await supabase
         .from('pacote_itens')
@@ -490,7 +508,7 @@ export default function CriarPacotePage() {
           </section>
 
           <div className="flex flex-col sm:flex-row justify-between items-center bg-white border border-slate-200 rounded-2xl p-4 gap-4 shadow-sm">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest"><ShieldCheck size={14} className="inline mr-1 text-[#0085FF]"/> Validação Comercial</p>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest"><ShieldCheck size={14} className="inline mr-1 text-[#0085FF]"/> Antes de lançar, verifique as informações</p>
             <button type="submit" disabled={enviando || !selectedHotelId || !selectedGuiaId || !dataInicioDisponibilidade || !dataFimDisponibilidade} className="w-full sm:w-auto bg-slate-900 hover:bg-black disabled:bg-slate-300 text-white font-black text-xs uppercase tracking-widest px-8 py-4 rounded-xl flex items-center justify-center gap-2 shadow-md transition-all">
               {enviando ? <><Loader2 className="w-4 h-4 animate-spin"/> Publicando...</> : <><Save size={14}/> Lançar Pacote</>}
             </button>

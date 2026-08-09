@@ -1097,7 +1097,7 @@ function TabParceiros() {
             </div>
             <div className="p-5 space-y-4">
               <FormField label="Nome do Negócio *"><input value={form.nome_negocio} onChange={(e) => setForm({ ...form, nome_negocio: e.target.value })} className={inputCls} placeholder="Ex: Pousada Paraíso" /></FormField>
-              <FormField label="Tipo de Parceiro"><select value={form.tipo_parceiro} onChange={(e) => setForm({ ...form, tipo_parceiro: e.target.value })} className={inputCls}><option value="hotel">Hotel</option><option value="passeios">Passeios</option><option value="pacotes">Pacotes</option><option value="guia">Guia</option></select></FormField>
+              <FormField label="Tipo de Parceiro"><select value={form.tipo_parceiro} onChange={(e) => setForm({ ...form, tipo_parceiro: e.target.value })} className={inputCls}><option value="hotel">Hotel</option><option value="passeios">Passeios</option><option value="agencia">Agência</option><option value="guia">Guia</option></select></FormField>
               <FormField label="E-mail *"><input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className={inputCls} placeholder="contato@empresa.com" /></FormField>
               <FormField label="Telefone / WhatsApp"><input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} className={inputCls} placeholder="(00) 00000-0000" /></FormField>
               <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 mt-2"><p className="text-xs text-blue-700 font-medium">Após cadastrar, a empresa deverá ir à página de "Ativar Conta" e usar este e-mail para criar a sua senha.</p></div>

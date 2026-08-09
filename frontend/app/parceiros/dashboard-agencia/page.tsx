@@ -61,27 +61,33 @@ export default function DashboardAgenciaPage() {
 
     async function carregarDashboard() {
       try {
-        // A) Buscar TODOS os pacotes mapeando as colunas certas do Schema
+        // A) Buscar APENAS os pacotes que pertencem a esta agência
         const { data: dadosPacotes, error: errPacotes } = await supabase
           .from('pacotes')
-          .select('id, titulo, descricao_curta, imagem_principal, dias, noites, preco, ativo');
+          .select('id, titulo, descricao_curta, imagem_principal, dias, noites, preco, ativo')
+          .eq('parceiro_id', parceiroId); // ◄── TRAVA 1: Filtra apenas os pacotes deste parceiro
+
+        let pacotesDaAgenciaIds: string[] = [];
 
         if (!errPacotes && dadosPacotes) {
           setPacotes(dadosPacotes as Pacote[]);
+          // Guarda os IDs dos pacotes desta agência para usarmos nas métricas financeiras
+          pacotesDaAgenciaIds = dadosPacotes.map(p => p.id); 
         }
 
-        // B) Buscar o histórico de vendas mapeando colunas exatas de split e status_pagamento
+        // B) Buscar o histórico de vendas mapeando também o item_id
         const { data: dadosPedidos, error: errPedidos } = await supabase
           .from('pedidos')
-          .select('valor_total, repasse_hotel, repasse_guia, tipo_item, status_pagamento');
+          .select('valor_total, repasse_hotel, repasse_guia, tipo_item, status_pagamento, item_id'); // ◄── Adicionado o item_id
 
         if (!errPedidos && dadosPedidos) {
           
-          // Filtro sanitizado tratando strings para evitar quebras por capitalização (pago/Pago)
+          // Filtra os pedidos para somar APENAS os pacotes que pertencem à lista de IDs desta agência
           const totais = dadosPedidos
             .filter(pedido => 
                pedido.tipo_item?.toLowerCase().trim() === 'pacote' && 
-               pedido.status_pagamento?.toLowerCase().trim() === 'pago'
+               pedido.status_pagamento?.toLowerCase().trim() === 'pago' &&
+               pacotesDaAgenciaIds.includes(pedido.item_id) // ◄── TRAVA 2: Só conta dinheiro dos pacotes dela
             )
             .reduce((acc, pedido) => ({
               total_vendido: acc.total_vendido + (Number(pedido.valor_total) || 0),

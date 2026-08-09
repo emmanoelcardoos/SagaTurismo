@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
+import { QRCodeSVG } from 'qrcode.react';
 
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '700', '800'] });
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
@@ -34,6 +35,11 @@ const mascaraCartao = (v: string) => v.replace(/\D/g, '').replace(/(\d{4})(?=\d)
 const mascaraTelefone = (v: string) => v.replace(/\D/g, '').replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d{4})/, '$1-$2').slice(0, 15);
 const mascaraCEP = (v: string) => v.replace(/\D/g, '').replace(/(\d{5})(\d)/, '$1-$2').slice(0, 9);
 const mascaraData = (v: string) => v.replace(/\D/g, '').replace(/(\d{2})(\d)/, '$1/$2').replace(/(\d{2})(\d)/, '$1/$2').slice(0, 10);
+const formatarParaBackend = (dataBr: string): string => {
+  if (!dataBr || dataBr.length < 10) return '';
+  const [dia, mes, ano] = dataBr.split('/');
+  return `${ano}-${mes}-${dia}`;
+};
 
 function formatarData(dataStr: string | null) {
   if (!dataStr) return '';
@@ -249,44 +255,91 @@ function CheckoutPacoteContent() {
     setPassoAtual(prev => (Math.max(1, prev - 1) as Step));
   };
 
+
+  // ── RADAR DE REDIRECIONAMENTO AUTOMÁTICO (POLLING) ──
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (qrCodeData && qrCodeData.id_pedido) {
+      interval = setInterval(async () => {
+        try {
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://sagaturismo-production.up.railway.app';
+          const res = await fetch(`${apiUrl}/api/v1/pagamentos/status/${qrCodeData.id_pedido}`);
+          const data = await res.json();
+          
+          if (data.success && (data.status === 'RECEIVED' || data.status === 'CONFIRMED')) {
+            clearInterval(interval);
+            router.push(`/sucesso?pedido=${qrCodeData.id_pedido}`);
+          }
+        } catch (err) {
+          console.error("Erro no radar de pagamento:", err);
+        }
+      }, 5000);
+    }
+    return () => clearInterval(interval);
+  }, [qrCodeData, router]);
+
   // ── FUNÇÃO DE PAGAMENTO UNIFICADA COM O ASAAS ──
+  // ── FUNÇÃO DE PAGAMENTO UNIFICADA COM O PYTHON ──
   const handlePagamento = async (e: React.FormEvent) => {
     e.preventDefault();
     setErroApi('');
-    if (!pacoteDisponivel) { setErroApi('Pacote esgotado.'); return; }
+    if (!pacoteDisponivel) { setErroApi('Impossível prosseguir. Pacote esgotado.'); return; }
     if (cpf.length < 14) { setErroApi('CPF inválido.'); return; }
+
+    for (let i = 0; i < hospedesExtras.length; i++) {
+      if (hospedesExtras[i].data_nascimento.length < 10) {
+        setErroApi(`Por favor, preencha a data de nascimento completa do Acompanhante #${i + 1}.`);
+        return;
+      }
+    }
 
     setIsSubmitting(true);
 
     try {
+      const acompanhantesFormatados = hospedesExtras.map(h => ({
+        nome: h.nome,
+        cpf: h.cpf.replace(/\D/g, ''),
+        data_nascimento: formatarParaBackend(h.data_nascimento)
+      }));
+
       const payload: any = {
-        touristName: nome,
-        touristEmail: email,
-        touristCpf: cpf,
-        touristPhone: telefone,
-        amount: totalPagamento,
-        description: `Reserva Pacote: ${pacote?.titulo}`,
-        partnerWalletId: "WALLET_ID_TESTE", // ID da carteira do parceiro no Asaas
-        partnerPercentual: 90,             // Percentual do parceiro (split)
-        paymentMethod: metodoPagamento
+        tipo_item: "pacote", 
+        pacote_id: pacoteId,
+        data_checkin: checkinData,
+        data_checkout: checkoutData,
+        quantidade: quartosParam,
+        adultos: adultosParam,
+        nome_cliente: nome, 
+        cpf_cliente: cpf.replace(/\D/g, ''), 
+        email_cliente: email,
+        telefone_cliente: telefone.replace(/\D/g, ''), 
+        hospedes_extras: acompanhantesFormatados,
+        endereco_faturacao: {
+          street: rua,
+          number: numero,
+          locality: bairro,
+          city: cidade,
+          region_code: estado.replace(/\s/g, ''),
+          country: "BRA",
+          postal_code: cep.replace(/\D/g, '')
+        },
+        metodo_pagamento: metodoPagamento
       };
 
       if (metodoPagamento === 'cartao') {
-        payload.installmentCount = parcelas;
-        payload.cardData = {
-          holderName: nomeCartao,
-          number: numeroCartao.replace(/\D/g, ''),
-          expiryMonth: mesCartao,
-          expiryYear: anoCartao,
-          ccv: cvvCartao
-        };
-        payload.billingAddress = {
-          postalCode: cep.replace(/\D/g, ''),
-          addressNumber: numero
+        payload.parcelas = parcelas;
+        payload.dados_cartao = {
+          nome: nomeCartao,
+          numero: numeroCartao.replace(/\D/g, ''),
+          mes: mesCartao,
+          ano: anoCartao,
+          cvv: cvvCartao
         };
       }
 
-      const res = await fetch('/api/asaas/create-payment', {
+      // Comunicação direta com a API Python
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://sagaturismo-production.up.railway.app';
+      const res = await fetch(`${apiUrl}/api/v1/pagamentos/processar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -294,23 +347,22 @@ function CheckoutPacoteContent() {
 
       const data = await res.json();
 
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Erro ao processar pagamento no banco.');
+      if (!res.ok || !data.sucesso) {
+        throw new Error(data.error || data.detail || data.mensagem || 'Erro ao processar pagamento no banco.');
       }
 
       if (metodoPagamento === 'pix') {
         setQrCodeData({ 
-          link: data.pixQrCodeImage, 
-          texto: data.pixCopiaECola, 
-          id_pedido: data.paymentId  
+          link: data.pix_qrcode_img, 
+          texto: data.pix_copia_cola, 
+          id_pedido: data.codigo_pedido  
         });
       } else {
-        // Cartão aprovado com sucesso! Redireciona para a página de sucesso
-        router.push(`/sucesso?pedido=${data.paymentId}`);
+        router.push(`/sucesso?pedido=${data.codigo_pedido}`);
       }
 
     } catch (err: any) {
-      setErroApi(err.message || 'Erro ao comunicar com o servidor de pagamentos.');
+      setErroApi(err.message || 'Erro de conexão com o servidor financeiro.');
     } finally {
       setIsSubmitting(false);
     }
@@ -496,8 +548,8 @@ function CheckoutPacoteContent() {
                             <h3 className={`${jakarta.className} text-2xl font-black text-slate-800 mb-2`}>PIX Gerado com Sucesso!</h3>
                             <p className="text-sm text-slate-500">Escaneie o QR Code abaixo ou copie a chave para pagar.</p>
                           </div>
-                          <div className="p-4 bg-white border-2 border-slate-100 rounded-3xl shadow-sm">
-                            <img src={`data:image/jpeg;base64,${qrCodeData.link}`} alt="QR Code PIX" className="w-48 h-48 object-contain" />
+                          <div className="p-4 bg-white border-2 border-slate-100 rounded-3xl shadow-sm flex items-center justify-center">
+                            <QRCodeSVG value={qrCodeData.texto} size={200} level="M" />
                           </div>
                           <div className="w-full max-w-sm">
                             <div className="flex items-center gap-2">

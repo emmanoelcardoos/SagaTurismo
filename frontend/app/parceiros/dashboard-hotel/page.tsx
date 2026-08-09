@@ -84,11 +84,23 @@ export default function DashboardHotelPage() {
         if (repassesError) throw repassesError;
 
         // Combina os dados: Pega a reserva e insere o "valor_liquido" correto do repasse nela
+        // Combina os dados de forma inteligente (compatível com a nova API Python)
         const reservasProcessadas: ReservaHotel[] = (pedidosData || []).map(pedido => {
-          const repasse = (repassesData || []).find(r => r.pedido_id === pedido.id);
+          // Procura pelo UUID do Supabase OU pelo código do Asaas (pay_XXXXX)
+          const repasse = (repassesData || []).find(
+            r => r.pedido_id === pedido.id || r.pedido_id === pedido.codigo_pedido
+          );
+          
+          // Camada 1: Usa o valor da tabela de repasses (se existir)
+          // Camada 2: Usa o valor gravado diretamente no pedido (se o webhook o colocar lá)
+          // Camada 3: Aplica os 90% (10% de taxa) automaticamente para garantir que o hoteleiro nunca vê 0
+          const valorLiquidoReal = repasse 
+            ? repasse.valor_liquido 
+            : (pedido.valor_liquido ? pedido.valor_liquido : pedido.valor_total * 0.90);
+
           return {
             ...pedido,
-            valor_liquido: repasse ? repasse.valor_liquido : 0
+            valor_liquido: valorLiquidoReal
           };
         });
 
@@ -127,13 +139,23 @@ export default function DashboardHotelPage() {
     return `${parts[2]}/${parts[1]}/${parts[0]}`;
   };
 
+  // ◄── LÓGICA DE LIMPEZA AUTOMÁTICA DE CHECK-OUTS PASSADOS ──►
+  const hojeIso = new Date().toISOString().split('T')[0];
+
   const filteredReservas = reservas.filter((r) => {
     const termo = searchTerm.toLowerCase();
-    return (
+    
+    // 1. Verifica se corresponde à pesquisa (nome, ID, telefone)
+    const matchBusca = (
       r.nome_cliente?.toLowerCase().includes(termo) ||
       r.codigo_pedido?.toLowerCase().includes(termo) ||
       r.telefone_cliente?.toLowerCase().includes(termo)
     );
+    
+    // 2. Verifica se a reserva ainda é relevante (Checkout é hoje ou no futuro)
+    const reservaAtiva = r.data_checkout ? r.data_checkout >= hojeIso : true;
+
+    return matchBusca && reservaAtiva;
   });
 
   if (loading) {
