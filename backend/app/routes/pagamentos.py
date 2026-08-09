@@ -641,6 +641,7 @@ async def criar_carteira_asaas(dados: dict):
             "email": dados.get("email"),
             "loginEmail": dados.get("email"),
             "cpfCnpj": dados.get("cpfCnpj"),
+            "birthDate": dados.get("birthDate"),
             "phone": dados.get("phone"),
             "mobilePhone": dados.get("phone"),
             "postalCode": dados.get("postalCode"),
