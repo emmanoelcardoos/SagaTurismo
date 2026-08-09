@@ -510,6 +510,11 @@ async def processar_pagamento(pedido: PedidoPagamento):
             dados_asaas = resp_pay.json()
             asaas_payment_id = dados_asaas["id"]
 
+            # ◄── A MAGIA ACONTECE AQUI: Atualiza o pedido com a chave do Asaas ──►
+            supabase.table("pedidos").update({
+                "asaas_payment_id": asaas_payment_id
+            }).eq("codigo_pedido", codigo_pedido).execute()
+
             base_retorno = {"sucesso": True, "codigo_pedido": codigo_pedido}
 
             if pedido.metodo_pagamento == "pix":
