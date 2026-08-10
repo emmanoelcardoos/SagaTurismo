@@ -126,7 +126,7 @@ export default function AldeiasPage() {
         </header>
 
         {/* ── HERO ── */}
-        <section className="relative min-h-[90vh] md:min-h-screen flex flex-col items-center justify-center overflow-hidden">
+        <section className="relative min-h-[50vh] md:min-h-screen flex flex-col items-center justify-center overflow-hidden">
           <div className="absolute inset-0 z-0">
             <Image
               src="https://images.pexels.com/photos/12434691/pexels-photo-12434691.jpeg"
