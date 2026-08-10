@@ -669,3 +669,146 @@ async def criar_carteira_asaas(dados: dict):
                 
     except Exception as e:
         return {"sucesso": False, "erro": str(e)}
+
+# No topo do arquivo, garante que tens estas importações:
+# from app.services.pdf_service import gerar_pdf_voucher
+# from app.services.email_service import enviar_voucher_hotel, enviar_voucher_pacote, enviar_voucher_passeio
+
+class PedidoReenvio(BaseModel):
+    pedido_id: str
+
+@router.post("/api/v1/pedidos/reenviar-voucher")
+async def reenviar_voucher(payload: PedidoReenvio):
+    try:
+        # 1. Busca os dados do pedido no Supabase
+        res_pedido = supabase.table("pedidos").select("*").eq("id", payload.pedido_id).single().execute()
+        if not res_pedido.data:
+            raise HTTPException(status_code=404, detail="Pedido não encontrado.")
+            
+        pedido = res_pedido.data
+        tipo = pedido.get("tipo_item")
+        email_cliente = pedido.get("email_cliente")
+        nome_cliente = pedido.get("nome_cliente")
+
+        if not email_cliente:
+            raise HTTPException(status_code=400, detail="E-mail do cliente não registado neste pedido.")
+
+        # ========================================================
+        # Lógica espelhada do Webhook para reconstruir os metadados
+        # ========================================================
+        if tipo == "hotel":
+            hotel_id = pedido.get("hotel_id") or pedido.get("item_id")
+            politicas_texto = "Apresente o seu documento de identificação original com foto no balcão de check-in."
+            nome_hotel = "Hotel Parceiro"
+            
+            try:
+                res_h = supabase.table("hoteis").select("nome, politicas").eq("id", hotel_id).single().execute()
+                if res_h.data:
+                    nome_hotel = res_h.data.get("nome", "Hotel Parceiro")
+                    p_raw = res_h.data.get("politicas")
+                    if p_raw:
+                        politicas_texto = p_raw.get("checkin_checkout") if isinstance(p_raw, dict) else str(p_raw)
+            except Exception as e:
+                print(f"[REENVIO HOTEL] Erro dados hotel: {e}")
+
+            dados_reserva = {
+                "nome_hotel": nome_hotel,
+                "checkin": pedido.get("data_checkin"),
+                "checkout": pedido.get("data_checkout"),
+                "tipo_quarto": pedido.get("tipo_quarto", "standard"),
+                "quantidade_pessoas": pedido.get("quantidade_pessoas", 2),
+                "politicas": politicas_texto
+            }
+            
+            from app.services.pdf_service import gerar_pdf_voucher
+            from app.services.email_service import enviar_voucher_hotel
+            
+            caminho_pdf = gerar_pdf_voucher(pedido, dados_reserva)
+            sucesso = enviar_voucher_hotel(email_cliente, nome_cliente, dados_reserva, caminho_pdf)
+
+        elif tipo == "pacote":
+            pacote_id = pedido.get("item_id")
+            nome_pacote = "Pacote de Expedição SagaTurismo"
+            nome_hotel = "Alojamento Oficial Incluso"
+            nome_guia = "Guia Credenciado Atribuído"
+            ponto_encontro = "Centro de Atendimento ao Turista (CAT)."
+
+            try:
+                res_p = supabase.table("pacotes").select("titulo").eq("id", pacote_id).single().execute()
+                if res_p.data: nome_pacote = res_p.data.get("titulo", nome_pacote)
+                
+                hotel_id_pedido = pedido.get("hotel_id")
+                if hotel_id_pedido:
+                    res_h = supabase.table("hoteis").select("nome").eq("id", hotel_id_pedido).single().execute()
+                    if res_h.data: nome_hotel = res_h.data.get("nome")
+                        
+                guia_id_pedido = pedido.get("guia_id")
+                if guia_id_pedido:
+                    res_g = supabase.table("guias").select("nome").eq("id", guia_id_pedido).single().execute()
+                    if res_g.data: nome_guia = res_g.data.get("nome")
+            except Exception as e:
+                print(f"[REENVIO PACOTE] Erro dados pacote: {e}")
+
+            dados_pacote = {
+                "nome_pacote": nome_pacote,
+                "checkin": pedido.get("data_checkin"),
+                "checkout": pedido.get("data_checkout"),
+                "nome_hotel": nome_hotel,
+                "nome_guia": nome_guia,
+                "ponto_encontro": ponto_encontro
+            }
+
+            from app.services.pdf_service import gerar_pdf_voucher
+            from app.services.email_service import enviar_voucher_pacote
+            
+            caminho_pdf = gerar_pdf_voucher(pedido, dados_pacote)
+            sucesso = enviar_voucher_pacote(email_cliente, nome_cliente, dados_pacote, caminho_pdf)
+
+        elif tipo == "passeio":
+            passeio_id = pedido.get("item_id")
+            nome_passeio = "Passeio Ecológico Oficial"
+            nome_guia = "Guia de Turismo Credenciado"
+            contato_guia = "Disponível via Central SagaTurismo"
+            endereco_local = "Orla de São Geraldo do Araguaia"
+
+            try:
+                res_pass = supabase.table("passeios").select("titulo, guia_id, ponto_encontro").eq("id", passeio_id).single().execute()
+                if res_pass.data:
+                    nome_passeio = res_pass.data.get("titulo", nome_passeio)
+                    if res_pass.data.get("ponto_encontro"): endereco_local = res_pass.data.get("ponto_encontro")
+                    g_id = res_pass.data.get("guia_id") or pedido.get("guia_id")
+                    if g_id:
+                        res_g = supabase.table("guias").select("nome, whatsapp").eq("id", g_id).single().execute()
+                        if res_g.data:
+                            nome_guia = res_g.data.get("nome", nome_guia)
+                            contato_guia = res_g.data.get("whatsapp", contato_guia)
+            except Exception as e:
+                print(f"[REENVIO PASSEIO] Erro dados passeio: {e}")
+
+            dados_passeio = {
+                "nome_passeio": nome_passeio,
+                "data_hora": pedido.get("data_checkin") or "Agendado",
+                "endereco": endereco_local,
+                "nome_guia": nome_guia,
+                "contato_guia": contato_guia
+            }
+
+            from app.services.pdf_service import gerar_pdf_voucher
+            from app.services.email_service import enviar_voucher_passeio
+            
+            caminho_pdf = gerar_pdf_voucher(pedido, dados_passeio)
+            sucesso = enviar_voucher_passeio(email_cliente, nome_cliente, dados_passeio, caminho_pdf)
+            
+        else:
+            raise HTTPException(status_code=400, detail="Tipo de reserva não suporta voucher em PDF.")
+
+        if sucesso:
+            return {"sucesso": True, "mensagem": f"Voucher enviado com sucesso para {email_cliente}"}
+        else:
+            raise HTTPException(status_code=500, detail="Falha ao disparar o e-mail via Resend.")
+
+    except HTTPException as http_e:
+        raise http_e
+    except Exception as e:
+        print(f"[REENVIO ERRO FATAL] {e}")
+        raise HTTPException(status_code=500, detail=str(e))
