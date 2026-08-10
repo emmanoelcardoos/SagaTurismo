@@ -44,6 +44,11 @@ export default function DashboardHotelPage() {
   const [reservas, setReservas] = useState<ReservaHotel[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
 
+  // ◄── ESTADOS PARA A CHAVE PIX (ASAAS) ──►
+  const [asaasWalletId, setAsaasWalletId] = useState<string>('');
+  const [isEditingWallet, setIsEditingWallet] = useState(false);
+  const [isSavingWallet, setIsSavingWallet] = useState(false);
+
   // 1. SEGURANÇA E RETENÇÃO DE PERFIL
   useEffect(() => {
     const id = localStorage.getItem("parceiro_id");
@@ -64,6 +69,17 @@ export default function DashboardHotelPage() {
 
     async function carregarDadosSupabase() {
       try {
+        // ◄── NOVO: Busca o asaas_wallet_id do hotel ──►
+        const { data: hotelData } = await supabase
+          .from('hoteis')
+          .select('asaas_wallet_id')
+          .eq('id', parceiroId)
+          .single();
+          
+        if (hotelData?.asaas_wallet_id) {
+          setAsaasWalletId(hotelData.asaas_wallet_id);
+        }
+
         // Busca todos os pedidos onde o hotel_id seja este parceiro e já estejam pagos
         const { data: pedidosData, error: pedidosError } = await supabase
           .from('pedidos')
@@ -126,6 +142,26 @@ export default function DashboardHotelPage() {
     carregarDadosSupabase();
   }, [parceiroId]);
 
+  // ◄── LÓGICA PARA SALVAR A CHAVE PIX ──►
+  const handleSalvarWallet = async () => {
+    setIsSavingWallet(true);
+    try {
+      const { error } = await supabase
+        .from('hoteis')
+        .update({ asaas_wallet_id: asaasWalletId })
+        .eq('id', parceiroId);
+
+      if (error) throw error;
+      
+      alert('Wallet ID atualizado com sucesso! Os próximos repasses serão enviados para esta carteira.');
+      setIsEditingWallet(false);
+    } catch (error: any) {
+      alert(error.message || 'Erro ao guardar o Wallet ID.');
+    } finally {
+      setIsSavingWallet(false);
+    }
+  };
+
   const handleLogout = () => {
     localStorage.clear();
     router.push('/parceiros');
@@ -167,8 +203,6 @@ export default function DashboardHotelPage() {
     );
   }
 
-  const percentagemChegadas = Math.min((metricas?.clientes_a_chegar || 0) * 10, 100); 
-
   return (
     <div className={`${inter.className} min-h-screen bg-[#F1F5F9] text-slate-900 flex flex-col`}>
       <header className="bg-white border-b border-slate-200 sticky top-0 z-50 px-4 md:px-10 py-4">
@@ -191,6 +225,39 @@ export default function DashboardHotelPage() {
       </header>
 
       <div className="mx-auto w-full max-w-7xl px-4 md:px-10 py-8 flex-1 space-y-8">
+        
+        {/* ◄── NOVO: PAINEL DE CONFIGURAÇÃO DA CHAVE PIX (ASAAS) ──► */}
+        <div className="bg-white rounded-[2rem] border border-slate-200 p-6 md:p-8 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center shrink-0 border border-amber-100">
+               <Wallet className="text-amber-500" size={24} />
+            </div>
+            <div>
+              <h3 className={`${jakarta.className} text-lg font-black text-slate-900`}>Chave de Repasse (Asaas Wallet)</h3>
+              <p className="text-xs font-medium text-slate-500 mt-1">Insira o seu Wallet ID para receber os valores automaticamente após cada reserva.</p>
+            </div>
+          </div>
+          <div className="flex w-full md:w-auto items-center gap-3">
+             <input
+               type="text"
+               disabled={!isEditingWallet}
+               value={asaasWalletId}
+               onChange={(e) => setAsaasWalletId(e.target.value)}
+               placeholder="Ex: d7a1b2c3-..."
+               className="w-full md:w-64 px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-sm font-bold text-slate-700 outline-none focus:border-[#00577C] disabled:opacity-60"
+             />
+             {isEditingWallet ? (
+               <button onClick={handleSalvarWallet} disabled={isSavingWallet} className="px-5 py-3 rounded-xl bg-[#009640] text-white text-xs font-black uppercase tracking-widest hover:bg-[#007a33] transition-colors whitespace-nowrap shadow-md">
+                 {isSavingWallet ? 'A Guardar...' : 'Guardar'}
+               </button>
+             ) : (
+               <button onClick={() => setIsEditingWallet(true)} className="px-5 py-3 rounded-xl bg-slate-900 text-white text-xs font-black uppercase tracking-widest hover:bg-black transition-colors whitespace-nowrap shadow-md">
+                 Editar
+               </button>
+             )}
+          </div>
+        </div>
+
         {/* CARDS DE MÉTRICAS */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-white rounded-[2rem] border border-slate-200 p-8 shadow-sm flex flex-col justify-between group">

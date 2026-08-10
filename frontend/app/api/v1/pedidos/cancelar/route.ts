@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-// Usamos a chave secreta (Service Role) para poder editar a base de dados com segurança
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -12,36 +11,44 @@ export async function POST(request: Request) {
   try {
     const { pedidoId, valorReembolso, asaasPaymentId } = await request.json();
 
-    // 1. Validação de Segurança Básica
-    if (!pedidoId) {
-      return NextResponse.json({ sucesso: false, error: "ID do pedido não fornecido." }, { status: 400 });
+    if (!pedidoId || !asaasPaymentId) {
+      return NextResponse.json({ sucesso: false, error: "Dados insuficientes (Falta ID do Pedido ou Asaas)." }, { status: 400 });
     }
 
-    // 2. Comunicar com o ASAAS para Estornar (Reembolso Parcial ou Total)
-    // NOTA: Para isto funcionar na vida real, precisas de ter o ID da cobrança do Asaas guardado na tua tabela pedidos (ex: 'pay_0123456789')
-    /* 
-    const asaasResponse = await fetch(`https://api.asaas.com/v3/payments/${asaasPaymentId}/refund`, {
+    // Vamos garantir que o valor vai limpo, com 2 casas decimais matemáticas (ex: 134.00)
+    // Pega o valor total bruto da tabela pedidos em vez de descontar a taxa por enquanto
+    const { data: pedidoAtual } = await supabaseAdmin
+      .from('pedidos')
+      .select('valor_total')
+      .eq('id', pedidoId)
+      .single();
+
+    const valorTotalBruto = pedidoAtual?.valor_total || valorReembolso;
+    const valorFormatado = Number(valorTotalBruto).toFixed(2);
+
+    console.log(`[CANCELAMENTO] A tentar estornar o VALOR TOTAL de R$ ${valorFormatado} para a cobrança: ${asaasPaymentId}`);
+
+    const asaasResponse = await fetch(`https://sandbox.asaas.com/api/v3/payments/${asaasPaymentId}/refund`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'access_token': process.env.ASAAS_API_KEY!
       },
       body: JSON.stringify({
-        value: valorReembolso, // Estorna apenas o valor sem a taxa da plataforma
+        value: Number(valorFormatado),
         description: "Cancelamento solicitado pelo turista via Portal Minha Reserva."
       })
     });
 
-    if (!asaasResponse.ok) {
-       const asaasError = await asaasResponse.json();
-       throw new Error("Erro no Asaas: " + JSON.stringify(asaasError));
-    }
-    */
-    
-    // Simulando o delay do Asaas para testes
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    const asaasData = await asaasResponse.json();
 
-    // 3. Atualizar o status na Base de Dados para "cancelado"
+    if (!asaasResponse.ok) {
+       console.error("Erro detalhado do Asaas:", asaasData);
+       const mensagemErro = asaasData.errors?.[0]?.description || "O banco recusou o estorno.";
+       return NextResponse.json({ sucesso: false, error: mensagemErro }, { status: 400 });
+    }
+
+    // Atualiza o status na Base de Dados para "cancelado"
     const { error: updateError } = await supabaseAdmin
       .from('pedidos')
       .update({ status_pagamento: 'cancelado' })
@@ -49,12 +56,10 @@ export async function POST(request: Request) {
 
     if (updateError) throw updateError;
 
-    // 4. Se for hotel/passeio, poderíamos também libertar a vaga na tabela de disponibilidade aqui.
-
     return NextResponse.json({ sucesso: true, mensagem: "Reserva cancelada e reembolsada com sucesso." });
     
   } catch (error: any) {
-    console.error("Erro ao cancelar reserva:", error);
-    return NextResponse.json({ sucesso: false, error: error.message }, { status: 500 });
+    console.error("Erro crítico ao cancelar reserva:", error);
+    return NextResponse.json({ sucesso: false, error: error.message || "Erro interno no servidor." }, { status: 500 });
   }
 }

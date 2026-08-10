@@ -27,6 +27,7 @@ export default function MinhaReservaModal({ isOpen, onClose }: MinhaReservaModal
   const [telefoneFornecedor, setTelefoneFornecedor] = useState('');
   const [cancelando, setCancelando] = useState(false);
   const [gerandoPdf, setGerandoPdf] = useState(false);
+  const [enviandoEmail, setEnviandoEmail] = useState(false);
 
   if (!isOpen) return null;
 
@@ -119,11 +120,17 @@ export default function MinhaReservaModal({ isOpen, onClose }: MinhaReservaModal
         body: JSON.stringify({
           pedidoId: reserva.id,
           valorReembolso: valorReembolsavel,
-          asaasPaymentId: reserva.codigo_pedido // No futuro, substitui isto pela coluna onde guardas o ID real da transação do Asaas (ex: reserva.asaas_payment_id)
+          asaasPaymentId: reserva.asaas_payment_id // ◄── AQUI ESTÁ A CORREÇÃO!
         })
       });
 
-      const data = await res.json();
+      // Proteção para garantir que se o servidor falhar, não dá erro de JSON
+      let data;
+      try {
+        data = await res.json();
+      } catch (err) {
+        throw new Error("Erro de comunicação com o servidor de pagamentos. Tente novamente.");
+      }
 
       if (!data.sucesso) {
         throw new Error(data.error || "Erro ao processar o cancelamento.");
@@ -138,6 +145,33 @@ export default function MinhaReservaModal({ isOpen, onClose }: MinhaReservaModal
       alert(err.message);
     } finally {
       setCancelando(false);
+    }
+  };
+
+  const handleReenviarVoucher = async () => {
+    setEnviandoEmail(true);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://sagaturismo-production.up.railway.app';
+      
+      const res = await fetch(`${apiUrl}/api/v1/pedidos/reenviar-voucher`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pedido_id: reserva.id
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.sucesso) {
+        throw new Error(data.detail || data.error || "Erro ao reenviar o voucher. Tente novamente mais tarde.");
+      }
+
+      alert("Sucesso! O voucher oficial em PDF foi enviado para o seu e-mail.");
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setEnviandoEmail(false);
     }
   };
   
@@ -261,9 +295,16 @@ export default function MinhaReservaModal({ isOpen, onClose }: MinhaReservaModal
                 <button onClick={handleContatoWhatsApp} className="flex-1 bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 font-black text-xs uppercase tracking-widest py-3 rounded-xl flex items-center justify-center gap-2 transition-all">
                   <MessageCircle size={16} /> Falar com Fornecedor
                 </button>
-                <button onClick={handleBaixarVoucher} disabled={gerandoPdf} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-xs uppercase tracking-widest py-3 rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50">
-                  {gerandoPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Download size={16} /> Baixar PDF</>}
-                </button>
+                {/* Botão de Reenviar Voucher */}
+                {reserva.status_pagamento === 'pago' && (
+                  <button 
+                    onClick={handleReenviarVoucher}
+                    disabled={enviandoEmail}
+                    className="px-6 py-3 rounded-xl font-black text-sm text-white bg-[#00577C] hover:bg-[#004a6b] transition-all disabled:opacity-50"
+                  >
+                    {enviandoEmail ? 'A enviar e-mail...' : 'Reenviar Voucher por E-mail'}
+                  </button>
+                )}
              </div>
 
              {/* SECÇÃO DE CANCELAMENTO FINANCEIRO (COM DIVISÃO DE VALORES) */}
