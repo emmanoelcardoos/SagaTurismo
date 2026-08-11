@@ -903,7 +903,7 @@ async def processar_carteira_bb(pedido: PedidoCarteiraGratuita):
             }
             
             payload_cob = {
-                "calendario": { "expiracao": 3600 },
+                "calendario": { "expiracao": 600 },
                 "devedor": { 
                     "cpf": tax_id_limpo, 
                     "nome": pedido.nome_cliente[:80] # O BB tem limite de 80 caracteres no nome

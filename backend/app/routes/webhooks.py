@@ -263,3 +263,174 @@ async def webhook_asaas(request: Request):
     except Exception as e:
         print(f"[WEBHOOK ERRO] Falha crítica: {str(e)}")
         return {"status": "ok", "error": "Internal process handled"}
+
+@router.post("/api/v1/webhooks/bb")
+async def webhook_bb(request: Request):
+    try:
+        payload = await request.json()
+        print("--- [WEBHOOK BANCO DO BRASIL RECEBIDO] ---")
+        
+        # O Banco do Brasil envia os pagamentos confirmados dentro de uma lista chamada "pix"
+        pagamentos_pix = payload.get("pix", [])
+        
+        for pix in pagamentos_pix:
+            txid = pix.get("txid")
+            
+            if not txid:
+                continue
+                
+            print(f"[WEBHOOK BB] Confirmação de Pix Recebida! TXID: {txid}")
+            
+            # 1. Procura o pedido na base de dados pelo código SAGA (txid)
+            res_pedido = supabase.table("pedidos").select("*").eq("codigo_pedido", txid).maybe_single().execute()
+            
+            if not res_pedido.data:
+                print(f"[WEBHOOK BB] Pedido {txid} não encontrado na base de dados.")
+                continue
+                
+            pedido = res_pedido.data
+            
+            # Se já estiver pago, ignora para não enviar e-mails duplicados
+            if pedido.get("status_pagamento") == "pago":
+                continue
+                
+            # 2. Atualiza o status do pedido para "pago"
+            supabase.table("pedidos").update({
+                "status_pagamento": "pago"
+            }).eq("id", pedido["id"]).execute()
+            
+            print(f"[WEBHOOK BB] SUCESSO: O pedido {txid} foi marcado como pago!")
+            
+            # 3. Lógica de Emissão (Carteira Digital)
+            tipo = pedido.get("tipo_item")
+            email_cliente = pedido.get("email_cliente")
+            nome_cliente = pedido.get("nome_cliente")
+            
+            if tipo == "carteira":
+                token_id = pedido.get("item_id") 
+                residentes_encontrados = []
+
+                if token_id:
+                    titular_res = supabase.table("rd_residentes").select("*").eq("id", token_id).execute()
+                    deps_res = supabase.table("rd_residentes").select("*").eq("titular_id", token_id).execute()
+                    residentes_encontrados = (titular_res.data or []) + (deps_res.data or [])
+                
+                if not residentes_encontrados:
+                    res_res = supabase.table("rd_residentes").select("*").eq("cpf", pedido.get("cpf_cliente")).execute()
+                    residentes_encontrados = res_res.data or []
+
+                if residentes_encontrados:
+                    caminhos_pdfs = []
+                    email_real_destino = email_cliente
+                    nome_real_destino = nome_cliente
+
+                    for res in residentes_encontrados:
+                        # Muda o status do morador para ativo!
+                        supabase.table("rd_residentes").update({"status": "ativo"}).eq("id", res["id"]).execute()
+                        
+                        if res.get("email"): email_real_destino = res["email"]
+                        if res.get("nome_completo"): nome_real_destino = res["nome_completo"]
+
+                        try:
+                            dados_pdf = {
+                                "nome": res.get("nome_completo") or res.get("nome", "Residente Oficial"),
+                                "cpf": res.get("cpf", pedido.get("cpf_cliente")),
+                                "data_nascimento": res.get("data_nascimento", "--/--/----"),
+                                "foto_url": res.get("foto_url")
+                            }
+                            # Gera o PDF
+                            caminho_pdf = gerar_pdf_carteira(dados_pdf, res.get("qrcode_token") or res["id"])
+                            if caminho_pdf: caminhos_pdfs.append(caminho_pdf)
+                        except Exception as e_pdf:
+                            print(f"[WEBHOOK BB] Erro ao gerar PDF: {e_pdf}")
+                    
+                    if caminhos_pdfs:
+                        try:
+                            # Envia o E-mail com os PDFs em anexo
+                            enviar_carteiras_por_email(email_real_destino, nome_real_destino, caminhos_pdfs)
+                            print(f"[WEBHOOK BB] Carteira enviada com sucesso para: {email_real_destino}")
+                        except Exception as e_email:
+                            print(f"[WEBHOOK BB] Erro ao enviar e-mail: {e_email}")
+                else:
+                    print(f"[WEBHOOK BB] Residente não encontrado para o token {token_id}")
+
+        # O Banco do Brasil exige uma resposta de HTTP 200 OK para saber que recebemos o aviso
+        return {"status": "200 OK"}
+
+    except Exception as e:
+        print(f"[WEBHOOK BB ERRO] Falha crítica: {str(e)}")
+        raise HTTPException(status_code=500, detail="Erro interno no webhook")
+
+@router.get("/api/v1/admin/processar-pendentes")
+async def processar_carteiras_pendentes():
+    try:
+        # 1. Busca todos os pedidos de carteira que estão "aguardando"
+        res_pedidos = supabase.table("pedidos").select("*").eq("tipo_item", "carteira").eq("status_pagamento", "aguardando").execute()
+        pedidos_pendentes = res_pedidos.data or []
+
+        if not pedidos_pendentes:
+            return {"sucesso": True, "mensagem": "Não há pagamentos pendentes para processar."}
+
+        processados = 0
+        emails_enviados = 0
+
+        # 2. Percorre todos os pedidos pendentes
+        for pedido in pedidos_pendentes:
+            # Atualiza o pedido para pago
+            supabase.table("pedidos").update({"status_pagamento": "pago"}).eq("id", pedido["id"]).execute()
+            
+            token_id = pedido.get("item_id")
+            residentes_encontrados = []
+
+            # Busca os residentes (titular e dependentes)
+            if token_id:
+                titular_res = supabase.table("rd_residentes").select("*").eq("id", token_id).execute()
+                deps_res = supabase.table("rd_residentes").select("*").eq("titular_id", token_id).execute()
+                residentes_encontrados = (titular_res.data or []) + (deps_res.data or [])
+            
+            # Fallback pelo CPF
+            if not residentes_encontrados:
+                res_res = supabase.table("rd_residentes").select("*").eq("cpf", pedido.get("cpf_cliente")).execute()
+                residentes_encontrados = res_res.data or []
+
+            # 3. Ativa os residentes, gera PDFs e envia e-mail
+            if residentes_encontrados:
+                caminhos_pdfs = []
+                email_real = pedido.get("email_cliente")
+                nome_real = pedido.get("nome_cliente")
+
+                for res in residentes_encontrados:
+                    # Muda o status para ativo na base de dados
+                    supabase.table("rd_residentes").update({"status": "ativo"}).eq("id", res["id"]).execute()
+                    
+                    if res.get("email"): email_real = res["email"]
+                    if res.get("nome_completo"): nome_real = res["nome_completo"]
+
+                    try:
+                        dados_pdf = {
+                            "nome": res.get("nome_completo") or res.get("nome", "Residente Oficial"),
+                            "cpf": res.get("cpf", pedido.get("cpf_cliente")),
+                            "data_nascimento": res.get("data_nascimento", "--/--/----"),
+                            "foto_url": res.get("foto_url")
+                        }
+                        caminho_pdf = gerar_pdf_carteira(dados_pdf, res.get("qrcode_token") or res["id"])
+                        if caminho_pdf: caminhos_pdfs.append(caminho_pdf)
+                    except Exception as e_pdf:
+                        print(f"Erro ao gerar PDF: {e_pdf}")
+                
+                if caminhos_pdfs:
+                    try:
+                        enviar_carteiras_por_email(email_real, nome_real, caminhos_pdfs)
+                        emails_enviados += 1
+                    except Exception as e_mail:
+                        print(f"Erro ao enviar e-mail: {e_mail}")
+            
+            processados += 1
+
+        return {
+            "sucesso": True, 
+            "mensagem": f"Simulação concluída! {processados} pedido(s) atualizado(s) para 'pago'. {emails_enviados} e-mail(s) enviado(s) com as carteiras em anexo."
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao processar pagamentos pendentes: {str(e)}")
