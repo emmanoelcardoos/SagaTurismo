@@ -3,29 +3,19 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image'; // <-- ADICIONADO
+import Image from 'next/image';
 import { 
-  Loader2, MapPin, ShieldCheck, QrCode, CheckCircle2, 
-  User, Mail, Copy, AlertCircle, CreditCard, Lock, 
-  ShieldAlert, Home, Clock, Check, ChevronRight, Wallet, 
-  Smartphone, IdCard, Users, Menu, X, CalendarDays, Calendar
-} from 'lucide-react'; // Removidos isMobileMenuOpen, setIsMobileMenuOpen
+  Loader2, ShieldCheck, CheckCircle2, User, Mail, Copy, 
+  Lock, Check, ChevronRight, Users, Menu, X, IdCard, Leaf
+} from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '700', '800'] });
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
 
-declare global {
-  interface Window {
-    PagSeguro?: any;
-  }
-}
-
 const formatarMoeda = (valor: number) => (valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-const mascaraCartao = (v: string) => v.replace(/\D/g, '').replace(/(\d{4})(?=\d)/g, '$1 ').slice(0, 19);
 const mascaraCPF = (v: string) => v.replace(/\D/g, '').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2').slice(0, 14);
 const mascaraTelefone = (v: string) => v.replace(/\D/g, '').replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d)/, '$1-$2').slice(0, 15);
-const mascaraCEP = (v: string) => v.replace(/\D/g, '').replace(/(\d{5})(\d)/, '$1-$2').slice(0, 9);
 
 function SectionCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return <div className={`rounded-[2rem] border-2 border-slate-100 bg-white shadow-sm overflow-hidden ${className}`}>{children}</div>;
@@ -46,7 +36,7 @@ function SectionHeader({ step, title, icon }: { step: number; title: string; ico
 }
 
 // ── CRONÓMETRO PIX ──
-const PIX_DURATION_SECONDS = 15 * 60; 
+const PIX_DURATION_SECONDS = 60 * 60; // 60 minutos para o BB
 function CronometroPix({ onExpirado }: { onExpirado: () => void }) {
   const [segundosRestantes, setSegundosRestantes] = useState(PIX_DURATION_SECONDS);
   
@@ -91,54 +81,24 @@ function CheckoutCarteiraContent() {
   const [dadosCidadão, setDadosCidadão] = useState<any>(null);
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
-
-  // ── Estado local para menu mobile (CORRIGIDO) ──
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Estados Financeiros
-  const PRECO_UNITARIO = 20;
+  const PRECO_UNITARIO = 20.00; // Valor da taxa ajustado para 20,00
   const [quantidade, setQuantidade] = useState(1);
   const valorTotalReserva = quantidade * PRECO_UNITARIO;
   
-  // Pagamento - Cartão
-  const [metodoPagamento, setMetodoPagamento] = useState<'pix' | 'cartao'>('pix');
-  const [nomeCartao, setNomeCartao] = useState('');
-  const [numeroCartao, setNumeroCartao] = useState('');
-  const [mesCartao, setMesCartao] = useState('');
-  const [anoCartao, setAnoCartao] = useState('');
-  const [cvvCartao, setCvvCartao] = useState('');
-  
-  // Dados Obrigatórios para Faturação e Antifraude
+  // Dados de Contacto/Faturação
   const [cpfFaturamento, setCpfFaturamento] = useState('');
   const [telefone, setTelefone] = useState('');
   const [nomeTitular, setNomeTitular] = useState('');
   const [emailTitular, setEmailTitular] = useState('');
-  const [cep, setCep] = useState('');
-  const [rua, setRua] = useState('');
-  const [numeroEndereco, setNumeroEndereco] = useState('');
-  const [bairro, setBairro] = useState('');
-  const [cidade, setCidade] = useState('São Geraldo do Araguaia');
-  const [estado, setEstado] = useState('PA');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [erroApi, setErroApi] = useState('');
   const [qrCodeData, setQrCodeData] = useState<{ link: string; texto: string; id_pedido: string } | null>(null);
   const [pixExpirado, setPixExpirado] = useState(false);
   const [copiado, setCopiado] = useState(false);
-
-  // ── O TEU INTERRUPTOR DE NEGÓCIO ──
-  // Muda para 'false' quando a prefeitura mandar começar a cobrar!
-  const isCarteiraGratuitaTemporariamente = true;
-
-  // ── INJEÇÃO DO PAGBANK SDK ──
-  useEffect(() => {
-    if (typeof window !== 'undefined' && !window.PagSeguro) {
-      const script = document.createElement('script');
-      script.src = "https://assets.pagseguro.com.br/checkout-sdk-js/rc/dist/browser/pagseguro.min.js";
-      script.async = true;
-      document.body.appendChild(script);
-    }
-  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -159,7 +119,6 @@ function CheckoutCarteiraContent() {
         const res = await fetch(`/api/validar?token=${token}`);
         const data = await res.json();
         
-        // ◄── NOVA BLINDAGEM: Procurar quantidade no URL e na Memória ──►
         const qtdUrl = searchParams.get('quantidade') || searchParams.get('qtd');
         const qtdMemoria = typeof window !== 'undefined' ? localStorage.getItem('saga_residente_quantidade') : null;
 
@@ -169,11 +128,9 @@ function CheckoutCarteiraContent() {
         }
 
         if (data) {
-          // 1. Vai buscar os dados à memória do navegador (gravados na página anterior)
           const nomeMemoria = typeof window !== 'undefined' ? localStorage.getItem('saga_residente_nome') : null;
           const emailMemoria = typeof window !== 'undefined' ? localStorage.getItem('saga_residente_email') : null;
 
-          // 2. Mescla o que vem da API com o que está na memória
           const dadosCompletos = {
             ...data,
             nome: data.nome || data.nome_cliente || nomeMemoria || 'Residente',
@@ -182,7 +139,6 @@ function CheckoutCarteiraContent() {
 
           setDadosCidadão(dadosCompletos);
           
-          // 3. Define a Quantidade Familiar (Tenta API, depois URL, depois Memória)
           if (dadosCompletos.quantidade_pessoas) setQuantidade(Number(dadosCompletos.quantidade_pessoas));
           else if (dadosCompletos.quantidade) setQuantidade(Number(dadosCompletos.quantidade));
           else if (qtdUrl) setQuantidade(Number(qtdUrl));
@@ -196,99 +152,22 @@ function CheckoutCarteiraContent() {
         }
       } catch (err) { 
         console.error("Falha ao puxar dados do titular", err);
-        // Fallback de emergência em caso de erro na API
         const qtdMemoria = typeof window !== 'undefined' ? localStorage.getItem('saga_residente_quantidade') : null;
         if (qtdMemoria) setQuantidade(Number(qtdMemoria));
-        
         setLoadingInitial(false); 
       }
     };
 
     checkStatus();
-    const interval = setInterval(checkStatus, 8000); 
-    return () => clearInterval(interval);
-  }, [token, router, searchParams]);
-
-  const handlePagamento = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErroApi('');
-    setIsSubmitting(true);
-
-    const payload: any = {
-      tipo_item: "carteira", 
-      token_id: token,
-      quantidade: quantidade,
-      nome_cliente: dadosCidadão?.nome || nomeCartao || 'Titular', 
-      cpf_cliente: cpfFaturamento.replace(/\D/g, '') || dadosCidadão?.cpf?.replace(/\D/g, '') || '00000000000', 
-      email_cliente: dadosCidadão?.email || 'contato@sagaturismo.com.br',
-      telefone_cliente: telefone.replace(/\D/g, '') || '11999999999',
-      valor_total: valorTotalReserva,
-      endereco_faturacao: {
-        street: rua || 'Rua Principal',
-        number: numeroEndereco || 'S/N',
-        locality: bairro || 'Centro',
-        city: cidade || 'São Geraldo do Araguaia',
-        region_code: estado || 'PA',
-        postal_code: cep.replace(/\D/g, '') || '68590000',
-        country: 'BRA'
-      }
-    };
-
-    try {
-      if (metodoPagamento === 'cartao') {
-        if (!window.PagSeguro || typeof window.PagSeguro.encryptCard !== 'function') {
-          throw new Error('Sistema de segurança a carregar. Tente novamente em segundos.');
-        }
-        
-        const key = process.env.NEXT_PUBLIC_PAGBANK_PUBLIC_KEY;
-        if (!key) throw new Error('Chave de encriptação financeira em falta.');
-
-        const cardData = window.PagSeguro.encryptCard({
-          publicKey: key,
-          holder: nomeCartao,
-          number: numeroCartao.replace(/\D/g, ''),
-          expMonth: mesCartao,
-          expYear: anoCartao,
-          securityCode: cvvCartao
-        });
-
-        if (cardData.hasErrors) throw new Error('O banco emissor ou a gateway rejeitou os dados do cartão.');
-
-        payload.metodo_pagamento = 'cartao';
-        payload.encrypted_card = cardData.encryptedCard;
-        payload.parcelas = 1; 
-      } else {
-        payload.metodo_pagamento = 'pix';
-      }
-
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://sagaturismo-production.up.railway.app';
-      const res = await fetch(`${apiUrl}/api/v1/pagamentos/processar`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const data = await res.json();
-
-      if (data.sucesso) {
-        if (metodoPagamento === 'pix') {
-          setQrCodeData({ 
-            link: data.pix_qrcode_img || data.qr_code_link, 
-            texto: data.pix_copia_cola || data.qr_code_text, 
-            id_pedido: data.codigo_pedido 
-          });
-        } else {
-          router.push('/sucesso-carteira?pedido=' + data.codigo_pedido)
-        }
-      } else {
-        setErroApi(data.detail || data.mensagem || 'Falha na comunicação com o banco.');
-      }
-    } catch (err: any) { 
-      setErroApi(err.message || 'Erro inesperado.'); 
-    } finally { 
-      setIsSubmitting(false); 
+    // Parar de fazer polling se já gerou o QR Code para não sobrecarregar
+    if (!qrCodeData) {
+      const interval = setInterval(checkStatus, 8000); 
+      return () => clearInterval(interval);
     }
-  };
+  }, [token, router, searchParams, qrCodeData]);
 
-  const handleEmissaoGratuita = async (e: React.FormEvent) => {
+  // ── INTEGRAÇÃO COM BANCO DO BRASIL ──
+  const handlePagamentoPix = async (e: React.FormEvent) => {
     e.preventDefault();
     setErroApi('');
     setIsSubmitting(true);
@@ -297,16 +176,19 @@ function CheckoutCarteiraContent() {
     const emailMemoria = typeof window !== 'undefined' ? localStorage.getItem('saga_residente_email') : null;
 
     const payload = {
-      nome_cliente: nomeTitular || dadosCidadão?.nome || nomeMemoria || 'Titular',
+      nome_cliente: nomeTitular || dadosCidadão?.nome || nomeMemoria || 'Titular Residente',
       cpf_cliente: cpfFaturamento.replace(/\D/g, '') || dadosCidadão?.cpf?.replace(/\D/g, '') || '00000000000',
       email_cliente: emailTitular || dadosCidadão?.email || emailMemoria || 'contato@sagaturismo.com.br',
       telefone_cliente: telefone.replace(/\D/g, '') || '11999999999',
-      token_id: token
+      token_id: token,
+      quantidade: quantidade // Enviado para o backend processar os acompanhantes
     };
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://sagaturismo-production.up.railway.app';
-      const res = await fetch(`${apiUrl}/api/v1/pagamentos/carteira-gratuita`, {
+      
+      // ◄── CHAMA A NOVA ROTA DO BANCO DO BRASIL ──►
+      const res = await fetch(`${apiUrl}/api/v1/pagamentos/carteira-bb`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -314,13 +196,16 @@ function CheckoutCarteiraContent() {
       const data = await res.json();
 
       if (data.sucesso) {
-        // Como o localStorage já está a guardar a informação, redirecionamos de forma limpa
-        router.push(`/sucesso-carteira?pedido=${data.codigo_pedido}`);
+        setQrCodeData({ 
+          link: data.pix_qrcode_img, 
+          texto: data.pix_copia_cola, 
+          id_pedido: data.codigo_pedido 
+        });
       } else {
-        setErroApi(data.detail || 'Falha na emissão gratuita.');
+        setErroApi(data.detail || data.erro || 'Falha na comunicação com o Banco do Brasil.');
       }
     } catch (err: any) {
-      setErroApi(err.message || 'Erro inesperado.');
+      setErroApi(err.message || 'Erro inesperado. Verifique a sua conexão.');
     } finally {
       setIsSubmitting(false);
     }
@@ -344,67 +229,18 @@ function CheckoutCarteiraContent() {
                 <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain" />
              </div>
           </Link>
-
-          <nav className="hidden lg:flex items-center gap-8">
-            {[].map(item => (
-              <Link key={item} href={`/${item.toLowerCase()}`} className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-slate-600 hover:text-[#00577C] transition-colors`}>
-                {item}
-              </Link>
-            ))}
-            <Link href="/cadastro" className={`${jakarta.className} bg-[#F9C400] text-[#002f40] px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-sm`}>
-              Cartão Residente
-            </Link>
-          </nav>
-
           <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="rounded-xl p-2 lg:hidden bg-slate-50 text-[#00577C] hover:bg-slate-100 transition-colors">
             {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
-
-        {/* 
-<Menu Mobile - DESATIVADO TEMPORARIAMENTE>
-
-{isMobileMenuOpen && (
-  <div className="absolute top-full left-0 w-full bg-white border-b border-slate-200 p-6 flex flex-col gap-4 shadow-2xl lg:hidden z-50">
-    <Link href="/rotas" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>
-      Rotas Turísticas
-    </Link>
-    <Link href="/eventos" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>
-      Agenda Cultural
-    </Link>
-    <Link href="/pacotes" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>
-      Pacotes
-    </Link>
-    <Link href="/rotas" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>
-      Rotas
-    </Link>
-    <Link href="/biodiversidade" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>
-      Biodiversidade
-    </Link>
-    <Link href="/gastronomia" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>
-      Gastronomia
-    </Link>
-    <Link href="/comunidades" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>
-      Comunidades
-    </Link>
-    <Link
-      href="/cadastro"
-      className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md mt-2`}
-    >
-      Cartão Residente
-    </Link>
-  </div>
-)}
-*/}
-</header>
-
+      </header>
 
       {/* PROGRESS BAR */}
-      <div className="bg-white border-b border-slate-200 mt-[0px] md:mt-[0px]">
+      <div className="bg-white border-b border-slate-200">
         <div className="mx-auto max-w-7xl px-4 md:px-8 py-4 md:py-5">
           <div className="flex items-center justify-center md:justify-start gap-2 md:gap-4 text-[9px] md:text-[10px] uppercase tracking-[0.2em] font-black text-slate-400">
             <span className="hidden sm:inline-block">Análise</span> <ChevronRight size={14} className="hidden sm:inline-block"/> 
-            <span className="text-[#00577C] bg-blue-50 px-3 py-1.5 rounded-full flex items-center gap-2"><Lock size={12}/> Taxa de Emissão</span> <ChevronRight size={14}/> 
+            <span className="text-[#00577C] bg-blue-50 px-3 py-1.5 rounded-full flex items-center gap-2"><Lock size={12}/> Pagamento Oficial</span> <ChevronRight size={14}/> 
             <span>Carteira Ativa</span>
           </div>
         </div>
@@ -415,71 +251,84 @@ function CheckoutCarteiraContent() {
           
           <div className="space-y-6 md:space-y-8">
             {!qrCodeData ? (
-              isCarteiraGratuitaTemporariamente ? (
-                /* ── FORMULÁRIO GRATUITO ── */
-                <form onSubmit={handleEmissaoGratuita} className="space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                  <SectionCard className="p-6 md:p-10 text-left border-t-4 border-t-[#009640]">
-                    <SectionHeader step={1} title="Isenção de Taxa" icon={<ShieldCheck size={20} />} />
-                    
-                    <div className="bg-green-50 text-green-800 p-6 rounded-2xl mb-8 border border-green-100">
-                        <p className="font-bold text-lg mb-2">Boas notícias!</p>
-                        <p className="text-sm">Neste momento, a taxa de emissão está a ser <strong>100% subsidiada pela Prefeitura Municipal de São Geraldo do Araguaia</strong>. A emissão é gratuita e não é necessário pagamento.</p>
+              /* ── FORMULÁRIO PIX (BANCO DO BRASIL) ── */
+              <form onSubmit={handlePagamentoPix} className="space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <SectionCard className="p-6 md:p-10 text-left border-t-4 border-t-[#00577C]">
+                  <SectionHeader step={1} title="Confirmação de Dados" icon={<ShieldCheck size={20} />} />
+                  
+                  {erroApi && (
+                    <div className="mb-8 bg-red-50 text-red-700 p-4 rounded-xl text-sm font-bold border border-red-100 flex items-start gap-3">
+                      <Lock className="w-5 h-5 shrink-0" />
+                      <p>{erroApi}</p>
                     </div>
+                  )}
 
-                    <div className="space-y-4">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
-                        <Smartphone size={14}/> Informação de Contacto
-                      </p>
-                      
-                      <div className="grid grid-cols-1 gap-3">
-                         <input 
-                           required 
-                           value={telefone} 
-                           onChange={e => setTelefone(mascaraTelefone(e.target.value))} 
-                           maxLength={15} 
-                           className="w-full rounded-xl border-2 border-slate-200 bg-white px-5 py-4 text-sm md:text-base font-bold text-slate-800 outline-none focus:border-[#00577C] transition-colors" 
-                           placeholder="O seu Telefone / WhatsApp *" 
-                         />
+                  <div className="bg-[#00577C]/5 border border-[#00577C]/10 text-[#00577C] p-6 rounded-2xl mb-8 flex items-start gap-4">
+                      <div className="bg-white p-2 rounded-full shadow-sm shrink-0">
+                         <Image src="/bb-logo.png" alt="Banco do Brasil" width={24} height={24} className="object-contain" />
                       </div>
-                      
-                    </div>
+                      <div>
+                        <p className="font-black text-sm mb-1 uppercase tracking-widest">Cobrança Oficial</p>
+                        <p className="text-sm font-medium">Este pagamento é processado diretamente pelo <strong>Banco do Brasil</strong> para a conta da Prefeitura Municipal de São Geraldo do Araguaia.</p>
+                      </div>
+                  </div>
 
-                    <button type="submit" disabled={isSubmitting} className="w-full mt-8 py-6 rounded-[1.5rem] font-black text-xl text-white bg-[#009640] hover:bg-green-700 shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50">
-                        {isSubmitting ? <><Loader2 className="animate-spin" size={24}/> Processando...</> : <><IdCard size={22}/> Prosseguir com a Emissão</>}
-                    </button>
-                  </SectionCard>
-                </form>
-              ) : (
-                /* ── O TEU FORMULÁRIO ORIGINAL DE PAGAMENTO FICA AQUI INTACTO ── */
-                <form onSubmit={handlePagamento} className="space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    {/* ... (Cola aqui todo o SectionCard do teu formulário original de Pagamento) ... */}
-                </form>
-              )
+                  <div className="space-y-4">
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                       <input 
+                         required 
+                         value={cpfFaturamento || dadosCidadão?.cpf || ''} 
+                         onChange={e => setCpfFaturamento(mascaraCPF(e.target.value))} 
+                         maxLength={14} 
+                         className="w-full rounded-xl border-2 border-slate-200 bg-white px-5 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] transition-colors" 
+                         placeholder="CPF do Titular *" 
+                       />
+                       <input 
+                         required 
+                         value={telefone} 
+                         onChange={e => setTelefone(mascaraTelefone(e.target.value))} 
+                         maxLength={15} 
+                         className="w-full rounded-xl border-2 border-slate-200 bg-white px-5 py-4 text-sm font-bold text-slate-800 outline-none focus:border-[#00577C] transition-colors" 
+                         placeholder="WhatsApp com DDD *" 
+                       />
+                    </div>
+                    
+                  </div>
+
+                  <button type="submit" disabled={isSubmitting} className="w-full mt-10 py-5 rounded-[1.5rem] font-black text-lg text-white bg-[#00577C] hover:bg-[#004a6b] shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50">
+                      {isSubmitting ? <><Loader2 className="animate-spin" size={24}/> Conectando ao Banco...</> : <><Image src="/pix-white.svg" alt="Pix" width={20} height={20} /> Gerar PIX de Pagamento</>}
+                  </button>
+                </SectionCard>
+              </form>
             ) : (
-              <SectionCard className="p-8 md:p-16 text-center border-green-100 animate-in zoom-in-95 duration-500">
-                 <div className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6"><CheckCircle2 size={48} className="text-[#009640]"/></div>
+              /* ── ECRÃ DE SUCESSO E QR CODE ── */
+              <SectionCard className="p-8 md:p-16 text-center border-[#00577C] animate-in zoom-in-95 duration-500">
+                 <div className="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6"><CheckCircle2 size={48} className="text-[#00577C]"/></div>
                  <h2 className={`${jakarta.className} text-3xl md:text-4xl font-black text-slate-900 mb-4`}>Fatura Gerada!</h2>
-                 <p className="text-slate-500 mb-8 text-lg max-w-md mx-auto">Efetue o pagamento no seu banco. A sua carteira será ativada instantaneamente após a confirmação.</p>
+                 <p className="text-slate-500 mb-8 text-lg max-w-md mx-auto">Leia o QR Code na aplicação do seu banco. A sua carteira será ativada automaticamente e enviada para o seu e-mail assim que o pagamento for confirmado.</p>
                  
-                 {!pixExpirado && <CronometroPix onExpirado={() => setPixExpirado(true)} />}
+                 {!pixExpirado ? <CronometroPix onExpirado={() => setPixExpirado(true)} /> : (
+                   <div className="bg-red-50 text-red-600 font-bold p-4 rounded-xl mb-6">Este código PIX expirou. Por favor, atualize a página.</div>
+                 )}
 
                  <div className="w-64 h-64 bg-slate-50 mx-auto rounded-[3rem] p-6 border-4 border-dashed border-slate-200 mb-8 flex items-center justify-center shadow-inner relative">
-                    <img src={qrCodeData.link} alt="QR Code" className="w-full h-full mix-blend-multiply relative z-10" />
+                    <img src={qrCodeData.link} alt="QR Code PIX Banco do Brasil" className="w-full h-full mix-blend-multiply relative z-10" />
                  </div>
                  
                  <div className="w-full max-w-md mx-auto">
                     <label className="block text-[10px] font-black uppercase text-slate-400 mb-2 text-left">Código PIX Copia e Cola</label>
                     <input type="text" readOnly value={qrCodeData.texto} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-xs font-mono font-bold text-slate-500 outline-none truncate mb-4" />
                     
-                    <button onClick={() => {navigator.clipboard.writeText(qrCodeData.texto); setCopiado(true); setTimeout(()=>setCopiado(false),2000)}} className={`w-full py-5 rounded-2xl text-white font-black text-lg flex items-center justify-center gap-3 shadow-xl transition-colors ${copiado ? 'bg-[#00577C]' : 'bg-[#009640] hover:bg-green-700'}`}>
-                        {copiado ? <Check size={20}/> : <Copy size={20}/>} {copiado ? 'Copiado para a área de transferência!' : 'Copiar Código PIX'}
+                    <button onClick={() => {navigator.clipboard.writeText(qrCodeData.texto); setCopiado(true); setTimeout(()=>setCopiado(false),2000)}} className={`w-full py-5 rounded-2xl text-white font-black text-lg flex items-center justify-center gap-3 shadow-xl transition-colors ${copiado ? 'bg-[#009640]' : 'bg-[#00577C] hover:bg-[#004a6b]'}`}>
+                        {copiado ? <Check size={20}/> : <Copy size={20}/>} {copiado ? 'Copiado!' : 'Copiar Código PIX'}
                     </button>
                  </div>
               </SectionCard>
             )}
           </div>
 
-          {/* ── COLUNA DIREITA: RESUMO DA COMPRA COM STICKY ACTIVO ── */}
+          {/* ── COLUNA DIREITA: RESUMO DA COMPRA ── */}
           <aside className="w-full h-fit lg:sticky lg:top-32 order-first lg:order-last relative space-y-6">
             <SectionCard>
               <div className="h-2 w-full bg-gradient-to-r from-[#00577C] via-[#F9C400] to-[#009640]" />
@@ -515,13 +364,21 @@ function CheckoutCarteiraContent() {
                     </div>
                  </div>
 
+                 {/* SELO PROJETO ARBORIZAÇÃO */}
+                 <div className="bg-[#e6f4ea] border border-[#009640]/20 p-4 rounded-xl flex items-start gap-3 mt-4">
+                    <Leaf className="text-[#009640] shrink-0 mt-0.5" size={18} />
+                    <p className="text-[11px] font-medium text-green-900 leading-relaxed">
+                      <strong>100% desta taxa</strong> é destinada ao financiamento do <span className="font-bold">Projeto Municipal de Arborização Urbana</span> de São Geraldo do Araguaia.
+                    </p>
+                 </div>
+
                  <div className="pt-8 border-t-2 border-slate-100 flex flex-col gap-4">
                     <div className="flex items-center justify-between">
                        <p className="text-xs font-black uppercase text-slate-400 tracking-widest">Total a Pagar</p>
-                       <div className="bg-[#F9C400]/20 px-3 py-1 rounded-full flex items-center gap-1.5 text-amber-700 text-[10px] font-black uppercase">Tarifa Única</div>
+                       <div className="bg-[#00577C]/10 px-3 py-1 rounded-full flex items-center gap-1.5 text-[#00577C] text-[10px] font-black uppercase">Tarifa Única</div>
                     </div>
                     <p className={`${jakarta.className} text-4xl md:text-5xl font-black text-[#00577C] tabular-nums leading-none`}>
-                      {isCarteiraGratuitaTemporariamente ? formatarMoeda(0) : formatarMoeda(valorTotalReserva)}
+                      {formatarMoeda(valorTotalReserva)}
                     </p>
                  </div>
               </div>
