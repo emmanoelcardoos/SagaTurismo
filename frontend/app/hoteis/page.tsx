@@ -1,13 +1,12 @@
 'use client';
 
-import { useEffect, useState, useMemo, useRef, Suspense } from 'react';
+import { useEffect, useState, useMemo, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter, useSearchParams } from 'next/navigation';
 import {
-  Loader2, Menu, MapPin, Search, Calendar as CalendarIcon, Star, 
-  CheckCircle2, ChevronRight, ShieldCheck, Filter, Users, X, 
-  AlertTriangle, ChevronLeft, ArrowRight
+  Loader2, Menu, MapPin, Search, Star, 
+  CheckCircle2, ShieldCheck, Filter, X, 
+  ArrowRight
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -16,14 +15,6 @@ const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'] });
 
 // ── TIPAGEM ──
-type TipoQuarto = {
-  id: string;
-  nome_quarto: string;
-  preco_quarto: number;
-  imagem_url: string;
-  capacidade: number;
-};
-
 type Hotel = {
   id: string;
   nome: string;
@@ -31,26 +22,10 @@ type Hotel = {
   descricao: string;
   estrelas: number;
   imagem_url: string;
-  preco_medio: any;
-  quarto_standard_preco: any;
   comodidades?: string[];
-  tipos_quarto?: TipoQuarto[];
 };
 
 // ── UTILS ──
-const parseValor = (valor: any): number => {
-  if (!valor) return 0;
-  if (typeof valor === 'number') return isNaN(valor) ? 0 : valor;
-  let str = String(valor).replace(/[^\d.,]/g, '');
-  if (str.includes('.') && str.includes(',')) str = str.replace(/\./g, '').replace(',', '.');
-  else if (str.includes(',')) str = str.replace(',', '.');
-  const num = parseFloat(str);
-  return isNaN(num) ? 0 : num;
-};
-
-const formatarMoeda = (valor: number) =>
-  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor || 0);
-
 const getArraySeguro = (item: any): string[] => {
   if (!item) return [];
   if (Array.isArray(item)) return item;
@@ -76,8 +51,7 @@ function HotelCardSkeleton() {
         <div className="h-8 bg-slate-200 rounded w-3/4" />
         <div className="h-4 bg-slate-200 rounded w-full mt-4" />
         <div className="h-4 bg-slate-200 rounded w-2/3" />
-        <div className="mt-auto pt-6 flex justify-between items-end">
-          <div className="space-y-2"><div className="h-4 bg-slate-200 rounded w-24" /><div className="h-6 bg-slate-200 rounded w-32" /></div>
+        <div className="mt-auto pt-6 flex justify-end">
           <div className="h-12 bg-slate-200 rounded-full w-40" />
         </div>
       </div>
@@ -87,196 +61,36 @@ function HotelCardSkeleton() {
 
 // ── COMPONENTE PRINCIPAL ──
 function HoteisPageContent() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
   const [hoteis, setHoteis] = useState<Hotel[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showHeader, setShowHeader] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
+  
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
 
-  // PESQUISA E DATAS
-  const [adultos, setAdultos] = useState(2);
-  const [quartos, setQuartos] = useState(1);
-  const [showPopup, setShowPopup] = useState<'calendar' | 'hospedes' | null>(null);
-  const [isSearching, setIsSearching] = useState(false); 
-
-  const [checkin, setCheckin] = useState<Date | null>(null);
-  const [checkout, setCheckout] = useState<Date | null>(null);
-  const [mesAtual, setMesAtual] = useState(new Date());
-  const [hoverDate, setHoverDate] = useState<Date | null>(null);
-
-  const [precosDinamicos, setPrecosDinamicos] = useState<Record<string, { valor_total: number; noites: number; disponivel: boolean; motivo?: string }>>({});
-  const [carregandoPrecos, setCarregandoPrecos] = useState(false);
-
+  // Filtros Visuais (Mantidos para a vitrine)
   const [estrelasSelecionadas, setEstrelasSelecionadas] = useState<number[]>([]);
   const [comodidadesSelecionadas, setComodidadesSelecionadas] = useState<string[]>([]);
-  const searchBarRef = useRef<HTMLDivElement>(null);
 
   // Hero Carousel State
   const [currentHeroSlide, setCurrentHeroSlide] = useState(0);
 
   useEffect(() => {
     async function fetchHoteis() {
-      const { data } = await supabase.from('hoteis').select('*, tipos_quarto(id, nome_quarto, preco_quarto, imagem_url, capacidade)').order('nome');
+      const { data } = await supabase.from('hoteis').select('*').order('nome');
       if (data) setHoteis(data as Hotel[]);
       setLoading(false);
     }
     fetchHoteis();
   }, []);
 
-  // Rotação do Carrossel (apenas se houver mais que 1 hotel)
+  // Rotação do Carrossel
   useEffect(() => {
     if (hoteis.length <= 1) return;
     const timer = setInterval(() => setCurrentHeroSlide((prev) => (prev + 1) % hoteis.length), 6000);
     return () => clearInterval(timer);
   }, [hoteis.length]);
 
-  useEffect(() => {
-    const ci = searchParams.get('checkin');
-    const co = searchParams.get('checkout');
-    const ad = searchParams.get('adultos');
-    const qu = searchParams.get('quartos');
-
-    if (ci && ci !== 'null') {
-      const dIn = new Date(ci + 'T00:00:00');
-      setCheckin(dIn);
-      setMesAtual(dIn);
-    }
-    if (co && co !== 'null') setCheckout(new Date(co + 'T00:00:00'));
-    if (ad) setAdultos(Number(ad));
-    if (qu) setQuartos(Number(qu));
-  }, [searchParams]);
-
-  useEffect(() => {
-    if (hoteis.length === 0) return;
-    const ci = searchParams.get('checkin');
-    const co = searchParams.get('checkout');
-    const ad = searchParams.get('adultos') || '2';
-    const qu = searchParams.get('quartos') || '1';
-
-    if (!ci || !co) {
-      setPrecosDinamicos({});
-      return;
-    }
-
-    async function carregarPrecos() {
-      setCarregandoPrecos(true);
-      const novosPrecos: Record<string, any> = {};
-      
-      const formatarDataLocal = (data: Date) => 
-        `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`;
-      
-      try {
-        const capacidadeNecessaria = Math.ceil(Number(ad) / Number(qu));
-        const dIn = new Date(ci + 'T00:00:00'); 
-        const dOut = new Date(co + 'T00:00:00');
-        const nts = Math.ceil((dOut.getTime() - dIn.getTime()) / (1000 * 3600 * 24));
-        
-        // 1. Busca TODAS as regras tarifárias para o período pesquisado de uma só vez (rápido!)
-        const { data: disponibilidades } = await supabase
-          .from('disponibilidade_hoteis')
-          .select('*')
-          .lte('data_inicio', co)
-          .gte('data_fim', ci);
-        
-        hoteis.forEach((hotel) => {
-          // Quartos que suportam o número de hóspedes desejado
-          const quartosValidos = hotel.tipos_quarto?.filter(q => q.capacidade >= capacidadeNecessaria) || [];
-          
-          if (quartosValidos.length === 0) {
-            novosPrecos[hotel.id] = { disponivel: false, motivo: 'capacidade' };
-            return;
-          }
-          
-          let menorPrecoTotal = Infinity;
-          let hotelTemVaga = false;
-
-          // 2. Analisa cada quarto válido DIA a DIA
-          quartosValidos.forEach(quarto => {
-            const regrasQuarto = disponibilidades?.filter(d => 
-              d.hotel_id === hotel.id && 
-              (d.tipo_quarto === quarto.nome_quarto || d.tipo_quarto === (quarto as any).nome)
-            ) || [];
-
-            let precoTotalQuarto = 0;
-            let quartoDisponivel = true;
-
-            for (let i = 0; i < nts; i++) {
-              const dataAtual = new Date(dIn);
-              dataAtual.setDate(dataAtual.getDate() + i);
-              const dataFormatada = formatarDataLocal(dataAtual);
-
-              // Verifica se há alguma regra específica (preço de evento ou bloqueio) para o dia de hoje
-              const regraDia = regrasQuarto.reverse().find(r => dataFormatada >= r.data_inicio && dataFormatada <= r.data_fim);
-
-              if (regraDia) {
-                if (!regraDia.disponivel) {
-                  quartoDisponivel = false; // O hotel marcou o dia como bloqueado/indisponível
-                  break; 
-                }
-                precoTotalQuarto += regraDia.preco; // Soma o preço ESPECIAL
-              } else {
-                precoTotalQuarto += quarto.preco_quarto; // Soma o preço BASE
-              }
-            }
-
-            // Descobre o quarto mais barato que está disponível para a estadia toda
-            if (quartoDisponivel && precoTotalQuarto < menorPrecoTotal) {
-              menorPrecoTotal = precoTotalQuarto;
-              hotelTemVaga = true;
-            }
-          });
-
-          if (hotelTemVaga) {
-            novosPrecos[hotel.id] = { 
-              valor_total: menorPrecoTotal * Number(qu), // Multiplica pelos quartos escolhidos
-              noites: nts, 
-              disponivel: true 
-            };
-          } else {
-            novosPrecos[hotel.id] = { disponivel: false, motivo: 'esgotado' };
-          }
-        });
-      } finally {
-        setPrecosDinamicos(novosPrecos);
-        setCarregandoPrecos(false);
-      }
-    }
-    carregarPrecos();
-  }, [hoteis, searchParams]);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const cur = window.scrollY;
-      setShowHeader(cur < 80 || cur < lastScrollY);
-      setLastScrollY(cur);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [lastScrollY]);
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (searchBarRef.current && !searchBarRef.current.contains(e.target as Node)) setShowPopup(null);
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const formatarDataIso = (data: Date) => `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`;
   const FALLBACK_IMAGE = "/logop.png";
-  
-  const handleBuscar = () => {
-    setIsSearching(true);
-    const ciStr = checkin ? formatarDataIso(checkin) : '';
-    const coStr = checkout ? formatarDataIso(checkout) : '';
-    router.push(`/hoteis?checkin=${ciStr}&checkout=${coStr}&adultos=${adultos}&quartos=${quartos}`);
-    setShowPopup(null);
-    setTimeout(() => setIsSearching(false), 800);
-  };
 
   const toggleEstrela = (star: number) => setEstrelasSelecionadas(p => p.includes(star) ? p.filter(s => s !== star) : [...p, star]);
   const toggleComodidade = (item: string) => setComodidadesSelecionadas(p => p.includes(item) ? p.filter(c => c !== item) : [...p, item]);
@@ -293,70 +107,6 @@ function HoteisPageContent() {
     });
   }, [hoteis, estrelasSelecionadas, comodidadesSelecionadas]);
 
-  const isSearchLoading = isSearching || carregandoPrecos;
-
-  // Lógica do Calendário Visual (CORRIGIDA)
-  const renderCalendario = () => {
-    const ano = mesAtual.getFullYear();
-    const mes = mesAtual.getMonth();
-    const totalDias = new Date(ano, mes + 1, 0).getDate();
-    const primeiroDia = new Date(ano, mes, 1).getDay();
-    const hoje = new Date(); hoje.setHours(0,0,0,0);
-
-    return (
-      <div className="w-[380px] bg-white rounded-[2rem] border border-slate-100 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] p-6 cursor-default">
-        <div className="flex items-center justify-between mb-6">
-          <button onClick={() => setMesAtual(new Date(ano, mes - 1))} disabled={mesAtual <= hoje} className="p-2 hover:bg-slate-100 rounded-full disabled:opacity-30 disabled:hover:bg-transparent"><ChevronLeft size={20}/></button>
-          <span className={`${jakarta.className} font-black text-slate-800 capitalize`}>{mesAtual.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}</span>
-          <button onClick={() => setMesAtual(new Date(ano, mes + 1))} className="p-2 hover:bg-slate-100 rounded-full"><ChevronRight size={20}/></button>
-        </div>
-        <div className="grid grid-cols-7 gap-1 text-center mb-4">
-          {['D','S','T','Q','Q','S','S'].map((d,i) => <span key={i} className="text-[10px] font-black text-slate-400">{d}</span>)}
-        </div>
-        <div className="grid grid-cols-7 gap-y-2">
-          {Array.from({ length: primeiroDia }).map((_, i) => <div key={`e-${i}`} />)}
-          {Array.from({ length: totalDias }).map((_, i) => {
-            const dt = new Date(ano, mes, i + 1);
-            const isPassado = dt < hoje;
-            const isCi = checkin?.getTime() === dt.getTime();
-            const isCo = checkout?.getTime() === dt.getTime();
-            const isInBetween = checkin && checkout && dt > checkin && dt < checkout;
-            const isHover = hoverDate && checkin && !checkout && dt > checkin && dt <= hoverDate;
-
-            let classe = "hover:bg-slate-100 text-slate-700 font-bold";
-            if (isPassado) classe = "text-slate-300 opacity-50 cursor-not-allowed hover:bg-transparent";
-            else if (isCi || isCo) classe = "bg-[#00577C] text-white font-black shadow-lg rounded-full";
-            else if (isInBetween || isHover) classe = "bg-[#00577C]/10 text-[#00577C] rounded-none";
-
-            return (
-              <button key={i} disabled={isPassado}
-                onClick={() => {
-                  if (!checkin || (checkin && checkout)) { setCheckin(dt); setCheckout(null); }
-                  else if (dt > checkin) { setCheckout(dt); setTimeout(() => setShowPopup(null), 300); }
-                  else setCheckin(dt);
-                }}
-                onMouseEnter={() => !isPassado && setHoverDate(dt)} onMouseLeave={() => setHoverDate(null)}
-                className={`w-10 h-10 mx-auto flex items-center justify-center text-sm transition-all ${classe} ${(isCi && checkout) ? 'rounded-l-full rounded-r-none' : ''} ${(isCo && checkin) ? 'rounded-r-full rounded-l-none' : ''}`}
-              >
-                {i + 1}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
-
-  // ── FUNÇÃO PARA GERAR LINK COM PARÂMETROS (CORREÇÃO AQUI) ──
-  const getHotelLink = (hotelId: string) => {
-    const params = new URLSearchParams();
-    if (checkin) params.append('checkin', formatarDataIso(checkin));
-    if (checkout) params.append('checkout', formatarDataIso(checkout));
-    params.append('adultos', adultos.toString());
-    params.append('quartos', quartos.toString());
-    return `/hoteis/${hotelId}?${params.toString()}`;
-  };
-
   return (
     <div className={`${inter.className} min-h-screen bg-[#FDFCF7] text-slate-900 pb-32`}>
       
@@ -365,7 +115,6 @@ function HoteisPageContent() {
         <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6">
           <Link href="/" className="flex items-center gap-3">
              <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
-                {/* Removido o filtro invertido para manter as cores originais da logo */}
                 <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain" />
              </div>
           </Link>
@@ -401,8 +150,8 @@ function HoteisPageContent() {
         )}
       </header>
 
-      {/* ── HERO SECTION (CARROSSEL DINÂMICO E SEARCH CARD RESPONSIVO) ── */}
-      <section className="relative h-auto min-h-[500px] w-full flex flex-col justify-end pb-12 px-6">
+      {/* ── HERO SECTION ── */}
+      <section className="relative h-auto min-h-[400px] w-full flex flex-col justify-end pb-12 px-6">
         <div className="absolute inset-0 bg-[#002f40]">
           {hoteis.length > 0 && hoteis.map((h, i) => (
             <Image
@@ -411,121 +160,32 @@ function HoteisPageContent() {
               alt="Fundo"
               fill
               className={`object-cover transition-opacity duration-1000 ease-in-out ${
-                i === currentHeroSlide ? 'opacity-50' : 'opacity-0'
+                i === currentHeroSlide ? 'opacity-60' : 'opacity-0'
               }`}
             />
           ))}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#002f40] via-[#002f40]/40 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#002f40] via-[#002f40]/50 to-transparent" />
         </div>
 
-        <div className="relative z-10 w-full max-w-[1400px] mx-auto text-center md:text-left flex flex-col items-center md:items-start">
-          <h1 className={`${jakarta.className} text-5xl md:text-7xl font-black text-white leading-[1.1] md:leading-[0.9] tracking-tight mb-8`}>
-            <span className="text-[#F9C400]">Alojamentos locais</span>
+        <div className="relative z-10 w-full max-w-[1400px] mx-auto text-center md:text-left flex flex-col items-center md:items-start pt-20">
+          <h1 className={`${jakarta.className} text-5xl md:text-7xl font-black text-white leading-[1.1] md:leading-[0.9] tracking-tight mb-4`}>
+            Alojamentos <span className="text-[#F9C400]">Locais</span>
           </h1>
-
-          {/* SEARCH CARD – sem overflow-hidden para não cortar o calendário */}
-          <div ref={searchBarRef} className="relative w-full max-w-4xl bg-white shadow-2xl rounded-2xl md:rounded-2xl">
-            <div className="flex flex-col md:flex-row">
-              {/* Destino */}
-              <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-100 md:border-b-0 md:border-r flex-1">
-                <MapPin className="text-[#00577C] shrink-0" size={20} />
-                <div className="flex-1 text-left">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Destino</p>
-                  <p className="font-bold text-sm text-slate-800">São Geraldo do Araguaia</p>
-                </div>
-              </div>
-
-              {/* Datas da Estadia */}
-              <div
-                onClick={() => setShowPopup(showPopup === 'calendar' ? null : 'calendar')}
-                className="relative flex items-center gap-3 px-5 py-4 border-b border-slate-100 md:border-b-0 md:border-r flex-1 cursor-pointer hover:bg-slate-50 transition-colors"
-              >
-                <CalendarIcon className="text-[#00577C] shrink-0" size={20} />
-                <div className="flex-1 text-left">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Datas da Estadia</p>
-                  <p className="font-bold text-sm text-slate-800">
-                    {checkin ? checkin.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) : 'Check-in'} —
-                    {checkout ? checkout.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) : 'Check-out'}
-                  </p>
-                </div>
-
-                {/* CALENDÁRIO – corrigido com novo renderCalendario */}
-                {showPopup === 'calendar' && (
-                  <>
-                    {/* Overlay para fechar ao clicar fora (apenas mobile) */}
-                    <div 
-                      className="fixed inset-0 z-40 md:hidden" 
-                      onClick={() => setShowPopup(null)} 
-                    />
-                    <div 
-                      className={`
-                        fixed left-4 right-4 top-1/2 -translate-y-1/2 
-                        md:absolute md:left-auto md:right-0 md:top-full md:translate-y-0 md:mt-2 md:w-[380px]
-                        z-50 bg-white rounded-2xl shadow-2xl border border-slate-100
-                        max-h-[80vh] overflow-y-auto
-                      `}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {renderCalendario()}
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {/* Viajantes */}
-              <div
-                onClick={() => setShowPopup(showPopup === 'hospedes' ? null : 'hospedes')}
-                className="relative flex items-center gap-3 px-5 py-4 border-b border-slate-100 md:border-b-0 flex-1 cursor-pointer hover:bg-slate-50 transition-colors"
-              >
-                <Users className="text-[#00577C] shrink-0" size={20} />
-                <div className="flex-1 text-left">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Viajantes</p>
-                  <p className="font-bold text-sm text-slate-800">
-                    {adultos} Adultos · {quartos} Quarto{quartos !== 1 ? 's' : ''}
-                  </p>
-                </div>
-                {showPopup === 'hospedes' && (
-                  <div
-                    className="fixed left-4 right-4 top-1/2 -translate-y-1/2 md:absolute md:left-auto md:right-0 md:top-full md:translate-y-0 md:mt-2 w-auto md:w-72 bg-white rounded-3xl p-6 shadow-2xl border border-slate-100 z-50 text-slate-800"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-                      <span className="font-bold text-sm">Adultos</span>
-                      <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl p-1">
-                        <button onClick={() => setAdultos(Math.max(1, adultos - 1))} className="w-8 h-8 rounded text-[#00577C] font-black">-</button>
-                        <span className="font-black text-sm w-4 text-center">{adultos}</span>
-                        <button onClick={() => setAdultos(adultos + 1)} className="w-8 h-8 rounded text-[#00577C] font-black">+</button>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between pt-4">
-                      <span className="font-bold text-sm">Quartos</span>
-                      <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl p-1">
-                        <button onClick={() => setQuartos(Math.max(1, quartos - 1))} className="w-8 h-8 rounded text-[#00577C] font-black">-</button>
-                        <span className="font-black text-sm w-4 text-center">{quartos}</span>
-                        <button onClick={() => setQuartos(quartos + 1)} className="w-8 h-8 rounded text-[#00577C] font-black">+</button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Botão Pesquisar */}
-              <div className="bg-white md:bg-transparent flex items-center">
-                <button
-                  onClick={handleBuscar}
-                  disabled={isSearchLoading}
-                  className="w-full md:w-auto px-4 md:px-10 py-4 bg-[#F9C400] hover:bg-[#e5b500] text-[#00577C] rounded-xl md:rounded-full font-black text-xs md:text-sm uppercase tracking-widest transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  {isSearchLoading ? <Loader2 size={16} className="animate-spin" /> : <><Search size={16} className="md:w-5 md:h-5" /> Pesquisar</>}
-                </button>
-              </div>
-            </div>
-          </div>
+          <p className="text-white/80 text-lg font-medium max-w-2xl text-center md:text-left">
+            Conheça as melhores opções de hospedagem em São Geraldo do Araguaia. Entre em contacto direto com os proprietários e garanta a sua estadia.
+          </p>
         </div>
       </section>
 
       {/* ── CONTEÚDO PRINCIPAL (LISTA + FILTROS) ── */}
-      <section className="mx-auto max-w-[1400px] px-6 pt-16">
+      <section className="mx-auto max-w-[1400px] px-6 pt-12">
+        {/* Botão Filtros Mobile */}
+        <div className="lg:hidden mb-6">
+           <button onClick={() => setIsMobileFiltersOpen(true)} className="w-full bg-white border border-slate-200 py-3 rounded-xl flex items-center justify-center gap-2 font-bold text-slate-700 shadow-sm">
+             <Filter size={18} /> Filtrar Alojamentos
+           </button>
+        </div>
+
         <div className="flex flex-col lg:flex-row gap-10 items-start">
           
           {/* SIDEBAR FILTROS (Desktop) */}
@@ -560,28 +220,18 @@ function HoteisPageContent() {
              </div>
           </aside>
 
-          {/* LISTA DE HOTÉIS COM EFEITO CASCATA */}
+          {/* LISTA DE HOTÉIS */}
           <div className="flex-1 w-full space-y-8">
-            <h2 className={`${jakarta.className} text-3xl font-black text-slate-800 mb-6`}>{hoteisFiltrados.length} Alojamentos Encontrados</h2>
+            <h2 className={`${jakarta.className} text-3xl font-black text-slate-800 mb-6`}>{hoteisFiltrados.length} Alojamentos Disponíveis</h2>
 
-            {loading || isSearchLoading ? (
+            {loading ? (
                [...Array(3)].map((_, i) => <HotelCardSkeleton key={i} />)
             ) : hoteisFiltrados.length === 0 ? (
                <div className="text-center py-20 bg-white rounded-[2rem] border-2 border-dashed border-slate-200"><Search size={40} className="mx-auto text-slate-300 mb-4" /><p className="font-bold text-slate-500">Sem resultados para estes filtros.</p></div>
             ) : (
                hoteisFiltrados.map((hotel, index) => {
-                  const cap = Math.ceil(adultos / quartos);
-                  const qts = hotel.tipos_quarto?.filter(q => q.capacidade >= cap) || [];
-                  const sVagas = qts.length === 0;
-                  const qP = !sVagas ? qts.reduce((p,c) => c.preco_quarto < p.preco_quarto ? c : p) : null;
-                  const pB = qP ? qP.preco_quarto : parseValor(hotel.quarto_standard_preco || hotel.preco_medio);
-                  
-                  const dDin = precosDinamicos[hotel.id];
-                  const pTotal = dDin ? dDin.valor_total : pB * (checkin&&checkout?Math.ceil((checkout.getTime()-checkin.getTime())/86400000):1) * quartos;
-                  const indisp = sVagas || (dDin && !dDin.disponivel);
-
                   return (
-                    <article key={hotel.id} className={`animate-in fade-in slide-in-from-bottom-8 duration-700 fill-mode-both bg-white rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-2xl transition-all p-4 flex flex-col md:flex-row gap-6 md:gap-10 overflow-hidden ${indisp ? 'opacity-60 grayscale-[50%]' : ''}`} style={{ animationDelay: `${index * 150}ms` }}>
+                    <article key={hotel.id} className={`animate-in fade-in slide-in-from-bottom-8 duration-700 fill-mode-both bg-white rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-2xl transition-all p-4 flex flex-col md:flex-row gap-6 md:gap-10 overflow-hidden`} style={{ animationDelay: `${index * 150}ms` }}>
                        <div className="relative w-full h-64 md:h-auto md:w-80 rounded-3xl overflow-hidden bg-slate-100 shrink-0 group cursor-pointer">
                           <Image src={hotel.imagem_url || FALLBACK_IMAGE} alt={hotel.nome} fill className="object-cover group-hover:scale-105 transition-transform duration-1000" />
                           <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1.5 rounded-lg text-[9px] font-black uppercase text-[#00577C] tracking-widest shadow-md">{hotel.tipo}</div>
@@ -599,16 +249,12 @@ function HoteisPageContent() {
                              ))}
                           </div>
 
-                          <div className="mt-auto border-t border-slate-100 pt-6 flex flex-col sm:flex-row sm:items-end justify-between gap-6">
-                             <div>
-                               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Valor para {checkin&&checkout?Math.ceil((checkout.getTime()-checkin.getTime())/86400000):1} noite(s)</p>
-                               <p className={`${jakarta.className} text-3xl font-black text-[#00577C]`}>{indisp ? '—' : formatarMoeda(pTotal)}</p>
-                             </div>
+                          <div className="mt-auto border-t border-slate-100 pt-6 flex flex-col sm:flex-row sm:items-end justify-end gap-6">
                              <Link 
-                               href={getHotelLink(hotel.id)}
-                               className={`w-full sm:w-auto px-8 py-4 rounded-full font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${indisp ? 'bg-slate-200 text-slate-400 pointer-events-none' : 'bg-[#00577C] text-white hover:bg-[#004a6b] shadow-lg hover:shadow-xl hover:-translate-y-1'}`}
+                               href={`/hoteis/${hotel.id}`}
+                               className={`w-full sm:w-auto px-8 py-4 rounded-full font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 bg-[#00577C] text-white hover:bg-[#004a6b] shadow-lg hover:shadow-xl hover:-translate-y-1`}
                              >
-                               {indisp ? 'Indisponível' : 'Ver Quartos'} <ArrowRight size={16}/>
+                               Conhecer Hotel <ArrowRight size={16}/>
                              </Link>
                           </div>
                        </div>
@@ -661,7 +307,7 @@ function HoteisPageContent() {
       )}
 
       {/* FOOTER */}
-      <footer className="py-20 px-8 border-t border-slate-200 bg-white text-left">
+      <footer className="py-20 px-8 border-t border-slate-200 bg-white text-left mt-20">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
           <div className="flex flex-col items-center md:items-start gap-4">
             <div className="flex items-center gap-6">

@@ -151,23 +151,32 @@ export default function HistoriaPage() {
         )}
       </header>
 
-      {/* HERO SECTION */}
-      <section className="relative min-h-[70vh] flex flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-[#002f40] via-[#00577C] to-[#009640]">
-        <div className="absolute inset-0 opacity-10 bg-[url('/grid.svg')] bg-repeat" />
-        <div className="relative z-10 text-center px-5 max-w-4xl mx-auto">
+      {/* HERO SECTION (Agora com Imagem de Fundo) */}
+      <section className="relative min-h-[70vh] flex flex-col items-center justify-center overflow-hidden bg-[#002f40]">
+        
+        {/* Imagem de Fundo com efeito de época */}
+        <div className="absolute inset-0 z-0">
+          <Image
+            src="https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/df417333-2d29-4ae1-80cb-47a0491c8d40.JPG"
+            alt="História de São Geraldo do Araguaia"
+            fill
+            className="object-cover opacity-30 grayscale"
+            priority
+          />
+          {/* O seu gradiente por cima da imagem */}
+          <div className="absolute inset-0 bg-gradient-to-br from-[#002f40]/90 via-[#00577C]/80 to-[#009640]/90" />
+          <div className="absolute inset-0 opacity-10 bg-[url('/grid.svg')] bg-repeat" />
+        </div>
+
+        <div className="relative z-10 text-center px-5 max-w-4xl mx-auto pt-10">
           <AnimatedSection animation="fade-up" delay={200}>
             <h1 className={`${jakarta.className} text-5xl md:text-7xl lg:text-8xl font-black text-white leading-tight mb-6`}>
-              Nossa<br />
-              <span className="text-[#F9C400]">História</span>
+             A Nossa 
+              <span className="text-[#F9C400]"> História</span>
             </h1>
           </AnimatedSection>
 
           <AnimatedSection animation="fade-up" delay={400}>
-            <div className="flex items-center justify-center gap-4 mb-6">
-              <div className="h-px w-12 bg-white/30" />
-              <Waves className="text-white/50 w-5 h-5" />
-              <div className="h-px w-12 bg-white/30" />
-            </div>
             <p className="text-lg md:text-xl text-white/80 italic leading-relaxed max-w-2xl mx-auto">
               "Cidade hospitaleira. Altaneira, sempre estás. Livre, forte, independente. És orgulho do Pará"
             </p>
@@ -182,19 +191,18 @@ export default function HistoriaPage() {
         </div>
       </section>
 
-      {/* ========== ORIGENS E FUNDAÇÃO (com foto grande) ========== */}
+      {/* ========== ORIGENS E FUNDAÇÃO (IMAGEM AMPLIADA) ========== */}
       <section id="origens" className="py-20 md:py-28 px-6 bg-white">
         <div className="max-w-7xl mx-auto">
-          <div className="grid md:grid-cols-2 gap-12 items-start">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
             <AnimatedSection animation="fade-right">
               <div className="space-y-6">
                 <div className="inline-flex items-center gap-2 bg-[#00577C]/10 px-4 py-2 rounded-full">
-                  <Waves size={14} className="text-[#00577C]" />
                   <span className="text-[10px] font-black uppercase tracking-widest text-[#00577C]">A Fundação e a Fé</span>
                 </div>
                 <h2 className={`${jakarta.className} text-4xl md:text-5xl font-black text-slate-800 leading-tight`}>
-                  O Berço do<br />
-                  <span className="text-[#00577C]">São Geraldo</span>
+                  O Berço do 
+                  <span className="text-[#00577C]"> São Geraldo</span>
                 </h2>
                 <div className="space-y-4 text-slate-600 leading-relaxed text-justify">
                   <p>
@@ -214,20 +222,22 @@ export default function HistoriaPage() {
               {loading ? (
                 <div className="flex justify-center py-10"><Loader2 className="animate-spin text-[#00577C]" size={32} /></div>
               ) : imagemPrincipalOrigem ? (
-                <div className="relative rounded-2xl overflow-hidden shadow-2xl group">
+                // ◄── Aqui aplicamos o fill com altura gigante ──►
+                <div className="relative w-full h-[450px] md:h-[750px] rounded-2xl overflow-hidden shadow-2xl group">
                   <Image 
                     src={imagemPrincipalOrigem.imagem_url} 
                     alt={imagemPrincipalOrigem.legenda} 
-                    width={800} 
-                    height={600} 
-                    className="object-cover w-full h-auto max-h-[550px] transition-transform duration-700 group-hover:scale-105"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                    className="object-cover transition-transform duration-1000 group-hover:scale-105"
                   />
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-                    <p className="text-white text-sm md:text-base font-medium">{imagemPrincipalOrigem.legenda}</p>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
+                  <div className="absolute bottom-0 left-0 right-0 p-6">
+                    <p className="text-white text-sm md:text-lg font-medium">{imagemPrincipalOrigem.legenda}</p>
                   </div>
                 </div>
               ) : (
-                <div className="bg-slate-100 rounded-2xl h-96 flex items-center justify-center">
+                <div className="bg-slate-100 w-full h-[450px] md:h-[750px] rounded-2xl flex items-center justify-center">
                   <Camera className="text-slate-300" size={48} />
                 </div>
               )}
@@ -236,24 +246,24 @@ export default function HistoriaPage() {
         </div>
       </section>
 
-      {/* ========== GUERRILHA DO ARAGUAIA (com duas imagens grandes lado a lado) ========== */}
+      {/* ========== GUERRILHA DO ARAGUAIA (IMAGENS AMPLIADAS LADO A LADO) ========== */}
       <section className="py-20 md:py-28 px-6 bg-[#002f40] text-white">
         <div className="max-w-7xl mx-auto">
           <AnimatedSection animation="fade-up" className="text-center mb-12 max-w-3xl mx-auto">
             <h2 className={`${jakarta.className} text-4xl md:text-5xl font-black text-white mb-4`}>
-              "Onde o Brasil<br />
-              <span className="text-[#F9C400]">Silenciou"</span>
-            </h2>
+              "Onde o Brasil
+              <span className="text-[#F9C400]"> Silenciou"</span>
+            </h2> <br />
             <p className="text-white/70 leading-relaxed">
               Entre <strong>1972 e 1975</strong>, a região de São Geraldo do Araguaia foi palco da <strong className="text-white">Guerrilha do Araguaia</strong> – o maior movimento de resistência armada contra a ditadura militar brasileira. Durante décadas, esse episódio foi mantido sob censura, e a população local sofreu profundamente com a repressão.
             </p>
           </AnimatedSection>
 
-          <div className="grid md:grid-cols-2 gap-10 mb-12">
+          <div className="grid md:grid-cols-2 gap-10 mb-12 items-start">
             <AnimatedSection animation="fade-right">
               <div className="space-y-4 text-white/70 leading-relaxed text-justify">
                 <p>
-                  A guerrilha foi organizada pelo <strong className="text-white">Partido Comunista do Brasil (PC do B)</strong>, uma dissidência armada do PCB. Seus membros – entre eles José Genoíno, Osvaldão, Maurício Grabois e João Amazonas – acreditavam ser possível implantar o comunismo no Brasil através de uma "guerra popular prolongada", à semelhança da China e Cuba.
+                  A guerrilha foi organizada pelo <strong className="text-white">Partido Comunista do Brasil (PCdoB)</strong>, uma dissidência armada do PCB. Seus membros – entre eles José Genoíno, Osvaldão, Maurício Grabois e João Amazonas – acreditavam ser possível implantar o comunismo no Brasil através de uma "guerra popular prolongada", à semelhança da China e Cuba.
                 </p>
                 <p>
                   Instalados clandestinamente na mata, os guerrilheiros prestavam assistência médica e alfabetização aos camponeses, mas também buscavam recrutar apoiadores. Quando o governo militar descobriu a base, desencadeou a maior operação de contrainsurgência do país desde a Segunda Guerra Mundial: cerca de <strong>3.200 militares</strong> e <strong>12 aviões</strong> (incluindo 4 caças T-6) foram mobilizados.
@@ -272,38 +282,42 @@ export default function HistoriaPage() {
                 <p className="text-sm italic text-[#F9C400] mb-2">“Os moradores do local, que nem sabiam o que era regime militar, perseguição política, democracia ou comunismo, sofreram todos os tipos de perdas que estão intrínsecos numa guerra.”</p>
                 <p className="text-right text-white/40 text-xs">— Prof. Juvenal</p>
               </div>
+              
+              {/* Lado a Lado com proporções normais (corrigido o efeito espaguete) */}
               <div className="grid md:grid-cols-2 gap-5">
-                <div className="relative rounded-xl overflow-hidden shadow-2xl group">
+                <div className="relative w-full h-[250px] md:h-[320px] rounded-xl overflow-hidden shadow-2xl group">
                   <Image 
                     src={IMG_EXERCITO} 
                     alt="Comboio do exército na Serra" 
-                    width={600} 
-                    height={450} 
-                    className="object-cover w-full h-72 md:h-80 transition-transform duration-700 group-hover:scale-105"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                    className="object-cover transition-transform duration-1000 group-hover:scale-105"
                   />
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
-                    <p className="text-white text-xs font-medium">Operação militar na Serra (acervo histórico)</p>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent pointer-events-none" />
+                  <div className="absolute bottom-0 left-0 right-0 p-4">
+                    <p className="text-white text-sm font-medium leading-tight">Operação militar na Serra (acervo histórico)</p>
                   </div>
                 </div>
-                <div className="relative rounded-xl overflow-hidden shadow-2xl group">
+                
+                <div className="relative w-full h-[250px] md:h-[320px] rounded-xl overflow-hidden shadow-2xl group">
                   <Image 
                     src={IMG_CORPO} 
                     alt="Corpo de J.C. Haas" 
-                    width={600} 
-                    height={450} 
-                    className="object-cover w-full h-72 md:h-80 transition-transform duration-700 group-hover:scale-105"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                    className="object-cover transition-transform duration-1000 group-hover:scale-105"
                   />
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
-                    <p className="text-white text-xs font-medium">Registro de um dos combatentes (identidade não revelada)</p>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent pointer-events-none" />
+                  <div className="absolute bottom-0 left-0 right-0 p-4">
+                    <p className="text-white text-sm font-medium leading-tight">Registro de um dos combatentes (identidade não revelada)</p>
                   </div>
                 </div>
-              </div>
+              </div> 
             </AnimatedSection>
           </div>
 
           <AnimatedSection animation="zoom-in" className="mt-6">
             <div className="bg-white/5 rounded-2xl p-6 border border-white/10 text-center max-w-3xl mx-auto">
-              <CalendarDays className="mx-auto mb-3 text-[#F9C400]" size={24} />
               <p className="text-white/70 text-sm leading-relaxed">
                 A guerrilha durou aproximadamente três anos. Estima-se que mais de 70 pessoas tenham desaparecido ou sido mortas. A região só começou a se reerguer após a criação do GETAT (Grupo Executivo de Terras do Araguaia-Tocantins) e a abertura de estradas pelo exército, que também trouxe o desenvolvimento da pecuária.
               </p>
@@ -312,34 +326,34 @@ export default function HistoriaPage() {
         </div>
       </section>
 
-      {/* ========== EMANCIPAÇÃO E ARQUEOLOGIA (com foto grande) ========== */}
+      {/* ========== EMANCIPAÇÃO E ARQUEOLOGIA (IMAGEM AMPLIADA) ========== */}
       <section className="py-20 md:py-28 px-6 bg-white">
         <div className="max-w-7xl mx-auto">
           <AnimatedSection animation="fade-up" className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 bg-[#009640]/10 px-4 py-2 rounded-full text-[#009640] text-[10px] font-black uppercase tracking-widest mb-4">
-              <Mountain size={13} /> Serra das Andorinhas
-            </div>
+            
             <h2 className={`${jakarta.className} text-4xl md:text-5xl font-black text-slate-800`}>
-              Liberdade &<br />
-              <span className="text-[#009640]">Ancestralidade</span>
+              Liberdade e
+              <span className="text-[#009640]"> Ancestralidade</span>
             </h2>
           </AnimatedSection>
 
           <div className="grid md:grid-cols-2 gap-12 items-center mb-16">
             <AnimatedSection animation="zoom-in" className="order-2 md:order-1">
               {loading || !imagemPrincipalArqueologia ? (
-                <div className="bg-slate-100 rounded-xl h-96 flex items-center justify-center"><Camera className="text-slate-300" size={48} /></div>
+                <div className="bg-slate-100 w-full h-[450px] md:h-[750px] rounded-xl flex items-center justify-center"><Camera className="text-slate-300" size={48} /></div>
               ) : (
-                <div className="relative rounded-2xl overflow-hidden shadow-2xl group">
+                // ◄── Aqui também aplicamos o fill com altura gigante ──►
+                <div className="relative w-full h-[450px] md:h-[750px] rounded-2xl overflow-hidden shadow-2xl group">
                   <Image 
                     src={imagemPrincipalArqueologia.imagem_url} 
                     alt={imagemPrincipalArqueologia.legenda} 
-                    width={800} 
-                    height={600} 
-                    className="object-cover w-full h-auto max-h-[500px] transition-transform duration-700 group-hover:scale-105"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                    className="object-cover transition-transform duration-1000 group-hover:scale-105"
                   />
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-                    <p className="text-white text-sm md:text-base font-medium">{imagemPrincipalArqueologia.legenda}</p>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
+                  <div className="absolute bottom-0 left-0 right-0 p-6">
+                    <p className="text-white text-sm md:text-lg font-medium">{imagemPrincipalArqueologia.legenda}</p>
                   </div>
                 </div>
               )}
@@ -366,7 +380,7 @@ export default function HistoriaPage() {
                 </div>
                 <div className="text-center p-3 bg-amber-100 rounded-xl">
                   <p className={`${jakarta.className} text-2xl font-black text-amber-700`}>2001</p>
-                  <p className="text-[9px] font-bold text-slate-500 uppercase">Parque Est.</p>
+                  <p className="text-[9px] font-bold text-slate-500 uppercase">Parque Estadual</p>
                 </div>
               </div>
             </AnimatedSection>

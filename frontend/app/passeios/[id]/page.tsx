@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
   Loader2, ArrowLeft, MapPin, Calendar as CalendarIcon, Clock,
   CheckCircle2, Compass, ShieldCheck, ChevronRight, X, Star,
-  ImageIcon, Map, UserCheck, ChevronLeft, ChevronRight as ChevronRightIcon, ZoomIn, Users, Menu
+  Map, UserCheck, ChevronLeft, ChevronRight as ChevronRightIcon, ZoomIn, Menu, MessageCircle
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -15,20 +15,11 @@ import { supabase } from '@/lib/supabase';
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['600', '700', '800'] });
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
 
-// ── IMAGEM DE SEGURANÇA ──
+// ── IMAGENS DE FALLBACK ──
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1551632811-561732d1e306?q=80&w=1740";
 const FALLBACK_GUIA_IMAGE = "https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=1887";
 
 // ── UTILITÁRIOS ──
-const parseValor = (valor: any): number => {
-  if (valor === null || valor === undefined || valor === '') return 0;
-  const num = typeof valor === 'string' ? parseFloat(valor.replace(',', '.')) : valor;
-  return isNaN(num) ? 0 : num;
-};
-
-const formatarMoeda = (valor: number) =>
-  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor || 0);
-
 const formatarDataLonga = (dataStr: string) => {
   if (!dataStr) return '';
   const data = new Date(dataStr + 'T00:00:00');
@@ -64,15 +55,23 @@ const gerarUrlMapa = (coordenadasStr: string) => {
   return `https://maps.google.com/maps?q=${encodeURIComponent(coordenadasStr)}&hl=pt-BR&z=15&output=embed`;
 };
 
+// ── FUNÇÃO MÁGICA DO WHATSAPP ──
+const gerarLinkWhatsApp = (telefone: string | undefined, mensagem: string) => {
+  if (!telefone) return '#';
+  let numeroLimpo = telefone.replace(/\D/g, ''); 
+  if (numeroLimpo.length < 10) return '#';
+  if (!numeroLimpo.startsWith('55')) numeroLimpo = `55${numeroLimpo}`; 
+  return `https://wa.me/${numeroLimpo}?text=${encodeURIComponent(mensagem)}`;
+};
+
 // ── TIPAGENS ──
 type Guia = {
   id: string;
   nome: string;
   especialidade: string;
-  descricao_guia: string;  // ← coluna correta
+  descricao_guia: string;
   imagem_url: string;
-  whatsapp?: string;
-  preco_diaria?: number;
+  whatsapp?: string; // ◄── A coluna onde está o número
 };
 
 type Passeio = {
@@ -88,8 +87,6 @@ type Passeio = {
   coordenadas_google_maps: string;
   nome_guia: string;
   guia_id: string | null;
-  valor_total: any;
-  vagas_disponiveis: number;
   categoria: string;
 };
 
@@ -100,7 +97,6 @@ export default function PasseioDetalhePage() {
   const [passeio, setPasseio] = useState<Passeio | null>(null);
   const [guiaInfo, setGuiaInfo] = useState<Guia | null>(null);
   const [loading, setLoading] = useState(true);
-  const [pessoas, setPessoas] = useState(1);
   const [fotoExpandidaIndex, setFotoExpandidaIndex] = useState<number | null>(null);
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
@@ -136,13 +132,14 @@ export default function PasseioDetalhePage() {
         }
         setPasseio(data as Passeio);
 
-        // Buscar informações detalhadas do guia se existir guia_id
+        // Busca o WhatsApp e informações detalhadas do guia usando o guia_id
         if (data.guia_id) {
           const { data: guiaData, error: guiaError } = await supabase
             .from('guias')
             .select('*')
             .eq('id', data.guia_id)
             .single();
+            
           if (!guiaError && guiaData) {
             setGuiaInfo(guiaData as Guia);
           }
@@ -165,17 +162,6 @@ export default function PasseioDetalhePage() {
   const fecharGaleria = () => setFotoExpandidaIndex(null);
   const proximaFoto = (e: React.MouseEvent) => { e.stopPropagation(); setFotoExpandidaIndex((prev) => (prev! + 1) % galeriaCombinada.length); };
   const fotoAnterior = (e: React.MouseEvent) => { e.stopPropagation(); setFotoExpandidaIndex((prev) => (prev! - 1 + galeriaCombinada.length) % galeriaCombinada.length); };
-
-  const valorUnitario = passeio ? parseValor(passeio.valor_total) : 0;
-  const valorTotalFinal = valorUnitario * pessoas;
-
-  const handleReserva = () => {
-    if (pessoas > (passeio?.vagas_disponiveis || 20)) {
-      alert("A quantidade selecionada excede as vagas disponíveis.");
-      return;
-    }
-    router.push(`/checkout-passeio?id=${passeio?.id}&pessoas=${pessoas}`);
-  };
 
   if (!mounted || loading || !passeio) return (
     <div className={`${inter.className} min-h-screen flex flex-col items-center justify-center bg-white text-[#00577C]`}>
@@ -252,7 +238,7 @@ export default function PasseioDetalhePage() {
 
         {/* GRID PRINCIPAL */}
         <div className="mx-auto w-full max-w-7xl px-5 py-12 flex flex-col lg:flex-row items-start gap-12 relative z-10 -mt-20">
-          {/* COLUNA ESQUERDA (CONTEÚDO) */}
+          {/* ◄── COLUNA ESQUERDA (CONTEÚDO) ──► */}
           <div className="flex-1 w-full min-w-0 flex flex-col gap-10">
             <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-xl border border-slate-100">
               <div className="flex flex-wrap items-center gap-3 mb-5">
@@ -298,7 +284,7 @@ export default function PasseioDetalhePage() {
               </div>
             </div>
 
-            {/* GALERIA (mantida) */}
+            {/* GALERIA */}
             {galeriaCombinada.length > 0 && (
               <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-xl border border-slate-100">
                 <h3 className={`${jakarta.className} text-3xl font-black text-slate-900 mb-8`}>Galeria de Imagens</h3>
@@ -325,61 +311,35 @@ export default function PasseioDetalhePage() {
             )}
           </div>
 
-          {/* COLUNA DIREITA (RESERVA + GUIA + MAPA) */}
+          {/* ◄── COLUNA DIREITA (WHATSAPP + GUIA + MAPA) ──► */}
           <div className="w-full lg:w-[420px] shrink-0 lg:self-start">
             <div className="lg:sticky lg:top-32 space-y-6">
 
-              {/* CARD DE RESERVA */}
+              {/* CARD DE CONTACTO WHATSAPP */}
               <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-200">
-                <div className="border-b border-slate-100 pb-6 mb-6 flex justify-between items-end">
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-[#009640] mb-1">Por Pessoa</p>
-                    <p className={`${jakarta.className} text-4xl font-black text-slate-900`}>{formatarMoeda(valorUnitario)}</p>
-                  </div>
-                  <div className="text-right">
-                     <p className="text-[10px] font-black uppercase tracking-widest text-[#00577C] mb-1">Vagas</p>
-                     <p className="text-sm font-bold text-slate-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">{passeio.vagas_disponiveis || 20} Restantes</p>
-                  </div>
-                </div>
-
-                <div className="space-y-3 mb-8">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-[#00577C]">1. Quantidade de Pessoas</p>
-                  <div className="flex items-center justify-between bg-slate-50 border border-slate-100 hover:border-slate-200 transition-colors rounded-2xl p-4">
-                     <div className="flex items-center gap-3">
-                        <Users size={20} className="text-[#00577C]"/>
-                        <span className="font-bold text-sm text-slate-800">Participantes</span>
-                     </div>
-                     <div className="flex items-center gap-4 bg-white border border-slate-200 rounded-xl p-1 shadow-sm">
-                        <button onClick={() => setPessoas(Math.max(1, pessoas - 1))} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-50 text-[#00577C] font-black text-xl transition-all">-</button>
-                        <span className="font-black text-xl w-6 text-center text-[#00577C]">{pessoas}</span>
-                        <button onClick={() => setPessoas(Math.min(passeio.vagas_disponiveis || 20, pessoas + 1))} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-50 text-[#00577C] font-black text-xl transition-all">+</button>
-                     </div>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-2 bg-[#009640]/10 p-6 rounded-2xl mb-6 border border-[#009640]/20">
-                  <div className="flex justify-between items-end">
-                    <div>
-                      <span className="text-[10px] font-black text-[#009640] uppercase block mb-1">Total Estimado</span>
-                      <span className="text-xs font-bold text-slate-600">{pessoas} {pessoas === 1 ? 'pessoa' : 'pessoas'}</span>
-                    </div>
-                    <span className={`${jakarta.className} text-3xl font-black text-[#009640]`}>{formatarMoeda(valorTotalFinal)}</span>
-                  </div>
-                </div>
-
-                <button
-                  onClick={handleReserva}
-                  className={`${jakarta.className} flex items-center justify-center gap-3 w-full bg-[#00577C] hover:bg-[#004a6b] text-white py-5 rounded-2xl font-black text-lg transition-transform hover:-translate-y-1 shadow-xl`}
-                >
-                  Reservar Passeio <ChevronRightIcon size={20} />
-                </button>
-
-                <p className="mt-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center justify-center gap-1.5">
-                  <ShieldCheck size={13} className="text-[#00577C]" /> Reserva Oficial SagaTurismo
+                <h3 className={`${jakarta.className} text-2xl font-black text-slate-900 mb-2`}>
+                   Pronto para a Aventura?
+                </h3>
+                <p className="text-sm text-slate-500 mb-8 font-medium leading-relaxed">
+                  Entre em contacto direto com o guia responsável para verificar a disponibilidade, consultar valores e agendar o seu passeio.
                 </p>
+
+                <a 
+                  href={gerarLinkWhatsApp(guiaInfo?.whatsapp, `Olá! Vi o passeio "${passeio.titulo}" no Portal Oficial de Turismo de São Geraldo do Araguaia e gostaria de mais informações.`)} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className={`${jakarta.className} w-full bg-[#25D366] hover:bg-[#20bd5a] text-white py-5 rounded-2xl font-black uppercase text-sm tracking-widest shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2`}
+                >
+                  <MessageCircle size={24} /> Falar com o Guia
+                </a>
+
+                <div className="mt-8 pt-6 border-t border-slate-100 text-center">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center justify-center gap-1.5"><ShieldCheck size={14} className="text-[#009640]" /> Turismo Transparente</p>
+                  <p className="text-[11px] text-slate-500 mt-3 leading-relaxed">O Portal Municipal atua como vitrine para fortalecer o turismo local. A negociação e o pagamento são feitos diretamente e de forma segura com o guia credenciado.</p>
+                </div>
               </div>
 
-              {/* BLOCO DO GUIA (NOVO) */}
+              {/* BLOCO DO GUIA */}
               <div className="bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-200">
                 <h3 className={`${jakarta.className} text-xl font-black text-slate-900 mb-5 flex items-center gap-2`}>
                   <UserCheck size={22} className="text-[#009640]" />
@@ -428,7 +388,7 @@ export default function PasseioDetalhePage() {
         </div>
       </div>
 
-      {/* LIGHTBOX MODAL (INALTERADO) */}
+      {/* LIGHTBOX MODAL */}
       {fotoExpandidaIndex !== null && galeriaCombinada.length > 0 && (
         <div
           className="fixed inset-0 z-[100] bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-5 animate-in fade-in duration-200"
@@ -457,7 +417,7 @@ export default function PasseioDetalhePage() {
         </div>
       )}
 
-      {/* FOOTER (INALTERADO) */}
+      {/* FOOTER */}
       <footer className="py-20 px-8 border-t border-slate-200 bg-white text-left">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
           <div className="flex flex-col items-center md:items-start gap-4">
@@ -466,6 +426,7 @@ export default function PasseioDetalhePage() {
               <div className="w-px h-12 bg-slate-200 hidden md:block" />
               <Image src="/prefeitura.png" alt="Prefeitura de São Geraldo do Araguaia" width={140} height={50} className="object-contain" />
             </div>
+            
             <div className="text-left space-y-1">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
                 © 2026 Secretaria Municipal de Turismo - SGA | Todos os direitos reservados

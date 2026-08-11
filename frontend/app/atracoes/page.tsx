@@ -4,8 +4,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState, useRef, ReactNode } from 'react';
 import {
-  Menu, X, ArrowRight, ArrowLeft, Loader2, Compass,
-  TreePine, Waves, Mountain, ChevronDown, MapPin, Users, Camera, Ticket,
+  Menu, X, ArrowRight, Loader2, Compass,
+  TreePine, Waves, Mountain, ChevronDown, MapPin, Camera, Ticket,
   ShieldCheck
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
@@ -18,38 +18,12 @@ const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] }
 type Atracao = {
   id: string;
   nome: string;
-  tipo: string;
+  tipo?: string;
   descricao: string;
   imagem_url: string;
-  preco_entrada: number;
+  preco_entrada?: number;
+  localizacao?: string; 
 };
-
-// ── SISTEMA DE TEMAS ──
-const themes = [
-  {
-    cor: '',
-    corAccent: '#F9C400',
-    bgDark: '#001f2e',
-    label: '',
-    
-  },
-  {
-    cor: '#009640',
-    corAccent: '#F9C400',
-    bgDark: '#051a09',
-    label: '',
-    
-  },
-  {
-    cor: '#8b5e0a',
-    corAccent: '#F9C400',
-    bgDark: '#1a0e02',
-    label: '',
-    
-  },
-];
-
-const getTheme = (index: number) => themes[index % themes.length];
 
 // ── MOTOR DE SCROLL ──
 function useScrollAnimation(threshold = 0.08) {
@@ -91,19 +65,22 @@ function Reveal({ children, className = '', anim = 'up', delay = 0 }: {
 // CARD DE ATRAÇÃO
 // ══════════════════════════════════════
 function AtracaoCard({ atracao, index }: { atracao: Atracao; index: number }) {
-  const theme = getTheme(index);
   const isPar = index % 2 === 0;
   const num = String(index + 1).padStart(2, '0');
+  
+  // Padronização de cores limpas (Azul escuro e Dourado)
+  const bgCard = isPar ? '#001f2e' : '#002f40';
+  const corAccent = '#F9C400';
 
   return (
     <article className="relative group">
       {index > 0 && (
         <div className="h-px w-full mb-0"
-          style={{ background: `linear-gradient(to right, transparent, ${theme.cor}25, transparent)` }} />
+          style={{ background: `linear-gradient(to right, transparent, rgba(255,255,255,0.05), transparent)` }} />
       )}
 
       <div className={`relative flex flex-col ${isPar ? 'lg:flex-row' : 'lg:flex-row-reverse'} min-h-[85vh] overflow-hidden`}
-        style={{ backgroundColor: theme.bgDark }}>
+        style={{ backgroundColor: bgCard }}>
 
         {/* ── METADE IMAGEM ── */}
         <div className="relative w-full lg:w-[55%] h-[50vh] lg:h-auto overflow-hidden">
@@ -114,30 +91,22 @@ function AtracaoCard({ atracao, index }: { atracao: Atracao; index: number }) {
             className="object-cover transition-transform duration-[1400ms] ease-out group-hover:scale-105"
           />
 
+          {/* Sombras de integração */}
           <div className="absolute inset-0 pointer-events-none"
             style={{
               background: isPar
-                ? `linear-gradient(to right, transparent 50%, ${theme.bgDark} 100%)`
-                : `linear-gradient(to left, transparent 50%, ${theme.bgDark} 100%)`,
+                ? `linear-gradient(to right, transparent 50%, ${bgCard} 100%)`
+                : `linear-gradient(to left, transparent 50%, ${bgCard} 100%)`,
             }} />
           <div className="absolute inset-0 pointer-events-none lg:hidden"
-            style={{ background: `linear-gradient(to top, ${theme.bgDark} 0%, transparent 60%)` }} />
+            style={{ background: `linear-gradient(to top, ${bgCard} 0%, transparent 60%)` }} />
 
+          {/* Número Flutuante da Atração */}
           <div className="absolute top-6 left-6 z-10 w-14 h-14 rounded-2xl flex items-center justify-center shadow-2xl"
-            style={{ backgroundColor: theme.corAccent }}>
-            <span className={`${jakarta.className} text-xl font-black`} style={{ color: theme.bgDark }}>
+            style={{ backgroundColor: corAccent }}>
+            <span className={`${jakarta.className} text-xl font-black`} style={{ color: bgCard }}>
               {num}
             </span>
-          </div>
-
-          <div className="absolute top-6 right-6 z-10 flex items-center gap-2 px-4 py-2 rounded-full border text-[9px] font-black uppercase tracking-widest"
-            style={{
-              backgroundColor: theme.cor + '20',
-              borderColor: theme.cor + '50',
-              color: theme.corAccent,
-            }}>
-            {theme.icon}
-            {theme.label}
           </div>
         </div>
 
@@ -146,10 +115,11 @@ function AtracaoCard({ atracao, index }: { atracao: Atracao; index: number }) {
           px-8 py-16 lg:py-24
           ${isPar ? 'lg:pl-16 xl:pl-20 lg:pr-16' : 'lg:pr-16 xl:pr-20 lg:pl-16'}`}>
 
+          {/* Número Gigante de Fundo */}
           <div className={`${jakarta.className} absolute top-1/2 -translate-y-1/2
             ${isPar ? '-right-4 lg:-right-6' : '-left-4 lg:-left-6'}
             text-[180px] md:text-[220px] font-black leading-none select-none pointer-events-none`}
-            style={{ color: theme.cor, opacity: 0.08 }}
+            style={{ color: '#ffffff', opacity: 0.03 }}
             aria-hidden="true">
             {num}
           </div>
@@ -160,36 +130,40 @@ function AtracaoCard({ atracao, index }: { atracao: Atracao; index: number }) {
               {atracao.nome}
             </h2>
 
-            <p className="text-white/50 text-base md:text-lg leading-relaxed mb-10 max-w-md font-medium">
+            <p className="text-white/60 text-base md:text-lg leading-relaxed mb-10 max-w-md font-medium">
               {atracao.descricao}
             </p>
 
-            {/* Micro Detalhes baseados na Atração */}
+            {/* Micro Detalhes baseados EXCLUSIVAMENTE no Supabase */}
             <div className="flex flex-wrap gap-3 mb-10">
-              {[
-                { icon: <MapPin size={12} />, valor: 'São Geraldo do Araguaia' },
-                { icon: <Camera size={12} />, valor: atracao.tipo || 'Ponto Turístico' },
-                { icon: <Ticket size={12} />, valor: atracao.preco_entrada ? `R$ ${Number(atracao.preco_entrada).toFixed(2)}` : 'Acesso Gratuito' },
-              ].map((m, i) => (
-                <span key={i}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold border"
-                  style={{
-                    borderColor: theme.cor + '40',
-                    backgroundColor: theme.cor + '12',
-                    color: 'rgba(255,255,255,0.6)',
-                  }}>
-                  <span style={{ color: theme.corAccent }}>{m.icon}</span>
-                  {m.valor}
+              {atracao.localizacao && (
+                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold border border-white/10 bg-white/5 text-white/80">
+                  <MapPin size={12} style={{ color: corAccent }} />
+                  {atracao.localizacao}
                 </span>
-              ))}
+              )}
+              
+              {atracao.tipo && (
+                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold border border-white/10 bg-white/5 text-white/80">
+                  <Camera size={12} style={{ color: corAccent }} />
+                  {atracao.tipo}
+                </span>
+              )}
+              
+              {atracao.preco_entrada !== undefined && (
+                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold border border-white/10 bg-white/5 text-white/80">
+                  <Ticket size={12} style={{ color: corAccent }} />
+                  {Number(atracao.preco_entrada) === 0 ? 'Acesso Gratuito' : `R$ ${Number(atracao.preco_entrada).toFixed(2)}`}
+                </span>
+              )}
             </div>
 
             <Link
               href={`/atracoes/${atracao.id}`}
               className="group/btn inline-flex items-center gap-3 self-start px-8 py-4 rounded-full
-                font-black text-[10px] uppercase tracking-widest shadow-xl
+                font-black text-[10px] uppercase tracking-widest shadow-xl text-[#001f2e]
                 hover:-translate-y-1 hover:shadow-2xl transition-all duration-300"
-              style={{ backgroundColor: theme.cor, color: theme.corAccent }}>
+              style={{ backgroundColor: corAccent }}>
               Explorar atração
               <ArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
             </Link>
@@ -211,7 +185,6 @@ export default function AtracoesPage() {
   const [atracoes, setAtracoes] = useState<Atracao[]>([]);
   const [loading, setLoading] = useState(true);
   const [scrollY, setScrollY] = useState(0);
-  const [isHovered, setIsHovered] = useState(false);
 
   useEffect(() => {
     async function fetchAtracoes() {
@@ -273,7 +246,6 @@ export default function AtracoesPage() {
             <Link href="/rotas" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Rotas Turísticas</Link>
             <Link href="/eventos" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Agenda Cultural</Link>
             <Link href="/pacotes" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Pacotes</Link>
-            <Link href="/rotas" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Rotas</Link>
             <Link href="/biodiversidade" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Biodiversidade</Link>
             <Link href="/gastronomia" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Gastronomia</Link>
             <Link href="/comunidades" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Comunidades</Link>
@@ -283,52 +255,39 @@ export default function AtracoesPage() {
       </header>
 
       {/* ══════════════════════════════════════
-          HERO CINEMATOGRÁFICO
+          HERO COM IMAGEM ESTÁTICA
       ══════════════════════════════════════ */}
-      <section className="relative h-[85vh] flex flex-col items-start justify-end
+      <section className="relative h-[80vh] flex flex-col items-start justify-end
         pb-20 md:pb-28 px-6 md:px-12 overflow-hidden"
         style={{ backgroundColor: '#002f40' }}>
 
+        {/* Efeito Parallax com Imagem */}
         <div className="absolute inset-0 z-0 scale-110"
           style={{ transform: `translateY(${scrollY * 0.25}px) scale(1.1)` }}>
-          <video
-            src="/serra.mp4"
-            autoPlay loop muted playsInline
-            className="absolute inset-0 w-full h-full object-cover opacity-70"
+          <Image
+            src="https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/IMG_1803.PNG"
+            alt="Atrações Naturais"
+            fill
+            className="object-cover opacity-60"
+            priority
           />
         </div>
 
+        {/* Gradientes de Escurecimento */}
         <div className="absolute inset-0 z-0 pointer-events-none"
           style={{ background: 'linear-gradient(to top, #001f2e 0%, #001f2ecc 30%, #001f2e55 60%, transparent 85%)' }} />
         <div className="absolute inset-0 z-0 pointer-events-none"
           style={{ background: 'linear-gradient(to right, #001f2eaa 0%, transparent 65%)' }} />
 
-        <div className="absolute left-6 md:left-12 top-[20%] bottom-[20%] w-1px pointer-events-none z-10 hidden md:block"
+        <div className="absolute left-6 md:left-12 top-[20%] bottom-[1000%] w-px pointer-events-none z-10 hidden md:block"
           style={{ background: 'linear-gradient(to bottom, transparent, #F9C40045, transparent)' }} />
-
-
 
         <div className="relative z-10 max-w-[1400px] w-full mx-auto">
           <Reveal anim="up">
-            <p className="font-black uppercase tracking-[0.35em] text-[10px] md:text-[20px] mb-5 flex items-center gap-3"
-              style={{ color: '#f7f7f7' }}>
-              <span className="w-10 h-20px" style={{ backgroundColor: '#F9C400' }} />
-              Conheça as nossas
-            </p>
-
-            <h1 className={`${jakarta.className} text-[clamp(4rem,20vw,9rem)] font-black text-white leading-[0.88] mb-6`}>
-              <span className="italic" style={{ color: '#F9C400' }}>Atrações</span>
+            <h1 className={`${jakarta.className} text-[clamp(4rem,11vw,9rem)] font-black text-white leading-[0.88] mb-6`}>
+              Atrações<br />
             </h1>
           </Reveal>
-        </div>
-
-        <div className="absolute bottom-10 right-6 md:right-12 z-10 hidden md:flex flex-col items-end gap-5">
-          <div className="text-right">
-            <p className={`${jakarta.className} text-4xl font-black leading-none`} style={{ color: '#F9C400' }}>
-              {loading ? '—' : atracoes.length}
-            </p>
-            <p className="text-[9px] font-black uppercase tracking-widest mt-1 text-white/25">Pontos Turísticos</p>
-          </div>
         </div>
 
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10">
@@ -342,7 +301,7 @@ export default function AtracoesPage() {
       <div className="grid grid-cols-3">
         {[
           { cor: '#00577C', icon: <Waves size={18} />, label: 'Águas' },
-          { cor: '#009640', icon: <TreePine size={18} />, label: 'Mata' },
+          { cor: '#009640', icon: <TreePine size={18} />, label: 'Florestas' },
           { cor: '#8b5e0a', icon: <Mountain size={18} />, label: 'Serra' },
         ].map((item, i) => (
           <Reveal key={item.label} anim="up" delay={i * 60}>
@@ -358,13 +317,33 @@ export default function AtracoesPage() {
       </div>
 
       {/* ══════════════════════════════════════
+          INTRO EDITORIAL
+      ══════════════════════════════════════ */}
+      <section className="py-24 md:py-32 px-6 md:px-12" style={{ backgroundColor: '#001f2e' }}>
+        <div className="max-w-[1400px] mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-10 md:gap-16 items-end">
+            <Reveal anim="right" className="md:col-span-6">
+              <h2 className={`${jakarta.className} text-5xl md:text-7xl font-black text-white leading-[0.88]`}>
+                Descubra e encante-se com a nossa terra.
+              </h2>
+            </Reveal>
+            <Reveal anim="left" delay={150} className="md:col-span-6">
+              <p className="text-white/40 text-base md:text-lg leading-relaxed">
+                Nossos pontos turísticos oferecem desde a serenidade das águas até a imponência da serra. São cenários perfeitos para se reconectar com a natureza, tirar fotos inesquecíveis e conhecer de perto o turismo da nossa região.
+              </p>
+            </Reveal>
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════
           LISTAGEM DE ATRAÇÕES
       ══════════════════════════════════════ */}
       <section id="atracoes">
         {loading && (
           <div className="flex flex-col items-center justify-center py-40" style={{ backgroundColor: '#001f2e' }}>
-            <Loader2 className="animate-spin w-12 h-12 mb-4" style={{ color: '#009640' }} />
-            <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.2)' }}>
+            <Loader2 className="animate-spin w-12 h-12 mb-4" style={{ color: '#F9C400' }} />
+            <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.4)' }}>
               Carregando destinos...
             </p>
           </div>
@@ -411,7 +390,7 @@ export default function AtracoesPage() {
                       Preferes um pacote<br />
                       <span className="italic" style={{ color: '#F9C400' }}>já organizado?</span>
                     </h3>
-                    <p className="text-white/50 text-sm leading-relaxed max-w-md">
+                    <p className="text-white/60 text-sm leading-relaxed max-w-md">
                       Roteiros com hospedagem, alimentação e guia incluídos. Só precisas de aparecer e viver.
                     </p>
                   </div>
@@ -452,8 +431,7 @@ export default function AtracoesPage() {
         </section>
       )}
 
-      {/* ── FOOTER MINIMAL DARK ── */}
-      {/* FOOTER */}
+      {/* ── FOOTER ── */}
       <footer className="py-20 px-8 border-t border-slate-200 bg-white text-left">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
           <div className="flex flex-col items-center md:items-start gap-4">

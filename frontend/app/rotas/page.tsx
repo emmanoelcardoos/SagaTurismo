@@ -312,9 +312,7 @@ export default function RotasPage() {
               Rotas<br />
               <span className="italic" style={{ color: '#F9C400' }}>Turísticas</span>
             </h1>
-            <p className="text-white/50 text-base md:text-xl max-w-lg leading-relaxed mb-10">
-              Percursos desenhados para que descubras a essência da nossa terra — rios, serras e florestas — ao teu próprio ritmo.
-            </p>
+            
           </Reveal>
         </div>
 

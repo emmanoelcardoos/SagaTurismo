@@ -153,7 +153,7 @@ function DestaquesVerao() {
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div>
               <h2 className={`${jakarta.className} text-5xl md:text-7xl font-black text-slate-900 leading-[0.9]`}>
-                Destaques<br /><span className="italic text-[#00577C]">Verão 2026</span>
+                Agenda Turistica e  <span className="italic text-[#00577C]">Cultural</span>
               </h2>
             </div>
             <Link href="/eventos" className="inline-flex items-center gap-2 font-black text-[10px] uppercase tracking-[0.2em] text-[#00577C] hover:gap-4 transition-all">
@@ -228,7 +228,7 @@ function GaleriaVerao() {
         <AnimatedSection animation="fade-up" className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
             <h2 className={`${jakarta.className} text-5xl md:text-7xl font-black text-white leading-[0.9]`}>
-              Galeria<br /><span className="italic text-[#F9C400]">Verão 2026</span>
+              Galeria <span className="italic text-[#F9C400]">Verão 2026</span>
             </h2>
           </div>
           <Link href="/galeria" className="inline-flex items-center gap-2 font-black text-[10px] uppercase tracking-[0.2em] text-white/70 hover:text-white hover:gap-4 transition-all">
@@ -314,7 +314,7 @@ function SeccaoHoteis() {
       <div className="max-w-[1400px] mx-auto px-6">
         <AnimatedSection animation="fade-up" className="mb-16">
           <h2 className={`${jakarta.className} text-5xl md:text-7xl font-black text-slate-900 leading-[0.9]`}>
-            Alojamentos<br /><span className="italic text-[#00577C]">Locais</span>
+            Alojamentos <span className="italic text-[#00577C]">Locais</span>
           </h2>
           <p className="mt-6 text-slate-500 text-lg max-w-xl">Espaços para receber turistas, famílias e visitantes que desejam aproveitar a cidade e suas belezas naturais.</p>
         </AnimatedSection>
@@ -401,7 +401,7 @@ function SeccaoPacotes() {
         <AnimatedSection animation="fade-up" className="mb-16">
           
           <h2 className={`${jakarta.className} text-5xl md:text-7xl font-black text-white leading-[0.9]`}>
-            Pacotes<br /><span className="italic text-[#F9C400]">Turísticos</span>
+            Pacotes <span className="italic text-[#F9C400]">Turísticos</span>
           </h2>
         </AnimatedSection>
 
@@ -427,10 +427,6 @@ function SeccaoPacotes() {
                       <p className="text-white/60 text-sm line-clamp-2 mb-4">{pacote.descricao_curta}</p>
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-[8px] font-black text-white/40 uppercase tracking-widest">A partir de</p>
-                          <p className={`${jakarta.className} text-xl font-black text-[#F9C400]`}>
-                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(pacote.preco || 150))}
-                          </p>
                         </div>
                         <span className="bg-[#F9C400] text-[#00577C] p-3 rounded-full flex items-center justify-center">
                           <ChevronRight size={18} />
@@ -479,9 +475,8 @@ function SeccaoPasseios() {
     <section id="passeios" className="py-24 bg-[#FDFCF7] overflow-hidden">
       <div className="max-w-[1400px] mx-auto px-6">
         <AnimatedSection animation="fade-up" className="mb-16">
-          <p className="mb-3 text-[10px] font-black uppercase tracking-[0.3em] text-[#009640]">Bate e Volta</p>
           <h2 className={`${jakarta.className} text-5xl md:text-7xl font-black text-slate-900 leading-[0.9]`}>
-            Passeios de<br /><span className="italic text-[#00577C]">Fim de Semana</span>
+            Passeios <span className="italic text-[#00577C]">Rápidos</span>
           </h2>
           <p className="mt-6 text-slate-500 text-lg max-w-xl">Trilhas, banhos e cultura com guias locais credenciados.</p>
         </AnimatedSection>
@@ -511,12 +506,7 @@ function SeccaoPasseios() {
                       <h3 className={`${jakarta.className} text-3xl font-black mb-2 line-clamp-1`}>{passeios[0].titulo}</h3>
                       <p className="text-white/60 text-sm line-clamp-2 mb-4">{passeios[0].descricao_curta}</p>
                       <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-[8px] font-black text-white/40 uppercase tracking-widest">Valor por pessoa</p>
-                          <p className={`${jakarta.className} text-xl font-black text-[#009640]`}>
-                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(passeios[0].valor_total || 0))}
-                          </p>
-                        </div>
+                        
                         <span className="bg-[#F9C400] text-[#00577C] p-3 rounded-full flex items-center justify-center">
                           <ArrowRight size={18} />
                         </span>
@@ -555,7 +545,7 @@ function SeccaoPasseios() {
 
             <AnimatedSection animation="fade-up" delay={200} className="mt-10">
               <Link href="/passeios" className="inline-flex items-center gap-2 font-black text-[10px] uppercase tracking-[0.2em] text-[#00577C] hover:gap-4 transition-all">
-                Ver agenda de passeios <ArrowRight size={16} />
+                Ver todos os passeios disponiveis <ArrowRight size={16} />
               </Link>
             </AnimatedSection>
           </>
@@ -597,17 +587,6 @@ export default function HomePage() {
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${showHeader ? 'translate-y-0' : '-translate-y-full'} ${isScrolled ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100' : 'bg-white border-b border-slate-200'}`}
       >
-        {/* ◄── SUB-HEADER: ÁREA DO CLIENTE ──► */}
-        <div className="w-full bg-slate-50 border-b border-slate-100">
-          <div className="mx-auto flex max-w-[1400px] items-center justify-end px-6 py-1.5">
-            <button 
-              onClick={() => setIsReservaModalOpen(true)}
-              className={`${jakarta.className} flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.2em] text-[#00577C] hover:text-[#004a6b] transition-colors`}
-            >
-              <UserCircle size={12} strokeWidth={2.5} /> Minhas Reservas
-            </button>
-          </div>
-        </div>
 
         {/* ── MAIN HEADER ── */}
         <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4">
@@ -692,7 +671,7 @@ export default function HomePage() {
         <div className="max-w-[1400px] mx-auto px-6">
           <AnimatedSection animation="fade-up">
             <h2 className={`${jakarta.className} text-5xl md:text-7xl font-black text-slate-900 mb-16 leading-[0.9]`}>
-              Rotas e<br /><span className="italic text-[#00577C]">Aventuras</span>
+              Rotas e <span className="italic text-[#00577C]">Cultura</span>
             </h2>
           </AnimatedSection>
 

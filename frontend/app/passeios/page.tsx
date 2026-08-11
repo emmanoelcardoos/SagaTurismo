@@ -4,8 +4,8 @@ import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
-  Loader2, Menu, MapPin, ArrowRight, CalendarDays, Star,
-  CheckCircle2, ChevronRight, ShieldCheck, Filter, Compass, Search, X
+  Loader2, Menu, MapPin, CalendarDays,
+  ChevronRight, ShieldCheck, Filter, Search, X
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -20,28 +20,13 @@ type Passeio = {
   descricao_curta: string;
   imagem_principal: string;
   data_passeio: string;
-  valor_total: any;
   nome_guia: string;
   categoria?: string;
+  guia_id?: string;
+  guia_imagem?: string; // ◄── Imagem vinda da tabela de guias
 };
 
 // ── UTILITÁRIOS ──
-const parseValor = (valor: any): number => {
-  if (!valor) return 0;
-  if (typeof valor === 'number') return isNaN(valor) ? 0 : valor;
-  let str = String(valor).replace(/[^\d.,]/g, '');
-  if (str.includes('.') && str.includes(',')) {
-    str = str.replace(/\./g, '').replace(',', '.');
-  } else if (str.includes(',')) {
-    str = str.replace(',', '.');
-  }
-  const num = parseFloat(str);
-  return isNaN(num) ? 0 : num;
-};
-
-const formatarMoeda = (valor: number) =>
-  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor || 0);
-
 const formatarDataLocal = (dataStr: string) => {
   if (!dataStr) return '';
   const [ano, mes, dia] = dataStr.split('-');
@@ -49,6 +34,7 @@ const formatarDataLocal = (dataStr: string) => {
 };
 
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1551632811-561732d1e306?q=80&w=1740";
+const FALLBACK_GUIA_IMAGE = "https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=1887";
 
 export default function PasseiosPage() {
   const [passeios, setPasseios] = useState<Passeio[]>([]);
@@ -68,12 +54,39 @@ export default function PasseiosPage() {
 
   useEffect(() => {
     async function fetchPasseios() {
-      const { data, error } = await supabase
+      // 1. Busca os passeios ativos
+      const { data: passeiosData, error } = await supabase
         .from('passeios')
         .select('*')
         .eq('ativo', true)
         .order('data_passeio', { ascending: true });
-      if (data) setPasseios(data);
+        
+      if (error) console.error("Erro ao carregar passeios:", error);
+
+      if (passeiosData && passeiosData.length > 0) {
+        // 2. Extrai os IDs únicos dos guias
+        const guiasIds = [...new Set(passeiosData.map(p => p.guia_id).filter(Boolean))];
+        
+        // 3. Busca a foto e nome na tabela de guias
+        const { data: guiasData } = await supabase
+          .from('guias')
+          .select('id, nome, imagem_url')
+          .in('id', guiasIds);
+
+        // 4. Mapeia e cruza a informação
+        const passeiosMapeados = passeiosData.map(p => {
+          const guia = guiasData?.find(g => g.id === p.guia_id);
+          return {
+            ...p,
+            nome_guia: guia?.nome || p.nome_guia || 'Guia Local',
+            guia_imagem: guia?.imagem_url || null
+          };
+        });
+
+        setPasseios(passeiosMapeados);
+      } else {
+        setPasseios([]);
+      }
       setLoading(false);
     }
     fetchPasseios();
@@ -177,10 +190,9 @@ export default function PasseiosPage() {
               <span className="text-[#F9C400]">Passeios Turísticos</span>
             </h1>
 
-            {/* SEARCH CARD – mesmo estilo da página de hotéis */}
+            {/* SEARCH CARD */}
             <div className="relative w-full max-w-4xl bg-white shadow-2xl rounded-2xl md:rounded-2xl">
               <div className="flex flex-col md:flex-row">
-                {/* Destino (fixo) */}
                 <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-100 md:border-b-0 md:border-r flex-1">
                   <MapPin className="text-[#00577C] shrink-0" size={20} />
                   <div className="flex-1 text-left">
@@ -189,7 +201,6 @@ export default function PasseiosPage() {
                   </div>
                 </div>
 
-                {/* Campo de busca (o que procura?) */}
                 <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-100 md:border-b-0 flex-1">
                   <Search className="text-[#00577C] shrink-0" size={20} />
                   <div className="flex-1 text-left">
@@ -204,7 +215,6 @@ export default function PasseiosPage() {
                   </div>
                 </div>
 
-                {/* Botão Pesquisar */}
                 <div className="p-3 md:p-2 bg-white md:bg-transparent flex items-center">
                   <button
                     onClick={() => {}}
@@ -220,8 +230,8 @@ export default function PasseiosPage() {
           </div>
         </section>
 
-        {/* CONTEÚDO PRINCIPAL: FILTROS + LISTA */}
-        <section className="mx-auto max-w-7xl px-6 pt-12 relative z-20">
+        {/* CONTEÚDO PRINCIPAL: FILTROS + LISTA (COM ESPAÇAMENTO REFORÇADO NO FUNDO) */}
+        <section className="mx-auto max-w-7xl px-6 py-12 pb-24 lg:pb-32 relative z-20">
           <div className="flex flex-col lg:flex-row gap-8 items-start">
             
             {/* BARRA LATERAL DE FILTROS */}
@@ -281,7 +291,7 @@ export default function PasseiosPage() {
                     
                     <div className="relative w-full md:w-80 h-64 md:h-auto shrink-0 overflow-hidden bg-slate-100">
                       <Image src={passeio.imagem_principal || FALLBACK_IMAGE} alt={passeio.titulo} fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
-                      <div className="absolute top-5 left-5 bg-[#F9C400] text-[#00577C] px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-lg">
+                      <div className="absolute top-5 left-5 bg-[#F9C400] text-[#00577C] px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-lg">
                         {passeio.categoria || 'Aventura'}
                       </div>
                     </div>
@@ -289,7 +299,7 @@ export default function PasseiosPage() {
                     <div className="p-8 flex flex-col flex-1 text-left">
                       <div className="flex justify-between items-start mb-2">
                         <div>
-                          <h3 className={`${jakarta.className} text-3xl font-black text-[#00577C] leading-tight hover:underline cursor-pointer mb-2`}>
+                          <h3 className={`${jakarta.className} text-2xl md:text-3xl font-black text-[#00577C] leading-tight hover:underline cursor-pointer mb-3`}>
                             <Link href={`/passeios/${passeio.id}`}>{passeio.titulo}</Link>
                           </h3>
                         </div>
@@ -303,29 +313,22 @@ export default function PasseiosPage() {
                         {passeio.descricao_curta}
                       </p>
 
-                      <div className="flex flex-wrap items-center gap-4 text-slate-500 mb-8">
-                         <span className="flex items-center gap-1.5 text-xs font-bold bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
-                           <Compass size={14} className="text-[#00577C]"/> Guia: {passeio.nome_guia || 'Local'}
-                         </span>
-                         <span className="flex items-center gap-1.5 text-xs font-bold bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
-                           <CheckCircle2 size={14} className="text-[#00577C]"/> Bate e Volta
-                         </span>
-                      </div>
-
-                      <div className="mt-auto pt-6 border-t border-slate-100 flex flex-col sm:flex-row sm:items-end justify-between gap-6">
-                        <div>
-                           <p className="text-[10px] font-black uppercase tracking-widest text-[#00577C] mb-1">Valor Justo</p>
-                           <p className="text-xs font-bold text-slate-500">
-                             Apoie o turismo local e os <br/> guias da região.
-                           </p>
+                      <div className="mt-auto pt-6 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+                        {/* GUIA INFO */}
+                        <div className="flex items-center gap-3">
+                           <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-slate-100 bg-slate-100 shrink-0">
+                              <Image src={passeio.guia_imagem || FALLBACK_GUIA_IMAGE} alt={passeio.nome_guia} fill className="object-cover" />
+                           </div>
+                           <div>
+                             <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Guia Oficial</p>
+                             <p className={`${jakarta.className} text-sm font-bold text-slate-800 line-clamp-1`}>{passeio.nome_guia}</p>
+                           </div>
                         </div>
-                        <div className="text-right flex flex-col items-end">
-                           <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Por pessoa</p>
-                           <p className={`${jakarta.className} text-4xl font-black text-[#009640] tabular-nums mb-4 leading-none`}>
-                             {formatarMoeda(parseValor(passeio.valor_total || 0))}
-                           </p>
-                           <Link href={`/passeios/${passeio.id}`} className="bg-[#00577C] text-white px-10 py-4 rounded-[1.5rem] font-black text-sm uppercase tracking-widest hover:bg-[#004a6b] transition-all shadow-xl hover:shadow-[#00577C]/20 flex items-center gap-3 hover:translate-x-1">
-                             Ver Detalhes <ChevronRight size={20}/>
+
+                        {/* BOTÃO */}
+                        <div className="text-right flex flex-col items-end w-full sm:w-auto">
+                           <Link href={`/passeios/${passeio.id}`} className="w-full sm:w-auto bg-[#00577C] text-white px-8 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-[#004a6b] transition-all shadow-md flex items-center justify-center gap-2">
+                             Ver Detalhes <ChevronRight size={18}/>
                            </Link>
                         </div>
                       </div>
@@ -338,11 +341,10 @@ export default function PasseiosPage() {
         </section>
       </div>
 
-      {/* FOOTER - corrigido para ficar no fundo da página */}
+      {/* FOOTER */}
       <footer className="py-20 px-8 border-t border-slate-200 bg-white text-left">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
           
-          {/* Bloco das logos */}
           <div className="flex flex-col items-center md:items-start gap-4">
             <div className="flex items-center gap-6">
               <Image src="/logop.png" alt="SagaTurismo" width={160} height={50} className="object-contain" />
@@ -360,7 +362,6 @@ export default function PasseiosPage() {
             </div>
           </div>
 
-          {/* Bloco de contacto e selo */}
           <div className="flex gap-10">
             <div className="text-left border-l-2 border-slate-100 pl-9">
               <p className="text-[10px] font-black text-[#00577C] uppercase mb-1">Contato Oficial</p>

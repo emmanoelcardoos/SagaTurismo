@@ -4,8 +4,8 @@ import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
-  Loader2, Menu, MapPin, ArrowRight, CalendarClock, Search, Star,
-  CheckCircle2, ChevronRight, X, ShieldCheck, Filter, Compass, Bed, SlidersHorizontal
+  Loader2, Menu, MapPin, ArrowRight, CalendarClock, Search, 
+  ChevronRight, X, ShieldCheck, Filter, Compass, Bed, SlidersHorizontal
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -20,23 +20,10 @@ type Pacote = {
   imagem_principal: string;
   dias: number;
   noites: number;
-  preco: number;
   categoria: string;
   ativo: boolean;
+  nome_agencia?: string; 
 };
-
-const parseValor = (valor: any): number => {
-  if (!valor) return 0;
-  if (typeof valor === 'number') return isNaN(valor) ? 0 : valor;
-  let str = String(valor).replace(/[^\d.,]/g, '');
-  if (str.includes('.') && str.includes(',')) str = str.replace(/\./g, '').replace(',', '.');
-  else if (str.includes(',')) str = str.replace(',', '.');
-  const num = parseFloat(str);
-  return isNaN(num) ? 0 : num;
-};
-
-const formatarMoeda = (valor: number) =>
-  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor || 0);
 
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?q=80&w=1740";
 
@@ -56,13 +43,35 @@ export default function PacotesPage() {
 
   useEffect(() => {
     async function fetchPacotes() {
-      const { data, error } = await supabase
+      // 1. Busca os pacotes mantendo a ordem original que já funcionava
+      const { data: pacotesData, error } = await supabase
         .from('pacotes')
         .select('*')
         .eq('ativo', true)
-        .order('preco', { ascending: true });
+        .order('preco', { ascending: true }); // ◄── Correção feita aqui!
+        
       if (error) console.error('Erro ao buscar pacotes:', error);
-      if (data) setPacotes(data);
+      
+      if (pacotesData && pacotesData.length > 0) {
+        // 2. Busca o nome das agências (parceiros) para preencher a assinatura do card
+        const { data: parceirosData } = await supabase
+          .from('parceiros')
+          .select('id, nome_negocio');
+          
+        const pacotesMapeados = pacotesData.map(p => {
+          const agencia = parceirosData?.find(par => par.id === p.agencia_id);
+          return {
+            ...p,
+            nome_agencia: agencia?.nome_negocio || 'Agência Oficial Credenciada'
+          };
+        });
+
+        setPacotes(pacotesMapeados);
+      } else {
+        // Fallback de segurança caso a tabela parceiros falhe
+        setPacotes(pacotesData || []);
+      }
+      
       setLoading(false);
     }
     fetchPacotes();
@@ -211,7 +220,6 @@ export default function PacotesPage() {
               <span className="text-[#F9C400]">Roteiros Verificados.</span>
             </h1>
             
-
             <div className="bg-white rounded-2xl shadow-2xl flex flex-col md:flex-row p-1.5 max-w-4xl mx-auto">
               <div className="flex-1 flex items-center gap-3 px-4 py-3 border-b md:border-b-0 md:border-r border-slate-100">
                 <MapPin className="text-[#00577C] shrink-0" size={18} />
@@ -240,7 +248,7 @@ export default function PacotesPage() {
           </div>
         </section>
 
-        {/* CONTEÚDO COM FILTROS E LISTAGEM - SIDEBAR RESTAURADO */}
+        {/* CONTEÚDO COM FILTROS E LISTAGEM */}
         <section className="mx-auto max-w-7xl px-5 md:px-6 py-12 relative z-20">
           <div className="flex lg:hidden items-center justify-between mb-6">
             <h2 className={`${jakarta.className} text-2xl font-black text-slate-800`}>Pacotes</h2>
@@ -250,7 +258,7 @@ export default function PacotesPage() {
           </div>
 
           <div className="flex flex-col lg:flex-row gap-8 items-start">
-            {/* SIDEBAR DESKTOP - EXACTAMENTE COMO NA VERSÃO ORIGINAL */}
+            {/* SIDEBAR DESKTOP */}
             <aside className="hidden lg:block w-72 shrink-0 space-y-6 h-fit lg:self-start">
               <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
                 <div className="flex items-center justify-between mb-6">
@@ -265,11 +273,11 @@ export default function PacotesPage() {
               </div>
               <div className="bg-[#e6f4ea] border border-[#009640]/20 rounded-2xl p-6 text-center shadow-sm">
                 <p className="text-sm font-black text-[#009640] mb-1">AVISO</p>
-                <p className="text-xs text-green-800 font-medium leading-relaxed">Todos os pacotes disponîveis são verificados pela Secretaria de Turismo de São Geraldo do Araguaia e são criados por agentes de viagens credenciados.</p>
+                <p className="text-xs text-green-800 font-medium leading-relaxed">Todos os pacotes disponíveis são verificados pela Secretaria de Turismo de São Geraldo do Araguaia e são criados por agências e guias credenciados.</p>
               </div>
             </aside>
 
-            {/* LISTA DE PACOTES (SEM ANIMAÇÕES) */}
+            {/* LISTA DE PACOTES (MODO VITRINE) */}
             <div className="flex-1 w-full space-y-6 md:space-y-8">
               {loading ? (
                 <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-slate-200 shadow-sm">
@@ -314,22 +322,24 @@ export default function PacotesPage() {
                           <Bed size={14} className="text-[#00577C]" /> Hotel
                         </span>
                         <span className="flex items-center gap-1.5 text-[10px] font-bold bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100">
-                          <Compass size={14} className="text-[#00577C]" /> Guia
+                          <Compass size={14} className="text-[#00577C]" /> Guia Oficial
                         </span>
                       </div>
 
+                      {/* ◄── RODAPÉ DO CARD: ASSINATURA DA AGÊNCIA E BOTÃO ──► */}
                       <div className="mt-auto pt-5 border-t border-slate-100 flex flex-col sm:flex-row sm:items-end justify-between gap-5">
                         <div>
-                          <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-1">Estimativa por pessoa</p>
-                          <p className={`${jakarta.className} text-3xl font-black text-[#009640] tabular-nums`}>
-                            {formatarMoeda(parseValor(pacote.preco))}
+                          <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-1.5">Organização e Roteiro</p>
+                          <p className={`${jakarta.className} text-sm font-black text-slate-800 flex items-center gap-2`}>
+                            <ShieldCheck size={16} className="text-[#009640]" />
+                            {pacote.nome_agencia}
                           </p>
                         </div>
                         <Link 
                           href={`/pacotes/${pacote.id}`} 
                           className="w-full sm:w-auto bg-[#00577C] hover:bg-[#004a6b] text-white px-8 py-3.5 rounded-xl font-black text-xs uppercase tracking-widest shadow-md flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5"
                         >
-                          Ver Detalhes <ChevronRight size={16} />
+                          Conhecer Roteiro <ChevronRight size={16} />
                         </Link>
                       </div>
                     </div>
