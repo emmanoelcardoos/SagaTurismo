@@ -36,7 +36,7 @@ function SectionHeader({ step, title, icon }: { step: number; title: string; ico
 }
 
 // ── CRONÓMETRO PIX ──
-const PIX_DURATION_SECONDS = 60 * 60; // 60 minutos para o BB
+const PIX_DURATION_SECONDS = 10 * 60; // 10 minutos
 function CronometroPix({ onExpirado }: { onExpirado: () => void }) {
   const [segundosRestantes, setSegundosRestantes] = useState(PIX_DURATION_SECONDS);
   
@@ -297,7 +297,7 @@ function CheckoutCarteiraContent() {
                   </div>
 
                   <button type="submit" disabled={isSubmitting} className="w-full mt-10 py-5 rounded-[1.5rem] font-black text-lg text-white bg-[#00577C] hover:bg-[#004a6b] shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50">
-                      {isSubmitting ? <><Loader2 className="animate-spin" size={24}/> Conectando ao Banco...</> : <><Image src="/pix-white.svg" alt="Pix" width={20} height={20} /> Gerar PIX de Pagamento</>}
+                      {isSubmitting ? <><Loader2 className="animate-spin" size={24}/> Conectando ao Banco...</> : <><Image src="/pix-white.svg" alt="Pix" width={20} height={20} /> Avançar ao Pagamento</>}
                   </button>
                 </SectionCard>
               </form>
@@ -364,17 +364,9 @@ function CheckoutCarteiraContent() {
                     </div>
                  </div>
 
-                 {/* SELO PROJETO ARBORIZAÇÃO */}
-                 <div className="bg-[#e6f4ea] border border-[#009640]/20 p-4 rounded-xl flex items-start gap-3 mt-4">
-                    <Leaf className="text-[#009640] shrink-0 mt-0.5" size={18} />
-                    <p className="text-[11px] font-medium text-green-900 leading-relaxed">
-                      <strong>100% desta taxa</strong> é destinada ao financiamento do <span className="font-bold">Projeto Municipal de Arborização Urbana</span> de São Geraldo do Araguaia.
-                    </p>
-                 </div>
-
                  <div className="pt-8 border-t-2 border-slate-100 flex flex-col gap-4">
                     <div className="flex items-center justify-between">
-                       <p className="text-xs font-black uppercase text-slate-400 tracking-widest">Total a Pagar</p>
+                       <p className="text-xs font-black uppercase text-slate-400 tracking-widest">Valor Total</p>
                        <div className="bg-[#00577C]/10 px-3 py-1 rounded-full flex items-center gap-1.5 text-[#00577C] text-[10px] font-black uppercase">Tarifa Única</div>
                     </div>
                     <p className={`${jakarta.className} text-4xl md:text-5xl font-black text-[#00577C] tabular-nums leading-none`}>
