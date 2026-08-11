@@ -5,6 +5,8 @@ import httpx
 import os
 import uuid
 import base64
+import qrcode
+from io import BytesIO
 from datetime import datetime, timedelta
 from supabase import create_client, Client
 # Importação dos serviços que já tens criados
@@ -860,3 +862,109 @@ async def testar_conexao_bb():
                 
     except Exception as e:
         return {"sucesso": False, "erro": str(e)}
+
+BB_API_URL = "https://api.hm.bb.com.br/pix/v2"
+BB_PIX_KEY = os.environ.get("BB_PIX_KEY", "7a26f8d0-e1db-40a2-9b0d-b2a0c64eb3d0") # Chave aleatória aceita no Sandbox
+
+@router.post("/api/v1/pagamentos/carteira-bb")
+async def processar_carteira_bb(pedido: PedidoCarteiraGratuita): 
+    try:
+        # 1. Gera o TXID (ID único da transação Pix - BB exige formato alfanumérico)
+        txid = f"SAGA{uuid.uuid4().hex[:28].upper()}"
+        valor_carteira = 20.00
+        tax_id_limpo = pedido.cpf_cliente.replace(".", "").replace("-", "")
+
+        # 2. Autenticação na API do Banco do Brasil (OAuth2)
+        auth_string = f"{BB_CLIENT_ID}:{BB_CLIENT_SECRET}"
+        auth_b64 = base64.b64encode(auth_string.encode()).decode("utf-8")
+        
+        token_headers = {
+            "Authorization": f"Basic {auth_b64}",
+            "Content-Type": "application/x-www-form-urlencoded"
+        }
+        
+        async with httpx.AsyncClient() as client:
+            resp_token = await client.post(
+                BB_OAUTH_URL, 
+                headers=token_headers, 
+                data={"grant_type": "client_credentials", "scope": "cob.write pix.read"},
+                params={"gw-dev-app-key": BB_DEV_APP_KEY}
+            )
+            
+            if resp_token.status_code != 200:
+                raise HTTPException(status_code=500, detail="Falha na autenticação bancária.")
+                
+            access_token = resp_token.json()["access_token"]
+
+            # 3. Criar a Cobrança (COB) no BB
+            cob_headers = {
+                "Authorization": f"Bearer {access_token}",
+                "Content-Type": "application/json",
+            }
+            
+            payload_cob = {
+                "calendario": { "expiracao": 3600 },
+                "devedor": { 
+                    "cpf": tax_id_limpo, 
+                    "nome": pedido.nome_cliente[:80] # O BB tem limite de 80 caracteres no nome
+                },
+                "valor": { "original": f"{valor_carteira:.2f}" },
+                "chave": BB_PIX_KEY,
+                "solicitacaoPagador": "Taxa Carteira Digital SGA"
+            }
+
+            resp_cob = await client.put(
+                f"{BB_API_URL}/cob/{txid}",
+                headers=cob_headers,
+                json=payload_cob,
+                params={"gw-dev-app-key": BB_DEV_APP_KEY}
+            )
+
+            if resp_cob.status_code not in [200, 201]:
+                raise HTTPException(status_code=500, detail=f"Erro no BB: {resp_cob.text}")
+
+            dados_cob = resp_cob.json()
+            pix_copia_cola = dados_cob.get("pixCopiaECola")
+
+            # 4. Gerar a imagem do QR Code para mostrar no frontend
+            qr = qrcode.QRCode(box_size=8, border=2)
+            qr.add_data(pix_copia_cola)
+            qr.make(fit=True)
+            img_qr = qr.make_image(fill_color="black", back_color="white")
+            
+            buffered = BytesIO()
+            img_qr.save(buffered, format="PNG")
+            img_base64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
+            qr_data_uri = f"data:image/png;base64,{img_base64}"
+
+            # 5. Guarda o pedido na tua base de dados (Supabase)
+            pedido_db = {
+                "codigo_pedido": txid,
+                "tipo_item": "carteira",
+                "nome_cliente": pedido.nome_cliente,
+                "cpf_cliente": tax_id_limpo,
+                "email_cliente": pedido.email_cliente,
+                "telefone_cliente": pedido.telefone_cliente,
+                "valor_total": valor_carteira,
+                "status_pagamento": "aguardando",
+                "metodo_pagamento": "pix",
+                "quantidade": 1,
+                "nome_item": "Taxa de Emissão - Carteira Digital",
+                "item_id": pedido.token_id,
+                "foto_url": pedido.foto_url,
+                "data_nascimento": pedido.data_nascimento
+            }
+            supabase.table("pedidos").insert(pedido_db).execute()
+
+            # 6. Devolve tudo pronto para o utilizador
+            return {
+                "sucesso": True,
+                "codigo_pedido": txid,
+                "metodo": "pix",
+                "pix_copia_cola": pix_copia_cola,
+                "pix_qrcode_img": qr_data_uri
+            }
+
+    except Exception as e:
+        print(f"ERRO BB COBRANÇA: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
