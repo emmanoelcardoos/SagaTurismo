@@ -864,7 +864,7 @@ async def testar_conexao_bb():
         return {"sucesso": False, "erro": str(e)}
 
 BB_API_URL = "https://api.hm.bb.com.br/pix/v2"
-BB_PIX_KEY = os.environ.get("BB_PIX_KEY", "7a26f8d0-e1db-40a2-9b0d-b2a0c64eb3d0") # Chave aleatória aceita no Sandbox
+BB_PIX_KEY = os.environ.get("BB_PIX_KEY", "7a26f8d0-e1db-40a2-9b0d-b2a0c64eb3d0") 
 
 @router.post("/api/v1/pagamentos/carteira-bb")
 async def processar_carteira_bb(pedido: PedidoCarteiraGratuita): 
