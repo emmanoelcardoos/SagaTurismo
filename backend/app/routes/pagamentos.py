@@ -4,6 +4,7 @@ from typing import Optional, Dict, List
 import httpx
 import os
 import uuid
+import base64
 from datetime import datetime, timedelta
 from supabase import create_client, Client
 # Importação dos serviços que já tens criados
@@ -17,6 +18,13 @@ SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 ASAAS_API_KEY = os.environ.get("ASAAS_API_KEY")
 ASAAS_API_URL = os.environ.get("ASAAS_API_URL", "https://sandbox.asaas.com/api/v3")
+
+# Confuguracoes Banco do Brasil
+# Configurações Banco do Brasil (Sandbox)
+BB_CLIENT_ID = os.environ.get("BB_CLIENT_ID")
+BB_CLIENT_SECRET = os.environ.get("BB_CLIENT_SECRET")
+BB_DEV_APP_KEY = os.environ.get("BB_DEV_APP_KEY")
+BB_OAUTH_URL = "https://oauth.hm.bb.com.br/oauth/token" 
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
@@ -812,3 +820,43 @@ async def reenviar_voucher(payload: PedidoReenvio):
     except Exception as e:
         print(f"[REENVIO ERRO FATAL] {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/api/v1/pagamentos/teste-bb")
+async def testar_conexao_bb():
+    try:
+        # 1. Junta o ID e o Secret e codifica em Base64 (exigência do BB)
+        auth_string = f"{BB_CLIENT_ID}:{BB_CLIENT_SECRET}"
+        auth_b64 = base64.b64encode(auth_string.encode()).decode("utf-8")
+        
+        # 2. Prepara os cabeçalhos
+        headers = {
+            "Authorization": f"Basic {auth_b64}",
+            "Content-Type": "application/x-www-form-urlencoded"
+        }
+        
+        # 3. Faz o pedido ao Banco do Brasil
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                BB_OAUTH_URL, 
+                headers=headers, 
+                data={"grant_type": "client_credentials", "scope": "cob.write pix.read"},
+                params={"gw-dev-app-key": BB_DEV_APP_KEY}
+            )
+            
+            # 4. Verifica se o banco aceitou
+            if resp.status_code == 200:
+                token = resp.json().get("access_token", "")
+                return {
+                    "sucesso": True, 
+                    "mensagem": "Ligação com o Banco do Brasil estabelecida com sucesso!",
+                    "token_recebido": token[:15] + "... (oculto por segurança)"
+                }
+            else:
+                return {
+                    "sucesso": False, 
+                    "erro": resp.text,
+                    "status_code": resp.status_code
+                }
+                
+    except Exception as e:
+        return {"sucesso": False, "erro": str(e)}
