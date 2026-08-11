@@ -267,10 +267,7 @@ function CheckoutCarteiraContent() {
                       <div className="bg-white p-2 rounded-full shadow-sm shrink-0">
                          <Image src="/bb-logo.png" alt="Banco do Brasil" width={24} height={24} className="object-contain" />
                       </div>
-                      <div>
-                        <p className="font-black text-sm mb-1 uppercase tracking-widest">Cobrança Oficial</p>
-                        <p className="text-sm font-medium">Este pagamento é processado diretamente pelo <strong>Banco do Brasil</strong> para a conta da Prefeitura Municipal de São Geraldo do Araguaia.</p>
-                      </div>
+                      
                   </div>
 
                   <div className="space-y-4">

@@ -2,463 +2,183 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useEffect, useState, useRef, ReactNode } from 'react';
-import {
-  Menu, X, ArrowRight, Loader2, Compass,
-  TreePine, Waves, Mountain, ChevronDown, MapPin, Camera, Ticket,
-  ShieldCheck
-} from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
-import { supabase } from '@/lib/supabase';
+import { ArrowLeft, Menu, X, Compass, MapPin } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '700', '800'] });
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
 
-// ── TIPAGEM ──
-type Atracao = {
-  id: string;
-  nome: string;
-  tipo?: string;
-  descricao: string;
-  imagem_url: string;
-  preco_entrada?: number;
-  localizacao?: string; 
-};
-
-// ── MOTOR DE SCROLL ──
-function useScrollAnimation(threshold = 0.08) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [isVisible, setIsVisible] = useState(false);
-  useEffect(() => {
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) { setIsVisible(true); observer.unobserve(entry.target); }
-    }, { threshold });
-    if (ref.current) observer.observe(ref.current);
-    return () => { if (ref.current) observer.unobserve(ref.current); };
-  }, [threshold]);
-  return { ref, isVisible };
-}
-
-function Reveal({ children, className = '', anim = 'up', delay = 0 }: {
-  children: ReactNode; className?: string;
-  anim?: 'up' | 'left' | 'right' | 'zoom' | 'fade'; delay?: number;
-}) {
-  const { ref, isVisible } = useScrollAnimation();
-  const hidden: Record<string, string> = {
-    up: 'opacity-0 translate-y-14',
-    left: 'opacity-0 translate-x-14',
-    right: 'opacity-0 -translate-x-14',
-    zoom: 'opacity-0 scale-90',
-    fade: 'opacity-0',
-  };
-  return (
-    <div ref={ref}
-      className={`transition-all duration-1000 ease-out will-change-transform
-        ${isVisible ? 'opacity-100 translate-y-0 translate-x-0 scale-100' : hidden[anim]} ${className}`}
-      style={{ transitionDelay: `${delay}ms` }}>
-      {children}
-    </div>
-  );
-}
-
-// ══════════════════════════════════════
-// CARD DE ATRAÇÃO
-// ══════════════════════════════════════
-function AtracaoCard({ atracao, index }: { atracao: Atracao; index: number }) {
-  const isPar = index % 2 === 0;
-  const num = String(index + 1).padStart(2, '0');
-  
-  // Padronização de cores limpas (Azul escuro e Dourado)
-  const bgCard = isPar ? '#001f2e' : '#002f40';
-  const corAccent = '#F9C400';
-
-  return (
-    <article className="relative group">
-      {index > 0 && (
-        <div className="h-px w-full mb-0"
-          style={{ background: `linear-gradient(to right, transparent, rgba(255,255,255,0.05), transparent)` }} />
-      )}
-
-      <div className={`relative flex flex-col ${isPar ? 'lg:flex-row' : 'lg:flex-row-reverse'} min-h-[85vh] overflow-hidden`}
-        style={{ backgroundColor: bgCard }}>
-
-        {/* ── METADE IMAGEM ── */}
-        <div className="relative w-full lg:w-[55%] h-[50vh] lg:h-auto overflow-hidden">
-          <Image
-            src={atracao.imagem_url || 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09'}
-            alt={atracao.nome}
-            fill
-            className="object-cover transition-transform duration-[1400ms] ease-out group-hover:scale-105"
-          />
-
-          {/* Sombras de integração */}
-          <div className="absolute inset-0 pointer-events-none"
-            style={{
-              background: isPar
-                ? `linear-gradient(to right, transparent 50%, ${bgCard} 100%)`
-                : `linear-gradient(to left, transparent 50%, ${bgCard} 100%)`,
-            }} />
-          <div className="absolute inset-0 pointer-events-none lg:hidden"
-            style={{ background: `linear-gradient(to top, ${bgCard} 0%, transparent 60%)` }} />
-
-          {/* Número Flutuante da Atração */}
-          <div className="absolute top-6 left-6 z-10 w-14 h-14 rounded-2xl flex items-center justify-center shadow-2xl"
-            style={{ backgroundColor: corAccent }}>
-            <span className={`${jakarta.className} text-xl font-black`} style={{ color: bgCard }}>
-              {num}
-            </span>
-          </div>
-        </div>
-
-        {/* ── METADE TEXTO ── */}
-        <div className={`relative z-10 w-full lg:w-[45%] flex flex-col justify-center
-          px-8 py-16 lg:py-24
-          ${isPar ? 'lg:pl-16 xl:pl-20 lg:pr-16' : 'lg:pr-16 xl:pr-20 lg:pl-16'}`}>
-
-          {/* Número Gigante de Fundo */}
-          <div className={`${jakarta.className} absolute top-1/2 -translate-y-1/2
-            ${isPar ? '-right-4 lg:-right-6' : '-left-4 lg:-left-6'}
-            text-[180px] md:text-[220px] font-black leading-none select-none pointer-events-none`}
-            style={{ color: '#ffffff', opacity: 0.03 }}
-            aria-hidden="true">
-            {num}
-          </div>
-
-          <Reveal anim={isPar ? 'left' : 'right'} delay={100}>
-
-            <h2 className={`${jakarta.className} text-5xl md:text-6xl xl:text-7xl font-black text-white leading-[0.88] mb-6`}>
-              {atracao.nome}
-            </h2>
-
-            <p className="text-white/60 text-base md:text-lg leading-relaxed mb-10 max-w-md font-medium">
-              {atracao.descricao}
-            </p>
-
-            {/* Micro Detalhes baseados EXCLUSIVAMENTE no Supabase */}
-            <div className="flex flex-wrap gap-3 mb-10">
-              {atracao.localizacao && (
-                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold border border-white/10 bg-white/5 text-white/80">
-                  <MapPin size={12} style={{ color: corAccent }} />
-                  {atracao.localizacao}
-                </span>
-              )}
-              
-              {atracao.tipo && (
-                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold border border-white/10 bg-white/5 text-white/80">
-                  <Camera size={12} style={{ color: corAccent }} />
-                  {atracao.tipo}
-                </span>
-              )}
-              
-              {atracao.preco_entrada !== undefined && (
-                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold border border-white/10 bg-white/5 text-white/80">
-                  <Ticket size={12} style={{ color: corAccent }} />
-                  {Number(atracao.preco_entrada) === 0 ? 'Acesso Gratuito' : `R$ ${Number(atracao.preco_entrada).toFixed(2)}`}
-                </span>
-              )}
-            </div>
-
-            <Link
-              href={`/atracoes/${atracao.id}`}
-              className="group/btn inline-flex items-center gap-3 self-start px-8 py-4 rounded-full
-                font-black text-[10px] uppercase tracking-widest shadow-xl text-[#001f2e]
-                hover:-translate-y-1 hover:shadow-2xl transition-all duration-300"
-              style={{ backgroundColor: corAccent }}>
-              Explorar atração
-              <ArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
-            </Link>
-          </Reveal>
-        </div>
-      </div>
-    </article>
-  );
-}
-
-// ══════════════════════════════════════
-// PÁGINA PRINCIPAL
-// ══════════════════════════════════════
 export default function AtracoesPage() {
+  const [isScrolled, setIsScrolled] = useState(false);
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
-  const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [atracoes, setAtracoes] = useState<Atracao[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [scrollY, setScrollY] = useState(0);
-
-  useEffect(() => {
-    async function fetchAtracoes() {
-      const { data, error } = await supabase
-        .from('atracoes').select('*');
-      if (data) setAtracoes(data as Atracao[]);
-      if (error) console.error('Erro ao buscar atrações:', error);
-      setLoading(false);
-    }
-    fetchAtracoes();
-  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
-      const y = window.scrollY;
-      setScrollY(y);
-      setIsScrolled(y > 50);
-      if (y < 80) setShowHeader(true);
-      else if (y > lastScrollY) setShowHeader(false);
+      const currentScrollY = window.scrollY;
+      setIsScrolled(currentScrollY > 50);
+      if (currentScrollY < 80) setShowHeader(true);
+      else if (currentScrollY > lastScrollY) setShowHeader(false);
       else setShowHeader(true);
-      setLastScrollY(y);
+      setLastScrollY(currentScrollY);
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
   return (
-    <main className={`${inter.className} text-white overflow-x-hidden min-h-screen`}
-      style={{ backgroundColor: '#001f2e' }}>
+    <main className={`${inter.className} min-h-screen flex flex-col bg-[#002f40] relative overflow-hidden`}>
 
-      {/* ── HEADER FLUTUANTE ── */}
-      <header className="relative z-50 w-full bg-white border-b border-slate-200 py-4">
-        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6">
+      {/* ── BACKGROUND MOBILE FIRST ── */}
+      <div className="absolute inset-0 z-0">
+        <Image
+          src="https://live.staticflickr.com/65535/54668340687_2c7f6b5c39_4k.jpg"
+          alt="Belezas naturais de São Geraldo do Araguaia"
+          fill
+          // Foco mais à direita no mobile, centro no desktop. Opacidade reduzida no mobile.
+          className="object-cover object-[70%_center] md:object-center opacity-40 md:opacity-50"
+          priority
+        />
+        {/* Máscara inteligente: Protege o topo, mas deixa a foto brilhar */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#002f40]/90 via-[#002f40]/40 to-[#002f40]/10 md:from-[#002f40]/60 md:via-[#002f40]/20 md:to-transparent" />
+      </div>
+
+      {/* Halo amarelo — canto superior direito */}
+      <div className="absolute top-0 right-0 z-0 w-[300px] h-[300px] md:w-[500px] md:h-[500px] pointer-events-none"
+        style={{ background: 'radial-gradient(ellipse at top right, rgba(249,196,0,0.12) 0%, transparent 65%)' }} />
+
+      {/* Halo verde — canto inferior esquerdo */}
+      <div className="absolute bottom-0 left-0 z-0 w-[250px] h-[250px] md:w-[460px] md:h-[360px] pointer-events-none"
+        style={{ background: 'radial-gradient(ellipse at bottom left, rgba(0,150,64,0.12) 0%, transparent 65%)' }} />
+
+      {/* ── HEADER ORIGINAL ── */}
+      <header
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${showHeader ? 'translate-y-0' : '-translate-y-full'} ${isScrolled ? 'bg-[#002f40]/95 backdrop-blur-md shadow-sm border-b border-white/10' : 'bg-transparent'}`}
+      >
+        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-5 py-4 md:px-6">
           <Link href="/" className="flex items-center gap-3">
-             <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
-                <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain" />
-             </div>
+            <div className="relative h-9 w-24 md:h-12 md:w-36 shrink-0">
+              <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain brightness-0 invert" />
+            </div>
           </Link>
 
           <nav className="hidden lg:flex items-center gap-8">
-            {['Hoteis', 'Pacotes', 'Rotas','Passeios', 'Aldeias', 'Eventos', 'Biodiversidade', 'Gastronomia', 'Comunidades'].map(item => (
-              <Link key={item} href={`/${item.toLowerCase()}`} className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-slate-600 hover:text-[#00577C] transition-colors`}>
+            {['Hoteis', 'Pacotes', 'Atracoes', 'Passeios', 'Biodiversidade', 'Gastronomia', 'Comunidades',  'Parceiros'].map(item => (
+              <Link key={item} href={`/${item.toLowerCase()}`}
+                className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-white/50 hover:text-white transition-colors`}
+              >
                 {item}
               </Link>
             ))}
-            <Link href="/cadastro" className={`${jakarta.className} bg-[#F9C400] text-[#002f40] px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-sm`}>
-              Cartão Residente
+            <Link href="/cadastro"
+              className={`${jakarta.className} bg-[#F9C400] text-[#002f40] px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-sm`}>
+              Residente
             </Link>
           </nav>
 
-          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="rounded-xl p-2 lg:hidden bg-slate-50 text-[#00577C] hover:bg-slate-100 transition-colors">
+          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="rounded-xl p-2 lg:hidden bg-white/10 text-white hover:bg-white/20 transition-colors">
             {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
 
-        {/* Menu Mobile */}
         {isMobileMenuOpen && (
-          <div className="absolute top-full left-0 w-full bg-white border-b border-slate-200 p-6 flex flex-col gap-4 shadow-2xl lg:hidden z-50">
-            <Link href="/rotas" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Rotas Turísticas</Link>
-            <Link href="/eventos" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Agenda Cultural</Link>
-            <Link href="/pacotes" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Pacotes</Link>
-            <Link href="/biodiversidade" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Biodiversidade</Link>
-            <Link href="/gastronomia" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Gastronomia</Link>
-            <Link href="/comunidades" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Comunidades</Link>
-            <Link href="/cadastro" className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md mt-2`}>Cartão Residente</Link>
+          <div className="absolute top-full left-0 w-full bg-[#002f40] border-b border-white/10 p-5 flex flex-col gap-4 shadow-2xl lg:hidden z-50">
+            {['Hoteis', 'Pacotes', 'Atracoes', 'Passeios',  'Biodiversidade', 'Parceiros'].map(item => (
+              <Link key={item} href={`/${item.toLowerCase()}`}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`${jakarta.className} font-black text-white/60 hover:text-white text-lg border-b border-white/10 pb-2 transition-colors`}>
+                {item}
+              </Link>
+            ))}
+            <Link href="/cadastro"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md mt-2`}>
+              Cartão Residente
+            </Link>
           </div>
         )}
       </header>
 
-      {/* ══════════════════════════════════════
-          HERO COM IMAGEM ESTÁTICA
-      ══════════════════════════════════════ */}
-      <section className="relative h-[80vh] flex flex-col items-start justify-end
-        pb-20 md:pb-28 px-6 md:px-12 overflow-hidden"
-        style={{ backgroundColor: '#002f40' }}>
+      {/* ── CONTEÚDO PRINCIPAL (MOBILE FIRST) ── */}
+      <div className="relative z-10 flex-1 flex flex-col justify-center mt-24 md:mt-20">
+        <div className="w-full max-w-[1400px] mx-auto px-5 md:px-14 py-10 md:py-0">
+          <div className="grid md:grid-cols-2 gap-12 md:gap-20 items-center">
 
-        {/* Efeito Parallax com Imagem */}
-        <div className="absolute inset-0 z-0 scale-110"
-          style={{ transform: `translateY(${scrollY * 0.25}px) scale(1.1)` }}>
-          <Image
-            src="https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/IMG_1803.PNG"
-            alt="Atrações Naturais"
-            fill
-            className="object-cover opacity-60"
-            priority
-          />
-        </div>
+            {/* Coluna esquerda — texto */}
+            <div className="flex flex-col gap-6 md:gap-10">
 
-        {/* Gradientes de Escurecimento */}
-        <div className="absolute inset-0 z-0 pointer-events-none"
-          style={{ background: 'linear-gradient(to top, #001f2e 0%, #001f2ecc 30%, #001f2e55 60%, transparent 85%)' }} />
-        <div className="absolute inset-0 z-0 pointer-events-none"
-          style={{ background: 'linear-gradient(to right, #001f2eaa 0%, transparent 65%)' }} />
+              {/* Título */}
+              <div className="flex flex-col gap-1">
+                <h1 className={`${jakarta.className} font-black text-white leading-[1.05] md:leading-[0.97]`}
+                  style={{ fontSize: 'clamp(42px, 5.5vw, 72px)' }}>
+                  As nossas
+                </h1>
+                <h1 className={`${jakarta.className} font-black text-[#F9C400] leading-[1.05] md:leading-[0.97]`}
+                  style={{ fontSize: 'clamp(42px, 5.5vw, 72px)' }}>
+                  atrações 
+                </h1>
+                <h1 className={`${jakarta.className} font-black text-white/30 leading-[1.05] md:leading-[0.97]`}
+                  style={{ fontSize: 'clamp(42px, 5.5vw, 72px)' }}>
+                  em breve aqui
+                </h1>
+              </div>
 
-        <div className="absolute left-6 md:left-12 top-[20%] bottom-[1000%] w-px pointer-events-none z-10 hidden md:block"
-          style={{ background: 'linear-gradient(to bottom, transparent, #F9C40045, transparent)' }} />
-
-        <div className="relative z-10 max-w-[1400px] w-full mx-auto">
-          <Reveal anim="up">
-            <h1 className={`${jakarta.className} text-[clamp(4rem,11vw,9rem)] font-black text-white leading-[0.88] mb-6`}>
-              Atrações<br />
-            </h1>
-          </Reveal>
-        </div>
-
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10">
-          <ChevronDown size={18} className="animate-bounce" style={{ color: 'rgba(249,196,0,0.35)' }} />
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════
-          FAIXA TRICOLOR — 3 BIOMAS
-      ══════════════════════════════════════ */}
-      <div className="grid grid-cols-3">
-        {[
-          { cor: '#00577C', icon: <Waves size={18} />, label: 'Águas' },
-          { cor: '#009640', icon: <TreePine size={18} />, label: 'Florestas' },
-          { cor: '#8b5e0a', icon: <Mountain size={18} />, label: 'Serra' },
-        ].map((item, i) => (
-          <Reveal key={item.label} anim="up" delay={i * 60}>
-            <div className="flex flex-col items-center justify-center gap-2 py-7 md:py-9"
-              style={{ backgroundColor: item.cor }}>
-              <div className="text-white opacity-70">{item.icon}</div>
-              <p className={`${jakarta.className} text-[9px] md:text-[11px] font-black uppercase tracking-[0.25em] text-white opacity-60`}>
-                {item.label}
+              {/* Descrição */}
+              <p className={`${inter.className} text-white/60 md:text-white/50 text-base md:text-lg leading-relaxed max-w-md`}>
+                Estamos preparando um guia completo com todos os pontos turísticos, cachoeiras, trilhas e paisagens inesquecíveis que você só encontra em São Geraldo do Araguaia.
               </p>
+
+              {/* CTA */}
+             
             </div>
-          </Reveal>
-        ))}
+
+            {/* Coluna direita — foto */}
+            <div className="hidden md:flex items-center justify-center">
+              <div className="relative w-full max-w-[420px] aspect-[3/4] rounded-[2.5rem] overflow-hidden"
+                style={{ boxShadow: '0 40px 80px -20px rgba(0,0,0,0.7)' }}>
+                <Image
+                  src="https://live.staticflickr.com/65535/54668340687_2c7f6b5c39_4k.jpg"
+                  alt="Atrativos de São Geraldo do Araguaia"
+                  fill
+                  className="object-cover"
+                  style={{ filter: 'brightness(0.72) saturate(0.85)' }}
+                  priority
+                />
+                {/* Gradiente inferior suave */}
+                <div className="absolute inset-0"
+                  style={{ background: 'linear-gradient(to top, rgba(0,47,64,0.85) 0%, transparent 50%)' }} />
+
+                {/* Legenda discreta dentro da foto */}
+                <div className="absolute bottom-0 left-0 right-0 p-8">
+                  <div className="flex items-center gap-2 mb-2">
+                    <MapPin size={14} className="text-[#F9C400]" />
+                    <p className={`${jakarta.className} text-white/40 text-[9px] font-black uppercase tracking-[0.3em]`}>
+                      Turismo de Natureza
+                    </p>
+                  </div>
+                  <p className={`${jakarta.className} text-white font-black text-xl leading-snug`}>
+                    Catálogo de <br /> Atrações Locais
+                  </p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
       </div>
 
-      {/* ══════════════════════════════════════
-          INTRO EDITORIAL
-      ══════════════════════════════════════ */}
-      <section className="py-24 md:py-32 px-6 md:px-12" style={{ backgroundColor: '#001f2e' }}>
-        <div className="max-w-[1400px] mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-10 md:gap-16 items-end">
-            <Reveal anim="right" className="md:col-span-6">
-              <h2 className={`${jakarta.className} text-5xl md:text-7xl font-black text-white leading-[0.88]`}>
-                Descubra e encante-se com a nossa terra.
-              </h2>
-            </Reveal>
-            <Reveal anim="left" delay={150} className="md:col-span-6">
-              <p className="text-white/40 text-base md:text-lg leading-relaxed">
-                Nossos pontos turísticos oferecem desde a serenidade das águas até a imponência da serra. São cenários perfeitos para se reconectar com a natureza, tirar fotos inesquecíveis e conhecer de perto o turismo da nossa região.
-              </p>
-            </Reveal>
-          </div>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════
-          LISTAGEM DE ATRAÇÕES
-      ══════════════════════════════════════ */}
-      <section id="atracoes">
-        {loading && (
-          <div className="flex flex-col items-center justify-center py-40" style={{ backgroundColor: '#001f2e' }}>
-            <Loader2 className="animate-spin w-12 h-12 mb-4" style={{ color: '#F9C400' }} />
-            <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.4)' }}>
-              Carregando destinos...
-            </p>
-          </div>
-        )}
-
-        {!loading && atracoes.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-40 px-6 text-center"
-            style={{ backgroundColor: '#001f2e' }}>
-            <Compass size={64} style={{ color: 'rgba(255,255,255,0.05)' }} className="mb-6" />
-            <h3 className={`${jakarta.className} text-3xl font-black mb-3`} style={{ color: 'rgba(255,255,255,0.2)' }}>
-              Nenhuma atração cadastrada
-            </h3>
-            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.15)' }}>
-              Volte em breve para novidades.
-            </p>
-          </div>
-        )}
-
-        {!loading && atracoes.length > 0 && (
-          <div>
-            {atracoes.map((atracao, index) => (
-              <AtracaoCard key={atracao.id} atracao={atracao} index={index} />
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* ══════════════════════════════════════
-          CTA FINAL
-      ══════════════════════════════════════ */}
-      {!loading && atracoes.length > 0 && (
-        <section className="py-24 px-6 md:px-12" style={{ backgroundColor: '#001f2e' }}>
-          <div className="max-w-[1400px] mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              <Reveal anim="up" className="md:col-span-2">
-                <div className="rounded-[2rem] p-10 md:p-14 h-full flex flex-col justify-between min-h-[300px]"
-                  style={{ backgroundColor: '#00577C' }}>
-                  <div>
-                    <p className="font-black text-[9px] uppercase tracking-[0.3em] mb-3"
-                      style={{ color: 'rgba(249,196,0,0.6)' }}>
-                      Continuar a explorar
-                    </p>
-                    <h3 className={`${jakarta.className} text-4xl md:text-5xl font-black text-white leading-[0.9] mb-4`}>
-                      Preferes um pacote<br />
-                      <span className="italic" style={{ color: '#F9C400' }}>já organizado?</span>
-                    </h3>
-                    <p className="text-white/60 text-sm leading-relaxed max-w-md">
-                      Roteiros com hospedagem, alimentação e guia incluídos. Só precisas de aparecer e viver.
-                    </p>
-                  </div>
-                  <Link href="/pacotes"
-                    className="mt-8 inline-flex items-center gap-3 self-start px-7 py-3.5 rounded-full font-black text-[10px] uppercase tracking-widest transition-colors hover:-translate-y-0.5"
-                    style={{ backgroundColor: '#F9C400', color: '#001f2e' }}>
-                    Ver pacotes disponíveis <ArrowRight size={14} />
-                  </Link>
-                </div>
-              </Reveal>
-
-              <Reveal anim="up" delay={120}>
-                <div className="rounded-[2rem] p-10 h-full flex flex-col justify-between min-h-[300px]"
-                  style={{ backgroundColor: '#F9C400' }}>
-                  <div>
-                    <p className="font-black text-[9px] uppercase tracking-[0.3em] mb-3"
-                      style={{ color: 'rgba(0,31,46,0.4)' }}>
-                      Residente de SGA?
-                    </p>
-                    <h3 className={`${jakarta.className} text-3xl font-black leading-[0.9] mb-3`}
-                      style={{ color: '#001f2e' }}>
-                      Cartão<br />
-                      <span className="italic">Residente</span>
-                    </h3>
-                    <p className="text-sm leading-relaxed" style={{ color: 'rgba(0,31,46,0.5)' }}>
-                      50% de desconto na entrada do parque para moradores. Registo simples e gratuito.
-                    </p>
-                  </div>
-                  <Link href="/cadastro"
-                    className="mt-6 inline-flex items-center gap-3 self-start px-7 py-3.5 rounded-full font-black text-[10px] uppercase tracking-widest transition-all hover:-translate-y-0.5"
-                    style={{ backgroundColor: '#001f2e', color: '#F9C400' }}>
-                    Solicitar cartão <ArrowRight size={14} />
-                  </Link>
-                </div>
-              </Reveal>
-            </div>
-          </div>
-        </section>
-      )}
-
       {/* ── FOOTER ── */}
-      <footer className="py-20 px-8 border-t border-slate-200 bg-white text-left">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
-          <div className="flex flex-col items-center md:items-start gap-4">
-            <div className="flex items-center gap-6">
-              <Image src="/logop.png" alt="SagaTurismo" width={160} height={50} className="object-contain" />
-              <div className="w-px h-12 bg-slate-200 hidden md:block" />
-              <Image src="/prefeitura.png" alt="Prefeitura de São Geraldo do Araguaia" width={140} height={50} className="object-contain" />
-            </div>
-            <div className="text-left space-y-1">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                © 2026 Secretaria Municipal de Turismo - SGA | Todos os direitos reservados
-              </p>
-              <p className="text-[10px] font-bold text-slate-400/80">
-                CNPJ: 10.249.241/0001-22
-              </p>
-            </div>
-          </div>
-
-          <div className="flex gap-10">
-            <div className="text-left border-l-2 border-slate-100 pl-9">
-              <p className="text-[10px] font-black text-[#00577C] uppercase mb-1">Contato Oficial</p>
-              <p className="text-xs font-bold text-slate-500 tracking-tight">setursaga@gmail.com</p>
-            </div>
-            <ShieldCheck size={40} className="text-[#009640] opacity-30" />
-          </div>
+      <footer className="relative z-10 py-6 md:py-7 border-t border-white/5 mt-8 md:mt-0">
+        <div className="w-full max-w-[1400px] mx-auto px-5 md:px-14 flex flex-col md:flex-row justify-between items-center gap-4">
+          <p className={`${jakarta.className} text-[9px] md:text-[10px] font-bold text-white/20 uppercase tracking-widest text-center md:text-left`}>
+            © {new Date().getFullYear()} Prefeitura Municipal de São Geraldo do Araguaia — Todos os direitos reservados.
+          </p>
         </div>
       </footer>
+
     </main>
   );
 }
