@@ -45,10 +45,10 @@ BB_ENV = os.environ.get("BB_ENV", "sandbox")
 
 if BB_ENV == "producao":
     BB_OAUTH_URL = "https://oauth.bb.com.br/oauth/token"
-    BB_API_URL = "https://api.bb.com.br/pix/v1"
+    BB_API_URL = "https://api.bb.com.br/pix/v2"
 else:
     BB_OAUTH_URL = "https://oauth.hm.bb.com.br/oauth/token"
-    BB_API_URL = "https://api.hm.bb.com.br/pix/v1"
+    BB_API_URL = "https://api.hm.bb.com.br/pix/v2"
 
 
 # ==========================================
@@ -907,8 +907,7 @@ async def testar_conexao_bb():
 async def processar_carteira_bb(pedido: PedidoCarteiraGratuita): 
     pub_path, priv_path = obter_certificados_mtls()
     try:
-        txid = f"SAGA{uuid.uuid4().hex[:28].upper()}"
-        valor_carteira = 0.01
+        valor_carteira = 0.01 # Valor para o teste!
         tax_id_limpo = pedido.cpf_cliente.replace(".", "").replace("-", "")
 
         auth_string = f"{BB_CLIENT_ID}:{BB_CLIENT_SECRET}"
@@ -952,8 +951,9 @@ async def processar_carteira_bb(pedido: PedidoCarteiraGratuita):
                 "solicitacaoPagador": "Taxa Carteira Digital SGA"
             }
 
-            resp_cob = await client.put(
-                f"{BB_API_URL}/cob/{txid}",
+            # MUDANÇA AQUI: Usar POST e remover o {txid} da URL
+            resp_cob = await client.post(
+                f"{BB_API_URL}/cob",
                 headers=cob_headers,
                 json=payload_cob,
                 params={"gw-dev-app-key": BB_DEV_APP_KEY}
@@ -964,6 +964,7 @@ async def processar_carteira_bb(pedido: PedidoCarteiraGratuita):
 
             dados_cob = resp_cob.json()
             pix_copia_cola = dados_cob.get("pixCopiaECola")
+            txid_gerado = dados_cob.get("txid") # O Banco do Brasil agora devolve-nos o TXID oficial
 
             # Gerar QR Code
             qr = qrcode.QRCode(box_size=8, border=2)
@@ -978,7 +979,7 @@ async def processar_carteira_bb(pedido: PedidoCarteiraGratuita):
 
             # Registo Supabase
             pedido_db = {
-                "codigo_pedido": txid,
+                "codigo_pedido": txid_gerado,
                 "tipo_item": "carteira",
                 "nome_cliente": pedido.nome_cliente,
                 "cpf_cliente": tax_id_limpo,
@@ -997,7 +998,7 @@ async def processar_carteira_bb(pedido: PedidoCarteiraGratuita):
 
             return {
                 "sucesso": True,
-                "codigo_pedido": txid,
+                "codigo_pedido": txid_gerado,
                 "metodo": "pix",
                 "pix_copia_cola": pix_copia_cola,
                 "pix_qrcode_img": qr_data_uri
@@ -1010,5 +1011,3 @@ async def processar_carteira_bb(pedido: PedidoCarteiraGratuita):
         # Limpeza de segurança
         if pub_path and os.path.exists(pub_path): os.remove(pub_path)
         if priv_path and os.path.exists(priv_path): os.remove(priv_path)
-
-# Forçar limpeza de cache na Railway
