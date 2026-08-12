@@ -6,30 +6,54 @@ import os
 import uuid
 import base64
 import qrcode
+import tempfile
 from io import BytesIO
 from datetime import datetime, timedelta
 from supabase import create_client, Client
+
 # Importação dos serviços que já tens criados
-from app.services.pdf_service import gerar_pdf_carteira
-from app.services.email_service import enviar_carteiras_por_email
+from app.services.pdf_service import gerar_pdf_carteira, gerar_pdf_voucher
+from app.services.email_service import (
+    enviar_carteiras_por_email, 
+    enviar_voucher_hotel, 
+    enviar_voucher_pacote, 
+    enviar_voucher_passeio
+)
 
 router = APIRouter()
 
-# 1. Configurações de Ambiente - ASAAS
+# ==========================================
+# 1. Configurações de Ambiente - ASAAS & SUPABASE
+# ==========================================
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 ASAAS_API_KEY = os.environ.get("ASAAS_API_KEY")
 ASAAS_API_URL = os.environ.get("ASAAS_API_URL", "https://sandbox.asaas.com/api/v3")
 
-# Confuguracoes Banco do Brasil
-# Configurações Banco do Brasil (Sandbox)
-BB_CLIENT_ID = os.environ.get("BB_CLIENT_ID")
-BB_CLIENT_SECRET = os.environ.get("BB_CLIENT_SECRET")
-BB_DEV_APP_KEY = os.environ.get("BB_DEV_APP_KEY")
-BB_OAUTH_URL = "https://oauth.hm.bb.com.br/oauth/token" 
-
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
+# ==========================================
+# 2. Configurações Banco do Brasil (mTLS & Env)
+# ==========================================
+BB_CLIENT_ID = os.environ.get("BB_CLIENT_ID")
+BB_CLIENT_SECRET = os.environ.get("BB_CLIENT_SECRET")
+BB_DEV_APP_KEY = os.environ.get("BB_DEVELOPER_APPLICATION_KEY", os.environ.get("BB_DEV_APP_KEY")) 
+BB_PIX_KEY = os.environ.get("BB_PIX_KEY", "7a26f8d0-e1db-40a2-9b0d-b2a0c64eb3d0")
+
+# Deteta o ambiente (producao ou sandbox)
+BB_ENV = os.environ.get("BB_ENV", "sandbox")
+
+if BB_ENV == "producao":
+    BB_OAUTH_URL = "https://oauth.bb.com.br/oauth/token"
+    BB_API_URL = "https://api.bb.com.br/pix/v2"
+else:
+    BB_OAUTH_URL = "https://oauth.hm.bb.com.br/oauth/token"
+    BB_API_URL = "https://api.hm.bb.com.br/pix/v2"
+
+
+# ==========================================
+# SCHEMAS (Pydantic Models)
+# ==========================================
 class EnderecoFaturacao(BaseModel):
     street: str
     number: str
@@ -45,7 +69,6 @@ class AcompanhanteSchema(BaseModel):
     cpf: Optional[str] = None
     data_nascimento: Optional[str] = None
 
-# Novo Schema para receber os dados do cartão no backend
 class CartaoDados(BaseModel):
     nome: str
     numero: str
@@ -82,7 +105,7 @@ class PedidoPagamento(BaseModel):
     data_nascimento: Optional[str] = None
     
     metodo_pagamento: str
-    dados_cartao: Optional[CartaoDados] = None # Substituiu o encrypted_card
+    dados_cartao: Optional[CartaoDados] = None
     parcelas: Optional[int] = 1
 
     hospedes_extras: Optional[List[AcompanhanteSchema]] = []
@@ -96,6 +119,13 @@ class PedidoCarteiraGratuita(BaseModel):
     data_nascimento: Optional[str] = None
     token_id: Optional[str] = None
 
+class PedidoReenvio(BaseModel):
+    pedido_id: str
+
+
+# ==========================================
+# FUNÇÕES AUXILIARES
+# ==========================================
 def calcular_preco_hotel_dinamico(hotel_id: str, quarto_tipo_id: str, checkin_str: str, checkout_str: str, quantidade_quartos: int = 1, quantidade_pessoas: int = 2) -> float:
     res_h = supabase.table("hoteis").select("*").eq("id", hotel_id).single().execute()
     if not res_h.data:
@@ -150,6 +180,32 @@ def calcular_preco_hotel_dinamico(hotel_id: str, quarto_tipo_id: str, checkin_st
         
     return subtotal_hospedagem
 
+def obter_certificados_mtls():
+    """Lê as variáveis do Railway e cria ficheiros temporários para o mTLS"""
+    if BB_ENV != "producao":
+        return None, None # Sandbox não usa mTLS
+
+    cert_pub = os.environ.get("BB_CERT_PUB")
+    cert_priv = os.environ.get("BB_CERT_PRIV")
+    
+    if not cert_pub or not cert_priv:
+        raise HTTPException(status_code=500, detail="Certificados mTLS não configurados nas variáveis de ambiente (Produção).")
+
+    pub_fd, pub_path = tempfile.mkstemp(suffix=".pem")
+    priv_fd, priv_path = tempfile.mkstemp(suffix=".key")
+    
+    with os.fdopen(pub_fd, 'w') as f:
+        f.write(cert_pub)
+        
+    with os.fdopen(priv_fd, 'w') as f:
+        f.write(cert_priv)
+        
+    return pub_path, priv_path
+
+
+# ==========================================
+# ROTAS ASAAS E SISTEMA GERAL
+# ==========================================
 @router.post("/api/v1/pagamentos/processar")
 async def processar_pagamento(pedido: PedidoPagamento):
     try:
@@ -558,7 +614,6 @@ async def processar_pagamento(pedido: PedidoPagamento):
 
 @router.post("/api/v1/pagamentos/carteira-gratuita")
 async def processar_carteira_gratuita(pedido: PedidoCarteiraGratuita):
-    # (Mantive a tua função de carteira gratuita exatamente como a enviaste, sem mexer numa vírgula!)
     try:
         codigo_pedido = f"SAGA-FREE-{uuid.uuid4().hex[:8].upper()}"
         
@@ -650,7 +705,6 @@ async def criar_carteira_asaas(dados: dict):
             "Content-Type": "application/json"
         }
         
-        # O Asaas exige estes campos para criar uma subconta (carteira)
         payload_asaas = {
             "name": dados.get("name"),
             "email": dados.get("email"),
@@ -673,24 +727,15 @@ async def criar_carteira_asaas(dados: dict):
             if resp.status_code == 200 and data.get("walletId"):
                 return {"sucesso": True, "asaas_wallet_id": data["walletId"]}
             else:
-                # Captura a mensagem de erro exata do Asaas (ex: CNPJ inválido, etc)
                 erro_msg = data.get("errors", [{"description": "Erro ao criar carteira no Asaas"}])[0]["description"]
                 return {"sucesso": False, "erro": erro_msg}
                 
     except Exception as e:
         return {"sucesso": False, "erro": str(e)}
 
-# No topo do arquivo, garante que tens estas importações:
-# from app.services.pdf_service import gerar_pdf_voucher
-# from app.services.email_service import enviar_voucher_hotel, enviar_voucher_pacote, enviar_voucher_passeio
-
-class PedidoReenvio(BaseModel):
-    pedido_id: str
-
 @router.post("/api/v1/pedidos/reenviar-voucher")
 async def reenviar_voucher(payload: PedidoReenvio):
     try:
-        # 1. Busca os dados do pedido no Supabase
         res_pedido = supabase.table("pedidos").select("*").eq("id", payload.pedido_id).single().execute()
         if not res_pedido.data:
             raise HTTPException(status_code=404, detail="Pedido não encontrado.")
@@ -703,9 +748,6 @@ async def reenviar_voucher(payload: PedidoReenvio):
         if not email_cliente:
             raise HTTPException(status_code=400, detail="E-mail do cliente não registado neste pedido.")
 
-        # ========================================================
-        # Lógica espelhada do Webhook para reconstruir os metadados
-        # ========================================================
         if tipo == "hotel":
             hotel_id = pedido.get("hotel_id") or pedido.get("item_id")
             politicas_texto = "Apresente o seu documento de identificação original com foto no balcão de check-in."
@@ -729,9 +771,6 @@ async def reenviar_voucher(payload: PedidoReenvio):
                 "quantidade_pessoas": pedido.get("quantidade_pessoas", 2),
                 "politicas": politicas_texto
             }
-            
-            from app.services.pdf_service import gerar_pdf_voucher
-            from app.services.email_service import enviar_voucher_hotel
             
             caminho_pdf = gerar_pdf_voucher(pedido, dados_reserva)
             sucesso = enviar_voucher_hotel(email_cliente, nome_cliente, dados_reserva, caminho_pdf)
@@ -767,9 +806,6 @@ async def reenviar_voucher(payload: PedidoReenvio):
                 "nome_guia": nome_guia,
                 "ponto_encontro": ponto_encontro
             }
-
-            from app.services.pdf_service import gerar_pdf_voucher
-            from app.services.email_service import enviar_voucher_pacote
             
             caminho_pdf = gerar_pdf_voucher(pedido, dados_pacote)
             sucesso = enviar_voucher_pacote(email_cliente, nome_cliente, dados_pacote, caminho_pdf)
@@ -802,9 +838,6 @@ async def reenviar_voucher(payload: PedidoReenvio):
                 "nome_guia": nome_guia,
                 "contato_guia": contato_guia
             }
-
-            from app.services.pdf_service import gerar_pdf_voucher
-            from app.services.email_service import enviar_voucher_passeio
             
             caminho_pdf = gerar_pdf_voucher(pedido, dados_passeio)
             sucesso = enviar_voucher_passeio(email_cliente, nome_cliente, dados_passeio, caminho_pdf)
@@ -823,21 +856,27 @@ async def reenviar_voucher(payload: PedidoReenvio):
         print(f"[REENVIO ERRO FATAL] {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+# ==========================================
+# ROTAS BANCO DO BRASIL (mTLS e PIX)
+# ==========================================
 @router.get("/api/v1/pagamentos/teste-bb")
 async def testar_conexao_bb():
+    pub_path, priv_path = obter_certificados_mtls()
     try:
-        # 1. Junta o ID e o Secret e codifica em Base64 (exigência do BB)
         auth_string = f"{BB_CLIENT_ID}:{BB_CLIENT_SECRET}"
         auth_b64 = base64.b64encode(auth_string.encode()).decode("utf-8")
         
-        # 2. Prepara os cabeçalhos
         headers = {
             "Authorization": f"Basic {auth_b64}",
             "Content-Type": "application/x-www-form-urlencoded"
         }
         
-        # 3. Faz o pedido ao Banco do Brasil
-        async with httpx.AsyncClient() as client:
+        # Configura o client mTLS apenas se for produção
+        client_kwargs = {}
+        if pub_path and priv_path:
+            client_kwargs["cert"] = (pub_path, priv_path)
+            
+        async with httpx.AsyncClient(**client_kwargs) as client:
             resp = await client.post(
                 BB_OAUTH_URL, 
                 headers=headers, 
@@ -845,36 +884,33 @@ async def testar_conexao_bb():
                 params={"gw-dev-app-key": BB_DEV_APP_KEY}
             )
             
-            # 4. Verifica se o banco aceitou
             if resp.status_code == 200:
                 token = resp.json().get("access_token", "")
                 return {
                     "sucesso": True, 
+                    "ambiente": BB_ENV.upper(),
                     "mensagem": "Ligação com o Banco do Brasil estabelecida com sucesso!",
                     "token_recebido": token[:15] + "... (oculto por segurança)"
                 }
             else:
-                return {
-                    "sucesso": False, 
-                    "erro": resp.text,
-                    "status_code": resp.status_code
-                }
+                return {"sucesso": False, "erro": resp.text, "status_code": resp.status_code}
                 
     except Exception as e:
         return {"sucesso": False, "erro": str(e)}
+    finally:
+        # Limpeza de segurança dos certificados temporários
+        if pub_path and os.path.exists(pub_path): os.remove(pub_path)
+        if priv_path and os.path.exists(priv_path): os.remove(priv_path)
 
-BB_API_URL = "https://api.hm.bb.com.br/pix/v2"
-BB_PIX_KEY = os.environ.get("BB_PIX_KEY", "7a26f8d0-e1db-40a2-9b0d-b2a0c64eb3d0") 
 
 @router.post("/api/v1/pagamentos/carteira-bb")
 async def processar_carteira_bb(pedido: PedidoCarteiraGratuita): 
+    pub_path, priv_path = obter_certificados_mtls()
     try:
-        # 1. Gera o TXID (ID único da transação Pix - BB exige formato alfanumérico)
         txid = f"SAGA{uuid.uuid4().hex[:28].upper()}"
         valor_carteira = 20.00
         tax_id_limpo = pedido.cpf_cliente.replace(".", "").replace("-", "")
 
-        # 2. Autenticação na API do Banco do Brasil (OAuth2)
         auth_string = f"{BB_CLIENT_ID}:{BB_CLIENT_SECRET}"
         auth_b64 = base64.b64encode(auth_string.encode()).decode("utf-8")
         
@@ -883,7 +919,11 @@ async def processar_carteira_bb(pedido: PedidoCarteiraGratuita):
             "Content-Type": "application/x-www-form-urlencoded"
         }
         
-        async with httpx.AsyncClient() as client:
+        client_kwargs = {}
+        if pub_path and priv_path:
+            client_kwargs["cert"] = (pub_path, priv_path)
+            
+        async with httpx.AsyncClient(**client_kwargs) as client:
             resp_token = await client.post(
                 BB_OAUTH_URL, 
                 headers=token_headers, 
@@ -892,11 +932,10 @@ async def processar_carteira_bb(pedido: PedidoCarteiraGratuita):
             )
             
             if resp_token.status_code != 200:
-                raise HTTPException(status_code=500, detail="Falha na autenticação bancária.")
+                raise HTTPException(status_code=500, detail=f"Falha na autenticação bancária: {resp_token.text}")
                 
             access_token = resp_token.json()["access_token"]
 
-            # 3. Criar a Cobrança (COB) no BB
             cob_headers = {
                 "Authorization": f"Bearer {access_token}",
                 "Content-Type": "application/json",
@@ -906,7 +945,7 @@ async def processar_carteira_bb(pedido: PedidoCarteiraGratuita):
                 "calendario": { "expiracao": 600 },
                 "devedor": { 
                     "cpf": tax_id_limpo, 
-                    "nome": pedido.nome_cliente[:80] # O BB tem limite de 80 caracteres no nome
+                    "nome": pedido.nome_cliente[:80] 
                 },
                 "valor": { "original": f"{valor_carteira:.2f}" },
                 "chave": BB_PIX_KEY,
@@ -926,7 +965,7 @@ async def processar_carteira_bb(pedido: PedidoCarteiraGratuita):
             dados_cob = resp_cob.json()
             pix_copia_cola = dados_cob.get("pixCopiaECola")
 
-            # 4. Gerar a imagem do QR Code para mostrar no frontend
+            # Gerar QR Code
             qr = qrcode.QRCode(box_size=8, border=2)
             qr.add_data(pix_copia_cola)
             qr.make(fit=True)
@@ -937,7 +976,7 @@ async def processar_carteira_bb(pedido: PedidoCarteiraGratuita):
             img_base64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
             qr_data_uri = f"data:image/png;base64,{img_base64}"
 
-            # 5. Guarda o pedido na tua base de dados (Supabase)
+            # Registo Supabase
             pedido_db = {
                 "codigo_pedido": txid,
                 "tipo_item": "carteira",
@@ -956,7 +995,6 @@ async def processar_carteira_bb(pedido: PedidoCarteiraGratuita):
             }
             supabase.table("pedidos").insert(pedido_db).execute()
 
-            # 6. Devolve tudo pronto para o utilizador
             return {
                 "sucesso": True,
                 "codigo_pedido": txid,
@@ -968,3 +1006,7 @@ async def processar_carteira_bb(pedido: PedidoCarteiraGratuita):
     except Exception as e:
         print(f"ERRO BB COBRANÇA: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        # Limpeza de segurança
+        if pub_path and os.path.exists(pub_path): os.remove(pub_path)
+        if priv_path and os.path.exists(priv_path): os.remove(priv_path)
