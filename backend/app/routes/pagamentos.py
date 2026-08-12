@@ -264,12 +264,12 @@ async def processar_pagamento(pedido: PedidoPagamento):
         lista_atracoes_calculadas = []
         
         if pedido.tipo_item == "carteira":
-            valor_total = 22.00 * pedido.quantidade
+            valor_total = 0.01 * pedido.quantidade
             nome_item_checkout = f"Taxa de Emissão - Carteira Digital ({pedido.quantidade}x)"
             item_id_db = pedido.token_id
 
-            taxa_empresa_saas = 2.00
-            valor_prefeitura = (22.00 - taxa_empresa_saas) * pedido.quantidade
+            taxa_empresa_saas = 0.00
+            valor_prefeitura = (0.01 - taxa_empresa_saas) * pedido.quantidade
             
             rec_id_prefeitura = os.environ.get("ID_ASAAS_PREFEITURA", "wallet_id_da_prefeitura_aqui")
             valor_repasse = round(valor_prefeitura, 2)
@@ -908,7 +908,7 @@ async def processar_carteira_bb(pedido: PedidoCarteiraGratuita):
     pub_path, priv_path = obter_certificados_mtls()
     try:
         txid = f"SAGA{uuid.uuid4().hex[:28].upper()}"
-        valor_carteira = 20.00
+        valor_carteira = 0.01
         tax_id_limpo = pedido.cpf_cliente.replace(".", "").replace("-", "")
 
         auth_string = f"{BB_CLIENT_ID}:{BB_CLIENT_SECRET}"
