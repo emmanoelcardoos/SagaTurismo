@@ -1010,3 +1010,5 @@ async def processar_carteira_bb(pedido: PedidoCarteiraGratuita):
         # Limpeza de segurança
         if pub_path and os.path.exists(pub_path): os.remove(pub_path)
         if priv_path and os.path.exists(priv_path): os.remove(priv_path)
+
+# Forçar limpeza de cache na Railway
