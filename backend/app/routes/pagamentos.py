@@ -47,7 +47,7 @@ BB_ENV = os.environ.get("BB_ENV", "sandbox")
 
 if BB_ENV == "producao":
     BB_OAUTH_URL = "https://oauth.bb.com.br/oauth/token"
-    BB_API_URL = "https://api.bb.com.br/pix/v2"
+    BB_API_URL = "https://api-pix.bb.com.br/pix/v2"
 else:
     BB_OAUTH_URL = "https://oauth.hm.bb.com.br/oauth/token"
     BB_API_URL = "https://api.hm.bb.com.br/pix/v2"
