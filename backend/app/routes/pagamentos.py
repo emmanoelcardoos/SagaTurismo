@@ -907,6 +907,8 @@ async def testar_conexao_bb():
 async def processar_carteira_bb(pedido: PedidoCarteiraGratuita): 
     pub_path, priv_path = obter_certificados_mtls()
     try:
+        # 1. Gera um TXID puro (exatamente 32 caracteres, letras minúsculas e números)
+        txid = uuid.uuid4().hex
         valor_carteira = 0.01 # Valor para o teste!
         tax_id_limpo = pedido.cpf_cliente.replace(".", "").replace("-", "")
 
@@ -923,8 +925,11 @@ async def processar_carteira_bb(pedido: PedidoCarteiraGratuita):
             client_kwargs["cert"] = (pub_path, priv_path)
             
         async with httpx.AsyncClient(**client_kwargs) as client:
+            # 2. Forçar URL de Produção também para o Token (evita misturar ambientes)
+            oauth_url_oficial = "https://oauth.bb.com.br/oauth/token"
+            
             resp_token = await client.post(
-                BB_OAUTH_URL, 
+                oauth_url_oficial, 
                 headers=token_headers, 
                 data={"grant_type": "client_credentials", "scope": "cob.write pix.read"},
                 params={"gw-dev-app-key": BB_DEV_APP_KEY}
@@ -935,6 +940,7 @@ async def processar_carteira_bb(pedido: PedidoCarteiraGratuita):
                 
             access_token = resp_token.json()["access_token"]
 
+            # 3. Preparar a chamada da Cobrança Pix
             cob_headers = {
                 "Authorization": f"Bearer {access_token}",
                 "Content-Type": "application/json",
@@ -951,9 +957,11 @@ async def processar_carteira_bb(pedido: PedidoCarteiraGratuita):
                 "solicitacaoPagador": "Taxa Carteira Digital SGA"
             }
 
-            # MUDANÇA AQUI: Usar POST e remover o {txid} da URL
-            resp_cob = await client.post(
-                f"{BB_API_URL}/cob",
+            # 4. URL de Produção hardcoded para não haver falhas, usando PUT
+            url_oficial_bb = f"https://api.bb.com.br/pix/v2/cob/{txid}"
+
+            resp_cob = await client.put(
+                url_oficial_bb,
                 headers=cob_headers,
                 json=payload_cob,
                 params={"gw-dev-app-key": BB_DEV_APP_KEY}
@@ -964,9 +972,8 @@ async def processar_carteira_bb(pedido: PedidoCarteiraGratuita):
 
             dados_cob = resp_cob.json()
             pix_copia_cola = dados_cob.get("pixCopiaECola")
-            txid_gerado = dados_cob.get("txid") # O Banco do Brasil agora devolve-nos o TXID oficial
-
-            # Gerar QR Code
+            
+            # 5. Gerar QR Code
             qr = qrcode.QRCode(box_size=8, border=2)
             qr.add_data(pix_copia_cola)
             qr.make(fit=True)
@@ -977,9 +984,9 @@ async def processar_carteira_bb(pedido: PedidoCarteiraGratuita):
             img_base64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
             qr_data_uri = f"data:image/png;base64,{img_base64}"
 
-            # Registo Supabase
+            # 6. Registo Supabase
             pedido_db = {
-                "codigo_pedido": txid_gerado,
+                "codigo_pedido": txid,
                 "tipo_item": "carteira",
                 "nome_cliente": pedido.nome_cliente,
                 "cpf_cliente": tax_id_limpo,
@@ -998,7 +1005,7 @@ async def processar_carteira_bb(pedido: PedidoCarteiraGratuita):
 
             return {
                 "sucesso": True,
-                "codigo_pedido": txid_gerado,
+                "codigo_pedido": txid,
                 "metodo": "pix",
                 "pix_copia_cola": pix_copia_cola,
                 "pix_qrcode_img": qr_data_uri
@@ -1008,6 +1015,6 @@ async def processar_carteira_bb(pedido: PedidoCarteiraGratuita):
         print(f"ERRO BB COBRANÇA: {e}")
         raise HTTPException(status_code=500, detail=str(e))
     finally:
-        # Limpeza de segurança
+        # Limpeza de segurança dos certificados
         if pub_path and os.path.exists(pub_path): os.remove(pub_path)
         if priv_path and os.path.exists(priv_path): os.remove(priv_path)
