@@ -263,12 +263,7 @@ function CheckoutCarteiraContent() {
                     </div>
                   )}
 
-                  <div className="bg-[#00577C]/5 border border-[#00577C]/10 text-[#00577C] p-6 rounded-2xl mb-8 flex items-start gap-4">
-                      <div className="bg-white p-2 rounded-full shadow-sm shrink-0">
-                         <Image src="/bb-logo.png" alt="Banco do Brasil" width={24} height={24} className="object-contain" />
-                      </div>
-                      
-                  </div>
+                 
 
                   <div className="space-y-4">
                     
@@ -293,8 +288,16 @@ function CheckoutCarteiraContent() {
                     
                   </div>
 
-                  <button type="submit" disabled={isSubmitting} className="w-full mt-10 py-5 rounded-[1.5rem] font-black text-lg text-white bg-[#00577C] hover:bg-[#004a6b] shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50">
-                      {isSubmitting ? <><Loader2 className="animate-spin" size={24}/> Conectando ao Banco...</> : <><Image src="/pix-white.svg" alt="Pix" width={20} height={20} /> Avançar ao Pagamento</>}
+                  <button 
+                    type="submit" 
+                    disabled={isSubmitting} 
+                    className="w-full mt-10 py-5 rounded-[1.5rem] font-black text-lg text-white bg-[#00577C] hover:bg-[#004a6b] shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50"
+                  >
+                    {isSubmitting ? (
+                      <><Loader2 className="animate-spin" size={24}/> Conectando ao Banco...</>
+                    ) : (
+                      "Avançar ao Pagamento"
+                    )}
                   </button>
                 </SectionCard>
               </form>

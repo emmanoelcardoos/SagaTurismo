@@ -316,7 +316,7 @@ function SecCachoeiras() {
           <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-8">
             <div>
               <h2 className={`${jakarta.className} text-5xl md:text-8xl font-black text-white leading-[0.88]`}>
-                50<br /><span className="italic text-[#F9C400]">Cachoeiras</span>
+                Cachoeiras
               </h2>
             </div>
           </div>
