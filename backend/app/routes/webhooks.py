@@ -328,8 +328,7 @@ async def webhook_bb(request: Request):
                         # Muda o status do morador para ativo!
                         supabase.table("rd_residentes").update({"status": "ativo"}).eq("id", res["id"]).execute()
                         
-                        if res.get("email"): email_real_destino = res["email"]
-                        if res.get("nome_completo"): nome_real_destino = res["nome_completo"]
+                        
 
                         try:
                             dados_pdf = {
@@ -403,8 +402,7 @@ async def processar_carteiras_pendentes():
                     # Muda o status para ativo na base de dados
                     supabase.table("rd_residentes").update({"status": "ativo"}).eq("id", res["id"]).execute()
                     
-                    if res.get("email"): email_real = res["email"]
-                    if res.get("nome_completo"): nome_real = res["nome_completo"]
+                    
 
                     try:
                         dados_pdf = {
