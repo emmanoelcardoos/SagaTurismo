@@ -42,21 +42,11 @@ const categorias = [
 const contatos: Contato[] = [
   // TURISMO
   {
-    id: 1,
-    categoria: 'turismo',
-    nome: 'Posto de Informação Turística',
-    descricao: 'Orientação sobre roteiros, eventos e hospedagens da cidade.',
-    endereco: 'Praça da Matriz, s/n — Centro',
-    telefones: ['(94) 98145-2067'],
-    whatsapp: '5594981452067',
-    horario: 'Seg – Sex: 08h às 17h',
-  },
-  {
     id: 2,
     categoria: 'turismo',
     nome: 'Secretaria Municipal de Turismo (SEMTUR)',
     descricao: 'Suporte oficial da Prefeitura para turistas e visitantes.',
-    endereco: 'Av. Principal, 100 — Centro',
+    endereco: 'Rua Antônio Nonato Peddrosa, Alto Bec, 515',
     telefones: ['(94) 98145-2067'],
     horario: 'Seg – Sex: 08h às 17h',
   },
@@ -66,7 +56,7 @@ const contatos: Contato[] = [
     categoria: 'saude',
     nome: 'Hospital Municipal',
     descricao: 'Atendimento geral, internações e especialidades médicas.',
-    endereco: 'Rua das Palmeiras, 200',
+    endereco: 'Av. Mogno, 642 - CENTRO, São Geraldo do Araguaia - PA, 68570-000',
     telefones: ['(94) 3421-0001'],
     horario: '24 Horas',
   },
@@ -80,24 +70,13 @@ const contatos: Contato[] = [
     horario: '24 Horas',
     emergencia: true,
   },
-  // SEGURANÇA
-  {
-    id: 6,
-    categoria: 'seguranca',
-    nome: '23ª Companhia da Polícia Militar',
-    descricao: 'Policiamento ostensivo e atendimento de ocorrências.',
-    endereco: 'Av. Araguaia, 500',
-    telefones: ['190'],
-    horario: '24 Horas',
-    emergencia: true,
-  },
   // BOMBEIROS
   {
     id: 8,
     categoria: 'bombeiros',
     nome: 'Corpo de Bombeiros Militar',
     descricao: 'Combate a incêndios, resgates e atendimento de acidentes.',
-    endereco: 'Rua dos Bombeiros, s/n',
+    endereco: '',
     telefones: ['193'],
     horario: '24 Horas',
     emergencia: true,
@@ -108,7 +87,7 @@ const contatos: Contato[] = [
     categoria: 'delegacia',
     nome: 'Delegacia de Polícia Civil',
     descricao: 'Registro de boletins de ocorrência e investigações.',
-    endereco: 'Rua da Delegacia, 300',
+    endereco: 'Av. Reinaldo Alves Farias, 370 - 474, São Geraldo do Araguaia - PA, 68570-000',
     telefones: ['(94) 3421-5050', '197'],
     horario: '24 Horas',
   },
@@ -418,9 +397,7 @@ export default function InformacoesPage() {
             {/* Section label */}
             <div data-reveal className="flex items-end justify-between mb-10 flex-wrap gap-4">
               <div>
-                <p className={`${dmSans.className} text-xs font-semibold uppercase tracking-[.22em] text-[#009640] mb-1`}>
-                  {filtered.length} contato{filtered.length !== 1 ? 's' : ''} encontrado{filtered.length !== 1 ? 's' : ''}
-                </p>
+                
                 <h2 className={`${jakarta.className} text-3xl md:text-4xl text-slate-900`}>
                   {activeFilter === 'all' ? 'Todos os Serviços' : categorias.find(c=>c.id===activeFilter)?.label}
                 </h2>
@@ -446,7 +423,7 @@ export default function InformacoesPage() {
         <section className="py-14 md:py-20 bg-[#009640]/5 border-t border-[#009640]/10 px-4">
           <div className="max-w-7xl mx-auto">
             <div data-reveal className="mb-10 text-center">
-              <p className={`${dmSans.className} text-xs font-semibold uppercase tracking-[.22em] text-[#009640] mb-2`}>Dicas para Turistas</p>
+              
               <h2 className={`${jakarta.className} text-3xl md:text-4xl text-[#00577C]`}>Antes de explorar, saiba disso</h2>
             </div>
             <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-5">
@@ -476,7 +453,7 @@ export default function InformacoesPage() {
             style={{ backgroundImage: 'radial-gradient(circle at 10% 50%, #00577C 0%, transparent 50%), radial-gradient(circle at 90% 50%, #009640 0%, transparent 50%)' }} />
           <div className="max-w-7xl mx-auto relative z-10 text-center">
             <h2 className={`${jakarta.className} text-3xl md:text-5xl text-[#00577C] mb-4`}>
-              Planeja a sua visita conosco.
+              Planeja a sua visita.
             </h2>
             <p className={`${dmSans.className} text-[#00577C]/70 font-light text-base md:text-lg mb-8 max-w-lg mx-auto`}>
               Descubra roteiros, eventos e experiências únicas em São Geraldo do Araguaia.

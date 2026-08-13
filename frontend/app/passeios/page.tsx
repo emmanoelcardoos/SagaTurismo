@@ -34,7 +34,7 @@ export default function PasseiosPage() {
       {/* ── BACKGROUND MOBILE FIRST ── */}
       <div className="absolute inset-0 z-0">
         <Image
-          src="https://live.staticflickr.com/65535/54594015350_8cd6612923_4k.jpg"
+          src="https://live.staticflickr.com/65535/55216897977_90fc84f7e9_4k.jpg"
           alt="Aventuras e Trilhas em São Geraldo do Araguaia"
           fill
           // Foco mais à direita no mobile, centro no desktop. Opacidade reduzida no mobile.
@@ -140,7 +140,7 @@ export default function PasseiosPage() {
               <div className="relative w-full max-w-[420px] aspect-[3/4] rounded-[2.5rem] overflow-hidden"
                 style={{ boxShadow: '0 40px 80px -20px rgba(0,0,0,0.7)' }}>
                 <Image
-                  src="https://live.staticflickr.com/65535/54594015350_8cd6612923_4k.jpg"
+                  src="https://live.staticflickr.com/65535/55216897977_90fc84f7e9_4k.jpg"
                   alt="Trilhas e Aventuras"
                   fill
                   className="object-cover"
