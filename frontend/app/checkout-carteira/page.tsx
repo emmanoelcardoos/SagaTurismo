@@ -125,9 +125,9 @@ function CheckoutCarteiraContent() {
         const res = await fetch(`/api/validar?token=${token}`);
         if (res.ok) {
           const data = await res.json();
-          // SE JÁ ESTIVER PAGO, REDIRECIONA PARA SUCESSO!
+          // SE JÁ ESTIVER PAGO, REDIRECIONA PARA SUCESSO COM O TOKEN!
           if (data.status === 'ativa' || data.status === 'ativo' || data.status === 'pago') {
-            router.push(`/sucesso-carteira`);
+            router.push(`/sucesso-carteira?token=${token}`);
             return;
           }
 
@@ -157,7 +157,6 @@ function CheckoutCarteiraContent() {
         }
       } catch (err) { 
         console.error("Fall-back para dados locais");
-        // CORREÇÃO: Resgata o nome e e-mail da memória caso o servidor dê 404 inicial
         const nomeMemoria = typeof window !== 'undefined' ? localStorage.getItem('saga_residente_nome') : null;
         const emailMemoria = typeof window !== 'undefined' ? localStorage.getItem('saga_residente_email') : null;
         const cpfMemoria = typeof window !== 'undefined' ? localStorage.getItem('saga_residente_cpf') : null;
@@ -188,9 +187,9 @@ function CheckoutCarteiraContent() {
         const res = await fetch(`${apiUrl}/api/v1/pagamentos/status/${qrCodeData.id_pedido}`);
         if (res.ok) {
           const data = await res.json();
-          // SE O BACKEND CONFIRMAR, REDIRECIONA PARA A PÁGINA DE SUCESSO!
+          // SE O BACKEND CONFIRMAR, REDIRECIONA PARA A PÁGINA DE SUCESSO COM O TOKEN!
           if (data.success && (data.status === 'CONFIRMED' || data.status === 'RECEIVED' || data.status === 'pago')) {
-            router.push(`/sucesso-carteira`);
+            router.push(`/sucesso-carteira?token=${token}`);
           }
         }
       } catch (e) {
@@ -282,7 +281,6 @@ function CheckoutCarteiraContent() {
       </div>
 
       <div className="mx-auto max-w-7xl px-4 md:px-8 py-8 md:py-12">
-        {/* CORREÇÃO DO STICKY: items-start MANTIDO PARA PERMITIR FIXAÇÃO */}
         <div className="grid gap-8 lg:grid-cols-[1fr_400px] items-start">
           
           <div className="space-y-6 md:space-y-8">
@@ -360,7 +358,7 @@ function CheckoutCarteiraContent() {
             )}
           </div>
 
-          {/* ── COLUNA DIREITA (SIDECAR) PERFEITAMENTE FIXO (h-fit lg:sticky lg:top-32) ── */}
+          {/* ── COLUNA DIREITA (SIDECAR) PERFEITAMENTE FIXO ── */}
           <aside className="w-full relative order-first lg:order-last h-fit lg:sticky lg:top-32">
             <SectionCard>
               <div className="h-2 w-full bg-gradient-to-r from-[#00577C] via-[#F9C400] to-[#009640]" />
