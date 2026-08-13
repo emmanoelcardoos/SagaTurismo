@@ -34,7 +34,7 @@ export default function AtracoesPage() {
       {/* ── BACKGROUND MOBILE FIRST ── */}
       <div className="absolute inset-0 z-0">
         <Image
-          src="https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/Gemini_Generated_Image_bpqbjebpqbjebpqb.png"
+          src="https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/pagatra.png"
           alt="Belezas naturais de São Geraldo do Araguaia"
           fill
           // Foco mais à direita no mobile, centro no desktop. Opacidade reduzida no mobile.
@@ -140,7 +140,7 @@ export default function AtracoesPage() {
               <div className="relative w-full max-w-[420px] aspect-[3/4] rounded-[2.5rem] overflow-hidden"
                 style={{ boxShadow: '0 40px 80px -20px rgba(0,0,0,0.7)' }}>
                 <Image
-                  src="https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/Gemini_Generated_Image_bpqbjebpqbjebpqb.png"
+                  src="https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/pagatra.png"
                   alt="Atrativos de São Geraldo do Araguaia"
                   fill
                   className="object-cover"
