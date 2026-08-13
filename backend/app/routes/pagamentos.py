@@ -120,9 +120,7 @@ class PedidoCarteiraGratuita(BaseModel):
     foto_url: Optional[str] = None
     data_nascimento: Optional[str] = None
     token_id: Optional[str] = None
-
-class PedidoReenvio(BaseModel):
-    pedido_id: str
+    quantidade: Optional[int] = 1 # <-- ADICIONADO AQUI PARA RECEBER A QUANTIDADE DO FRONTEND
 
 
 # ==========================================
@@ -185,7 +183,7 @@ def calcular_preco_hotel_dinamico(hotel_id: str, quarto_tipo_id: str, checkin_st
 def obter_certificados_mtls():
     """Lê as variáveis do Railway e cria ficheiros temporários para o mTLS"""
     if BB_ENV != "producao":
-        return None, None # Sandbox não usa mTLS
+        return None, None
 
     cert_pub = os.environ.get("BB_CERT_PUB")
     cert_priv = os.environ.get("BB_CERT_PRIV")
@@ -203,6 +201,9 @@ def obter_certificados_mtls():
         f.write(cert_priv)
         
     return pub_path, priv_path
+
+class PedidoReenvio(BaseModel):
+    pedido_id: str
 
 
 # ==========================================
@@ -255,7 +256,6 @@ async def processar_pagamento(pedido: PedidoPagamento):
 
         fator_liquido = 1.0 - (taxa_prefeitura_pct / 100.0)
 
-        # Variáveis globais para o relatório financeiro
         v_hospedagem_total = 0.0
         v_guia_total = 0.0
         v_atracoes_total = 0.0
@@ -904,19 +904,20 @@ async def testar_conexao_bb():
         if pub_path and os.path.exists(pub_path): os.remove(pub_path)
         if priv_path and os.path.exists(priv_path): os.remove(priv_path)
 
-
-# ... [Mantenha os imports existentes] ...
-
 @router.post("/api/v1/pagamentos/carteira-bb")
 async def processar_carteira_bb(pedido: PedidoCarteiraGratuita): 
     pub_path, priv_path = obter_certificados_mtls()
     try:
-        # 1. Gera um TXID rigoroso: 30 caracteres alfanuméricos (A-Z, a-z, 0-9)
-        # Garantindo que atenda ao requisito de 26 a 35 caracteres
+        # 1. Gera um TXID rigoroso: 30 caracteres
         caracteres_txid = string.ascii_letters + string.digits
         txid = ''.join(random.choices(caracteres_txid, k=30))
         
-        valor_carteira = 0.01 # Valor para o teste!
+        # --- CÁLCULO DO VALOR ---
+        # Como queres testar com 1 cêntimo por pessoa, preco_unitario = 0.01
+        # (Quando fores para produção real, muda apenas este 0.01 para 20.00)
+        preco_unitario = 0.01 
+        valor_carteira = preco_unitario * (pedido.quantidade or 1)
+        
         tax_id_limpo = pedido.cpf_cliente.replace(".", "").replace("-", "")
 
         auth_string = f"{BB_CLIENT_ID}:{BB_CLIENT_SECRET}"
@@ -932,7 +933,7 @@ async def processar_carteira_bb(pedido: PedidoCarteiraGratuita):
             client_kwargs["cert"] = (pub_path, priv_path)
             
         async with httpx.AsyncClient(**client_kwargs) as client:
-            # 2. Forçar URL de Produção também para o Token (evita misturar ambientes)
+            # 2. Forçar URL de Produção para o Token
             oauth_url_oficial = "https://oauth.bb.com.br/oauth/token"
             
             resp_token = await client.post(
@@ -961,17 +962,11 @@ async def processar_carteira_bb(pedido: PedidoCarteiraGratuita):
                 },
                 "valor": { "original": f"{valor_carteira:.2f}" },
                 "chave": BB_PIX_KEY,
-                "solicitacaoPagador": "Taxa Carteira Digital SGA"
+                "solicitacaoPagador": f"Taxa Carteira Digital SGA ({pedido.quantidade or 1}x)"
             }
 
-            # 4. URL de Produção para criar a cobrança (PUT /cob/{txid})
-            # Montando a URL usando a base configurada
-            # Assegure-se de que BB_API_URL esteja definida como "https://api.bb.com.br/pix/v2" em produção
-            # 4. Cria a cobrança usando a variável global do topo do ficheiro!
+            # 4. Cria a cobrança usando a variável global
             url_cob = f"{BB_API_URL}/cob/{txid}"
-
-            # Log para debug (opcional, mas ajuda a ver a URL exata sendo chamada)
-            print(f"Chamando API BB: {url_cob} com TXID: {txid}")
 
             resp_cob = await client.put(
                 url_cob,
@@ -980,22 +975,49 @@ async def processar_carteira_bb(pedido: PedidoCarteiraGratuita):
                 params={"gw-dev-app-key": BB_DEV_APP_KEY}
             )
 
-            # Restante do código permanece inalterado...
             if resp_cob.status_code not in [200, 201]:
                 raise HTTPException(status_code=500, detail=f"Erro no BB: {resp_cob.text}")
 
             dados_cob = resp_cob.json()
             pix_copia_cola = dados_cob.get("pixCopiaECola")
             
-            # ... (código do QR Code e Supabase) ...
+            # 5. GERAR A IMAGEM DO QR CODE
+            qr = qrcode.QRCode(box_size=8, border=2)
+            qr.add_data(pix_copia_cola)
+            qr.make(fit=True)
+            img_qr = qr.make_image(fill_color="black", back_color="white")
+            
+            buffered = BytesIO()
+            img_qr.save(buffered, format="PNG")
+            img_base64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
+            qr_data_uri = f"data:image/png;base64,{img_base64}"
 
-            # Apenas retornando o resultado
+            # 6. Registo na Base de Dados Supabase
+            pedido_db = {
+                "codigo_pedido": txid,
+                "tipo_item": "carteira",
+                "nome_cliente": pedido.nome_cliente,
+                "cpf_cliente": tax_id_limpo,
+                "email_cliente": pedido.email_cliente,
+                "telefone_cliente": pedido.telefone_cliente,
+                "valor_total": valor_carteira,
+                "status_pagamento": "aguardando",
+                "metodo_pagamento": "pix",
+                "quantidade": pedido.quantidade or 1,
+                "nome_item": f"Taxa de Emissão - Carteira Digital ({pedido.quantidade or 1}x)",
+                "item_id": pedido.token_id,
+                "foto_url": pedido.foto_url,
+                "data_nascimento": pedido.data_nascimento
+            }
+            supabase.table("pedidos").insert(pedido_db).execute()
+
+            # Retorna com a imagem do QR Code em Base64
             return {
                 "sucesso": True,
                 "codigo_pedido": txid,
                 "metodo": "pix",
                 "pix_copia_cola": pix_copia_cola,
-                # "pix_qrcode_img": qr_data_uri # Adicione isso se tiver mantido a geração do QR Code no backend
+                "pix_qrcode_img": qr_data_uri 
             }
 
     except Exception as e:
