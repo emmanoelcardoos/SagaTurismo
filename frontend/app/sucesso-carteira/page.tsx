@@ -25,9 +25,11 @@ const formatarMoeda = (valor: any) => {
 
 function SucessoCarteiraContent() {
   const searchParams = useSearchParams();
-  const pedidoId = searchParams.get('pedido'); 
-  const nomeUrl = searchParams.get('n'); 
-  const emailUrl = searchParams.get('e');
+  
+  // LÊ TANTO O PEDIDO COMO O TOKEN
+  const pedidoIdUrl = searchParams.get('pedido'); 
+  const tokenUrl = searchParams.get('token');
+  const idBusca = pedidoIdUrl || tokenUrl;
 
   const [isMounted, setIsMounted] = useState(false);
   const [pedido, setPedido] = useState<any>(null);
@@ -52,25 +54,34 @@ function SucessoCarteiraContent() {
   }, [lastScrollY]);
 
   useEffect(() => {
+    let isActive = true;
     let tentativas = 0;
     const MAX_TENTATIVAS = 5; 
 
     async function fetchFluxoCarteira() {
-      if (!pedidoId) {
-        setErro('Protocolo não identificado na URL.');
-        setLoading(false);
+      if (!idBusca) {
+        if (isActive) {
+            setErro('Protocolo não identificado na URL.');
+            setLoading(false);
+        }
         return;
       }
 
       try {
+        // Verifica se a string é um UUID válido para não quebrar a base de dados
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(idBusca);
+        const orQuery = isUUID ? `codigo_pedido.eq.${idBusca},item_id.eq.${idBusca}` : `codigo_pedido.eq.${idBusca}`;
+
         // 1. Buscar o pedido de pagamento
-        const { data: pData, error: pError } = await supabase
+        const { data: pDataArray, error: pError } = await supabase
           .from('pedidos') 
           .select('*') 
-          .ilike('codigo_pedido', pedidoId) 
-          .maybeSingle();
+          .or(orQuery)
+          .limit(1);
 
         if (pError) throw pError;
+
+        const pData = pDataArray?.[0];
 
         if (!pData && tentativas < MAX_TENTATIVAS) {
           tentativas++;
@@ -89,44 +100,52 @@ function SucessoCarteiraContent() {
         let nomeReal = nomeMemoria || pData.nome_cliente || pData.nome;
 
         // Tenta ir à base de dados caso a memória falhe (ex: utilizador mudou de aba/dispositivo)
-        if (pData.item_id && (!nomeMemoria || !emailMemoria)) {
+        if (pData.item_id && (!nomeReal || !emailReal)) {
            const { data: cidadao } = await supabase
              .from('rd_residentes')
-             .select('nome, email')
+             .select('nome_completo, email')
              .eq('id', pData.item_id)
              .maybeSingle();
              
            if (cidadao) {
               if (cidadao.email && !emailReal) emailReal = cidadao.email;
-              if (cidadao.nome && !nomeReal) nomeReal = cidadao.nome;
+              if (cidadao.nome_completo && !nomeReal) nomeReal = cidadao.nome_completo;
            }
         }
 
-        // 3. Atualiza a interface com a certeza absoluta do Nome e E-mail
-        setEmailUtente(emailReal || 'contato@sagaturismo.com.br');
-        setPedido({ ...pData, nome_cliente: nomeReal || 'Residente' });
+        if (isActive) {
+            // 3. Atualiza a interface com a certeza absoluta do Nome e E-mail
+            setEmailUtente(emailReal || 'contato@sagaturismo.com.br');
+            setPedido({ ...pData, nome_cliente: nomeReal || 'Residente' });
 
-        // 4. Limpa a memória do navegador para que não apareça o mesmo nome na próxima vez que alguém usar
-        if (typeof window !== 'undefined') {
-           localStorage.removeItem('saga_residente_nome');
-           localStorage.removeItem('saga_residente_email');
+            // 4. Limpa a memória do navegador 
+            if (typeof window !== 'undefined') {
+               localStorage.removeItem('saga_residente_nome');
+               localStorage.removeItem('saga_residente_email');
+               localStorage.removeItem('saga_residente_cpf');
+               localStorage.removeItem('saga_residente_quantidade');
+            }
+
+            setLoading(false);
         }
-
-        setLoading(false);
       } catch (err: any) {
-        setErro(err.message);
-        setLoading(false);
+        if (isActive) {
+            setErro(err.message);
+            setLoading(false);
+        }
       }
     }
     
-    if (pedidoId) fetchFluxoCarteira();
-  }, [pedidoId]);
+    if (idBusca) fetchFluxoCarteira();
+
+    return () => { isActive = false; };
+  }, [idBusca]);
 
   if (!isMounted) return null;
 
   if (loading) return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center">
-      <Loader2 className="animate-spin text-[#F9C400] w-16 h-16 mb-4" />
+      <Loader2 className="animate-spin text-[#00577C] w-16 h-16 mb-4" />
       <p className={`${jakarta.className} text-xs font-black text-[#00577C] uppercase tracking-widest`}>Emitindo Carteira Digital...</p>
     </div>
   );
@@ -159,16 +178,6 @@ function SucessoCarteiraContent() {
               <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Secretaria de Turismo</p>
             </div>
           </Link>
-          {false && (
-            <nav className="hidden items-center gap-7 md:flex">
-              <Link href="/roteiro" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Rota Turística</Link>
-              <Link href="/passeios" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Passeios</Link>
-              <Link href="/historia" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">História do Município</Link>
-              <Link href="/aldeias" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Conheca as nossas Aldeias</Link>
-              <Link href="/parceiros" className="text-sm font-semibold text-slate-600 hover:text-[#00577C]">Seja um Parceiro</Link>
-            </nav>
-          )}
-
           <button className="rounded-xl border border-slate-200 p-2 md:hidden"><Menu className="h-5 w-5 text-[#00577C]" /></button>
         </div>
       </header>
@@ -223,9 +232,7 @@ function SucessoCarteiraContent() {
            <div className="p-6 md:p-10 lg:p-12">
               <div className="flex flex-col md:flex-row gap-6 md:gap-10 items-center mb-8 border-b border-slate-100 pb-8">
                  <div className="flex-1 text-center md:text-left">
-                    
                     <h2 className={`${jakarta.className} text-2xl md:text-3xl font-black text-slate-900 leading-tight mb-2`}>Faturação da Carteira Digital</h2>
-                    
                  </div>
               </div>
 
