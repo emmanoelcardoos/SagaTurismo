@@ -266,12 +266,12 @@ async def processar_pagamento(pedido: PedidoPagamento):
         lista_atracoes_calculadas = []
         
         if pedido.tipo_item == "carteira":
-            valor_total = 0.01 * pedido.quantidade
+            valor_total = 20.00 * pedido.quantidade
             nome_item_checkout = f"Taxa de Emissão - Carteira Digital ({pedido.quantidade}x)"
             item_id_db = pedido.token_id
 
             taxa_empresa_saas = 0.00
-            valor_prefeitura = (0.01 - taxa_empresa_saas) * pedido.quantidade
+            valor_prefeitura = (20.00 - taxa_empresa_saas) * pedido.quantidade
             
             rec_id_prefeitura = os.environ.get("ID_ASAAS_PREFEITURA", "wallet_id_da_prefeitura_aqui")
             valor_repasse = round(valor_prefeitura, 2)
@@ -922,7 +922,7 @@ async def processar_carteira_bb(pedido: PedidoCarteiraGratuita):
         # --- CÁLCULO DO VALOR ---
         # Como queres testar com 1 cêntimo por pessoa, preco_unitario = 0.01
         # (Quando fores para produção real, muda apenas este 0.01 para 20.00)
-        preco_unitario = 0.01 
+        preco_unitario = 20.00
         valor_carteira = preco_unitario * (pedido.quantidade or 1)
         
         tax_id_limpo = pedido.cpf_cliente.replace(".", "").replace("-", "")
