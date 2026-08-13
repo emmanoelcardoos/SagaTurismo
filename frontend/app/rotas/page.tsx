@@ -4,9 +4,9 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState, useRef, ReactNode } from 'react';
 import {
-  Menu, X, ArrowRight, ArrowLeft, Loader2, Compass,
-  TreePine, Waves, Mountain, ChevronDown, MapPin, Clock, Users,
-  ShieldCheck
+  Menu, X, ArrowRight, Loader2, Compass,
+  Waves, Mountain, MapPin, Clock, Users,
+  ShieldCheck, Leaf
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -14,7 +14,7 @@ import { supabase } from '@/lib/supabase';
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '700', '800'] });
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
 
-// ── TIPO ROTA (com as novas colunas) ──
+// ── TIPO ROTA ──
 type RotaTuristica = {
   id: string;
   titulo: string;
@@ -25,32 +25,20 @@ type RotaTuristica = {
   dificuldade: string | null;
   grupo: string | null;
   guia: string | null;
+  unidade: string | null; // NOVA COLUNA: 'PESAM' ou 'APA'
 };
 
-// ── SISTEMA DE TEMAS (apenas cores e ícones – detalhes vêm da base de dados) ──
-const themes = [
-  {
-    cor: '#00577C',
-    corAccent: '#F9C400',
-    bgDark: '#001f2e',
-    icon: <Waves size={16} />,
-    label: 'Rota das Águas',
+// ── SISTEMA DE UNIDADES DE CONSERVAÇÃO (PESAM e APA) ──
+const unidadesConfig: Record<string, any> = {
+  'PESAM': { 
+    cor: '#009640', bgLight: 'bg-[#009640]/10', textLight: 'text-[#009640]', borderLight: 'border-[#009640]/10', 
+    icon: <Mountain size={18} />, sigla: 'PESAM', nome: 'Parque Estadual Serra dos Martírios/Andorinhas' 
   },
-  {
-    cor: '#009640',
-    corAccent: '#F9C400',
-    bgDark: '#051a09',
-    icon: <TreePine size={16} />,
-    label: 'Rota da Mata',
+  'APA': { 
+    cor: '#00577C', bgLight: 'bg-[#00577C]/10', textLight: 'text-[#00577C]', borderLight: 'border-[#00577C]/10', 
+    icon: <Waves size={18} />, sigla: 'APA', nome: 'Área de Proteção Ambiental' 
   },
-  {
-    cor: '#8b5e0a',
-    corAccent: '#F9C400',
-    bgDark: '#1a0e02',
-    icon: <Mountain size={16} />,
-    label: 'Rota da Serra',
-  },
-];
+};
 
 // ── MOTOR DE SCROLL ──
 function useScrollAnimation(threshold = 0.08) {
@@ -89,112 +77,77 @@ function Reveal({ children, className = '', anim = 'up', delay = 0 }: {
 }
 
 // ══════════════════════════════════════
-// CARD DE ROTA (USANDO DADOS REAIS DO BANCO)
+// CARD DE ROTA (DESIGN SOFT & CLEAN)
 // ══════════════════════════════════════
-function RotaCard({ rota, themeIndex }: { rota: RotaTuristica; themeIndex: number }) {
-  const theme = themes[themeIndex % themes.length];
-  const isPar = themeIndex % 2 === 0;
-  const num = String(rota.ordem || themeIndex + 1).padStart(2, '0');
+function RotaCard({ rota, index }: { rota: RotaTuristica; index: number }) {
+  const isPar = index % 2 === 0;
+  
+  // Identifica se é PESAM ou APA. Se não estiver preenchido, assume PESAM como padrão visual
+  const siglaUnidade = rota.unidade?.toUpperCase().includes('APA') ? 'APA' : 'PESAM';
+  const theme = unidadesConfig[siglaUnidade];
 
-  // Valores reais vindo da base de dados (com fallback)
+  // Valores reais vindo da base de dados
   const duracao = rota.duracao || 'Não informada';
   const dificuldade = rota.dificuldade || 'Não informada';
   const grupo = rota.grupo || 'Sem limite';
-  const guia = rota.guia || 'Recomendado';
 
   return (
-    <article className="relative group">
-      {themeIndex > 0 && (
-        <div className="h-px w-full mb-0"
-          style={{ background: `linear-gradient(to right, transparent, ${theme.cor}25, transparent)` }} />
-      )}
+    <Reveal anim="up" delay={index * 100}>
+      <article className={`bg-white rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all p-4 flex flex-col ${isPar ? 'lg:flex-row' : 'lg:flex-row-reverse'} gap-8 lg:gap-12 overflow-hidden group mb-10`}>
 
-      <div className={`relative flex flex-col ${isPar ? 'lg:flex-row' : 'lg:flex-row-reverse'} min-h-[85vh] overflow-hidden`}
-        style={{ backgroundColor: theme.bgDark }}>
-
-        {/* ── METADE IMAGEM ── */}
-        <div className="relative w-full lg:w-[55%] h-[50vh] lg:h-auto overflow-hidden">
+        {/* ── IMAGEM ── */}
+        <div className="relative w-full h-[350px] lg:h-auto lg:min-h-[450px] lg:w-[50%] rounded-3xl overflow-hidden bg-slate-100 shrink-0">
           <Image
             src={rota.imagem_url || 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09'}
             alt={rota.titulo}
             fill
             className="object-cover transition-transform duration-[1400ms] ease-out group-hover:scale-105"
           />
+          <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-700" />
 
-          <div className="absolute inset-0 pointer-events-none"
-            style={{
-              background: isPar
-                ? `linear-gradient(to right, transparent 50%, ${theme.bgDark} 100%)`
-                : `linear-gradient(to left, transparent 50%, ${theme.bgDark} 100%)`,
-            }} />
-          <div className="absolute inset-0 pointer-events-none lg:hidden"
-            style={{ background: `linear-gradient(to top, ${theme.bgDark} 0%, transparent 60%)` }} />
-
-          <div className="absolute top-6 right-6 z-10 flex items-center gap-2 px-4 py-2 rounded-full border text-[9px] font-black uppercase tracking-widest"
-            style={{
-              backgroundColor: theme.cor + '20',
-              borderColor: theme.cor + '50',
-              color: theme.corAccent,
-            }}>
+          {/* Etiqueta Temática (PESAM ou APA) */}
+          <div className={`absolute top-6 left-6 z-10 flex items-center gap-2 ${theme.bgLight} backdrop-blur-md px-4 py-2 rounded-xl shadow-sm border ${theme.borderLight} ${theme.textLight}`}>
             {theme.icon}
-            {theme.label}
+            <span className="text-[10px] font-black uppercase tracking-widest">{theme.sigla}</span>
           </div>
         </div>
 
-        {/* ── METADE TEXTO ── */}
-        <div className={`relative z-10 w-full lg:w-[45%] flex flex-col justify-center
-          px-8 py-16 lg:py-24
-          ${isPar ? 'lg:pl-16 xl:pl-20 lg:pr-16' : 'lg:pr-16 xl:pr-20 lg:pl-16'}`}>
+        {/* ── TEXTO E INFORMAÇÕES ── */}
+        <div className="flex-1 py-4 lg:py-12 px-2 lg:px-6 flex flex-col justify-center">
+          <h2 className={`${jakarta.className} text-4xl md:text-5xl font-black text-slate-900 leading-[1.1] mb-6`}>
+            {rota.titulo}
+          </h2>
 
-          <div className={`${jakarta.className} absolute top-1/2 -translate-y-1/2
-            ${isPar ? '-right-4 lg:-right-6' : '-left-4 lg:-left-6'}
-            text-[180px] md:text-[220px] font-black leading-none select-none pointer-events-none`}
-            style={{ color: theme.cor, opacity: 0.08 }}
-            aria-hidden="true">
-            {num}
+          <p className="text-slate-500 text-base md:text-lg leading-relaxed mb-8 font-medium">
+            {rota.descricao_curta}
+          </p>
+
+          {/* Tags de Detalhes da Rota */}
+          <div className="flex flex-wrap gap-3 mb-10">
+            {[
+              { icon: <Clock size={14} />, valor: duracao },
+              { icon: <MapPin size={14} />, valor: dificuldade },
+              { icon: <Users size={14} />, valor: grupo },
+            ].map((m, i) => (
+              <span key={i} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-50 border border-slate-200 text-slate-600">
+                <span className={theme.textLight}>{m.icon}</span>
+                {m.valor}
+              </span>
+            ))}
           </div>
 
-          <Reveal anim={isPar ? 'left' : 'right'} delay={100}>
-            <h2 className={`${jakarta.className} text-5xl md:text-6xl xl:text-7xl font-black text-white leading-[0.88] mb-6`}>
-              {rota.titulo}
-            </h2>
-
-            <p className="text-white/50 text-base md:text-lg leading-relaxed mb-10 max-w-md font-medium">
-              {rota.descricao_curta}
-            </p>
-
-            <div className="flex flex-wrap gap-3 mb-10">
-              {[
-                { icon: <Clock size={12} />, valor: duracao },
-                { icon: <MapPin size={12} />, valor: dificuldade },
-                { icon: <Users size={12} />, valor: grupo },
-              ].map((m, i) => (
-                <span key={i}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold border"
-                  style={{
-                    borderColor: theme.cor + '40',
-                    backgroundColor: theme.cor + '12',
-                    color: 'rgba(255,255,255,0.6)',
-                  }}>
-                  <span style={{ color: theme.corAccent }}>{m.icon}</span>
-                  {m.valor}
-                </span>
-              ))}
-            </div>
-
+          <div className="mt-auto border-t border-slate-100 pt-8 flex">
             <Link
               href={`/rotas/${rota.id}`}
-              className="group/btn inline-flex items-center gap-3 self-start px-8 py-4 rounded-full
-                font-black text-[10px] uppercase tracking-widest shadow-xl
-                hover:-translate-y-1 hover:shadow-2xl transition-all duration-300"
-              style={{ backgroundColor: theme.cor, color: theme.corAccent }}>
+              className="group/btn inline-flex items-center gap-3 px-8 py-4 rounded-full font-black text-xs uppercase tracking-widest shadow-lg bg-[#00577C] text-white hover:bg-[#004a6b] hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+            >
               Explorar esta rota
-              <ArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
+              <ArrowRight size={16} className="group-hover/btn:translate-x-1 transition-transform" />
             </Link>
-          </Reveal>
+          </div>
         </div>
-      </div>
-    </article>
+      </article>
+    </Reveal>
   );
 }
 
@@ -208,13 +161,13 @@ export default function RotasPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [rotas, setRotas] = useState<RotaTuristica[]>([]);
   const [loading, setLoading] = useState(true);
-  const [scrollY, setScrollY] = useState(0);
 
   useEffect(() => {
     async function fetchRotas() {
       const { data, error } = await supabase
         .from('rotas')
-        .select('id, titulo, descricao_curta, imagem_url, ordem, duracao, dificuldade, grupo, guia')
+        // REPARE QUE AQUI AGORA PUXAMOS A COLUNA 'unidade'
+        .select('id, titulo, descricao_curta, imagem_url, ordem, duracao, dificuldade, grupo, guia, unidade')
         .eq('ativo', true)
         .order('ordem', { ascending: true });
       if (data) setRotas(data);
@@ -227,7 +180,6 @@ export default function RotasPage() {
   useEffect(() => {
     const handleScroll = () => {
       const y = window.scrollY;
-      setScrollY(y);
       setIsScrolled(y > 50);
       if (y < 80) setShowHeader(true);
       else if (y > lastScrollY) setShowHeader(false);
@@ -238,13 +190,14 @@ export default function RotasPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
-  return (
-    <main className={`${inter.className} text-white overflow-x-hidden min-h-screen`}
-      style={{ backgroundColor: '#001f2e' }}>
+  const menuItens = ['Hoteis', 'Agencias', 'Rotas', 'Passeios', 'Aldeias', 'Eventos', 'Biodiversidade', 'Gastronomia', 'Comunidades'];
 
-      {/* ── HEADER FLUTUANTE ── */}
-      <header className="relative z-50 w-full bg-white border-b border-slate-200 py-4">
-        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6">
+  return (
+    <main className={`${inter.className} text-slate-900 overflow-x-hidden min-h-screen bg-[#FDFCF7]`}>
+
+      {/* ── HEADER ── */}
+      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${showHeader ? 'translate-y-0' : '-translate-y-full'} ${isScrolled ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100' : 'bg-white border-b border-slate-200'}`}>
+        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4">
           <Link href="/" className="flex items-center gap-3">
              <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
                 <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain" />
@@ -252,8 +205,8 @@ export default function RotasPage() {
           </Link>
 
           <nav className="hidden lg:flex items-center gap-8">
-            {['Hoteis', 'Pacotes', 'Rotas','Passeios', 'Aldeias', 'Eventos', 'Biodiversidade', 'Gastronomia', 'Comunidades'].map(item => (
-              <Link key={item} href={`/${item.toLowerCase()}`} className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-slate-600 hover:text-[#00577C] transition-colors`}>
+            {menuItens.map(item => (
+              <Link key={item} href={`/${item.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`} className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-slate-600 hover:text-[#00577C] transition-colors`}>
                 {item}
               </Link>
             ))}
@@ -270,185 +223,162 @@ export default function RotasPage() {
         {/* Menu Mobile */}
         {isMobileMenuOpen && (
           <div className="absolute top-full left-0 w-full bg-white border-b border-slate-200 p-6 flex flex-col gap-4 shadow-2xl lg:hidden z-50">
-            <Link href="/rotas" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Rotas Turísticas</Link>
-            <Link href="/eventos" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Agenda Cultural</Link>
-            <Link href="/pacotes" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Pacotes</Link>
-            <Link href="/rotas" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Roteiros</Link>
-            <Link href="/biodiversidade" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Biodiversidade</Link>
-            <Link href="/gastronomia" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Gastronomia</Link>
-            <Link href="/comunidades" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Comunidades</Link>
-            <Link href="/cadastro" className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md mt-2`}>Cartão Residente</Link>
+            {menuItens.map(item => (
+              <Link key={item} href={`/${item.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2 transition-colors`}>
+                {item}
+              </Link>
+            ))}
+            <Link href="/cadastro"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md mt-2`}>
+              Cartão Residente
+            </Link>
           </div>
         )}
       </header>
 
       {/* ══════════════════════════════════════
-          HERO CINEMATOGRÁFICO
+          HERO CLEAN
       ══════════════════════════════════════ */}
-      <section className="relative h-[80vh] flex flex-col items-start justify-end
-        pb-20 md:pb-28 px-6 md:px-12 overflow-hidden"
-        style={{ backgroundColor: '#002f40' }}>
-
-        <div className="absolute inset-0 z-0 scale-110"
-          style={{ transform: `translateY(${scrollY * 0.25}px) scale(1.1)` }}>
+      <section className="relative h-[55vh] md:h-[65vh] flex flex-col justify-center items-center text-center px-6 overflow-hidden bg-[#002f40]">
+        <div className="absolute inset-0 z-0">
           <video
             src="/videorota.mp4"
             autoPlay loop muted playsInline
-            className="absolute inset-0 w-full h-full object-cover opacity-90"
+            className="absolute inset-0 w-full h-full object-cover opacity-75"
           />
         </div>
 
-        <div className="absolute inset-0 z-0 pointer-events-none"
-          style={{ background: 'linear-gradient(to top, #001f2e 0%, #001f2ecc 30%, #001f2e55 60%, transparent 85%)' }} />
-        <div className="absolute inset-0 z-0 pointer-events-none"
-          style={{ background: 'linear-gradient(to right, #001f2eaa 0%, transparent 65%)' }} />
+        <div className="absolute inset-0 z-0 bg-slate-900/40" />
 
-        <div className="absolute left-6 md:left-12 top-[20%] bottom-[1000%] w-px pointer-events-none z-10 hidden md:block"
-          style={{ background: 'linear-gradient(to bottom, transparent, #F9C40045, transparent)' }} />
-
-        <div className="relative z-10 max-w-[1400px] w-full mx-auto">
+        <div className="relative z-10 max-w-3xl mx-auto pt-16">
           <Reveal anim="up">
-            <h1 className={`${jakarta.className} text-[clamp(4rem,11vw,9rem)] font-black text-white leading-[0.88] mb-6`}>
-              Rotas<br />
-              <span className="italic" style={{ color: '#F9C400' }}>Turísticas</span>
+            <h1 className={`${jakarta.className} text-5xl md:text-7xl font-black text-white leading-[1.1] drop-shadow-lg`}>
+              Roteiros <span className="italic text-[#F9C400]">Turísticos</span>
             </h1>
-            
           </Reveal>
-        </div>
-
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10">
-          <ChevronDown size={18} className="animate-bounce" style={{ color: 'rgba(249,196,0,0.35)' }} />
         </div>
       </section>
 
       {/* ══════════════════════════════════════
-          FAIXA TRICOLOR — 3 BIOMAS
+          FAIXA UNIFICADA (PESAM E APA - FULL WIDTH)
       ══════════════════════════════════════ */}
-      <div className="grid grid-cols-3">
-        {[
-          { cor: '#00577C', icon: <Waves size={18} />, label: 'Águas' },
-          { cor: '#009640', icon: <TreePine size={18} />, label: 'Florestas' },
-          { cor: '#8b5e0a', icon: <Mountain size={18} />, label: 'Serra' },
-        ].map((item, i) => (
-          <Reveal key={item.label} anim="up" delay={i * 60}>
-            <div className="flex flex-col items-center justify-center gap-2 py-7 md:py-9"
-              style={{ backgroundColor: item.cor }}>
-              <div className="text-white opacity-70">{item.icon}</div>
-              <p className={`${jakarta.className} text-[9px] md:text-[11px] font-black uppercase tracking-[0.25em] text-white opacity-60`}>
-                {item.label}
-              </p>
+      <section className="relative z-20 w-full border-y border-slate-200/50 mb-16"
+               style={{ background: 'linear-gradient(to right, #EAF1F4 0%, #EBF5ED 50%, #FFFBEA 100%)' }}>
+        <div className="max-w-[1200px] mx-auto px-6">
+          <Reveal anim="up">
+            <div className="py-10 md:py-12 grid grid-cols-1 md:grid-cols-2 gap-y-8 gap-x-6 md:gap-0 md:divide-x divide-slate-300/60">
+              
+              {Object.values(unidadesConfig).map((item, i) => (
+                <div key={item.sigla} className={`flex items-center justify-center md:justify-start gap-5 ${i === 1 ? 'md:pl-12 lg:pl-16' : 'md:pr-12 lg:pr-16'}`}>
+                  <div className={`w-16 h-16 shrink-0 rounded-full flex items-center justify-center shadow-sm border ${item.borderLight} ${item.bgLight} ${item.textLight}`}>
+                    {item.icon}
+                  </div>
+                  <div className="text-left">
+                    <h3 className={`${jakarta.className} text-2xl font-black text-slate-800 leading-tight mb-1`}>
+                      {item.sigla}
+                    </h3>
+                    <p className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-slate-500 leading-relaxed">
+                      {item.nome}
+                    </p>
+                  </div>
+                </div>
+              ))}
+              
             </div>
           </Reveal>
-        ))}
-      </div>
+        </div>
+      </section>
 
       {/* ══════════════════════════════════════
           INTRO EDITORIAL
       ══════════════════════════════════════ */}
-      <section className="py-24 md:py-32 px-6 md:px-12" style={{ backgroundColor: '#001f2e' }}>
-        <div className="max-w-[1400px] mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-10 md:gap-16 items-end">
-            <Reveal anim="right" className="md:col-span-6">
-              <h2 className={`${jakarta.className} text-5xl md:text-7xl font-black text-white leading-[0.88]`}>
-                Descubra e encante-se com a nossa terra.
-              </h2>
-            </Reveal>
-            <Reveal anim="left" delay={150} className="md:col-span-6">
-              <p className="text-white/40 text-base md:text-lg leading-relaxed">
-                Cada rota foi construída com base no conhecimento de guias nativos que conhecem cada pedra, cada som e cada história guardada por este território. Percursos que equilibram aventura, segurança e respeito pelo ecossistema.
-              </p>
-            </Reveal>
-          </div>
-        </div>
-      </section>
+      
 
       {/* ══════════════════════════════════════
           LISTAGEM DE ROTAS
       ══════════════════════════════════════ */}
-      <section id="rotas">
-        {loading && (
-          <div className="flex flex-col items-center justify-center py-40" style={{ backgroundColor: '#001f2e' }}>
-            <Loader2 className="animate-spin w-12 h-12 mb-4" style={{ color: '#009640' }} />
-            <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.2)' }}>
-              Carregando rotas...
-            </p>
-          </div>
-        )}
+      <section id="rotas" className="pb-24 px-6 md:px-12">
+        <div className="max-w-[1400px] mx-auto">
+          {loading && (
+            <div className="flex flex-col items-center justify-center py-32">
+              <Loader2 className="animate-spin w-12 h-12 mb-4 text-[#00577C]" />
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                Carregando rotas...
+              </p>
+            </div>
+          )}
 
-        {!loading && rotas.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-40 px-6 text-center"
-            style={{ backgroundColor: '#001f2e' }}>
-            <Compass size={64} style={{ color: 'rgba(255,255,255,0.05)' }} className="mb-6" />
-            <h3 className={`${jakarta.className} text-3xl font-black mb-3`} style={{ color: 'rgba(255,255,255,0.2)' }}>
-              Nenhuma rota foi encontrada
-            </h3>
-            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.15)' }}>
-              Volte em breve para novidades.
-            </p>
-          </div>
-        )}
+          {!loading && rotas.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-32 text-center bg-white rounded-[2.5rem] border border-slate-100 shadow-sm">
+              <Compass size={64} className="text-slate-200 mb-6" />
+              <h3 className={`${jakarta.className} text-3xl font-black mb-3 text-slate-800`}>
+                Nenhuma rota foi encontrada
+              </h3>
+              <p className="text-sm text-slate-500">
+                Volte em breve para novidades.
+              </p>
+            </div>
+          )}
 
-        {!loading && rotas.length > 0 && (
-          <div>
-            {rotas.map((rota, index) => (
-              <RotaCard key={rota.id} rota={rota} themeIndex={index} />
-            ))}
-          </div>
-        )}
+          {!loading && rotas.length > 0 && (
+            <div>
+              {rotas.map((rota, index) => (
+                <RotaCard key={rota.id} rota={rota} index={index} />
+              ))}
+            </div>
+          )}
+        </div>
       </section>
 
       {/* ══════════════════════════════════════
           CTA FINAL
       ══════════════════════════════════════ */}
       {!loading && rotas.length > 0 && (
-        <section className="py-24 px-6 md:px-12" style={{ backgroundColor: '#001f2e' }}>
+        <section className="py-24 px-6 md:px-12 bg-white border-t border-slate-100">
           <div className="max-w-[1400px] mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Reveal anim="up" className="md:col-span-2">
-                <div className="rounded-[2rem] p-10 md:p-14 h-full flex flex-col justify-between min-h-[300px]"
+                <div className="rounded-[2.5rem] p-10 md:p-14 h-full flex flex-col justify-between min-h-[300px]"
                   style={{ backgroundColor: '#00577C' }}>
                   <div>
-                    <p className="font-black text-[9px] uppercase tracking-[0.3em] mb-3"
-                      style={{ color: 'rgba(249,196,0,0.6)' }}>
+                    <p className="font-black text-[10px] uppercase tracking-[0.3em] mb-4 text-[#F9C400]">
                       Continuar a explorar
                     </p>
-                    <h3 className={`${jakarta.className} text-4xl md:text-5xl font-black text-white leading-[0.9] mb-4`}>
-                      Preferes um pacote<br />
-                      <span className="italic" style={{ color: '#F9C400' }}>já organizado?</span>
+                    <h3 className={`${jakarta.className} text-4xl md:text-5xl font-black text-white leading-[1.1] mb-6`}>
+                      Preferes um pacote <br />
+                      <span className="italic text-[#F9C400]">já organizado?</span>
                     </h3>
-                    <p className="text-white/50 text-sm leading-relaxed max-w-md">
+                    <p className="text-white/80 text-base leading-relaxed max-w-md">
                       Roteiros com hospedagem e guia incluídos. Só precisas de aparecer e viver.
                     </p>
                   </div>
                   <Link href="/pacotes"
-                    className="mt-8 inline-flex items-center gap-3 self-start px-7 py-3.5 rounded-full font-black text-[10px] uppercase tracking-widest transition-colors hover:-translate-y-0.5"
-                    style={{ backgroundColor: '#F9C400', color: '#001f2e' }}>
-                    Ver pacotes disponíveis <ArrowRight size={14} />
+                    className="mt-8 inline-flex items-center gap-3 self-start px-8 py-4 rounded-full font-black text-xs uppercase tracking-widest transition-colors hover:-translate-y-1 shadow-xl bg-[#F9C400] text-[#001f2e]">
+                    Ver pacotes disponíveis <ArrowRight size={16} />
                   </Link>
                 </div>
               </Reveal>
 
               <Reveal anim="up" delay={120}>
-                <div className="rounded-[2rem] p-10 h-full flex flex-col justify-between min-h-[300px]"
-                  style={{ backgroundColor: '#F9C400' }}>
+                <div className="rounded-[2.5rem] p-10 h-full flex flex-col justify-between min-h-[300px] bg-[#F9C400]">
                   <div>
-                    <p className="font-black text-[9px] uppercase tracking-[0.3em] mb-3"
-                      style={{ color: 'rgba(0,31,46,0.4)' }}>
-                      És residente?
+                    <p className="font-black text-[10px] uppercase tracking-[0.3em] mb-4 text-[#002f40]/50">
+                      Residentes SGA
                     </p>
-                    <h3 className={`${jakarta.className} text-3xl font-black leading-[0.9] mb-3`}
-                      style={{ color: '#001f2e' }}>
+                    <h3 className={`${jakarta.className} text-4xl font-black text-[#002f40] leading-[1.1] mb-4`}>
                       Cartão<br />
                       <span className="italic">Residente</span>
                     </h3>
-                    <p className="text-sm leading-relaxed" style={{ color: 'rgba(0,31,46,0.5)' }}>
-                      50% de desconto na entrada da Cachoeira Três Quedas para moradores.
+                    <p className="text-[#002f40]/70 text-sm leading-relaxed font-medium">
+                      50% de desconto na entrada de atrações parceiras para moradores do município.
                     </p>
                   </div>
                   <Link href="/cadastro"
-                    className="mt-6 inline-flex items-center gap-3 self-start px-7 py-3.5 rounded-full font-black text-[10px] uppercase tracking-widest transition-all hover:-translate-y-0.5"
-                    style={{ backgroundColor: '#001f2e', color: '#F9C400' }}>
-                    Solicitar cartão <ArrowRight size={14} />
+                    className="mt-8 inline-flex items-center gap-3 self-start px-8 py-4 rounded-full font-black text-xs uppercase tracking-widest transition-all hover:-translate-y-1 shadow-lg bg-[#001f2e] text-[#F9C400]">
+                    Solicitar Cartão <ArrowRight size={16} />
                   </Link>
                 </div>
               </Reveal>
@@ -457,8 +387,8 @@ export default function RotasPage() {
         </section>
       )}
 
-      {/* FOOTER INSTITUCIONAL */}
-      <footer className="py-20 px-8 border-t border-slate-200 bg-white text-left">
+      {/* ── FOOTER ── */}
+      <footer className="py-20 px-8 border-t border-slate-200 bg-white text-left mt-auto">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
           <div className="flex flex-col items-center md:items-start gap-4">
             <div className="flex items-center gap-6">

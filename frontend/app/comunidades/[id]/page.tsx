@@ -6,8 +6,8 @@ import { useEffect, useState, useRef, ReactNode } from 'react';
 import { useParams } from 'next/navigation';
 import {
   Menu, X, ArrowLeft, ArrowRight,
-  BookOpen, Users, Camera, Bed, Utensils, Compass, Loader2,
-  ShieldCheck
+  BookOpen, Shield, Compass, Loader2,
+  ShieldCheck, AlertCircle, Camera
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -17,12 +17,6 @@ const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
 
 // ── TIPOS ──
-type CardDestaque = {
-  titulo: string;
-  imagem_url: string;
-  link: string;
-};
-
 type Comunidade = {
   id: string;
   titulo: string;
@@ -30,14 +24,30 @@ type Comunidade = {
   historia_texto?: string;
   cultura_texto?: string;
   imagem_url: string;
-  galeria?: string[];
-  atracoes_destaque?: CardDestaque[];
-  hospedagens_destaque?: CardDestaque[];
-  gastronomia_destaque?: CardDestaque[];
+  galeria?: any;
+};
+
+type PontoComunidade = {
+  id: string;
+  titulo: string;
+  tipo: string; 
+  imagem_url: string;
+  link_destino?: string;
+  whatsapp?: string | null;
+};
+
+// ── UTILS ──
+const parseGaleria = (galeriaRaw: any): string[] => {
+  if (!galeriaRaw) return [];
+  if (Array.isArray(galeriaRaw)) return galeriaRaw;
+  if (typeof galeriaRaw === 'string') {
+    try { return JSON.parse(galeriaRaw); } catch (e) { return []; }
+  }
+  return [];
 };
 
 // ── MOTOR DE ANIMAÇÕES ──
-function useScrollAnimation(threshold = 0.1) {
+function useScrollAnimation(threshold = 0.08) {
   const ref = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
   useEffect(() => {
@@ -51,35 +61,20 @@ function useScrollAnimation(threshold = 0.1) {
   return { ref, isVisible };
 }
 
-function Reveal({ children, className = '', animation = 'fade-up', delay = 0 }: {
-  children: ReactNode; className?: string; animation?: 'fade-up' | 'fade-left' | 'fade-right'; delay?: number;
+function Reveal({ children, className = '', anim = 'up', delay = 0 }: {
+  children: ReactNode; className?: string; anim?: 'up' | 'left' | 'right' | 'zoom' | 'fade'; delay?: number;
 }) {
   const { ref, isVisible } = useScrollAnimation();
-  const hiddenMap = {
-    'fade-up': 'opacity-0 translate-y-14',
-    'fade-left': 'opacity-0 translate-x-14',
-    'fade-right': 'opacity-0 -translate-x-14',
+  const hiddenMap: Record<string, string> = {
+    'up': 'opacity-0 translate-y-14',
+    'left': 'opacity-0 translate-x-14',
+    'right': 'opacity-0 -translate-x-14',
+    'zoom': 'opacity-0 scale-90',
+    'fade': 'opacity-0',
   };
   return (
-    <div ref={ref} className={`transition-all duration-1000 ease-out will-change-transform ${isVisible ? 'opacity-100 translate-y-0 translate-x-0' : hiddenMap[animation]} ${className}`} style={{ transitionDelay: `${delay}ms` }}>
+    <div ref={ref} className={`transition-all duration-1000 ease-out will-change-transform ${isVisible ? 'opacity-100 translate-y-0 translate-x-0 scale-100' : hiddenMap[anim]} ${className}`} style={{ transitionDelay: `${delay}ms` }}>
       {children}
-    </div>
-  );
-}
-
-// ── COMPONENTE CARD DE DESTAQUE ──
-function DestaqueCard({ item, icone, cor }: { item: CardDestaque; icone: ReactNode; cor: string }) {
-  return (
-    <div className="group relative w-full h-[300px] md:h-[400px] rounded-[2rem] overflow-hidden shadow-lg border border-slate-100">
-      <Image src={item.imagem_url} alt={item.titulo} fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
-      <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/20 to-transparent opacity-80" />
-      
-      <div className="absolute bottom-6 left-6 right-6 flex flex-col items-start gap-4">
-        <h4 className={`${jakarta.className} text-xl md:text-2xl font-black text-white leading-tight`}>{item.titulo}</h4>
-        <Link href={item.link} className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md border border-white/30 text-white px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-slate-900 transition-all">
-          <span style={{ color: cor }}>{icone}</span> Ver Detalhes <ArrowRight size={14} />
-        </Link>
-      </div>
     </div>
   );
 }
@@ -89,51 +84,82 @@ export default function ComunidadeDetailPage() {
   const id = params?.id as string;
   
   const [comunidade, setComunidade] = useState<Comunidade | null>(null);
+  const [pontos, setPontos] = useState<PontoComunidade[]>([]);
   const [loading, setLoading] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
-  const [scrolled, setScrolled] = useState(false);
+  const [scrollY, setScrollY] = useState(0);
 
   useEffect(() => {
-    async function fetchComunidade() {
-      const { data } = await supabase.from('comunidades').select('*').eq('id', id).single();
-      if (data) setComunidade(data);
+    async function fetchComunidadeData() {
+      if (!id) return;
+      
+      const { data: comunidadeData, error: comError } = await supabase.from('comunidades').select('*').eq('id', id).single();
+      if (comError || !comunidadeData) {
+        setLoading(false);
+        return;
+      }
+      setComunidade(comunidadeData as Comunidade);
+
+      const { data: pontosData } = await supabase.from('comunidade_pontos').select('*').eq('comunidade_id', id);
+      if (pontosData) setPontos(pontosData as PontoComunidade[]);
+
       setLoading(false);
     }
-    if (id) fetchComunidade();
+    fetchComunidadeData();
   }, [id]);
 
   useEffect(() => {
     const handleScroll = () => {
       const y = window.scrollY;
-      setScrolled(y > 60);
-      setShowHeader(y < 80 || y < lastScrollY);
+      setScrollY(y);
+      if (y < 80) setShowHeader(true);
+      else if (y > lastScrollY) setShowHeader(false);
+      else setShowHeader(true);
       setLastScrollY(y);
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
-  if (loading) return <div className="min-h-screen bg-[#FDFCF7] flex items-center justify-center"><Loader2 className="animate-spin text-[#00577C] w-12 h-12" /></div>;
-  if (!comunidade) return <div className="min-h-screen bg-[#FDFCF7] flex items-center justify-center text-slate-500 font-bold">Comunidade não encontrada.</div>;
+  const menuItens = ['Hoteis', 'Agencias', 'Rotas', 'Passeios', 'Atracoes', 'Eventos', 'Biodiversidade', 'Gastronomia', 'Comunidades'];
+
+  if (loading) return (
+    <div className={`${inter.className} min-h-screen bg-[#FDFCF7] flex flex-col items-center justify-center gap-4`}>
+      <Loader2 className="animate-spin text-[#00577C] w-12 h-12" />
+      <p className="text-slate-400 font-black text-[10px] uppercase tracking-widest">A carregar comunidade...</p>
+    </div>
+  );
+
+  if (!comunidade) return (
+    <div className={`${inter.className} min-h-screen bg-[#FDFCF7] flex flex-col items-center justify-center text-center px-6 gap-6`}>
+      <AlertCircle size={64} className="text-slate-300 mb-2" />
+      <h1 className={`${jakarta.className} text-4xl font-black text-slate-800`}>Comunidade não encontrada</h1>
+      <p className="text-slate-500 max-w-md">Não conseguimos localizar esta comunidade. O link pode estar incorreto.</p>
+      <Link href="/comunidades" className="inline-flex items-center gap-2 bg-[#00577C] text-white px-7 py-3.5 rounded-full font-black text-xs uppercase tracking-widest mt-4 shadow-md hover:bg-[#004a6b] transition-colors">
+        <ArrowLeft size={14} /> Voltar para Comunidades
+      </Link>
+    </div>
+  );
+
+  const fotosGaleria = parseGaleria(comunidade.galeria).filter(Boolean);
 
   return (
-    <main className={`${inter.className} bg-[#FDFCF7] text-slate-900 overflow-x-hidden min-h-screen`}>
+    <main className={`${inter.className} bg-[#FDFCF7] text-slate-900 overflow-x-hidden min-h-screen flex flex-col`}>
       
       {/* ── HEADER ── */}
-      <header className="relative z-50 w-full bg-white border-b border-slate-200 py-4">
-        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6">
+      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${showHeader ? 'translate-y-0' : '-translate-y-full'} ${scrollY > 50 ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100' : 'bg-white border-b border-slate-200'}`}>
+        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4">
           <Link href="/" className="flex items-center gap-3">
              <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
-                {/* Removido o filtro invertido para manter as cores originais da logo */}
                 <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain" />
              </div>
           </Link>
 
           <nav className="hidden lg:flex items-center gap-8">
-            {['Hoteis', 'Pacotes', 'Rotas','Passeios', 'Aldeias','Biodiversidade', 'Gastronomia', 'Comunidades'].map(item => (
-              <Link key={item} href={`/${item.toLowerCase()}`} className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-slate-600 hover:text-[#00577C] transition-colors`}>
+            {menuItens.map(item => (
+              <Link key={item} href={`/${item.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`} className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-slate-600 hover:text-[#00577C] transition-colors`}>
                 {item}
               </Link>
             ))}
@@ -150,157 +176,183 @@ export default function ComunidadeDetailPage() {
         {/* Menu Mobile */}
         {isMobileMenuOpen && (
           <div className="absolute top-full left-0 w-full bg-white border-b border-slate-200 p-6 flex flex-col gap-4 shadow-2xl lg:hidden z-50">
-            <Link href="/rotas" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Rotas Turísticas</Link>
-            <Link href="/eventos" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Agenda Cultural</Link>
-            <Link href="/pacotes" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Pacotes</Link>
-            <Link href="/rotas" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Roteiros</Link>
-            <Link href="/biodiversidade" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Biodiversidade</Link>
-            <Link href="/gastronomia" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Gastronomia</Link>
-            <Link href="/comunidades" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Comunidades</Link>
-            <Link href="/cadastro" className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md mt-2`}>Cartão Residente</Link>
+            {menuItens.map(item => (
+              <Link key={item} href={`/${item.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2 transition-colors`}>
+                {item}
+              </Link>
+            ))}
+            <Link href="/cadastro"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md mt-2`}>
+              Cartão Residente
+            </Link>
           </div>
         )}
       </header>
 
-      {/* ── HERO BANNER CINEMATOGRÁFICO ── */}
-      <section className="relative h-[85vh] w-full flex items-end pb-24 px-6 md:px-12 overflow-hidden bg-[#001f2e]">
-        <Image src={comunidade.imagem_url} alt={comunidade.titulo} fill className="object-cover opacity-60" priority />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#001f2e] via-[#001f2e]/40 to-transparent" />
+      {/* ══════════════════════════════════════
+          HERO — IMERSIVO
+      ══════════════════════════════════════ */}
+      <section className="relative h-[60vh] md:h-[70vh] min-h-[450px] w-full bg-[#002f40] mt-[72px] md:mt-[80px]">
+        <Image
+          src={comunidade.imagem_url || 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09'}
+          alt={`Capa de ${comunidade.titulo}`}
+          fill
+          className="object-cover opacity-80"
+          priority
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/95 via-slate-900/40 to-transparent" />
         
-        <div className="relative z-10 max-w-[1400px] w-full mx-auto">
-          <Reveal animation="fade-up">
-            <h1 className={`${jakarta.className} text-[clamp(3.5rem,8vw,7rem)] font-black text-white leading-[0.9] mb-6 drop-shadow-xl`}>
+        {/* Botão Voltar */}
+        <div className="absolute top-6 left-6 md:left-12 z-20">
+          <Link href="/comunidades" className="inline-flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-md px-4 py-2 rounded-full text-white text-[10px] font-black uppercase tracking-widest transition-colors shadow-sm">
+            <ArrowLeft size={14} /> Voltar
+          </Link>
+        </div>
+
+        <div className="absolute bottom-16 md:bottom-20 left-6 md:left-12 right-6 max-w-[1400px] mx-auto z-10 w-full">
+          <Reveal anim="up">
+            <h1 className={`${jakarta.className} text-[clamp(3rem,7vw,6.5rem)] font-black text-white leading-[1.05] drop-shadow-2xl max-w-full`}>
               {comunidade.titulo}
             </h1>
-            <p className="text-white/70 text-lg md:text-xl font-medium max-w-2xl leading-relaxed mb-8">
-              {comunidade.descricao_curta}
-            </p>
           </Reveal>
         </div>
       </section>
 
-      {/* ── A HISTÓRIA ── */}
-      <section className="py-24 md:py-32 bg-[#FDFCF7]">
-        <div className="max-w-[1400px] mx-auto px-6 md:px-12">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-start">
-            <Reveal animation="fade-right" className="lg:col-span-5 sticky top-32">
-              <h2 className={`${jakarta.className} text-4xl md:text-6xl font-black text-slate-900 leading-tight mb-6`}>
-                Raízes que<br /><span className="text-[#00577C]">resistem ao tempo.</span>
-              </h2>
-              <div className="flex items-center gap-4 text-slate-400">
-                <Users size={24} className="text-[#F9C400]" />
-                <p className="text-sm font-bold uppercase tracking-widest">Herança Viva</p>
+      {/* ══════════════════════════════════════
+          CONTEÚDO PRINCIPAL (HISTÓRIA E CULTURA)
+      ══════════════════════════════════════ */}
+      <section className="max-w-[1400px] mx-auto px-6 w-full relative z-20 -mt-8 md:-mt-12 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 items-stretch">
+          
+          {/* Coluna 1: História */}
+          {comunidade.historia_texto && (
+            <Reveal anim="up" delay={100} className="h-full">
+              <div className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-xl shadow-slate-200/40 border border-slate-100 h-full flex flex-col hover:shadow-2xl transition-shadow">
+                <h3 className={`${jakarta.className} text-2xl font-black text-slate-800 mb-6 flex items-center gap-3`}>
+                  <Shield size={24} className="text-[#00577C]" /> Nossa História
+                </h3>
+                <div className="prose prose-slate max-w-none text-slate-600 leading-relaxed whitespace-pre-wrap flex-1">
+                  {comunidade.historia_texto}
+                </div>
               </div>
             </Reveal>
-            
-            <Reveal animation="fade-left" delay={150} className="lg:col-span-7">
-              <div className="prose prose-lg prose-slate text-slate-600 font-medium leading-relaxed whitespace-pre-wrap">
-                {comunidade.historia_texto || "A história desta comunidade está a ser documentada pela nossa equipa de património cultural."}
+          )}
+
+          {/* Coluna 2: Cultura */}
+          {comunidade.cultura_texto && (
+            <Reveal anim="up" delay={200} className="h-full">
+              <div className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-xl shadow-slate-200/40 border border-slate-100 h-full flex flex-col hover:shadow-2xl transition-shadow">
+                <h3 className={`${jakarta.className} text-2xl font-black text-slate-800 mb-6 flex items-center gap-3`}>
+                  <BookOpen size={24} className="text-[#F9C400]" /> Cultura & Saberes
+                </h3>
+                <div className="prose prose-slate max-w-none text-slate-600 leading-relaxed whitespace-pre-wrap flex-1">
+                  {comunidade.cultura_texto}
+                </div>
               </div>
             </Reveal>
-          </div>
+          )}
+
         </div>
       </section>
 
-      {/* ── CULTURA & EDUCAÇÃO ── */}
-      <section className="py-24 md:py-32 bg-[#002f40] text-white">
-        <div className="max-w-[1400px] mx-auto px-6 md:px-12">
-          <Reveal animation="fade-up" className="text-center max-w-3xl mx-auto mb-16">
-            <BookOpen size={40} className="mx-auto text-[#009640] mb-6" />
-            <h2 className={`${jakarta.className} text-4xl md:text-5xl font-black mb-6`}>Cultura & Saberes</h2>
-            <p className="text-white/60 text-lg leading-relaxed">
-              {comunidade.cultura_texto || "Conhecimentos passados de geração em geração, que formam a identidade única desta comunidade."}
-            </p>
-          </Reveal>
-        </div>
-      </section>
-
-      {/* ── O QUE VIVER AQUI (CARDS REAIS VINDOS DA SUPABASE) ── */}
-      {(comunidade.atracoes_destaque?.length || comunidade.hospedagens_destaque?.length || comunidade.gastronomia_destaque?.length) ? (
-        <section className="py-24 md:py-32 bg-white border-t border-slate-100">
-          <div className="max-w-[1400px] mx-auto px-6 md:px-12">
-            <Reveal animation="fade-up" className="mb-16 text-center md:text-left">
-              <h2 className={`${jakarta.className} text-4xl md:text-5xl font-black text-slate-900`}>Viver a <span className="text-[#F9C400]">Comunidade</span></h2>
-              <p className="text-slate-500 mt-4 font-medium">Recomendações diretas de quem conhece a região melhor do que ninguém.</p>
-            </Reveal>
-
-            <div className="space-y-20">
-              
-              {/* Atrações */}
-              {comunidade.atracoes_destaque && comunidade.atracoes_destaque.length > 0 && (
-                <div>
-                  <div className="flex items-center gap-3 mb-8 border-b border-slate-100 pb-4">
-                    <Compass className="text-[#009640]" size={24} />
-                    <h3 className={`${jakarta.className} text-2xl font-black text-slate-800`}>O que fazer e visitar</h3>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {comunidade.atracoes_destaque.map((item, i) => (
-                      <Reveal key={i} delay={i * 100}><DestaqueCard item={item} icone={<Compass size={14}/>} cor="#009640" /></Reveal>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Gastronomia */}
-              {comunidade.gastronomia_destaque && comunidade.gastronomia_destaque.length > 0 && (
-                <div>
-                  <div className="flex items-center gap-3 mb-8 border-b border-slate-100 pb-4">
-                    <Utensils className="text-[#d9a000]" size={24} />
-                    <h3 className={`${jakarta.className} text-2xl font-black text-slate-800`}>Onde comer</h3>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {comunidade.gastronomia_destaque.map((item, i) => (
-                      <Reveal key={i} delay={i * 100}><DestaqueCard item={item} icone={<Utensils size={14}/>} cor="#F9C400" /></Reveal>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Hospedagem */}
-              {comunidade.hospedagens_destaque && comunidade.hospedagens_destaque.length > 0 && (
-                <div>
-                  <div className="flex items-center gap-3 mb-8 border-b border-slate-100 pb-4">
-                    <Bed className="text-[#00577C]" size={24} />
-                    <h3 className={`${jakarta.className} text-2xl font-black text-slate-800`}>Onde ficar</h3>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {comunidade.hospedagens_destaque.map((item, i) => (
-                      <Reveal key={i} delay={i * 100}><DestaqueCard item={item} icone={<Bed size={14}/>} cor="#00577C" /></Reveal>
-                    ))}
-                  </div>
-                </div>
-              )}
-
+      {/* ══════════════════════════════════════
+          VIVER A COMUNIDADE (LISTAGEM UNIFICADA)
+      ══════════════════════════════════════ */}
+      {pontos.length > 0 && (
+        <section className="max-w-[1400px] mx-auto w-full px-6 mb-24 mt-8">
+          <Reveal anim="up">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8 border-b border-slate-200 pb-6">
+              <div>
+                <h3 className={`${jakarta.className} text-3xl md:text-4xl font-black text-slate-900 mb-2 flex items-center gap-3`}>
+                  <Compass size={32} className="text-[#009640]" /> O que viver aqui
+                </h3>
+                <p className="text-slate-500 text-sm md:text-base">Explore as belezas, atividades e serviços locais.</p>
+              </div>
             </div>
-          </div>
-        </section>
-      ) : null}
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {pontos.map((ponto, i) => {
+                // 1. LÓGICA INTELIGENTE DE LINKS (Agora com WhatsApp Dinâmico)
+                
+                // Se tiver WhatsApp no ponto, limpa os caracteres não numéricos. Se não tiver, usa o da SEMTUR.
+                const numeroWhatsApp = ponto.whatsapp 
+                  ? ponto.whatsapp.replace(/\D/g, '') 
+                  : "5594981452067";
 
-      {/* ── GALERIA DE FOTOS ── */}
-      {comunidade.galeria && comunidade.galeria.length > 0 && (
-        <section className="py-24 bg-[#FDFCF7] border-t border-slate-100 overflow-hidden">
-          <div className="max-w-[1400px] mx-auto px-6 md:px-12 mb-12">
-            <Reveal animation="fade-right">
-              <h2 className={`${jakarta.className} text-4xl font-black text-slate-900 flex items-center gap-3`}>
-                <Camera className="text-[#F9C400]" size={32} /> Retratos do dia a dia
-              </h2>
-            </Reveal>
-          </div>
-          <div className="flex gap-4 px-6 md:px-12 overflow-x-auto snap-x snap-mandatory pb-8 hide-scrollbar">
-            {comunidade.galeria.map((url, i) => (
-              <Reveal key={i} animation="fade-left" delay={i * 100} className="shrink-0 snap-center">
-                <div className="relative w-[300px] h-[400px] md:w-[450px] md:h-[550px] rounded-[2.5rem] overflow-hidden shadow-lg">
-                  <Image src={url} alt={`Galeria ${i}`} fill className="object-cover hover:scale-105 transition-transform duration-700" />
+                const mensagem = encodeURIComponent(`Olá! Gostaria de mais informações sobre ${ponto.titulo} na comunidade ${comunidade.titulo}.`);
+                const fallbackWhatsApp = `https://wa.me/${numeroWhatsApp}?text=${mensagem}`;
+                
+                // Se não tiver link de página/mapa, usa o WhatsApp gerado acima
+                const destino = ponto.link_destino || fallbackWhatsApp;
+                
+                // Se o link for externo (começar com http), abre em nova aba
+                const isExternal = destino.startsWith('http');
+                
+                // Texto automático do botão baseado no tipo de link
+                let btnText = "Ver detalhes";
+                if (!ponto.link_destino) btnText = "Falar no WhatsApp";
+                else if (destino.includes('maps') || destino.includes('google')) btnText = "Ver no mapa";
+                else if (destino.includes('wa.me')) btnText = "Falar no WhatsApp";
+
+                return (
+                  <Reveal key={ponto.id} delay={i * 100}>
+                    <Link 
+                      href={destino} 
+                      target={isExternal ? "_blank" : "_self"}
+                      rel={isExternal ? "noopener noreferrer" : ""}
+                      className="relative h-[380px] rounded-[2.5rem] overflow-hidden group shadow-md border border-slate-100 block"
+                    >
+                      <Image 
+                        src={ponto.imagem_url || comunidade.imagem_url || 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09'} 
+                        alt={ponto.titulo} 
+                        fill 
+                        className="object-cover group-hover:scale-110 transition-transform duration-1000 ease-out" 
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-900/95 via-slate-900/30 to-transparent" />
+                      
+                      <div className="absolute bottom-8 left-8 right-8 z-10 flex flex-col gap-3">
+                        <h4 className={`${jakarta.className} text-white text-2xl md:text-3xl font-black leading-tight drop-shadow-md`}>{ponto.titulo}</h4>
+                        <div className="w-12 h-1 bg-[#F9C400] rounded-full transform origin-left group-hover:scale-x-[2.5] transition-transform duration-500"></div>
+                        <div className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#F9C400] mt-1 group-hover:translate-x-2 transition-transform duration-300">
+                          {btnText} <ArrowRight size={14} />
+                        </div>
+                      </div>
+                    </Link>
+                  </Reveal>
+                );
+              })}
+            </div>
+          </Reveal>
+        </section>
+      )}
+
+      {/* ══════════════════════════════════════
+          SEÇÃO DE LARGURA TOTAL: GALERIA
+      ══════════════════════════════════════ */}
+      {fotosGaleria.length > 0 && (
+        <section className="max-w-[1400px] mx-auto w-full px-6 mb-24">
+          <Reveal anim="up">
+            <h3 className={`${jakarta.className} text-3xl md:text-4xl font-black text-slate-900 mb-8 flex items-center gap-3 border-b border-slate-200 pb-6`}>
+              <Camera size={32} className="text-[#009640]" /> Retratos da Comunidade
+            </h3>
+            
+            <div className="flex gap-4 md:gap-6 overflow-x-auto snap-x snap-mandatory pb-6 hide-scrollbar">
+              {fotosGaleria.map((imgUrl, i) => (
+                <div key={i} className="relative shrink-0 snap-center rounded-[2.5rem] overflow-hidden w-[280px] h-[350px] md:w-[400px] md:h-[500px] lg:w-[450px] lg:h-[550px] group shadow-sm bg-slate-100">
+                  <Image src={imgUrl} alt={`Galeria da Comunidade ${i + 1}`} fill className="object-cover group-hover:scale-105 transition-transform duration-700" />
+                  <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors duration-500" />
                 </div>
-              </Reveal>
-            ))}
-          </div>
+              ))}
+            </div>
+          </Reveal>
         </section>
       )}
 
       {/* ── FOOTER ── */}
-      {/* FOOTER */}
-      <footer className="py-20 px-8 border-t border-slate-200 bg-white text-left">
+      <footer className="py-20 px-8 border-t border-slate-200 bg-white text-left mt-auto">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
           <div className="flex flex-col items-center md:items-start gap-4">
             <div className="flex items-center gap-6">
@@ -312,12 +364,8 @@ export default function ComunidadeDetailPage() {
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
                 © 2026 Secretaria Municipal de Turismo - SGA | Todos os direitos reservados
               </p>
-              <p className="text-[10px] font-bold text-slate-400/80">
-                CNPJ: 10.249.241/0001-22
-              </p>
             </div>
           </div>
-
           <div className="flex gap-10">
             <div className="text-left border-l-2 border-slate-100 pl-9">
               <p className="text-[10px] font-black text-[#00577C] uppercase mb-1">Contato Oficial</p>

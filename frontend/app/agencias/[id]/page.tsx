@@ -6,7 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import {
   Menu, MapPin, ShieldCheck, X, ArrowLeft, ArrowRight,
-  AtSign, Mail, Phone, Clock, Compass, AlertCircle, Loader2, Briefcase
+  AtSign, Mail, Clock, Compass, AlertCircle, Loader2, Briefcase
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -34,10 +34,45 @@ type Pacote = {
   id: string;
   titulo: string;
   descricao_curta: string;
-  imagem_principal?: string; // Corrigido para imagem_principal
+  imagem_principal?: string;
   duracao?: string;
   preco?: number;
 };
+
+// ── ÍCONE PERSONALIZADO DO INSTAGRAM (SVG inline) ──
+const InstagramIcon = ({ size = 16 }: { size?: number }) => (
+  <svg 
+    width={size} 
+    height={size} 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round"
+  >
+    <rect width="20" height="20" x="2" y="2" rx="5" ry="5"/>
+    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+    <line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/>
+  </svg>
+);
+
+// ── ÍCONE PERSONALIZADO DO WHATSAPP (SVG inline) ──
+const WhatsAppIcon = ({ size = 16 }: { size?: number }) => (
+  <svg 
+    width={size} 
+    height={size} 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round"
+  >
+    <path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"/>
+    <path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1"/>
+  </svg>
+);
 
 // ── COMPONENTE PRINCIPAL ──
 function AgenciaIdPageContent() {
@@ -53,7 +88,6 @@ function AgenciaIdPageContent() {
     async function fetchData() {
       if (!id) return;
       
-      // 1. Busca os dados da agência
       const { data: agenciaData } = await supabase
         .from('agencias')
         .select('*')
@@ -63,7 +97,6 @@ function AgenciaIdPageContent() {
       if (agenciaData) {
         setAgencia(agenciaData as Agencia);
         
-        // 2. Busca os pacotes vinculados a esta agência
         const { data: pacotesData } = await supabase
           .from('pacotes')
           .select('*')
@@ -82,6 +115,18 @@ function AgenciaIdPageContent() {
   const FALLBACK_PACOTE = "https://live.staticflickr.com/65535/54668340687_2c7f6b5c39_4k.jpg";
 
   const menuItens = ['Hoteis', 'Agencias', 'Rotas', 'Passeios', 'Aldeias', 'Eventos', 'Biodiversidade', 'Gastronomia', 'Comunidades'];
+
+  // Função para formatar o link do Instagram
+  const formatInstagramUrl = (instagram: string) => {
+    let username = instagram.trim();
+    if (username.startsWith('@')) {
+      username = username.substring(1);
+    }
+    if (username.startsWith('http://') || username.startsWith('https://')) {
+      return username;
+    }
+    return `https://instagram.com/${username}`;
+  };
 
   if (loading) {
     return (
@@ -109,7 +154,6 @@ function AgenciaIdPageContent() {
   const mapsEmbedUrl = `https://maps.google.com/maps?q=${mapQuery}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
 
   return (
-    // Removido o pb-32 daqui para consertar o footer flutuando
     <div className={`${inter.className} min-h-screen bg-[#FDFCF7] text-slate-900 flex flex-col`}>
       
       {/* ── HEADER ── */}
@@ -173,7 +217,7 @@ function AgenciaIdPageContent() {
           </div>
         </div>
 
-        {/* Informações do Perfil (Layout corrigido: Só a logo sobe) */}
+        {/* Informações do Perfil */}
         <div className="max-w-[1400px] mx-auto px-6">
           <div className="flex flex-col md:flex-row gap-6 md:gap-8 pb-10">
             
@@ -237,7 +281,6 @@ function AgenciaIdPageContent() {
                   <Link href={`/pacotes/${pacote.id}`} key={pacote.id} className="group bg-white rounded-3xl overflow-hidden shadow-sm border border-slate-100 hover:shadow-xl transition-all hover:-translate-y-1 flex flex-col">
                     <div className="relative h-48 w-full bg-slate-100 overflow-hidden">
                       <Image 
-                        // Corrigido para imagem_principal
                         src={pacote.imagem_principal || FALLBACK_PACOTE} 
                         alt={pacote.titulo} 
                         fill 
@@ -309,12 +352,12 @@ function AgenciaIdPageContent() {
               {agencia.instagram && (
                 <div className="flex gap-4 items-start">
                   <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center shrink-0 text-[#00577C]">
-                    <AtSign size={18} />
+                    <InstagramIcon size={18} />
                   </div>
                   <div>
                     <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Instagram</p>
-                    <a href={agencia.instagram} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-slate-700 hover:text-[#00577C]">
-                      @{agencia.instagram.replace('https://instagram.com/', '').replace('/', '')}
+                    <a href={formatInstagramUrl(agencia.instagram)} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-slate-700 hover:text-[#00577C]">
+                      @{agencia.instagram.replace('https://instagram.com/', '').replace('http://instagram.com/', '').replace('@', '').replace('/', '')}
                     </a>
                   </div>
                 </div>
@@ -341,7 +384,7 @@ function AgenciaIdPageContent() {
                 rel="noopener noreferrer"
                 className="w-full bg-[#009640] hover:bg-[#007a33] text-white py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg shadow-green-900/20 transition-all flex items-center justify-center gap-2 hover:-translate-y-1"
               >
-                <Phone size={18} />
+                <WhatsAppIcon size={18} />
                 Falar no WhatsApp
               </a>
             ) : (

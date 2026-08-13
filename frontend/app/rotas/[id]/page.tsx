@@ -3,20 +3,20 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState, useRef, ReactNode } from 'react';
-import { useParams, notFound } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import {
-  ArrowLeft, ArrowRight, MapPin, Leaf, TreePine, Compass,
-  Mountain, Waves, Sun, Wind, Camera, Users, Shield, Clock,
-  ChevronDown, Menu, X, Loader2,
-  ShieldCheck
+  ArrowLeft, ArrowRight, MapPin, Compass, Mountain, Camera, Users, Shield, Clock,
+  ChevronDown, Menu, X, Loader2, ShieldCheck, AlertCircle, Info, Image as ImageIcon,
+  Map as MapIcon
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
 
+// ── FONTES ──
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '700', '800'] });
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
 
-// ── TIPOS (com as novas colunas) ──
+// ── TIPOS ──
 type Rota = {
   id: string;
   titulo: string;
@@ -26,16 +26,27 @@ type Rota = {
   ordem: number;
   ativo: boolean;
   criado_em: string;
-  // Novas colunas
   duracao: string | null;
   dificuldade: string | null;
   grupo: string | null;
   guia: string | null;
-  galeria: string[] | null;
+  galeria: any;
   como_chegar: string | null;
+  link_google_maps?: string | null;
+  jornada_passos?: { titulo: string; descricao: string }[] | null;
 };
 
-// ── MOTOR DE ANIMAÇÕES DE SCROLL ──
+// ── UTILS ──
+const parseGaleria = (galeriaRaw: any): string[] => {
+  if (!galeriaRaw) return [];
+  if (Array.isArray(galeriaRaw)) return galeriaRaw;
+  if (typeof galeriaRaw === 'string') {
+    try { return JSON.parse(galeriaRaw); } catch (e) { return []; }
+  }
+  return [];
+};
+
+// ── MOTOR DE ANIMAÇÕES ──
 function useScrollAnimation(threshold = 0.08) {
   const ref = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
@@ -70,12 +81,12 @@ function Reveal({ children, className = '', anim = 'up', delay = 0 }: {
   );
 }
 
-// ── CORES BASEADAS NA ORDEM (mantido o sistema visual) ──
+// ── SISTEMA DE CORES BASEADO NA ORDEM ──
 function getThemeByOrdem(ordem: number) {
   const themes = [
-    { cor: '#00577C', corAccent: '#F9C400', bgDark: '#001f2e' },
-    { cor: '#009640', corAccent: '#F9C400', bgDark: '#051a09' },
-    { cor: '#8b5e0a', corAccent: '#F9C400', bgDark: '#1a0e02' },
+    { cor: '#00577C', bgLight: 'bg-[#00577C]/10', textLight: 'text-[#00577C]', borderLight: 'border-[#00577C]/10', corAccent: '#F9C400' },
+    { cor: '#009640', bgLight: 'bg-[#009640]/10', textLight: 'text-[#009640]', borderLight: 'border-[#009640]/10', corAccent: '#F9C400' },
+    { cor: '#8b5e0a', bgLight: 'bg-[#8b5e0a]/10', textLight: 'text-[#8b5e0a]', borderLight: 'border-[#8b5e0a]/10', corAccent: '#F9C400' },
   ];
   return themes[(ordem - 1) % themes.length] || themes[0];
 }
@@ -88,8 +99,6 @@ export default function RotaDetailPage() {
   const id = params?.id as string;
 
   const [rota, setRota] = useState<Rota | null>(null);
-  const [rotaAnterior, setRotaAnterior] = useState<Rota | null>(null);
-  const [rotaProxima, setRotaProxima] = useState<Rota | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound404, setNotFound404] = useState(false);
   const [scrollY, setScrollY] = useState(0);
@@ -105,16 +114,9 @@ export default function RotaDetailPage() {
         .eq('id', id)
         .eq('ativo', true)
         .single();
+        
       if (error || !data) { setNotFound404(true); setLoading(false); return; }
       setRota(data);
-
-      // Buscar anterior e próxima
-      const [{ data: ant }, { data: prox }] = await Promise.all([
-        supabase.from('rotas').select('id, titulo, imagem_url').eq('ativo', true).lt('ordem', data.ordem).order('ordem', { ascending: false }).limit(1).single(),
-        supabase.from('rotas').select('id, titulo, imagem_url').eq('ativo', true).gt('ordem', data.ordem).order('ordem', { ascending: true }).limit(1).single(),
-      ]);
-      if (ant) setRotaAnterior(ant as Rota);
-      if (prox) setRotaProxima(prox as Rota);
       setLoading(false);
     }
     if (id) fetchRota();
@@ -133,54 +135,58 @@ export default function RotaDetailPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
-  // ── ESTADOS DE CARREGAMENTO / ERRO ──
+  const menuItens = ['Hoteis', 'Agencias', 'Rotas', 'Passeios', 'Aldeias', 'Eventos', 'Biodiversidade', 'Gastronomia', 'Comunidades'];
+
+  // ── ESTADOS DE LOADING E ERRO ──
   if (loading) return (
-    <div className={`${inter.className} min-h-screen bg-[#021a0d] flex flex-col items-center justify-center gap-4`}>
-      <Loader2 className="animate-spin text-[#009640] w-12 h-12" />
-      <p className="text-white/30 font-black text-[10px] uppercase tracking-widest">Carregando rota...</p>
+    <div className={`${inter.className} min-h-screen bg-[#FDFCF7] flex flex-col items-center justify-center gap-4`}>
+      <Loader2 className="animate-spin text-[#00577C] w-12 h-12" />
+      <p className="text-slate-400 font-black text-[10px] uppercase tracking-widest">Preparando Rota...</p>
     </div>
   );
 
   if (notFound404 || !rota) return (
-    <div className={`${inter.className} min-h-screen bg-[#021a0d] flex flex-col items-center justify-center gap-6 px-6`}>
-      <Compass className="text-white/10 w-20 h-20" />
-      <h1 className={`${jakarta.className} text-4xl font-black text-white text-center`}>Rota não encontrada</h1>
-      <Link href="/rotas" className="inline-flex items-center gap-2 bg-[#F9C400] text-[#002f40] px-7 py-3.5 rounded-full font-black text-xs uppercase tracking-widest">
-        <ArrowLeft size={14} /> Ver todas as rotas
+    <div className={`${inter.className} min-h-screen bg-[#FDFCF7] flex flex-col items-center justify-center text-center px-6 gap-6`}>
+      <AlertCircle size={64} className="text-slate-300 mb-2" />
+      <h1 className={`${jakarta.className} text-4xl font-black text-slate-800`}>Rota não encontrada</h1>
+      <p className="text-slate-500 max-w-md">Não conseguimos localizar esta rota. O link pode estar incorreto ou a rota desativada.</p>
+      <Link href="/rotas" className="inline-flex items-center gap-2 bg-[#00577C] text-white px-7 py-3.5 rounded-full font-black text-xs uppercase tracking-widest mt-4 shadow-md hover:bg-[#004a6b] transition-colors">
+        <ArrowLeft size={14} /> Voltar para Rotas
       </Link>
     </div>
   );
 
   const theme = getThemeByOrdem(rota.ordem);
   const numOrdem = String(rota.ordem).padStart(2, '0');
-  const descricaoLonga = rota.descricao_longa?.trim() || null;
-
-  // Dados dinâmicos (com fallbacks)
+  
   const duracao = rota.duracao || 'Não informada';
   const dificuldade = rota.dificuldade || 'Não informada';
   const grupo = rota.grupo || 'Sem limite';
   const guia = rota.guia || 'Recomendado';
-  const galeria = rota.galeria && Array.isArray(rota.galeria) && rota.galeria.length > 0
-    ? rota.galeria
-    : [rota.imagem_url]; // fallback para a imagem principal
   const comoChegar = rota.como_chegar?.trim() || null;
+  const descricaoLonga = rota.descricao_longa?.trim() || null;
+  const genericImage = 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09';
+  
+  let galeriaImagens = parseGaleria(rota.galeria).filter(Boolean);
+  if (galeriaImagens.length === 0 && rota.imagem_url) {
+    galeriaImagens = [rota.imagem_url];
+  }
 
   return (
-    <main className={`${inter.className} bg-[${theme.bgDark}] text-white overflow-x-hidden`}
-      style={{ backgroundColor: theme.bgDark }}>
+    <main className={`${inter.className} text-slate-900 overflow-x-hidden min-h-screen bg-[#FDFCF7] flex flex-col`}>
 
-      {/* ── HEADER PADRÃO DO SITE ── */}
-      <header className="relative z-50 w-full bg-white border-b border-slate-200 py-4">
-        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6">
+      {/* ── HEADER PADRÃO ── */}
+      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${showHeader ? 'translate-y-0' : '-translate-y-full'} ${scrollY > 50 ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100' : 'bg-white border-b border-slate-200'}`}>
+        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4">
           <Link href="/" className="flex items-center gap-3">
-            <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
-              <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain" />
-            </div>
+             <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
+                <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain" />
+             </div>
           </Link>
 
           <nav className="hidden lg:flex items-center gap-8">
-            {['Hoteis', 'Pacotes', 'Rotas','Passeios', 'Aldeias', 'Eventos', 'Biodiversidade', 'Gastronomia', 'Comunidades'].map(item => (
-              <Link key={item} href={`/${item.toLowerCase()}`} className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-slate-600 hover:text-[#00577C] transition-colors`}>
+            {menuItens.map(item => (
+              <Link key={item} href={`/${item.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`} className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-slate-600 hover:text-[#00577C] transition-colors`}>
                 {item}
               </Link>
             ))}
@@ -197,254 +203,252 @@ export default function RotaDetailPage() {
         {/* Menu Mobile */}
         {isMobileMenuOpen && (
           <div className="absolute top-full left-0 w-full bg-white border-b border-slate-200 p-6 flex flex-col gap-4 shadow-2xl lg:hidden z-50">
-            <Link href="/rotas" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Rotas Turísticas</Link>
-            <Link href="/eventos" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Agenda Cultural</Link>
-            <Link href="/pacotes" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Pacotes</Link>
-            <Link href="/rotas" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Rotas</Link>
-            <Link href="/biodiversidade" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Biodiversidade</Link>
-            <Link href="/gastronomia" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Gastronomia</Link>
-            <Link href="/comunidades" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Comunidades</Link>
-            <Link href="/cadastro" className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md mt-2`}>Cartão Residente</Link>
+            {menuItens.map(item => (
+              <Link key={item} href={`/${item.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2 transition-colors`}>
+                {item}
+              </Link>
+            ))}
+            <Link href="/cadastro"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md mt-2`}>
+              Cartão Residente
+            </Link>
           </div>
         )}
       </header>
 
       {/* ══════════════════════════════════════
-          HERO — IMAGEM FULL SCREEN + PARALLAX
+          HERO — IMERSIVO & CLEAN
       ══════════════════════════════════════ */}
-      <section className="relative h-screen flex flex-col items-start justify-end pb-20 md:pb-28 px-6 md:px-12 overflow-hidden">
-        <div className="absolute inset-0 z-0 scale-110"
-          style={{ transform: `translateY(${scrollY * 0.3}px) scale(1.1)` }}>
-          <Image src={rota.imagem_url} alt={rota.titulo} fill className="object-cover" priority />
+      <section className="relative h-[65vh] md:h-[75vh] min-h-[450px] w-full bg-[#002f40] mt-[72px] md:mt-[80px]">
+        <Image
+          src={rota.imagem_url || genericImage}
+          alt={`Capa da ${rota.titulo}`}
+          fill
+          className="object-cover opacity-85"
+          priority
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/30 to-transparent" />
+        
+        {/* Botão Voltar */}
+        <div className="absolute top-6 left-6 md:left-12 z-20">
+          <Link href="/rotas" className="inline-flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-md px-4 py-2 rounded-full text-white text-[10px] font-black uppercase tracking-widest transition-colors shadow-sm">
+            <ArrowLeft size={14} /> Voltar para Rotas
+          </Link>
         </div>
 
-        <div className="absolute inset-0 z-0 pointer-events-none"
-          style={{ background: `linear-gradient(to top, ${theme.bgDark} 0%, ${theme.bgDark}cc 25%, ${theme.bgDark}44 55%, transparent 80%)` }} />
-        <div className="absolute inset-0 z-0 pointer-events-none"
-          style={{ background: `linear-gradient(to right, ${theme.bgDark}99 0%, transparent 60%)` }} />
-
-        <div className="absolute left-6 md:left-12 top-1/4 bottom-1/4 pointer-events-none z-10 hidden md:block"
-          style={{ background: `linear-gradient(to bottom, transparent, ${theme.corAccent}50, transparent)` }} />
-
-        <div className={`${jakarta.className} absolute right-8 md:right-12 top-1/2 -translate-y-1/2 text-[200px] md:text-[280px] font-black leading-none select-none pointer-events-none z-0`}
-          style={{ color: theme.cor, opacity: 0.12 }} aria-hidden="true">
-          {numOrdem}
-        </div>
-
-        <div className="relative z-10 max-w-[1400px] w-full mx-auto">
-
-          <h1 className={`${jakarta.className} text-[clamp(3rem,9vw,7.5rem)] font-black text-white leading-[0.88] mb-6 max-w-3xl`}>
-            {rota.titulo}
-          </h1>
-
-          <p className="text-white/55 text-base md:text-xl max-w-lg leading-relaxed mb-10">
-            {rota.descricao_curta}
-          </p>
-
-          <div className="flex flex-wrap gap-3">
-            <div className="flex items-center gap-2 px-4 py-2.5 rounded-full border text-xs font-bold"
-              style={{ borderColor: theme.cor + '50', backgroundColor: theme.cor + '15', color: 'rgba(255,255,255,0.7)' }}>
-              <span style={{ color: theme.corAccent }}><Clock size={16} /></span>
-              <span className="text-white/40 text-[9px] uppercase tracking-widest">Duração:</span>
-              <span>{duracao}</span>
-            </div>
-            <div className="flex items-center gap-2 px-4 py-2.5 rounded-full border text-xs font-bold"
-              style={{ borderColor: theme.cor + '50', backgroundColor: theme.cor + '15', color: 'rgba(255,255,255,0.7)' }}>
-              <span style={{ color: theme.corAccent }}><Mountain size={16} /></span>
-              <span className="text-white/40 text-[9px] uppercase tracking-widest">Dificuldade:</span>
-              <span>{dificuldade}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2">
-          <ChevronDown size={18} className="animate-bounce" style={{ color: theme.corAccent + '60' }} />
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════
-          FAIXA DE DETALHES — 4 MÉTRICAS (DINÂMICAS)
-      ══════════════════════════════════════ */}
-      <section style={{ backgroundColor: theme.cor }}>
-        <div className="max-w-[1400px] mx-auto px-6 md:px-12">
-          <div className="grid grid-cols-2 md:grid-cols-4">
-            <div className="py-8 md:py-10 px-6 md:px-8 flex flex-col gap-2 border-r border-white/10">
-              <div className="flex items-center gap-2" style={{ color: theme.corAccent }}>
-                <Clock size={16} />
-                <span className="text-[9px] font-black uppercase tracking-widest opacity-70">Duração</span>
-              </div>
-              <p className={`${jakarta.className} text-2xl md:text-3xl font-black text-white`}>{duracao}</p>
-            </div>
-            <div className="py-8 md:py-10 px-6 md:px-8 flex flex-col gap-2 border-r border-white/10">
-              <div className="flex items-center gap-2" style={{ color: theme.corAccent }}>
-                <Mountain size={16} />
-                <span className="text-[9px] font-black uppercase tracking-widest opacity-70">Dificuldade</span>
-              </div>
-              <p className={`${jakarta.className} text-2xl md:text-3xl font-black text-white`}>{dificuldade}</p>
-            </div>
-            <div className="py-8 md:py-10 px-6 md:px-8 flex flex-col gap-2 border-r border-white/10">
-              <div className="flex items-center gap-2" style={{ color: theme.corAccent }}>
-                <Users size={16} />
-                <span className="text-[9px] font-black uppercase tracking-widest opacity-70">Grupo</span>
-              </div>
-              <p className={`${jakarta.className} text-2xl md:text-3xl font-black text-white`}>{grupo}</p>
-            </div>
-            <div className="py-8 md:py-10 px-6 md:px-8 flex flex-col gap-2">
-              <div className="flex items-center gap-2" style={{ color: theme.corAccent }}>
-                <Shield size={16} />
-                <span className="text-[9px] font-black uppercase tracking-widest opacity-70">Guia</span>
-              </div>
-              <p className={`${jakarta.className} text-2xl md:text-3xl font-black text-white`}>{guia}</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════
-          DESCRIÇÃO EDITORIAL (descricao_longa)
-      ══════════════════════════════════════ */}
-      <section className="py-24 md:py-36" style={{ backgroundColor: theme.bgDark }}>
-        <div className="max-w-[1400px] mx-auto px-6 md:px-12">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-20 items-start">
-
-            <Reveal anim="right" className="md:col-span-4">
-              <div className="sticky top-32">
-
-                <div className="mt-8 flex flex-col gap-3">
-                  {['Galeria', 'Como chegar', 'Reservar'].map((s, i) => (
-                    <a key={s} href={`#${s.toLowerCase().replace(' ', '-')}`}
-                      className="flex items-center gap-3 text-sm font-bold text-white/30 hover:text-white transition-colors group">
-                      <span className="w-5 h-[1px] group-hover:w-8 transition-all" style={{ backgroundColor: theme.corAccent }} />
-                      {s}
-                    </a>
-                  ))}
-                </div>
-              </div>
-            </Reveal>
-
-            <Reveal anim="left" delay={150} className="md:col-span-8">
-              <h2 className={`${jakarta.className} text-4xl md:text-6xl font-black text-white leading-[0.9] mb-10`}>
-                Uma jornada<br /><span className="italic" style={{ color: theme.cor }}>que transforma</span>
-              </h2>
-
-              <div className="space-y-6 text-white/55 text-lg leading-relaxed">
-                {descricaoLonga ? (
-                  descricaoLonga.split('\n').map((paragraph, idx) => (
-                    <p key={idx}>{paragraph}</p>
-                  ))
-                ) : (
-                  <div className="italic text-white/30 border-l-2 pl-6" style={{ borderColor: theme.corAccent }}>
-                    Esta rota ainda está a ser estudada pela nossa equipa de guias e conservacionistas. Em breve, mais detalhes serão disponibilizados. Agradecemos a compreensão.
-                  </div>
-                )}
-              </div>
-            </Reveal>
-          </div>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════
-          GALERIA (array de imagens da Supabase)
-      ══════════════════════════════════════ */}
-      <section id="galeria" className="py-24 overflow-hidden" style={{ backgroundColor: theme.cor + '15', borderTop: `1px solid ${theme.cor}20` }}>
-        <div className="max-w-[1400px] mx-auto px-6 md:px-12 mb-12">
+        {/* Título Centralizado sobre a Imagem */}
+        <div className="absolute inset-0 flex flex-col justify-end pb-24 md:pb-32 px-6 md:px-12 z-10 max-w-[1400px] mx-auto w-full">
           <Reveal anim="up">
-            <p className="font-black text-[9px] uppercase tracking-[0.35em] mb-4 flex items-center gap-3"
-              style={{ color: theme.cor }}>
-              <span className="w-6 h-[1px]" style={{ backgroundColor: theme.cor }} />
-              Imagens da rota
-            </p>
-            <h2 className={`${jakarta.className} text-5xl md:text-7xl font-black text-white leading-[0.88]`}>
-              Galeria<br /><span className="italic" style={{ color: theme.corAccent }}>Visual</span>
-            </h2>
+            <div className="flex items-center gap-3 mb-4">
+              
+            </div>
+            <h1 className={`${jakarta.className} text-[clamp(3.5rem,7vw,6.5rem)] font-black text-white leading-[1.05] drop-shadow-2xl mb-4 max-w-full`}>
+              {rota.titulo}
+            </h1>
+            
           </Reveal>
         </div>
 
-        <div className="flex gap-4 px-6 md:px-12 overflow-x-auto snap-x snap-mandatory pb-4 hide-scrollbar">
-          {galeria.map((src, i) => (
-            <Reveal key={i} anim="zoom" delay={i * 80} className="shrink-0 snap-center">
-              <div className="group relative rounded-[2rem] overflow-hidden cursor-pointer"
-                style={{ width: 'clamp(260px, 35vw, 480px)', height: 'clamp(320px, 45vw, 560px)' }}>
-                <Image src={src} alt={`Galeria ${i + 1}`} fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-700" />
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                  style={{ background: `linear-gradient(to top, ${theme.cor}cc, transparent)` }} />
-                <div className="absolute bottom-6 left-6 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300">
-                  <span className="font-black text-[9px] uppercase tracking-widest text-white/70">
-                    {String(i + 1).padStart(2, '0')} / {String(galeria.length).padStart(2, '0')}
-                  </span>
-                </div>
-              </div>
-            </Reveal>
-          ))}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10">
+          <ChevronDown size={24} className="animate-bounce text-white/50" />
         </div>
       </section>
 
       {/* ══════════════════════════════════════
-          COMO CHEGAR + RESERVAR
+          CARDS FLUTUANTES (MÉTRICAS DA ROTA)
       ══════════════════════════════════════ */}
-      <section id="como-chegar" className="py-24" style={{ backgroundColor: theme.bgDark }}>
-        <div className="max-w-[1400px] mx-auto px-6 md:px-12">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-
-            <Reveal anim="right">
-              <div className="rounded-[2rem] border p-10 md:p-12 h-full"
-                style={{ borderColor: theme.cor + '30', backgroundColor: theme.cor + '08' }}>
-                <MapPin size={24} className="mb-6" style={{ color: theme.corAccent }} />
-                <h3 className={`${jakarta.className} text-3xl font-black text-white mb-6`}>Como chegar</h3>
-                <div className="space-y-5 text-white/50 text-sm leading-relaxed">
-                  {comoChegar ? (
-                    <div className="whitespace-pre-line">{comoChegar}</div>
-                  ) : (
-                    <p className="italic text-white/30">Instruções de acesso ainda não definidas para esta rota. Consulte a SEMTUR para mais informações.</p>
-                  )}
-                </div>
-
-                <div className="mt-8 pt-6 border-t" style={{ borderColor: theme.cor + '25' }}>
-                  <p className="text-[9px] font-black uppercase tracking-widest mb-2" style={{ color: theme.cor }}>Contato SEMTUR</p>
-                  <p className="text-white/60 text-sm font-bold">(94) 98145-2067 · setursaga@gmail.com</p>
-                </div>
-              </div>
-            </Reveal>
-
-            <Reveal anim="left" delay={150}>
-              <div className="rounded-[2rem] p-10 md:p-12 h-full flex flex-col justify-between min-h-[360px]"
-                style={{ backgroundColor: theme.cor }}>
-                <div>
-                  <Shield size={24} className="mb-6" style={{ color: theme.corAccent }} />
-                  <h3 className={`${jakarta.className} text-3xl font-black text-white mb-4`} id="reservar">
-                    Reserva segura<br />e garantida
-                  </h3>
-                  <p className="text-white/60 text-sm leading-relaxed mb-6">
-                    Todas as reservas são confirmadas diretamente com a SEMTUR. Grupos escolares têm entrada gratuita com agendamento prévio.
+      {/* ══════════════════════════════════════
+          FAIXA UNIFICADA DE MÉTRICAS (FULL WIDTH)
+      ══════════════════════════════════════ */}
+      <section className="relative z-20 w-full border-y border-slate-200/50 mb-16"
+               style={{ background: 'linear-gradient(to right, #EAF1F4 0%, #EBF5ED 50%, #FFFBEA 100%)' }}>
+        <div className="max-w-[1400px] mx-auto px-6">
+          <Reveal anim="up">
+            <div className="py-10 md:py-12 grid grid-cols-2 lg:grid-cols-4 gap-y-8 gap-x-6 lg:gap-0 lg:divide-x divide-slate-300/60">
+              
+              {[
+                { label: 'Duração', icon: <Clock size={22} className="text-[#00577C]" />, valor: duracao },
+                { label: 'Dificuldade', icon: <Mountain size={22} className="text-[#009640]" />, valor: dificuldade },
+                { label: 'Grupo', icon: <Users size={22} className="text-[#F9C400]" />, valor: grupo },
+                { label: 'Guia Local', icon: <Shield size={22} className="text-[#002f40]" />, valor: guia },
+              ].map((item, i) => (
+                <div key={item.label} className={`flex flex-col gap-2 ${i !== 0 ? 'lg:pl-10' : ''} ${i !== 3 ? 'lg:pr-10' : ''}`}>
+                  <div className="flex items-center gap-2 mb-1">
+                    {item.icon}
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{item.label}</span>
+                  </div>
+                  <p className={`${jakarta.className} text-xl md:text-2xl font-black text-slate-800 leading-tight`}>
+                    {item.valor}
                   </p>
-                  <ul className="space-y-2 text-white/70 text-sm">
-                    {['Guia local credenciado incluído', 'Equipamentos de segurança fornecidos', 'Seguro ambiental activo', 'Cancelamento gratuito até 48h antes'].map(item => (
-                      <li key={item} className="flex items-center gap-3">
-                        <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: theme.corAccent }} />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
                 </div>
-
-                <div className="flex flex-col gap-3 mt-8">
-                  <Link href="/passeios"
-                    className="flex items-center justify-center gap-3 py-4 rounded-full font-black text-[10px] uppercase tracking-widest transition-colors"
-                    style={{ backgroundColor: theme.corAccent, color: theme.bgDark }}>
-                    Ver passeios disponíveis <ArrowRight size={14} />
-                  </Link>
-                  
-                </div>
-              </div>
-            </Reveal>
-          </div>
+              ))}
+              
+            </div>
+          </Reveal>
         </div>
       </section>
 
+      {/* ══════════════════════════════════════
+          CONTEÚDO PRINCIPAL (DESCRIÇÃO LADO A LADO COM RESERVA E MAPA)
+      ══════════════════════════════════════ */}
+      <section className="max-w-[1400px] mx-auto px-6 w-full mb-20">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-12 items-start">
+          
+          {/* Coluna Esquerda: Texto Descritivo e A Sua Jornada */}
+          <Reveal anim="up" className="lg:col-span-8">
+            <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-sm border border-slate-100 flex flex-col gap-8 h-full">
+              
+              {/* Título e Texto Principal */}
+              <div>
+                <h2 className={`${jakarta.className} text-3xl md:text-4xl font-black text-slate-900 leading-tight flex items-center gap-3 mb-8`}>
+                  <Compass size={28} className={theme.textLight} /> Sobre a Rota
+                </h2>
 
-      {/* ── FOOTER MINIMAL ── */}
-      <footer className="py-20 px-8 border-t border-slate-200 bg-white text-left">
+                <div className="prose prose-slate max-w-none text-slate-600 text-base md:text-lg leading-relaxed whitespace-pre-wrap">
+                  {descricaoLonga ? (
+                    descricaoLonga.split('\n').map((paragraph, idx) => (
+                      <p key={idx}>{paragraph}</p>
+                    ))
+                  ) : (
+                    <div className={`italic text-slate-400 border-l-4 pl-6 py-2`} style={{ borderColor: theme.cor }}>
+                      Esta rota ainda está a ser estudada pela nossa equipa de guias e conservacionistas. Em breve, mais detalhes serão disponibilizados.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* ── LINHA DO TEMPO: A SUA JORNADA (DINÂMICA) ── */}
+              {rota.jornada_passos && rota.jornada_passos.length > 0 && (
+                <div className="mt-8 pt-10 border-t border-slate-100">
+                  <h3 className={`${jakarta.className} text-2xl font-black text-slate-800 mb-8 flex items-center gap-3`}>
+                    <MapPin size={24} className={theme.textLight} /> A sua Jornada
+                  </h3>
+
+                  <div className="relative pl-6 border-l-2 border-slate-100 space-y-8">
+                    {rota.jornada_passos.map((passo, index) => (
+                      <div key={index} className="relative group">
+                        {/* Bolinha do percurso */}
+                        <div 
+                          className="absolute -left-[31px] top-1 w-3.5 h-3.5 rounded-full border-2 border-white shadow-sm transition-transform group-hover:scale-125" 
+                          style={{ backgroundColor: index === 0 || index === rota.jornada_passos!.length - 1 ? theme.corAccent : theme.cor }}
+                        />
+                        <p className={`${jakarta.className} font-black text-slate-800 mb-2`}>
+                          {passo.titulo}
+                        </p>
+                        <p className="text-slate-500 font-medium leading-relaxed max-w-lg">
+                          {passo.descricao}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+            </div>
+          </Reveal>
+
+          {/* Coluna Direita: Sidebar (Reserva + Como Chegar + Google Maps) */}
+          <aside className="lg:col-span-4 space-y-6 lg:sticky lg:top-28">
+            
+            {/* Box 1: Reserva & Segurança */}
+            <Reveal anim="left" delay={150}>
+              <div className="rounded-[2.5rem] p-8 md:p-10 shadow-lg border flex flex-col gap-6"
+                style={{ backgroundColor: theme.cor, borderColor: theme.cor }}>
+                <div className="text-white flex items-center gap-3 mb-2">
+                  <ShieldCheck size={28} style={{ color: theme.corAccent }} />
+                  <h3 className={`${jakarta.className} text-2xl font-black`}>Aventura Segura</h3>
+                </div>
+                
+                <p className="text-white/80 text-sm leading-relaxed font-medium">
+                  Recomendamos que todo o percurso seja feito com o acompanhamento de Agências parceiras e Guias credenciados locais.
+                </p>
+
+                <ul className="space-y-3 text-sm text-white/90 font-medium my-2">
+                  <li className="flex items-start gap-3">
+                    <span className="w-1.5 h-1.5 rounded-full shrink-0 mt-1.5" style={{ backgroundColor: theme.corAccent }} />
+                    Garantia de segurança no percurso
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="w-1.5 h-1.5 rounded-full shrink-0 mt-1.5" style={{ backgroundColor: theme.corAccent }} />
+                    Conhecimento profundo da fauna e flora
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="w-1.5 h-1.5 rounded-full shrink-0 mt-1.5" style={{ backgroundColor: theme.corAccent }} />
+                    Apoio à economia da comunidade local
+                  </li>
+                </ul>
+
+                <Link href="/agencias"
+                  className="mt-2 w-full flex items-center justify-center gap-2 py-4 rounded-xl font-black text-xs uppercase tracking-widest shadow-xl hover:-translate-y-0.5 transition-all"
+                  style={{ backgroundColor: theme.corAccent, color: '#002f40' }}>
+                  Ver Agências Parceiras <ArrowRight size={16} />
+                </Link>
+              </div>
+            </Reveal>
+
+            {/* Box 2: Como Chegar & Mapa */}
+            <Reveal anim="left" delay={250}>
+              <div className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-sm border border-slate-100 flex flex-col gap-5">
+                <div className={`flex items-center gap-3 mb-2 ${theme.textLight}`}>
+                  <MapPin size={24} />
+                  <h3 className={`${jakarta.className} text-xl font-black text-slate-800`}>Como Chegar</h3>
+                </div>
+                
+                
+
+                {/* ── BOTÃO VISUAL DO GOOGLE MAPS ── */}
+                {rota.link_google_maps && (
+                  <a href={rota.link_google_maps} target="_blank" rel="noopener noreferrer" 
+                     className="relative block w-full h-32 rounded-2xl overflow-hidden group border border-slate-200 mt-2 shadow-sm">
+                    <Image src="https://images.unsplash.com/photo-1524661135-423995f22d0b" alt="Mapa" fill className="object-cover opacity-60 group-hover:scale-105 transition-transform duration-700" />
+                    <div className="absolute inset-0 bg-slate-900/10 group-hover:bg-transparent transition-colors" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="bg-white text-slate-800 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg flex items-center gap-2 group-hover:-translate-y-1 transition-transform">
+                        <MapIcon size={14} className={theme.textLight} /> Ponto de Partida
+                      </span>
+                    </div>
+                  </a>
+                )}
+
+                <div className="pt-6 border-t border-slate-100 mt-2">
+                  <p className="text-[9px] font-black uppercase tracking-widest mb-1 text-slate-400">Informações SEMTUR</p>
+                  <p className="text-slate-600 text-sm font-bold">(94) 98145-2067</p>
+                </div>
+              </div>
+            </Reveal>
+
+          </aside>
+
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════
+          GALERIA HORIZONTAL (Se houver fotos)
+      ══════════════════════════════════════ */}
+      {galeriaImagens.length > 0 && (
+        <section className="max-w-[1400px] mx-auto w-full px-6 mb-24">
+          <Reveal anim="up">
+            <h3 className={`${jakarta.className} text-3xl md:text-4xl font-black text-slate-900 mb-8 flex items-center gap-3 border-b border-slate-200 pb-6`}>
+              <ImageIcon size={32} className={theme.textLight} /> Galeria Visual
+            </h3>
+            
+            <div className="flex gap-4 md:gap-6 overflow-x-auto snap-x snap-mandatory pb-6 hide-scrollbar">
+              {galeriaImagens.map((imgUrl, i) => (
+                <div key={i} className="relative shrink-0 snap-center rounded-[2.5rem] overflow-hidden w-[280px] h-[350px] md:w-[400px] md:h-[500px] lg:w-[450px] lg:h-[550px] group shadow-sm bg-slate-100">
+                  <Image src={imgUrl || genericImage} alt={`Foto ${i + 1} da Rota ${rota.titulo}`} fill className="object-cover group-hover:scale-105 transition-transform duration-700" />
+                  <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors duration-500" />
+                </div>
+              ))}
+            </div>
+          </Reveal>
+        </section>
+      )}
+
+      {/* ── FOOTER ── */}
+      <footer className="py-20 px-8 border-t border-slate-200 bg-white text-left mt-auto">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
           <div className="flex flex-col items-center md:items-start gap-4">
             <div className="flex items-center gap-6">
@@ -456,12 +460,8 @@ export default function RotaDetailPage() {
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
                 © 2026 Secretaria Municipal de Turismo - SGA | Todos os direitos reservados
               </p>
-              <p className="text-[10px] font-bold text-slate-400/80">
-                CNPJ: 10.249.241/0001-22
-              </p>
             </div>
           </div>
-
           <div className="flex gap-10">
             <div className="text-left border-l-2 border-slate-100 pl-9">
               <p className="text-[10px] font-black text-[#00577C] uppercase mb-1">Contato Oficial</p>

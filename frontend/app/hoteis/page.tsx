@@ -1,180 +1,347 @@
 'use client';
 
+import { useEffect, useState, useMemo, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import {
+  Loader2, Menu, MapPin, Search, Star, 
+  CheckCircle2, ShieldCheck, Filter, X, 
+  ArrowRight
+} from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
-import { ArrowLeft, Menu, X } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '700', '800'] });
-const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
+const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'] });
 
-export default function HoteisPage() {
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [showHeader, setShowHeader] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
+// ── TIPAGEM ──
+type Hotel = {
+  id: string;
+  nome: string;
+  tipo: string;
+  descricao: string;
+  estrelas: number;
+  imagem_url: string;
+  comodidades?: string[];
+};
+
+// ── UTILS ──
+const getArraySeguro = (item: any): string[] => {
+  if (!item) return [];
+  if (Array.isArray(item)) return item;
+  if (typeof item === 'string') {
+    try {
+      const parsed = JSON.parse(item);
+      if (Array.isArray(parsed)) return parsed;
+    } catch (e) {
+      if (item.startsWith('{') && item.endsWith('}')) {
+        return item.slice(1, -1).split(',').map((s: string) => s.trim().replace(/^"/, '').replace(/"$/, ''));
+      }
+    }
+  }
+  return [];
+};
+
+function HotelCardSkeleton() {
+  return (
+    <div className="bg-white rounded-[2rem] border border-slate-100 p-4 flex flex-col md:flex-row overflow-hidden animate-pulse shadow-sm">
+      <div className="w-full h-64 md:w-72 bg-slate-100 rounded-3xl shrink-0" />
+      <div className="p-6 md:p-8 flex flex-col flex-1 gap-4">
+        <div className="h-4 bg-slate-200 rounded w-1/4" />
+        <div className="h-8 bg-slate-200 rounded w-3/4" />
+        <div className="h-4 bg-slate-200 rounded w-full mt-4" />
+        <div className="h-4 bg-slate-200 rounded w-2/3" />
+        <div className="mt-auto pt-6 flex justify-end">
+          <div className="h-12 bg-slate-200 rounded-full w-40" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── COMPONENTE PRINCIPAL ──
+function HoteisPageContent() {
+  const [hoteis, setHoteis] = useState<Hotel[]>([]);
+  const [loading, setLoading] = useState(true);
+  
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
+
+  // Filtros Visuais (Mantidos para a vitrine)
+  const [estrelasSelecionadas, setEstrelasSelecionadas] = useState<number[]>([]);
+  const [comodidadesSelecionadas, setComodidadesSelecionadas] = useState<string[]>([]);
+
+  // Hero Carousel State
+  const [currentHeroSlide, setCurrentHeroSlide] = useState(0);
 
   useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      setIsScrolled(currentScrollY > 50);
-      if (currentScrollY < 80) setShowHeader(true);
-      else if (currentScrollY > lastScrollY) setShowHeader(false);
-      else setShowHeader(true);
-      setLastScrollY(currentScrollY);
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [lastScrollY]);
+    async function fetchHoteis() {
+      const { data } = await supabase.from('hoteis').select('*').order('nome');
+      if (data) setHoteis(data as Hotel[]);
+      setLoading(false);
+    }
+    fetchHoteis();
+  }, []);
+
+  // Rotação do Carrossel
+  useEffect(() => {
+    if (hoteis.length <= 1) return;
+    const timer = setInterval(() => setCurrentHeroSlide((prev) => (prev + 1) % hoteis.length), 6000);
+    return () => clearInterval(timer);
+  }, [hoteis.length]);
+
+  const FALLBACK_IMAGE = "/logop.png";
+
+  const toggleEstrela = (star: number) => setEstrelasSelecionadas(p => p.includes(star) ? p.filter(s => s !== star) : [...p, star]);
+  const toggleComodidade = (item: string) => setComodidadesSelecionadas(p => p.includes(item) ? p.filter(c => c !== item) : [...p, item]);
+  const limparFiltros = () => { setEstrelasSelecionadas([]); setComodidadesSelecionadas([]); setIsMobileFiltersOpen(false); };
+
+  const hoteisFiltrados = useMemo(() => {
+    return hoteis.filter(h => {
+      if (estrelasSelecionadas.length > 0 && !estrelasSelecionadas.includes(h.estrelas)) return false;
+      if (comodidadesSelecionadas.length > 0) {
+        const coms = getArraySeguro(h.comodidades);
+        if (!comodidadesSelecionadas.every(c => coms.includes(c))) return false;
+      }
+      return true;
+    });
+  }, [hoteis, estrelasSelecionadas, comodidadesSelecionadas]);
 
   return (
-    <main className={`${inter.className} min-h-screen flex flex-col bg-[#002f40] relative overflow-hidden`}>
-
-      {/* ── BACKGROUND MOBILE FIRST ── */}
-      <div className="absolute inset-0 z-0">
-        <Image
-          src="https://images.pexels.com/photos/28468079/pexels-photo-28468079.jpeg?_gl=1*1e0dwdp*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3ODU2OTY0OTYkbzcwJGcxJHQxNzg1Njk4NzE4JGoyMCRsMCRoMA.."
-          alt="Alojamentos em São Geraldo do Araguaia"
-          fill
-          // Foco mais à direita no mobile, centro no desktop. Opacidade reduzida no mobile.
-          className="object-cover object-[70%_center] md:object-center opacity-40 md:opacity-50"
-          priority
-        />
-      {/* Máscara inteligente: Protege o topo, mas deixa a foto brilhar */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#002f40]/90 via-[#002f40]/40 to-[#002f40]/10 md:from-[#002f40]/60 md:via-[#002f40]/20 md:to-transparent" />
-      </div>
-
-      {/* Halo amarelo — canto superior direito */}
-      <div className="absolute top-0 right-0 z-0 w-[300px] h-[300px] md:w-[500px] md:h-[500px] pointer-events-none"
-        style={{ background: 'radial-gradient(ellipse at top right, rgba(249,196,0,0.12) 0%, transparent 65%)' }} />
-
-      {/* Halo verde — canto inferior esquerdo */}
-      <div className="absolute bottom-0 left-0 z-0 w-[250px] h-[250px] md:w-[460px] md:h-[360px] pointer-events-none"
-        style={{ background: 'radial-gradient(ellipse at bottom left, rgba(0,150,64,0.12) 0%, transparent 65%)' }} />
-
-      {/* ── HEADER ORIGINAL ── */}
-      <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${showHeader ? 'translate-y-0' : '-translate-y-full'} ${isScrolled ? 'bg-[#002f40]/95 backdrop-blur-md shadow-sm border-b border-white/10' : 'bg-transparent'}`}
-      >
-        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-5 py-4 md:px-6">
+    <div className={`${inter.className} min-h-screen bg-[#FDFCF7] text-slate-900 pb-32`}>
+      
+      {/* ── HEADER ── */}
+      <header className="relative z-50 w-full bg-white border-b border-slate-200 py-4">
+        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6">
           <Link href="/" className="flex items-center gap-3">
-            <div className="relative h-9 w-24 md:h-12 md:w-36 shrink-0">
-              <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain brightness-0 invert" />
-            </div>
+             <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
+                <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain" />
+             </div>
           </Link>
 
           <nav className="hidden lg:flex items-center gap-8">
-            {['Hoteis', 'Pacotes', 'Atracoes', 'Passeios', 'Biodiversidade', 'Gastronomia', 'Comunidades',  'Parceiros'].map(item => (
-              <Link key={item} href={`/${item.toLowerCase()}`}
-                className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-white/50 hover:text-white transition-colors`}
-              >
+            {['Hoteis', 'Pacotes', 'Rotas','Passeios', 'Aldeias', 'Eventos', 'Biodiversidade', 'Gastronomia', 'Comunidades'].map(item => (
+              <Link key={item} href={`/${item.toLowerCase()}`} className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-slate-600 hover:text-[#00577C] transition-colors`}>
                 {item}
               </Link>
             ))}
-            <Link href="/cadastro"
-              className={`${jakarta.className} bg-[#F9C400] text-[#002f40] px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-sm`}>
-              Residente
+            <Link href="/cadastro" className={`${jakarta.className} bg-[#F9C400] text-[#002f40] px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-sm`}>
+              Cartão Residente
             </Link>
           </nav>
 
-          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="rounded-xl p-2 lg:hidden bg-white/10 text-white hover:bg-white/20 transition-colors">
+          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="rounded-xl p-2 lg:hidden bg-slate-50 text-[#00577C] hover:bg-slate-100 transition-colors">
             {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
 
+        {/* Menu Mobile */}
         {isMobileMenuOpen && (
-          <div className="absolute top-full left-0 w-full bg-[#002f40] border-b border-white/10 p-5 flex flex-col gap-4 shadow-2xl lg:hidden z-50">
-            {['Hoteis', 'Pacotes', 'Atracoes', 'Passeios', 'Biodiversidade', 'Parceiros'].map(item => (
-              <Link key={item} href={`/${item.toLowerCase()}`}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className={`${jakarta.className} font-black text-white/60 hover:text-white text-lg border-b border-white/10 pb-2 transition-colors`}>
-                {item}
-              </Link>
-            ))}
-            <Link href="/cadastro"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md mt-2`}>
-              Cartão Residente
-            </Link>
+          <div className="absolute top-full left-0 w-full bg-white border-b border-slate-200 p-6 flex flex-col gap-4 shadow-2xl lg:hidden z-50">
+            <Link href="/rotas" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Rotas Turísticas</Link>
+            <Link href="/eventos" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Agenda Cultural</Link>
+            <Link href="/pacotes" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Pacotes</Link>
+            <Link href="/rotas" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Roteiros</Link>
+            <Link href="/biodiversidade" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Biodiversidade</Link>
+            <Link href="/gastronomia" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Gastronomia</Link>
+            <Link href="/comunidades" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Comunidades</Link>
+            <Link href="/cadastro" className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md mt-2`}>Cartão Residente</Link>
           </div>
         )}
       </header>
 
-      {/* ── CONTEÚDO PRINCIPAL (MOBILE FIRST) ── */}
-      <div className="relative z-10 flex-1 flex flex-col justify-center mt-24 md:mt-20">
-        <div className="w-full max-w-[1400px] mx-auto px-5 md:px-14 py-10 md:py-0">
-          <div className="grid md:grid-cols-2 gap-12 md:gap-20 items-center">
-
-            {/* Coluna esquerda — texto */}
-            <div className="flex flex-col gap-6 md:gap-10">
-
-              {/* Título */}
-              <div className="flex flex-col gap-1">
-                <h1 className={`${jakarta.className} font-black text-white leading-[1.05] md:leading-[0.97]`}
-                  style={{ fontSize: 'clamp(42px, 5.5vw, 72px)' }}>
-                  A sua próxima
-                </h1>
-                <h1 className={`${jakarta.className} font-black text-[#F9C400] leading-[1.05] md:leading-[0.97]`}
-                  style={{ fontSize: 'clamp(42px, 5.5vw, 72px)' }}>
-                  hospedagem
-                </h1>
-                <h1 className={`${jakarta.className} font-black text-white/30 leading-[1.05] md:leading-[0.97]`}
-                  style={{ fontSize: 'clamp(42px, 5.5vw, 72px)' }}>
-                  em breve.
-                </h1>
-              </div>
-
-              {/* Descrição */}
-              <p className={`${inter.className} text-white/60 md:text-white/50 text-base md:text-lg leading-relaxed max-w-md`}>
-                Estamos preparando um sistema completo para que possa descobrir e reservar os melhores hotéis, pousadas e alojamentos locais de São Geraldo do Araguaia diretamente por aqui.
-              </p>
-
-              
-            </div>
-
-            {/* Coluna direita — foto */}
-            <div className="hidden md:flex items-center justify-center">
-              <div className="relative w-full max-w-[420px] aspect-[3/4] rounded-[2.5rem] overflow-hidden"
-                style={{ boxShadow: '0 40px 80px -20px rgba(0,0,0,0.7)' }}>
-                <Image
-                  src="https://images.pexels.com/photos/28468079/pexels-photo-28468079.jpeg?_gl=1*1e0dwdp*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3ODU2OTY0OTYkbzcwJGcxJHQxNzg1Njk4NzE4JGoyMCRsMCRoMA.."
-                  alt="Resort ou Hotel de Natureza"
-                  fill
-                  className="object-cover"
-                  style={{ filter: 'brightness(0.72) saturate(0.85)' }}
-                  priority
-                />
-                {/* Gradiente inferior suave */}
-                <div className="absolute inset-0"
-                  style={{ background: 'linear-gradient(to top, rgba(0,47,64,0.85) 0%, transparent 50%)' }} />
-
-                {/* Legenda discreta dentro da foto */}
-                <div className="absolute bottom-0 left-0 right-0 p-8">
-                  <p className={`${jakarta.className} text-white/40 text-[9px] font-black uppercase tracking-[0.3em] mb-1`}>
-                    Módulo em desenvolvimento
-                  </p>
-                  <p className={`${jakarta.className} text-white font-black text-xl leading-snug`}>
-                    Rede Hoteleira <br /> Local
-                  </p>
-                </div>
-              </div>
-            </div>
-
-          </div>
+      {/* ── HERO SECTION ── */}
+      <section className="relative h-auto min-h-[400px] w-full flex flex-col justify-end pb-12 px-6">
+        <div className="absolute inset-0 bg-[#002f40]">
+          {hoteis.length > 0 && hoteis.map((h, i) => (
+            <Image
+              key={h.id}
+              src={h.imagem_url || FALLBACK_IMAGE}
+              alt="Fundo"
+              fill
+              className={`object-cover transition-opacity duration-1000 ease-in-out ${
+                i === currentHeroSlide ? 'opacity-60' : 'opacity-0'
+              }`}
+            />
+          ))}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#002f40] via-[#002f40]/50 to-transparent" />
         </div>
-      </div>
 
-      {/* ── FOOTER ── */}
-      <footer className="relative z-10 py-6 md:py-7 border-t border-white/5 mt-8 md:mt-0">
-        <div className="w-full max-w-[1400px] mx-auto px-5 md:px-14 flex justify-center md:justify-start">
-          <p className={`${jakarta.className} text-[9px] md:text-[10px] font-bold text-white/20 uppercase tracking-widest text-center md:text-left`}>
-            © {new Date().getFullYear()} Prefeitura Municipal de São Geraldo do Araguaia — Todos os direitos reservados.
+        <div className="relative z-10 w-full max-w-[1400px] mx-auto text-center md:text-left flex flex-col items-center md:items-start pt-20">
+          <h1 className={`${jakarta.className} text-5xl md:text-7xl font-black text-white leading-[1.1] md:leading-[0.9] tracking-tight mb-4`}>
+            Alojamentos <span className="text-[#F9C400]">Locais</span>
+          </h1>
+          <p className="text-white/80 text-lg font-medium max-w-2xl text-center md:text-left">
+            Conheça as melhores opções de hospedagem em São Geraldo do Araguaia. Entre em contacto direto com os proprietários e garanta a sua estadia.
           </p>
         </div>
-      </footer>
+      </section>
 
-    </main>
+      {/* ── CONTEÚDO PRINCIPAL (LISTA + FILTROS) ── */}
+      <section className="mx-auto max-w-[1400px] px-6 pt-12">
+        {/* Botão Filtros Mobile */}
+        <div className="lg:hidden mb-6">
+           <button onClick={() => setIsMobileFiltersOpen(true)} className="w-full bg-white border border-slate-200 py-3 rounded-xl flex items-center justify-center gap-2 font-bold text-slate-700 shadow-sm">
+             <Filter size={18} /> Filtrar Alojamentos
+           </button>
+        </div>
+
+        <div className="flex flex-col lg:flex-row gap-10 items-start">
+          
+          {/* SIDEBAR FILTROS (Desktop) */}
+          <aside className="hidden lg:block w-72 shrink-0 bg-white rounded-[2rem] border border-slate-200 p-8 shadow-sm h-fit">
+             <div className="flex justify-between items-center mb-8 pb-4 border-b border-slate-100">
+                <h3 className={`${jakarta.className} font-black text-xl flex items-center gap-2`}><Filter size={18} className="text-[#00577C]"/> Filtros</h3>
+                {(estrelasSelecionadas.length > 0 || comodidadesSelecionadas.length > 0) && <button onClick={limparFiltros} className="text-[10px] font-bold text-slate-400 underline">Limpar</button>}
+             </div>
+             
+             <div className="mb-8">
+               <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-4">Categoria</p>
+               <div className="space-y-4">
+                 {[5,4,3,2,1].map(s => (
+                   <label key={s} className="flex items-center gap-3 cursor-pointer group">
+                     <input type="checkbox" checked={estrelasSelecionadas.includes(s)} onChange={()=>toggleEstrela(s)} className="w-5 h-5 rounded-md border-slate-300 text-[#00577C] focus:ring-[#00577C]" />
+                     <div className="flex items-center gap-1 text-[#F9C400] group-hover:opacity-80 transition-opacity">{Array.from({length:s}).map((_,i)=><Star key={i} size={14} fill="currentColor"/>)}</div>
+                   </label>
+                 ))}
+               </div>
+             </div>
+
+             <div className="pt-8 border-t border-slate-100">
+               <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-4">Comodidades</p>
+               <div className="space-y-4">
+                 {['Piscina', 'Wi-Fi Grátis', 'Estacionamento', 'Café-da-Manhã'].map(c => (
+                   <label key={c} className="flex items-center gap-3 cursor-pointer group">
+                     <input type="checkbox" checked={comodidadesSelecionadas.includes(c)} onChange={()=>toggleComodidade(c)} className="w-5 h-5 rounded-md border-slate-300 text-[#00577C] focus:ring-[#00577C]" />
+                     <span className="text-sm font-bold text-slate-600 group-hover:text-[#00577C] transition-colors">{c}</span>
+                   </label>
+                 ))}
+               </div>
+             </div>
+          </aside>
+
+          {/* LISTA DE HOTÉIS */}
+          <div className="flex-1 w-full space-y-8">
+            <h2 className={`${jakarta.className} text-3xl font-black text-slate-800 mb-6`}>{hoteisFiltrados.length} Alojamentos Disponíveis</h2>
+
+            {loading ? (
+               [...Array(3)].map((_, i) => <HotelCardSkeleton key={i} />)
+            ) : hoteisFiltrados.length === 0 ? (
+               <div className="text-center py-20 bg-white rounded-[2rem] border-2 border-dashed border-slate-200"><Search size={40} className="mx-auto text-slate-300 mb-4" /><p className="font-bold text-slate-500">Sem resultados para estes filtros.</p></div>
+            ) : (
+               hoteisFiltrados.map((hotel, index) => {
+                  return (
+                    <article key={hotel.id} className={`animate-in fade-in slide-in-from-bottom-8 duration-700 fill-mode-both bg-white rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-2xl transition-all p-4 flex flex-col md:flex-row gap-6 md:gap-10 overflow-hidden`} style={{ animationDelay: `${index * 150}ms` }}>
+                       <div className="relative w-full h-64 md:h-auto md:w-80 rounded-3xl overflow-hidden bg-slate-100 shrink-0 group cursor-pointer">
+                          <Image src={hotel.imagem_url || FALLBACK_IMAGE} alt={hotel.nome} fill className="object-cover group-hover:scale-105 transition-transform duration-1000" />
+                          <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1.5 rounded-lg text-[9px] font-black uppercase text-[#00577C] tracking-widest shadow-md">{hotel.tipo}</div>
+                       </div>
+
+                       <div className="flex-1 py-4 pr-4 flex flex-col">
+                          <div className="flex items-center gap-1 text-[#F9C400] mb-3">{Array.from({ length: hotel.estrelas }).map((_, i) => <Star key={i} size={14} fill="currentColor"/>)}</div>
+                          <h3 className={`${jakarta.className} text-3xl font-black text-slate-900 mb-2`}>{hotel.nome}</h3>
+                          <div className="flex items-center gap-2 text-xs font-bold text-[#009640] mb-4"><MapPin size={14}/> São Geraldo do Araguaia</div>
+                          <p className="text-slate-500 font-medium text-sm leading-relaxed line-clamp-2 mb-6">{hotel.descricao}</p>
+                          
+                          <div className="flex flex-wrap gap-2 mb-8">
+                             {getArraySeguro(hotel.comodidades).slice(0, 3).map((c,i) => (
+                               <span key={i} className="bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-lg text-[10px] font-bold text-slate-600 flex items-center gap-1.5"><CheckCircle2 size={12} className="text-[#00577C]"/> {c}</span>
+                             ))}
+                          </div>
+
+                          <div className="mt-auto border-t border-slate-100 pt-6 flex flex-col sm:flex-row sm:items-end justify-end gap-6">
+                             <Link 
+                               href={`/hoteis/${hotel.id}`}
+                               className={`w-full sm:w-auto px-8 py-4 rounded-full font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 bg-[#00577C] text-white hover:bg-[#004a6b] shadow-lg hover:shadow-xl hover:-translate-y-1`}
+                             >
+                               Conhecer Hotel <ArrowRight size={16}/>
+                             </Link>
+                          </div>
+                       </div>
+                    </article>
+                  );
+               })
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* FILTROS MOBILE */}
+      {isMobileFiltersOpen && (
+        <div className="fixed inset-0 z-[100] lg:hidden">
+           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={() => setIsMobileFiltersOpen(false)} />
+           <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2.5rem] p-6 pb-10 flex flex-col max-h-[85vh] text-left animate-in slide-in-from-bottom-full">
+              <div className="flex items-center justify-between mb-8 border-b border-slate-100 pb-4">
+                 <h3 className={`${jakarta.className} text-2xl font-black text-slate-900 flex items-center gap-2`}><Filter size={24} className="text-[#00577C]"/> Filtros</h3>
+                 <button onClick={() => setIsMobileFiltersOpen(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500"><X size={20} /></button>
+              </div>
+              <div className="overflow-y-auto flex-1 hide-scrollbar">
+                 <div className="mb-8">
+                   <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-4">Categoria</p>
+                   <div className="space-y-4">
+                     {[5,4,3,2,1].map(s => (
+                       <label key={s} className="flex items-center gap-3 cursor-pointer group">
+                         <input type="checkbox" checked={estrelasSelecionadas.includes(s)} onChange={()=>toggleEstrela(s)} className="w-5 h-5 rounded-md border-slate-300 text-[#00577C] focus:ring-[#00577C]" />
+                         <div className="flex items-center gap-1 text-[#F9C400]">{Array.from({length:s}).map((_,i)=><Star key={i} size={14} fill="currentColor"/>)}</div>
+                       </label>
+                     ))}
+                   </div>
+                 </div>
+                 <div className="pt-8 border-t border-slate-100">
+                   <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-4">Comodidades</p>
+                   <div className="space-y-4">
+                     {['Piscina', 'Wi-Fi Grátis', 'Estacionamento', 'Café-da-Manhã'].map(c => (
+                       <label key={c} className="flex items-center gap-3 cursor-pointer group">
+                         <input type="checkbox" checked={comodidadesSelecionadas.includes(c)} onChange={()=>toggleComodidade(c)} className="w-5 h-5 rounded-md border-slate-300 text-[#00577C] focus:ring-[#00577C]" />
+                         <span className="text-sm font-bold text-slate-600">{c}</span>
+                       </label>
+                     ))}
+                   </div>
+                 </div>
+              </div>
+              <div className="pt-4 border-t border-slate-100 mt-auto">
+                 <button onClick={() => setIsMobileFiltersOpen(false)} className="w-full bg-[#00577C] text-white py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg">Aplicar Filtros ({hoteisFiltrados.length})</button>
+              </div>
+           </div>
+        </div>
+      )}
+
+      {/* FOOTER */}
+      <footer className="py-20 px-8 border-t border-slate-200 bg-white text-left mt-20">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
+          <div className="flex flex-col items-center md:items-start gap-4">
+            <div className="flex items-center gap-6">
+              <Image src="/logop.png" alt="SagaTurismo" width={160} height={50} className="object-contain" />
+              <div className="w-px h-12 bg-slate-200 hidden md:block" />
+              <Image src="/prefeitura.png" alt="Prefeitura de São Geraldo do Araguaia" width={140} height={50} className="object-contain" />
+            </div>
+            <div className="text-left space-y-1">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                © 2026 Secretaria Municipal de Turismo - SGA | Todos os direitos reservados
+              </p>
+              <p className="text-[10px] font-bold text-slate-400/80">
+                CNPJ: 10.249.241/0001-22
+              </p>
+            </div>
+          </div>
+
+          <div className="flex gap-10">
+            <div className="text-left border-l-2 border-slate-100 pl-9">
+              <p className="text-[10px] font-black text-[#00577C] uppercase mb-1">Contato Oficial</p>
+              <p className="text-xs font-bold text-slate-500 tracking-tight">setursaga@gmail.com</p>
+            </div>
+            <ShieldCheck size={40} className="text-[#009640] opacity-30" />
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+export default function HoteisPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#FDFCF7]" />}>
+      <HoteisPageContent />
+    </Suspense>
   );
 }

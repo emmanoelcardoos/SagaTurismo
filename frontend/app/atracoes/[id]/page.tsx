@@ -5,9 +5,8 @@ import Image from 'next/image';
 import { useEffect, useState, useRef, ReactNode } from 'react';
 import { useParams } from 'next/navigation';
 import {
-  ArrowLeft, ArrowRight, MapPin, Compass, Mountain,
-  Camera, Shield, Clock, ChevronDown, Menu, X, Loader2,
-  Phone, Map, Bed, Image as ImageIcon, ShieldCheck, Ticket, AlertCircle
+  ArrowLeft, MapPin, Compass, Camera, Shield, ChevronDown, Menu, X, Loader2,
+  Map, Bed, Image as ImageIcon, ShieldCheck, Ticket, AlertCircle, Mountain, Waves, Map as MapIcon, ArrowRight
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -25,9 +24,18 @@ type Atracao = {
   imagem_url: string;
   preco_entrada?: string | number;
   whatsapp?: string;
+  instagram?: string;
   link_google_maps?: string;
   link_hospedagem?: string;
-  galeria?: any; // Pode vir como string JSON ou array
+  galeria?: any;
+};
+
+type PontoInteresse = {
+  id: string;
+  titulo: string;
+  tipo: string;
+  imagem_url: string;
+  atracao_destino_id?: string;
 };
 
 // ── UTILS ──
@@ -35,16 +43,47 @@ const parseGaleria = (galeriaRaw: any): string[] => {
   if (!galeriaRaw) return [];
   if (Array.isArray(galeriaRaw)) return galeriaRaw;
   if (typeof galeriaRaw === 'string') {
-    try {
-      return JSON.parse(galeriaRaw);
-    } catch (e) {
-      return [];
-    }
+    try { return JSON.parse(galeriaRaw); } catch (e) { return []; }
   }
   return [];
 };
 
-// ── MOTOR DE ANIMAÇÕES DE SCROLL ──
+// ── ÍCONE PERSONALIZADO DO INSTAGRAM (SVG inline) ──
+const InstagramIcon = ({ size = 16 }: { size?: number }) => (
+  <svg 
+    width={size} 
+    height={size} 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round"
+  >
+    <rect width="20" height="20" x="2" y="2" rx="5" ry="5"/>
+    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+    <line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/>
+  </svg>
+);
+
+// ── ÍCONE PERSONALIZADO DO WHATSAPP (SVG inline) ──
+const WhatsAppIcon = ({ size = 16 }: { size?: number }) => (
+  <svg 
+    width={size} 
+    height={size} 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round"
+  >
+    <path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"/>
+    <path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1"/>
+  </svg>
+);
+
+// ── MOTOR DE ANIMAÇÕES ──
 function useScrollAnimation(threshold = 0.08) {
   const ref = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
@@ -79,14 +118,12 @@ function Reveal({ children, className = '', anim = 'up', delay = 0 }: {
   );
 }
 
-// ==========================================
-// PÁGINA PRINCIPAL
-// ==========================================
 export default function AtracaoDetailPage() {
   const params = useParams();
   const id = params?.id as string;
 
   const [atracao, setAtracao] = useState<Atracao | null>(null);
+  const [pontos, setPontos] = useState<PontoInteresse[]>([]); 
   const [loading, setLoading] = useState(true);
   const [notFound404, setNotFound404] = useState(false);
   
@@ -96,16 +133,28 @@ export default function AtracaoDetailPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    async function fetchAtracao() {
+    async function fetchData() {
       if (!id) return;
-      const { data, error } = await supabase
+      
+      const { data: atracaoData, error: atracaoError } = await supabase
         .from('atracoes').select('*').eq('id', id).single();
       
-      if (error || !data) { setNotFound404(true); setLoading(false); return; }
-      setAtracao(data as Atracao);
+      if (atracaoError || !atracaoData) { 
+        setNotFound404(true); 
+        setLoading(false); 
+        return; 
+      }
+      
+      setAtracao(atracaoData as Atracao);
+
+      const { data: pontosData } = await supabase
+        .from('atracao_pontos').select('*').eq('atracao_id', id);
+        
+      if (pontosData) setPontos(pontosData as PontoInteresse[]);
+
       setLoading(false);
     }
-    fetchAtracao();
+    fetchData();
   }, [id]);
 
   useEffect(() => {
@@ -123,7 +172,6 @@ export default function AtracaoDetailPage() {
 
   const menuItens = ['Hoteis', 'Agencias', 'Rotas', 'Passeios', 'Aldeias', 'Eventos', 'Biodiversidade', 'Gastronomia', 'Comunidades'];
 
-  // ── ESTADOS DE LOADING E 404 (SOFT) ──
   if (loading) return (
     <div className={`${inter.className} min-h-screen bg-[#FDFCF7] flex flex-col items-center justify-center gap-4`}>
       <Loader2 className="animate-spin text-[#00577C] w-12 h-12" />
@@ -143,6 +191,18 @@ export default function AtracaoDetailPage() {
   );
 
   const fotosGaleria = parseGaleria(atracao.galeria);
+
+  // Função para formatar o link do Instagram
+  const formatInstagramUrl = (instagram: string) => {
+    let username = instagram.trim();
+    if (username.startsWith('@')) {
+      username = username.substring(1);
+    }
+    if (username.startsWith('http://') || username.startsWith('https://')) {
+      return username;
+    }
+    return `https://instagram.com/${username}`;
+  };
 
   return (
     <main className={`${inter.className} text-slate-900 overflow-x-hidden bg-[#FDFCF7] flex flex-col min-h-screen`}>
@@ -206,17 +266,17 @@ export default function AtracaoDetailPage() {
         
         <div className="absolute top-6 left-6 md:left-12 z-10">
           <Link href="/atracoes" className="inline-flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-md px-4 py-2 rounded-full text-white text-[10px] font-black uppercase tracking-widest transition-colors shadow-sm">
-            <ArrowLeft size={14} /> Voltar para Atrações
+            <ArrowLeft size={14} /> Voltar
           </Link>
         </div>
       </section>
 
       {/* ══════════════════════════════════════
-          CONTEÚDO PRINCIPAL (SOBRE E AÇÕES)
+          CONTEÚDO PRINCIPAL (GRID 12 COLUNAS)
       ══════════════════════════════════════ */}
-      <section className="flex-1 max-w-[1400px] mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-10 items-start w-full relative z-20 -mt-20 md:-mt-24 mb-24">
+      <section className="max-w-[1400px] mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-10 items-start w-full relative z-20 -mt-20 md:-mt-24 mb-16">
         
-        {/* COLUNA ESQUERDA (TÍTULO, DESCRIÇÃO E GALERIA) */}
+        {/* COLUNA ESQUERDA (TÍTULO E DESCRIÇÃO) */}
         <Reveal anim="up" className="lg:col-span-8">
           <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-xl shadow-slate-200/50 border border-slate-100 flex flex-col gap-6">
             
@@ -229,41 +289,17 @@ export default function AtracaoDetailPage() {
               )}
             </div>
 
-            {/* Título Principal */}
             <h1 className={`${jakarta.className} text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 leading-[1.1]`}>
               {atracao.nome}
             </h1>
 
-            {/* Descrição Detalhada */}
             <div className="prose prose-slate max-w-none text-slate-600 leading-relaxed text-base md:text-lg whitespace-pre-wrap mt-4">
               {atracao.descricao || 'Detalhes e informações sobre esta atração em breve.'}
             </div>
-
-            {/* Galeria Embutida */}
-            {fotosGaleria.length > 0 && (
-              <div className="mt-10 pt-10 border-t border-slate-100">
-                <h3 className={`${jakarta.className} text-2xl font-black text-slate-900 mb-6 flex items-center gap-3`}>
-                  <ImageIcon size={24} className="text-[#F9C400]" /> Galeria de Fotos
-                </h3>
-                
-                <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-4 hide-scrollbar">
-                  {fotosGaleria.map((imgUrl, i) => (
-                    <div key={i} className="relative shrink-0 snap-center rounded-[2rem] overflow-hidden w-[280px] h-[350px] md:w-[350px] md:h-[450px] group border border-slate-100 shadow-sm bg-slate-50">
-                      <Image 
-                        src={imgUrl} 
-                        alt={`Galeria ${atracao.nome} ${i + 1}`} 
-                        fill 
-                        className="object-cover group-hover:scale-105 transition-transform duration-700" 
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         </Reveal>
 
-        {/* COLUNA DIREITA (SIDEBAR DE AÇÕES E INFORMAÇÕES) */}
+        {/* COLUNA DIREITA (SIDEBAR) */}
         <aside className="lg:col-span-4 space-y-6 lg:sticky lg:top-28">
           <Reveal anim="left" delay={150}>
             <div className="bg-white rounded-[2rem] p-8 shadow-md border border-slate-100 flex flex-col gap-6">
@@ -306,7 +342,14 @@ export default function AtracaoDetailPage() {
                 {atracao.whatsapp && (
                   <a href={`https://wa.me/55${atracao.whatsapp.replace(/\D/g, '')}?text=Olá! Encontrei a atração ${atracao.nome} no portal SagaTurismo e gostaria de mais informações.`} target="_blank" rel="noopener noreferrer"
                      className="w-full flex items-center justify-center gap-2 bg-[#009640] text-white px-6 py-4 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg hover:bg-[#007a33] transition-all hover:-translate-y-0.5">
-                    <Phone size={16} /> Contato via WhatsApp
+                    <WhatsAppIcon size={16} /> Contato via WhatsApp
+                  </a>
+                )}
+
+                {atracao.instagram && (
+                  <a href={formatInstagramUrl(atracao.instagram)} target="_blank" rel="noopener noreferrer"
+                     className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F77737] text-white px-6 py-4 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg hover:opacity-90 transition-all hover:-translate-y-0.5">
+                    <InstagramIcon size={16} /> Instagram
                   </a>
                 )}
 
@@ -323,6 +366,81 @@ export default function AtracaoDetailPage() {
 
       </section>
 
+      {/* ══════════════════════════════════════
+          SEÇÃO DE LARGURA TOTAL: O QUE ENCONTRAR (DIRECIONA PARA A ATRAÇÃO REAL)
+      ══════════════════════════════════════ */}
+      {pontos.length > 0 && (
+        <section className="max-w-[1400px] mx-auto w-full px-6 mb-16">
+          <Reveal anim="up">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8 border-b border-slate-200 pb-6">
+              <div>
+                <h3 className={`${jakarta.className} text-3xl md:text-4xl font-black text-slate-900 mb-2 flex items-center gap-3`}>
+                  <MapIcon size={32} className="text-[#009640]" /> O que você encontra aqui
+                </h3>
+                <p className="text-slate-500 text-sm md:text-base">Este destino abriga múltiplos pontos de interesse para você explorar.</p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {pontos.map((ponto) => {
+                const linkDestino = ponto.atracao_destino_id ? `/atracoes/${ponto.atracao_destino_id}` : `/atracoes/${ponto.id}`;
+
+                return (
+                  <Link href={linkDestino} key={ponto.id} className="relative h-[380px] rounded-[2.5rem] overflow-hidden group shadow-md border border-slate-100 block">
+                    <Image 
+                      src={ponto.imagem_url || atracao.imagem_url} 
+                      alt={ponto.titulo} 
+                      fill 
+                      className="object-cover group-hover:scale-110 transition-transform duration-1000 ease-out" 
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/95 via-slate-900/30 to-transparent" />
+                    
+                    <div className="absolute top-6 left-6 z-10">
+                       <span className="bg-white/20 backdrop-blur-md text-white px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border border-white/20 shadow-sm">
+                          {ponto.tipo}
+                       </span>
+                    </div>
+
+                    <div className="absolute bottom-8 left-8 right-8 z-10 flex flex-col gap-3">
+                      <h4 className={`${jakarta.className} text-white text-2xl md:text-3xl font-black leading-tight drop-shadow-md`}>
+                        {ponto.titulo}
+                      </h4>
+                      <div className="w-12 h-1 bg-[#F9C400] rounded-full transform origin-left group-hover:scale-x-[2.5] transition-transform duration-500"></div>
+                      
+                      <div className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#F9C400] mt-1 group-hover:translate-x-2 transition-transform duration-300">
+                        Conhecer atrativo <ArrowRight size={14} />
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </Reveal>
+        </section>
+      )}
+
+      {/* ══════════════════════════════════════
+          SEÇÃO DE LARGURA TOTAL: GALERIA
+      ══════════════════════════════════════ */}
+      {fotosGaleria.length > 0 && (
+        <section className="max-w-[1400px] mx-auto w-full px-6 mb-24">
+          <Reveal anim="up">
+            <h3 className={`${jakarta.className} text-3xl md:text-4xl font-black text-slate-900 mb-8 flex items-center gap-3 border-b border-slate-200 pb-6`}>
+              <ImageIcon size={32} className="text-[#F9C400]" /> Galeria de Fotos
+            </h3>
+            
+            <div className="flex gap-4 md:gap-6 overflow-x-auto snap-x snap-mandatory pb-6 hide-scrollbar">
+              {fotosGaleria.map((imgUrl, i) => (
+                <div key={i} className="relative shrink-0 snap-center rounded-[2.5rem] overflow-hidden w-[280px] h-[350px] md:w-[400px] md:h-[500px] lg:w-[450px] lg:h-[550px] group shadow-sm bg-slate-100">
+                  <Image src={imgUrl} alt={`Galeria ${atracao.nome} ${i + 1}`} fill className="object-cover group-hover:scale-105 transition-transform duration-700" />
+                  <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors duration-500" />
+                </div>
+              ))}
+            </div>
+          </Reveal>
+        </section>
+      )}
+
       {/* ── FOOTER ── */}
       <footer className="py-20 px-8 border-t border-slate-200 bg-white text-left mt-auto">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
@@ -336,12 +454,8 @@ export default function AtracaoDetailPage() {
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
                 © 2026 Secretaria Municipal de Turismo - SGA | Todos os direitos reservados
               </p>
-              <p className="text-[10px] font-bold text-slate-400/80">
-                CNPJ: 10.249.241/0001-22
-              </p>
             </div>
           </div>
-
           <div className="flex gap-10">
             <div className="text-left border-l-2 border-slate-100 pl-9">
               <p className="text-[10px] font-black text-[#00577C] uppercase mb-1">Contato Oficial</p>
