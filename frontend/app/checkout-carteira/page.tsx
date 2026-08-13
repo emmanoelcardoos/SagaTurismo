@@ -35,7 +35,7 @@ function SectionHeader({ step, title, icon }: { step: number; title: string; ico
   );
 }
 
-// ── CRONÓMETRO PIX ──
+// ── CRONÓMETRO PIX (CORRIGIDO PARA NÃO REINICIAR) ──
 const PIX_DURATION_SECONDS = 10 * 60; // 10 minutos
 function CronometroPix({ onExpirado }: { onExpirado: () => void }) {
   const [segundosRestantes, setSegundosRestantes] = useState(PIX_DURATION_SECONDS);
@@ -43,12 +43,18 @@ function CronometroPix({ onExpirado }: { onExpirado: () => void }) {
   useEffect(() => {
     const id = setInterval(() => {
       setSegundosRestantes((prev) => {
-        if (prev <= 1) { clearInterval(id); onExpirado(); return 0; }
+        if (prev <= 1) { clearInterval(id); return 0; }
         return prev - 1;
       });
     }, 1000);
     return () => clearInterval(id);
-  }, [onExpirado]);
+  }, []);
+
+  useEffect(() => {
+    if (segundosRestantes === 0) {
+      onExpirado();
+    }
+  }, [segundosRestantes, onExpirado]);
 
   const minutos = Math.floor(segundosRestantes / 60);
   const segundos = segundosRestantes % 60;
@@ -66,7 +72,7 @@ function CronometroPix({ onExpirado }: { onExpirado: () => void }) {
         </div>
       </div>
       <div className="h-2 w-full rounded-full bg-slate-200 overflow-hidden">
-        <div className="h-full bg-[#009640] transition-all duration-1000" style={{ width: `${percent}%` }} />
+        <div className="h-full bg-[#009640] transition-all duration-1000 ease-linear" style={{ width: `${percent}%` }} />
       </div>
     </div>
   );
@@ -110,27 +116,24 @@ function CheckoutCarteiraContent() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
-  // ── VALIDAÇÃO DO TOKEN & POLLING ──
+  // ── BUSCA INICIAL DOS DADOS DA PESSOA ──
   useEffect(() => {
     if (!token) { router.push('/cadastro'); return; }
     
-    const checkStatus = async () => {
+    const fetchInitialData = async () => {
       try {
         const res = await fetch(`/api/validar?token=${token}`);
-        const data = await res.json();
-        
-        const qtdUrl = searchParams.get('quantidade') || searchParams.get('qtd');
-        const qtdMemoria = typeof window !== 'undefined' ? localStorage.getItem('saga_residente_quantidade') : null;
+        if (res.ok) {
+          const data = await res.json();
+          if (data.status === 'ativa' || data.status === 'ativo' || data.status === 'pago') {
+            router.push(`/carteira/${token}`);
+            return;
+          }
 
-        // Se o servidor confirmar que já foi pago, redireciona na hora!
-        if (data.status === 'ativa' || data.status === 'pago') {
-          router.push(`/carteira/${token}`);
-          return;
-        }
-
-        if (data && loadingInitial) {
           const nomeMemoria = typeof window !== 'undefined' ? localStorage.getItem('saga_residente_nome') : null;
           const emailMemoria = typeof window !== 'undefined' ? localStorage.getItem('saga_residente_email') : null;
+          const qtdUrl = searchParams.get('quantidade') || searchParams.get('qtd');
+          const qtdMemoria = typeof window !== 'undefined' ? localStorage.getItem('saga_residente_quantidade') : null;
 
           const dadosCompletos = {
             ...data,
@@ -148,27 +151,45 @@ function CheckoutCarteiraContent() {
           if (dadosCompletos.cpf) setCpfFaturamento(dadosCompletos.cpf);
           setNomeTitular(dadosCompletos.nome);
           setEmailTitular(dadosCompletos.email);
-
-          setLoadingInitial(false);
+        } else {
+            throw new Error("404");
         }
       } catch (err) { 
-        console.error("Falha ao puxar dados do titular", err);
-        if (loadingInitial) {
-            const qtdMemoria = typeof window !== 'undefined' ? localStorage.getItem('saga_residente_quantidade') : null;
-            if (qtdMemoria) setQuantidade(Number(qtdMemoria));
-            setLoadingInitial(false); 
-        }
+        console.error("Fall-back para dados locais", err);
+        const qtdMemoria = typeof window !== 'undefined' ? localStorage.getItem('saga_residente_quantidade') : null;
+        if (qtdMemoria) setQuantidade(Number(qtdMemoria));
+      } finally {
+        setLoadingInitial(false);
       }
     };
 
-    // Executa a primeira vez
-    checkStatus();
-    
-    // Continua a verificar de 8 em 8 segundos, independentemente de já ter gerado o QR Code ou não
-    const interval = setInterval(checkStatus, 8000); 
-    
+    fetchInitialData();
+  }, [token, router, searchParams]);
+
+  // ── NOVO POLLING DE 5 EM 5 SEGUNDOS (SÓ ATIVA DEPOIS DE GERAR O PIX) ──
+  useEffect(() => {
+    if (!qrCodeData?.id_pedido) return;
+
+    const checkPaymentStatus = async () => {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://sagaturismo-production.up.railway.app';
+        // Lê diretamente a rota do backend que acabámos de corrigir!
+        const res = await fetch(`${apiUrl}/api/v1/pagamentos/status/${qrCodeData.id_pedido}`);
+        if (res.ok) {
+          const data = await res.json();
+          // Se o backend confirmar, redireciona magicamente!
+          if (data.success && (data.status === 'CONFIRMED' || data.status === 'RECEIVED' || data.status === 'pago')) {
+            router.push(`/carteira/${token}`);
+          }
+        }
+      } catch (e) {
+        console.error("A aguardar confirmação do Pix...");
+      }
+    };
+
+    const interval = setInterval(checkPaymentStatus, 5000);
     return () => clearInterval(interval);
-  }, [token, router, searchParams, loadingInitial]);
+  }, [qrCodeData, router, token]);
 
   // ── INTEGRAÇÃO COM BANCO DO BRASIL ──
   const handlePagamentoPix = async (e: React.FormEvent) => {
@@ -185,7 +206,7 @@ function CheckoutCarteiraContent() {
       email_cliente: emailTitular || dadosCidadão?.email || emailMemoria || 'contato@sagaturismo.com.br',
       telefone_cliente: telefone.replace(/\D/g, '') || '11999999999',
       token_id: token,
-      quantidade: quantidade
+      quantidade: quantidade 
     };
 
     try {
@@ -224,7 +245,7 @@ function CheckoutCarteiraContent() {
   return (
     <main className={`${inter.className} min-h-screen bg-[#F5F7FA] text-slate-900 pb-20`}>
       
-      {/* HEADER TIPO PREFEITURA */}
+      {/* HEADER */}
       <header className="relative z-50 w-full bg-white border-b border-slate-200 py-4">
         <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6">
           <Link href="/" className="flex items-center gap-3">
@@ -250,12 +271,12 @@ function CheckoutCarteiraContent() {
       </div>
 
       <div className="mx-auto max-w-7xl px-4 md:px-8 py-8 md:py-12">
-        {/* AQUI ESTÁ A CORREÇÃO DA GRID - Removido o items-start para as colunas esticarem */}
-        <div className="grid gap-8 lg:grid-cols-[1fr_400px]">
+        {/* CORREÇÃO DO STICKY: items-start DE VOLTA! */}
+        <div className="grid gap-8 lg:grid-cols-[1fr_400px] items-start">
           
           <div className="space-y-6 md:space-y-8">
             {!qrCodeData ? (
-              /* ── FORMULÁRIO PIX (BANCO DO BRASIL) ── */
+              /* ── FORMULÁRIO PIX ── */
               <form onSubmit={handlePagamentoPix} className="space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <SectionCard className="p-6 md:p-10 text-left border-t-4 border-t-[#00577C]">
                   <SectionHeader step={1} title="Confirmação de Dados" icon={<ShieldCheck size={20} />} />
@@ -328,56 +349,54 @@ function CheckoutCarteiraContent() {
             )}
           </div>
 
-          {/* ── COLUNA DIREITA: RESUMO DA COMPRA COM SIDECAR FIXO (STICKY) ── */}
-          <aside className="w-full relative order-first lg:order-last">
-            {/* AQUI ESTÁ A CORREÇÃO DO STICKY - Esta div interna fica colada ao topo quando se faz scroll */}
-            <div className="lg:sticky lg:top-32 space-y-6">
-              <SectionCard>
-                <div className="h-2 w-full bg-gradient-to-r from-[#00577C] via-[#F9C400] to-[#009640]" />
-                <div className="p-6 md:p-8 border-b border-slate-100 text-left bg-slate-50">
-                  <p className="text-[10px] font-black uppercase text-[#00577C] tracking-widest mb-2 flex items-center gap-2"><CheckCircle2 size={14}/> Resumo da Emissão</p>
-                  <h3 className={`${jakarta.className} text-xl font-black text-slate-800 leading-tight`}>Cartão de Residente</h3>
-                </div>
+          {/* ── COLUNA DIREITA (SIDECAR) PERFEITAMENTE FIXO ── */}
+          <aside className="w-full relative order-first lg:order-last lg:sticky lg:top-32 self-start">
+            <SectionCard>
+              <div className="h-2 w-full bg-gradient-to-r from-[#00577C] via-[#F9C400] to-[#009640]" />
+              <div className="p-6 md:p-8 border-b border-slate-100 text-left bg-slate-50">
+                <p className="text-[10px] font-black uppercase text-[#00577C] tracking-widest mb-2 flex items-center gap-2"><CheckCircle2 size={14}/> Resumo da Emissão</p>
+                <h3 className={`${jakarta.className} text-xl font-black text-slate-800 leading-tight`}>Cartão de Residente</h3>
+              </div>
 
-                <div className="p-6 md:p-8 space-y-6 text-left">
-                   <div className="space-y-4 pb-6 border-b border-slate-100">
+              <div className="p-6 md:p-8 space-y-6 text-left">
+                 <div className="space-y-4 pb-6 border-b border-slate-100">
+                    <div>
+                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1"><User size={12}/> Titular da Conta Aprovado</p>
+                        <p className="font-bold text-slate-800 text-sm">{dadosCidadão?.nome || 'Indisponível no momento'}</p>
+                    </div>
+                    {dadosCidadão?.email && (
                       <div>
-                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1"><User size={12}/> Titular da Conta Aprovado</p>
-                          <p className="font-bold text-slate-800 text-sm">{dadosCidadão?.nome || 'Indisponível no momento'}</p>
+                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1"><Mail size={12}/> Envio dos Vouchers</p>
+                         <p className="font-bold text-slate-800 text-sm">{dadosCidadão.email}</p>
                       </div>
-                      {dadosCidadão?.email && (
-                        <div>
-                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1"><Mail size={12}/> Envio dos Vouchers</p>
-                           <p className="font-bold text-slate-800 text-sm">{dadosCidadão.email}</p>
-                        </div>
-                      )}
-                   </div>
+                    )}
+                 </div>
 
-                   <div className="flex justify-between items-center text-sm">
-                      <span className="font-bold text-slate-500 flex items-center gap-2"><Users size={16}/> Grupo Familiar Aprovado</span>
-                      <span className="font-black text-slate-800">{quantidade} {quantidade === 1 ? 'Pessoa' : 'Pessoas'}</span>
-                   </div>
-                   
-                   <div className="pt-4 border-t border-dashed border-slate-200 space-y-2 text-sm">
-                      <div className="flex justify-between text-slate-600">
-                         <span>Taxa Unitária de Emissão</span>
-                         <span className="font-bold">{formatarMoeda(PRECO_UNITARIO)}</span>
-                      </div>
-                   </div>
+                 <div className="flex justify-between items-center text-sm">
+                    <span className="font-bold text-slate-500 flex items-center gap-2"><Users size={16}/> Grupo Familiar Aprovado</span>
+                    <span className="font-black text-slate-800">{quantidade} {quantidade === 1 ? 'Pessoa' : 'Pessoas'}</span>
+                 </div>
+                 
+                 <div className="pt-4 border-t border-dashed border-slate-200 space-y-2 text-sm">
+                    <div className="flex justify-between text-slate-600">
+                       <span>Taxa Unitária de Emissão</span>
+                       <span className="font-bold">{formatarMoeda(PRECO_UNITARIO)}</span>
+                    </div>
+                 </div>
 
-                   <div className="pt-8 border-t-2 border-slate-100 flex flex-col gap-4">
-                      <div className="flex items-center justify-between">
-                         <p className="text-xs font-black uppercase text-slate-400 tracking-widest">Valor Total</p>
-                         <div className="bg-[#00577C]/10 px-3 py-1 rounded-full flex items-center gap-1.5 text-[#00577C] text-[10px] font-black uppercase">Tarifa Única</div>
-                      </div>
-                      <p className={`${jakarta.className} text-4xl md:text-5xl font-black text-[#00577C] tabular-nums leading-none`}>
-                        {formatarMoeda(valorTotalReserva)}
-                      </p>
-                   </div>
-                </div>
-              </SectionCard>
-            </div>
+                 <div className="pt-8 border-t-2 border-slate-100 flex flex-col gap-4">
+                    <div className="flex items-center justify-between">
+                       <p className="text-xs font-black uppercase text-slate-400 tracking-widest">Valor Total</p>
+                       <div className="bg-[#00577C]/10 px-3 py-1 rounded-full flex items-center gap-1.5 text-[#00577C] text-[10px] font-black uppercase">Tarifa Única</div>
+                    </div>
+                    <p className={`${jakarta.className} text-4xl md:text-5xl font-black text-[#00577C] tabular-nums leading-none`}>
+                      {formatarMoeda(valorTotalReserva)}
+                    </p>
+                 </div>
+              </div>
+            </SectionCard>
           </aside>
+          
         </div>
       </div>
     </main>
