@@ -35,7 +35,7 @@ function SectionHeader({ step, title, icon }: { step: number; title: string; ico
   );
 }
 
-// ── CRONÓMETRO PIX (CORRIGIDO PARA NÃO REINICIAR) ──
+// ── CRONÓMETRO PIX ──
 const PIX_DURATION_SECONDS = 10 * 60; // 10 minutos
 function CronometroPix({ onExpirado }: { onExpirado: () => void }) {
   const [segundosRestantes, setSegundosRestantes] = useState(PIX_DURATION_SECONDS);
@@ -125,8 +125,9 @@ function CheckoutCarteiraContent() {
         const res = await fetch(`/api/validar?token=${token}`);
         if (res.ok) {
           const data = await res.json();
+          // SE JÁ ESTIVER PAGO, REDIRECIONA PARA SUCESSO!
           if (data.status === 'ativa' || data.status === 'ativo' || data.status === 'pago') {
-            router.push(`/carteira/${token}`);
+            router.push(`/sucesso-carteira`);
             return;
           }
 
@@ -155,8 +156,19 @@ function CheckoutCarteiraContent() {
             throw new Error("404");
         }
       } catch (err) { 
-        console.error("Fall-back para dados locais", err);
+        console.error("Fall-back para dados locais");
+        // CORREÇÃO: Resgata o nome e e-mail da memória caso o servidor dê 404 inicial
+        const nomeMemoria = typeof window !== 'undefined' ? localStorage.getItem('saga_residente_nome') : null;
+        const emailMemoria = typeof window !== 'undefined' ? localStorage.getItem('saga_residente_email') : null;
+        const cpfMemoria = typeof window !== 'undefined' ? localStorage.getItem('saga_residente_cpf') : null;
         const qtdMemoria = typeof window !== 'undefined' ? localStorage.getItem('saga_residente_quantidade') : null;
+        
+        if (nomeMemoria) {
+           setDadosCidadão({ nome: nomeMemoria, email: emailMemoria || '', cpf: cpfMemoria || '' });
+           setNomeTitular(nomeMemoria);
+           if (emailMemoria) setEmailTitular(emailMemoria);
+           if (cpfMemoria) setCpfFaturamento(mascaraCPF(cpfMemoria));
+        }
         if (qtdMemoria) setQuantidade(Number(qtdMemoria));
       } finally {
         setLoadingInitial(false);
@@ -166,20 +178,19 @@ function CheckoutCarteiraContent() {
     fetchInitialData();
   }, [token, router, searchParams]);
 
-  // ── NOVO POLLING DE 5 EM 5 SEGUNDOS (SÓ ATIVA DEPOIS DE GERAR O PIX) ──
+  // ── POLLING DE 5 EM 5 SEGUNDOS APÓS GERAR O PIX ──
   useEffect(() => {
     if (!qrCodeData?.id_pedido) return;
 
     const checkPaymentStatus = async () => {
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://sagaturismo-production.up.railway.app';
-        // Lê diretamente a rota do backend que acabámos de corrigir!
         const res = await fetch(`${apiUrl}/api/v1/pagamentos/status/${qrCodeData.id_pedido}`);
         if (res.ok) {
           const data = await res.json();
-          // Se o backend confirmar, redireciona magicamente!
+          // SE O BACKEND CONFIRMAR, REDIRECIONA PARA A PÁGINA DE SUCESSO!
           if (data.success && (data.status === 'CONFIRMED' || data.status === 'RECEIVED' || data.status === 'pago')) {
-            router.push(`/carteira/${token}`);
+            router.push(`/sucesso-carteira`);
           }
         }
       } catch (e) {
@@ -271,7 +282,7 @@ function CheckoutCarteiraContent() {
       </div>
 
       <div className="mx-auto max-w-7xl px-4 md:px-8 py-8 md:py-12">
-        {/* CORREÇÃO DO STICKY: items-start DE VOLTA! */}
+        {/* CORREÇÃO DO STICKY: items-start MANTIDO PARA PERMITIR FIXAÇÃO */}
         <div className="grid gap-8 lg:grid-cols-[1fr_400px] items-start">
           
           <div className="space-y-6 md:space-y-8">
@@ -349,8 +360,8 @@ function CheckoutCarteiraContent() {
             )}
           </div>
 
-          {/* ── COLUNA DIREITA (SIDECAR) PERFEITAMENTE FIXO ── */}
-          <aside className="w-full relative order-first lg:order-last lg:sticky lg:top-32 self-start">
+          {/* ── COLUNA DIREITA (SIDECAR) PERFEITAMENTE FIXO (h-fit lg:sticky lg:top-32) ── */}
+          <aside className="w-full relative order-first lg:order-last h-fit lg:sticky lg:top-32">
             <SectionCard>
               <div className="h-2 w-full bg-gradient-to-r from-[#00577C] via-[#F9C400] to-[#009640]" />
               <div className="p-6 md:p-8 border-b border-slate-100 text-left bg-slate-50">
@@ -362,12 +373,12 @@ function CheckoutCarteiraContent() {
                  <div className="space-y-4 pb-6 border-b border-slate-100">
                     <div>
                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1"><User size={12}/> Titular da Conta Aprovado</p>
-                        <p className="font-bold text-slate-800 text-sm">{dadosCidadão?.nome || 'Indisponível no momento'}</p>
+                        <p className="font-bold text-slate-800 text-sm">{dadosCidadão?.nome || nomeTitular || 'Indisponível no momento'}</p>
                     </div>
-                    {dadosCidadão?.email && (
+                    {(dadosCidadão?.email || emailTitular) && (
                       <div>
                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1"><Mail size={12}/> Envio dos Vouchers</p>
-                         <p className="font-bold text-slate-800 text-sm">{dadosCidadão.email}</p>
+                         <p className="font-bold text-slate-800 text-sm">{dadosCidadão?.email || emailTitular}</p>
                       </div>
                     )}
                  </div>
