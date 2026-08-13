@@ -6,7 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { 
   Loader2, ShieldCheck, CheckCircle2, User, Mail, Copy, 
-  Lock, Check, ChevronRight, Users, Menu, X, IdCard, Leaf
+  Lock, Check, ChevronRight, Users, Menu, X
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 
@@ -110,7 +110,7 @@ function CheckoutCarteiraContent() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
-  // ── VALIDAÇÃO DO TOKEN ──
+  // ── VALIDAÇÃO DO TOKEN & POLLING ──
   useEffect(() => {
     if (!token) { router.push('/cadastro'); return; }
     
@@ -122,12 +122,13 @@ function CheckoutCarteiraContent() {
         const qtdUrl = searchParams.get('quantidade') || searchParams.get('qtd');
         const qtdMemoria = typeof window !== 'undefined' ? localStorage.getItem('saga_residente_quantidade') : null;
 
+        // Se o servidor confirmar que já foi pago, redireciona na hora!
         if (data.status === 'ativa' || data.status === 'pago') {
           router.push(`/carteira/${token}`);
           return;
         }
 
-        if (data) {
+        if (data && loadingInitial) {
           const nomeMemoria = typeof window !== 'undefined' ? localStorage.getItem('saga_residente_nome') : null;
           const emailMemoria = typeof window !== 'undefined' ? localStorage.getItem('saga_residente_email') : null;
 
@@ -152,19 +153,22 @@ function CheckoutCarteiraContent() {
         }
       } catch (err) { 
         console.error("Falha ao puxar dados do titular", err);
-        const qtdMemoria = typeof window !== 'undefined' ? localStorage.getItem('saga_residente_quantidade') : null;
-        if (qtdMemoria) setQuantidade(Number(qtdMemoria));
-        setLoadingInitial(false); 
+        if (loadingInitial) {
+            const qtdMemoria = typeof window !== 'undefined' ? localStorage.getItem('saga_residente_quantidade') : null;
+            if (qtdMemoria) setQuantidade(Number(qtdMemoria));
+            setLoadingInitial(false); 
+        }
       }
     };
 
+    // Executa a primeira vez
     checkStatus();
-    // Parar de fazer polling se já gerou o QR Code para não sobrecarregar
-    if (!qrCodeData) {
-      const interval = setInterval(checkStatus, 8000); 
-      return () => clearInterval(interval);
-    }
-  }, [token, router, searchParams, qrCodeData]);
+    
+    // Continua a verificar de 8 em 8 segundos, independentemente de já ter gerado o QR Code ou não
+    const interval = setInterval(checkStatus, 8000); 
+    
+    return () => clearInterval(interval);
+  }, [token, router, searchParams, loadingInitial]);
 
   // ── INTEGRAÇÃO COM BANCO DO BRASIL ──
   const handlePagamentoPix = async (e: React.FormEvent) => {
@@ -181,13 +185,12 @@ function CheckoutCarteiraContent() {
       email_cliente: emailTitular || dadosCidadão?.email || emailMemoria || 'contato@sagaturismo.com.br',
       telefone_cliente: telefone.replace(/\D/g, '') || '11999999999',
       token_id: token,
-      quantidade: quantidade // Enviado para o backend processar os acompanhantes
+      quantidade: quantidade
     };
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://sagaturismo-production.up.railway.app';
       
-      // ◄── CHAMA A NOVA ROTA DO BANCO DO BRASIL ──►
       const res = await fetch(`${apiUrl}/api/v1/pagamentos/carteira-bb`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -247,7 +250,8 @@ function CheckoutCarteiraContent() {
       </div>
 
       <div className="mx-auto max-w-7xl px-4 md:px-8 py-8 md:py-12">
-        <div className="grid gap-8 lg:grid-cols-[1fr_400px] items-start">
+        {/* AQUI ESTÁ A CORREÇÃO DA GRID - Removido o items-start para as colunas esticarem */}
+        <div className="grid gap-8 lg:grid-cols-[1fr_400px]">
           
           <div className="space-y-6 md:space-y-8">
             {!qrCodeData ? (
@@ -263,10 +267,7 @@ function CheckoutCarteiraContent() {
                     </div>
                   )}
 
-                 
-
                   <div className="space-y-4">
-                    
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                        <input 
                          required 
@@ -285,7 +286,6 @@ function CheckoutCarteiraContent() {
                          placeholder="WhatsApp com DDD *" 
                        />
                     </div>
-                    
                   </div>
 
                   <button 
@@ -328,54 +328,55 @@ function CheckoutCarteiraContent() {
             )}
           </div>
 
-          {/* ── COLUNA DIREITA: RESUMO DA COMPRA ── */}
-          <aside className="w-full h-fit lg:sticky lg:top-32 order-first lg:order-last relative space-y-6">
-            <SectionCard>
-              <div className="h-2 w-full bg-gradient-to-r from-[#00577C] via-[#F9C400] to-[#009640]" />
-              <div className="p-6 md:p-8 border-b border-slate-100 text-left bg-slate-50">
-                <p className="text-[10px] font-black uppercase text-[#00577C] tracking-widest mb-2 flex items-center gap-2"><CheckCircle2 size={14}/> Resumo da Emissão</p>
-                <h3 className={`${jakarta.className} text-xl font-black text-slate-800 leading-tight`}>Cartão de Residente</h3>
-              </div>
+          {/* ── COLUNA DIREITA: RESUMO DA COMPRA COM SIDECAR FIXO (STICKY) ── */}
+          <aside className="w-full relative order-first lg:order-last">
+            {/* AQUI ESTÁ A CORREÇÃO DO STICKY - Esta div interna fica colada ao topo quando se faz scroll */}
+            <div className="lg:sticky lg:top-32 space-y-6">
+              <SectionCard>
+                <div className="h-2 w-full bg-gradient-to-r from-[#00577C] via-[#F9C400] to-[#009640]" />
+                <div className="p-6 md:p-8 border-b border-slate-100 text-left bg-slate-50">
+                  <p className="text-[10px] font-black uppercase text-[#00577C] tracking-widest mb-2 flex items-center gap-2"><CheckCircle2 size={14}/> Resumo da Emissão</p>
+                  <h3 className={`${jakarta.className} text-xl font-black text-slate-800 leading-tight`}>Cartão de Residente</h3>
+                </div>
 
-              <div className="p-6 md:p-8 space-y-6 text-left">
-                 
-                 <div className="space-y-4 pb-6 border-b border-slate-100">
-                    <div>
-                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1"><User size={12}/> Titular da Conta Aprovado</p>
-                        <p className="font-bold text-slate-800 text-sm">{dadosCidadão?.nome || 'Indisponível no momento'}</p>
-                    </div>
-                    {dadosCidadão?.email && (
+                <div className="p-6 md:p-8 space-y-6 text-left">
+                   <div className="space-y-4 pb-6 border-b border-slate-100">
                       <div>
-                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1"><Mail size={12}/> Envio dos Vouchers</p>
-                         <p className="font-bold text-slate-800 text-sm">{dadosCidadão.email}</p>
+                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1"><User size={12}/> Titular da Conta Aprovado</p>
+                          <p className="font-bold text-slate-800 text-sm">{dadosCidadão?.nome || 'Indisponível no momento'}</p>
                       </div>
-                    )}
-                 </div>
+                      {dadosCidadão?.email && (
+                        <div>
+                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1"><Mail size={12}/> Envio dos Vouchers</p>
+                           <p className="font-bold text-slate-800 text-sm">{dadosCidadão.email}</p>
+                        </div>
+                      )}
+                   </div>
 
-                 <div className="flex justify-between items-center text-sm">
-                    <span className="font-bold text-slate-500 flex items-center gap-2"><Users size={16}/> Grupo Familiar Aprovado</span>
-                    <span className="font-black text-slate-800">{quantidade} {quantidade === 1 ? 'Pessoa' : 'Pessoas'}</span>
-                 </div>
-                 
-                 <div className="pt-4 border-t border-dashed border-slate-200 space-y-2 text-sm">
-                    <div className="flex justify-between text-slate-600">
-                       <span>Taxa Unitária de Emissão</span>
-                       <span className="font-bold">{formatarMoeda(PRECO_UNITARIO)}</span>
-                    </div>
-                 </div>
+                   <div className="flex justify-between items-center text-sm">
+                      <span className="font-bold text-slate-500 flex items-center gap-2"><Users size={16}/> Grupo Familiar Aprovado</span>
+                      <span className="font-black text-slate-800">{quantidade} {quantidade === 1 ? 'Pessoa' : 'Pessoas'}</span>
+                   </div>
+                   
+                   <div className="pt-4 border-t border-dashed border-slate-200 space-y-2 text-sm">
+                      <div className="flex justify-between text-slate-600">
+                         <span>Taxa Unitária de Emissão</span>
+                         <span className="font-bold">{formatarMoeda(PRECO_UNITARIO)}</span>
+                      </div>
+                   </div>
 
-                 <div className="pt-8 border-t-2 border-slate-100 flex flex-col gap-4">
-                    <div className="flex items-center justify-between">
-                       <p className="text-xs font-black uppercase text-slate-400 tracking-widest">Valor Total</p>
-                       <div className="bg-[#00577C]/10 px-3 py-1 rounded-full flex items-center gap-1.5 text-[#00577C] text-[10px] font-black uppercase">Tarifa Única</div>
-                    </div>
-                    <p className={`${jakarta.className} text-4xl md:text-5xl font-black text-[#00577C] tabular-nums leading-none`}>
-                      {formatarMoeda(valorTotalReserva)}
-                    </p>
-                 </div>
-              </div>
-            </SectionCard>
-          
+                   <div className="pt-8 border-t-2 border-slate-100 flex flex-col gap-4">
+                      <div className="flex items-center justify-between">
+                         <p className="text-xs font-black uppercase text-slate-400 tracking-widest">Valor Total</p>
+                         <div className="bg-[#00577C]/10 px-3 py-1 rounded-full flex items-center gap-1.5 text-[#00577C] text-[10px] font-black uppercase">Tarifa Única</div>
+                      </div>
+                      <p className={`${jakarta.className} text-4xl md:text-5xl font-black text-[#00577C] tabular-nums leading-none`}>
+                        {formatarMoeda(valorTotalReserva)}
+                      </p>
+                   </div>
+                </div>
+              </SectionCard>
+            </div>
           </aside>
         </div>
       </div>
