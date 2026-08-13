@@ -683,6 +683,13 @@ async def processar_carteira_gratuita(pedido: PedidoCarteiraGratuita):
 @router.get("/api/v1/pagamentos/status/{payment_id}")
 async def verificar_status_pagamento(payment_id: str):
     try:
+        # 1. VERIFICA NA BASE DE DADOS (Funciona para BB e Pix!)
+        res = supabase.table("pedidos").select("status_pagamento").eq("codigo_pedido", payment_id).execute()
+        if res.data:
+            if res.data[0]["status_pagamento"] == "pago":
+                return {"success": True, "status": "CONFIRMED"}
+
+        # 2. FALLBACK PARA O ASAAS (Mantém a compatibilidade do teu sistema de Cartão de Crédito)
         headers = {"access_token": ASAAS_API_KEY}
         async with httpx.AsyncClient() as client:
             resp = await client.get(f"{ASAAS_API_URL}/payments/{payment_id}", headers=headers)
