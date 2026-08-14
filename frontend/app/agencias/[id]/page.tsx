@@ -6,7 +6,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import {
   Menu, MapPin, ShieldCheck, X, ArrowLeft, ArrowRight,
-  AtSign, Mail, Clock, Compass, AlertCircle, Loader2, Briefcase
+  AtSign, Mail, Clock, Compass, AlertCircle, Loader2, Briefcase,
+  ChevronDown
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -82,7 +83,17 @@ function AgenciaIdPageContent() {
   const [agencia, setAgencia] = useState<Agencia | null>(null);
   const [pacotes, setPacotes] = useState<Pacote[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showHeader, setShowHeader] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+  const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // ── MENU AGRUPADO (PADRÃO VINCI) ──
+  const menuGroups = [
+    { label: 'Conhecer', links: ['Atrativos', 'Roteiros', 'História', 'Biodiversidade', 'Galeria'] },
+    { label: 'Viver', links: ['Passeios', 'Eventos', 'Comunidades', 'Aldeias'] },
+    { label: 'Planejar', links: ['Hotéis', 'Gastronomia', 'Agências', 'Informações', 'Parceiros'] }
+  ];
 
   useEffect(() => {
     async function fetchData() {
@@ -111,10 +122,21 @@ function AgenciaIdPageContent() {
     fetchData();
   }, [id]);
 
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      setIsScrolled(currentScrollY > 50);
+      if (currentScrollY < 80) setShowHeader(true);
+      else if (currentScrollY > lastScrollY) setShowHeader(false);
+      else setShowHeader(true);
+      setLastScrollY(currentScrollY);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [lastScrollY]);
+
   const FALLBACK_CAPA = "https://images.unsplash.com/photo-1533240332313-0cb49f47c0a8";
   const FALLBACK_PACOTE = "https://live.staticflickr.com/65535/54668340687_2c7f6b5c39_4k.jpg";
-
-  const menuItens = ['Hoteis', 'Agencias', 'Rotas', 'Passeios', 'Aldeias', 'Eventos', 'Biodiversidade', 'Gastronomia', 'Comunidades'];
 
   // Função para formatar o link do Instagram
   const formatInstagramUrl = (instagram: string) => {
@@ -156,52 +178,71 @@ function AgenciaIdPageContent() {
   return (
     <div className={`${inter.className} min-h-screen bg-[#FDFCF7] text-slate-900 flex flex-col`}>
       
-      {/* ── HEADER ── */}
-      <header className="relative z-50 w-full bg-white border-b border-slate-200 py-4">
-        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6">
-          <Link href="/" className="flex items-center gap-3">
-             <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
+      {/* ── HEADER EDITORIAL CENTRALIZADO ── */}
+      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${showHeader ? 'translate-y-0' : '-translate-y-full'} ${isScrolled ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100' : 'bg-white border-b border-slate-200'}`}>
+        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4 relative">
+          <div className="flex-1">
+            <Link href="/" className="inline-flex items-center gap-3">
+              <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
                 <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain" />
-             </div>
-          </Link>
-
-          <nav className="hidden lg:flex items-center gap-8">
-            {menuItens.map(item => (
-              <Link key={item} href={`/${item.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`} className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-slate-600 hover:text-[#00577C] transition-colors`}>
-                {item}
-              </Link>
-            ))}
-            <Link href="/cadastro" className={`${jakarta.className} bg-[#F9C400] text-[#002f40] px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-sm`}>
-              Cartão Residente
+              </div>
             </Link>
+          </div>
+
+          <nav className="hidden lg:flex items-center justify-center gap-12">
+            {menuGroups.map((group) => (
+              <div key={group.label} className="relative group py-2">
+                <button className={`${jakarta.className} flex items-center gap-1.5 text-xs font-black uppercase tracking-[0.2em] text-slate-600 group-hover:text-[#00577C] transition-colors`}>
+                  {group.label} <ChevronDown size={14} className="group-hover:rotate-180 transition-transform duration-300" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max bg-white/95 backdrop-blur-xl border border-slate-100 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] rounded-2xl p-2 opacity-0 invisible translate-y-2 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 transition-all duration-300 z-50 flex flex-row items-center gap-1">
+                  {group.links.map((link) => (
+                    <Link key={link} href={`/${link.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`} className={`${jakarta.className} block px-5 py-3 text-sm font-bold text-slate-600 hover:text-[#00577C] hover:bg-slate-50 rounded-xl transition-all whitespace-nowrap`}>
+                      {link}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ))}
           </nav>
 
-          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="rounded-xl p-2 lg:hidden bg-slate-50 text-[#00577C] hover:bg-slate-100 transition-colors">
-            {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
+          <div className="flex-1 flex justify-end items-center gap-4">
+            <Link href="/cadastro" className={`hidden lg:inline-flex ${jakarta.className} bg-[#F9C400] text-[#002f40] px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-sm`}>
+              Residente
+            </Link>
+            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="rounded-xl p-2 lg:hidden bg-slate-50 text-[#00577C] hover:bg-slate-100 transition-colors">
+              {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
+          </div>
         </div>
 
         {/* Menu Mobile */}
         {isMobileMenuOpen && (
-          <div className="absolute top-full left-0 w-full bg-white border-b border-slate-200 p-6 flex flex-col gap-4 shadow-2xl lg:hidden z-50">
-            {menuItens.map(item => (
-              <Link key={item} href={`/${item.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2 transition-colors`}>
-                {item}
-              </Link>
+          <div className="absolute top-full left-0 w-full bg-white border-b border-slate-200 p-6 flex flex-col gap-6 shadow-2xl lg:hidden z-50 max-h-[85vh] overflow-y-auto">
+            <Link href="/agencias" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>← Voltar às Agências</Link>
+            {menuGroups.map((group) => (
+              <div key={group.label} className="flex flex-col gap-3">
+                <p className={`${jakarta.className} text-[10px] font-black uppercase tracking-[0.2em] text-[#00577C] border-b border-slate-100 pb-2`}>{group.label}</p>
+                <div className="flex flex-wrap gap-2">
+                  {group.links.map((link) => (
+                    <Link key={link} href={`/${link.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`} onClick={() => setIsMobileMenuOpen(false)} className={`${jakarta.className} font-bold text-slate-700 text-sm bg-slate-50 px-4 py-2 rounded-lg border border-slate-100 hover:text-[#00577C] hover:bg-slate-100 transition-colors`}>
+                      {link}
+                    </Link>
+                  ))}
+                </div>
+              </div>
             ))}
-            <Link href="/cadastro"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md mt-2`}>
-              Cartão Residente
-            </Link>
+            <div className="border-t border-slate-100 pt-4 mt-2 flex flex-col gap-3">
+              <Link href="/cadastro" onClick={() => setIsMobileMenuOpen(false)} className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md`}>
+                Cartão Residente
+              </Link>
+            </div>
           </div>
         )}
       </header>
 
       {/* ── HERO DA AGÊNCIA (CAPA E LOGO RESTRUTURADOS) ── */}
-      <section className="relative w-full bg-white border-b border-slate-100">
+      <section className="relative w-full bg-white border-b border-slate-100 mt-[72px] md:mt-[80px]">
         {/* Capa */}
         <div className="relative h-[25vh] md:h-[35vh] min-h-[200px] w-full bg-[#002f40]">
           <Image

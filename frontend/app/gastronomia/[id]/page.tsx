@@ -7,7 +7,7 @@ import {
   Menu, X, ArrowLeft, ArrowRight, MapPin, Phone, MessageCircle,
   ChefHat, Leaf, Star, Clock, Users, Camera, Utensils, Heart,
   ExternalLink, Loader2, ChevronLeft, ChevronRight, Quote,
-  ShieldCheck
+  ShieldCheck, ChevronDown
 } from 'lucide-react';
 import { Plus_Jakarta_Sans } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -182,6 +182,13 @@ export default function RestaurantePage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
+  // ── MENU AGRUPADO (PADRÃO VINCI) ──
+  const menuGroups = [
+    { label: 'Conhecer', links: ['Atrativos', 'Rotas', 'História', 'Biodiversidade', 'Galeria'] },
+    { label: 'Viver', links: ['Passeios', 'Eventos', 'Comunidades', 'Aldeias'] },
+    { label: 'Planejar', links: ['Hotéis', 'Gastronomia', 'Agências', 'Informações', 'Parceiros'] }
+  ];
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#faf8f4] flex flex-col items-center justify-center gap-4">
@@ -212,54 +219,70 @@ export default function RestaurantePage() {
   return (
     <main className={`${jakarta.className} bg-[#faf8f4] text-slate-900 overflow-x-hidden min-h-screen`}>
 
-      {/* ── HEADER ── */}
-      <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${showHeader ? 'translate-y-0' : '-translate-y-full'} ${scrolled ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100' : 'bg-white border-b border-slate-200'}`}
-      >
-        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
-              <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain" />
-            </div>
-          </Link>
-
-          <nav className="hidden lg:flex items-center gap-8">
-            {['Hoteis', 'Pacotes', 'Rotas', 'Passeios', 'Aldeias', 'Eventos', 'Biodiversidade', 'Gastronomia', 'Comunidades'].map(item => (
-              <Link key={item} href={`/${item.toLowerCase()}`}
-                className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-slate-600 hover:text-[#00577C] transition-colors`}>
-                {item}
-              </Link>
-            ))}
-            <Link href="/cadastro"
-              className={`${jakarta.className} bg-[#F9C400] text-[#002f40] px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-sm`}>
-              Cartão Residente
+      {/* ── HEADER EDITORIAL CENTRALIZADO ── */}
+      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${showHeader ? 'translate-y-0' : '-translate-y-full'} ${scrolled ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100' : 'bg-white border-b border-slate-200'}`}>
+        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4 relative">
+          <div className="flex-1">
+            <Link href="/" className="inline-flex items-center gap-3">
+              <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
+                <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain" />
+              </div>
             </Link>
+          </div>
+
+          <nav className="hidden lg:flex items-center justify-center gap-12">
+            {menuGroups.map((group) => (
+              <div key={group.label} className="relative group py-2">
+                <button className={`${jakarta.className} flex items-center gap-1.5 text-xs font-black uppercase tracking-[0.2em] text-slate-600 group-hover:text-[#00577C] transition-colors`}>
+                  {group.label} <ChevronDown size={14} className="group-hover:rotate-180 transition-transform duration-300" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max bg-white/95 backdrop-blur-xl border border-slate-100 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] rounded-2xl p-2 opacity-0 invisible translate-y-2 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 transition-all duration-300 z-50 flex flex-row items-center gap-1">
+                  {group.links.map((link) => (
+                    <Link key={link} href={`/${link.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`} className={`${jakarta.className} block px-5 py-3 text-sm font-bold text-slate-600 hover:text-[#00577C] hover:bg-slate-50 rounded-xl transition-all whitespace-nowrap`}>
+                      {link}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ))}
           </nav>
 
-          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="rounded-xl p-2 lg:hidden bg-slate-50 text-[#00577C] hover:bg-slate-100 transition-colors">
-            {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
+          <div className="flex-1 flex justify-end items-center gap-4">
+            <Link href="/cadastro" className={`hidden lg:inline-flex ${jakarta.className} bg-[#F9C400] text-[#002f40] px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-sm`}>
+              Residente
+            </Link>
+            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="rounded-xl p-2 lg:hidden bg-slate-50 text-[#00577C] hover:bg-slate-100 transition-colors">
+              {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
+          </div>
         </div>
 
+        {/* Menu Mobile */}
         {isMobileMenuOpen && (
-          <div className="absolute top-full left-0 w-full bg-white border-b border-slate-200 p-6 flex flex-col gap-4 shadow-2xl lg:hidden z-50">
-            {['Hoteis', 'Pacotes', 'Roteiros', 'Passeios', 'Aldeias', 'Eventos', 'Biodiversidade', 'Gastronomia', 'Comunidades'].map(item => (
-              <Link key={item} href={`/${item.toLowerCase()}`}
-                className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>
-                {item}
-              </Link>
+          <div className="absolute top-full left-0 w-full bg-white border-b border-slate-200 p-6 flex flex-col gap-6 shadow-2xl lg:hidden z-50 max-h-[85vh] overflow-y-auto">
+            {menuGroups.map((group) => (
+              <div key={group.label} className="flex flex-col gap-3">
+                <p className={`${jakarta.className} text-[10px] font-black uppercase tracking-[0.2em] text-[#00577C] border-b border-slate-100 pb-2`}>{group.label}</p>
+                <div className="flex flex-wrap gap-2">
+                  {group.links.map((link) => (
+                    <Link key={link} href={`/${link.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`} onClick={() => setIsMobileMenuOpen(false)} className={`${jakarta.className} font-bold text-slate-700 text-sm bg-slate-50 px-4 py-2 rounded-lg border border-slate-100 hover:text-[#00577C] hover:bg-slate-100 transition-colors`}>
+                      {link}
+                    </Link>
+                  ))}
+                </div>
+              </div>
             ))}
-            <Link href="/cadastro"
-              className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md mt-2`}>
-              Cartão Residente
-            </Link>
+            <div className="border-t border-slate-100 pt-4 mt-2 flex flex-col gap-3">
+              <Link href="/cadastro" onClick={() => setIsMobileMenuOpen(false)} className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md`}>
+                Cartão Residente
+              </Link>
+            </div>
           </div>
         )}
       </header>
 
-      {/* ── HERO FULLSCREEN ── */}
-      <section className="relative w-full h-screen min-h-[640px]">
+      {/* ── HERO REDUZIDO (SEM DESCRIÇÃO E SEM BOTÕES) ── */}
+      <section className="relative w-full h-[60vh] min-h-[400px]">
         <Image
           src={restaurante.imagem_url}
           alt={restaurante.titulo}
@@ -270,58 +293,23 @@ export default function RestaurantePage() {
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-900/25 to-slate-900/30" />
 
         {/* Hero text — bottom */}
-        <div className="absolute bottom-0 left-0 right-0 px-6 md:px-14 pb-14 md:pb-24">
+        <div className="absolute bottom-0 left-0 right-0 px-6 md:px-14 pb-14 md:pb-20">
           <Reveal animation="fade-up" delay={100}>
             <h1 className={`${jakarta.className} text-5xl sm:text-6xl md:text-8xl font-black text-white leading-[1.0] drop-shadow-xl mb-6 max-w-4xl`}>
               {restaurante.titulo}
             </h1>
-            <p className="text-white/70 text-base md:text-xl font-medium max-w-2xl leading-relaxed">
-              {restaurante.descricao_curta}
-            </p>
           </Reveal>
-        </div>
-
-        {/* Action badges top-right */}
-        <div className="absolute top-24 right-6 md:right-14 flex flex-col gap-3">
-            {whatsappNumber && (
-              <Reveal animation="fade-left" delay={300}>
-                <a
-                  href={`https://wa.me/${whatsappNumber}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2.5 bg-[#25D366] text-white px-4 py-2.5 rounded-full shadow-lg hover:scale-105 transition-all"
-                >
-                  <MessageCircle size={16} />
-                  <span className={`${jakarta.className} text-[10px] font-black uppercase tracking-widest`}>WhatsApp</span>
-                </a>
-              </Reveal>
-            )}
-            {restaurante.link_google_maps && (
-              <Reveal animation="fade-left" delay={400}>
-                <a
-                  href={restaurante.link_google_maps}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2.5 bg-white/90 backdrop-blur-sm text-slate-800 px-4 py-2.5 rounded-full shadow-lg hover:scale-105 transition-all"
-                >
-                  <MapPin size={16} className="text-red-500" />
-                  <span className={`${jakarta.className} text-[10px] font-black uppercase tracking-widest`}>Ver no mapa</span>
-                </a>
-              </Reveal>
-            )}
         </div>
       </section>
 
       {/* ── SOBRE NÓS (FAMÍLIA) ── */}
       {(restaurante.sobre_nos_texto || restaurante.foto_equipe_url) && (
         <section className="py-20 md:py-32 bg-white relative overflow-hidden">
-          {/* Decorative background element */}
           <div className="absolute top-0 left-0 w-1/2 h-full bg-[#faf8f4] rounded-r-[5rem] pointer-events-none" />
 
           <div className="relative mx-auto max-w-7xl px-5 md:px-10">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-center">
 
-              {/* Photo side — LEFT */}
               {restaurante.foto_equipe_url && (
                 <Reveal animation="fade-right">
                   <div className="relative">
@@ -334,19 +322,16 @@ export default function RestaurantePage() {
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 to-transparent" />
                     </div>
-                    {/* Decorative tag */}
                     <div className={`${jakarta.className} absolute -bottom-5 -right-5 bg-[#F9C400] text-[#002f40] px-6 py-4 rounded-2xl shadow-xl font-black text-xs uppercase tracking-widest`}>
                       <p className="text-[10px] opacity-60">A equipe</p>
                       <p>A nossa familia</p>
                     </div>
-                    {/* Decorative circle */}
                     <div className="absolute -top-6 -left-6 w-24 h-24 rounded-full border-4 border-[#009640]/30 pointer-events-none" />
                     <div className="absolute -top-3 -left-3 w-12 h-12 rounded-full bg-[#009640]/10 pointer-events-none" />
                   </div>
                 </Reveal>
               )}
 
-              {/* Text side — RIGHT */}
               <Reveal animation="fade-left" delay={200}>
                 <div>
                   <div className="flex items-center gap-3 mb-6">
@@ -419,7 +404,6 @@ export default function RestaurantePage() {
                     onClick={() => setActiveMenuItem(activeMenuItem === i ? null : i)}
                     className={`relative bg-white rounded-[1.75rem] p-8 border cursor-pointer group transition-all duration-500 overflow-hidden ${activeMenuItem === i ? 'border-[#00577C] shadow-xl shadow-[#00577C]/10' : 'border-slate-100 hover:border-slate-200 hover:shadow-lg'}`}
                   >
-                    {/* Number */}
                     <span className={`${jakarta.className} absolute top-6 right-8 text-7xl font-black text-slate-100 group-hover:text-slate-200 transition-colors leading-none pointer-events-none select-none`}>
                       {String(i + 1).padStart(2, '0')}
                     </span>
@@ -469,16 +453,14 @@ export default function RestaurantePage() {
         </section>
       )}
 
-      {/* ── MAPA / LOCALIZAÇÃO ── */}
+      {/* ── MAPA / LOCALIZAÇÃO (ORIGINAL) ── */}
       <section className="py-20 md:py-32 bg-[#002f40] relative overflow-hidden">
-        {/* Decorative ring */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full border border-white/5 pointer-events-none" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full border border-white/5 pointer-events-none" />
 
         <div className="relative mx-auto max-w-7xl px-5 md:px-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
 
-            {/* Info */}
             <Reveal animation="fade-right">
               <div>
                 <div className="flex items-center gap-3 mb-6">
@@ -522,7 +504,6 @@ export default function RestaurantePage() {
               </div>
             </Reveal>
 
-            {/* Map embed or decorative placeholder */}
             <Reveal animation="fade-left" delay={200}>
               <div className="relative">
                 {restaurante.link_google_maps ? (
@@ -573,7 +554,7 @@ export default function RestaurantePage() {
         </Reveal>
       </section>
 
-      {/* ── FOOTER ── */}
+      {/* ── FOOTER (ORIGINAL) ── */}
       <footer className="py-20 px-8 border-t border-slate-200 bg-white text-left">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
           <div className="flex flex-col items-center md:items-start gap-4">

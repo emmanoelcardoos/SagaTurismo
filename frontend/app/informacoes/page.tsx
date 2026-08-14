@@ -8,7 +8,7 @@ import {
   Flame, Building2, Phone, MapPin, Clock, Info,
   ChevronRight, X, ArrowRight, Ambulance, TreePine,
   LifeBuoy, Stethoscope, Car, Wifi, DollarSign, Droplets,
-  ShieldCheck
+  ShieldCheck, ChevronDown
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, DM_Sans } from 'next/font/google';
 
@@ -234,6 +234,13 @@ export default function InformacoesPage() {
     return () => window.removeEventListener('scroll', onScroll);
   }, [lastY]);
 
+  // ── MENU AGRUPADO (PADRÃO VINCI) ──
+  const menuGroups = [
+    { label: 'Conhecer', links: ['Atrativos', 'Roteiros', 'História', 'Biodiversidade', 'Galeria'] },
+    { label: 'Viver', links: ['Passeios', 'Eventos', 'Comunidades', 'Aldeias'] },
+    { label: 'Planejar', links: ['Hotéis', 'Gastronomia', 'Agências', 'Informações', 'Parceiros'] }
+  ];
+
   const filtered = activeFilter === 'all' ? contatos : contatos.filter(c => c.categoria === activeFilter);
 
   // Quick emergency numbers for hero
@@ -274,51 +281,67 @@ export default function InformacoesPage() {
           </div>
         </div>
 
-        {/* ── HEADER ── */}
-        <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${showHeader ? 'translate-y-0' : '-translate-y-full'} ${scrolled ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100' : 'bg-white border-b border-slate-200'}`}
-      >
-        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
-              <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain" />
+        {/* ── HEADER EDITORIAL CENTRALIZADO ── */}
+        <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${showHeader ? 'translate-y-0' : '-translate-y-full'} ${scrolled ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100' : 'bg-white border-b border-slate-200'}`}>
+          <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4 relative">
+            <div className="flex-1">
+              <Link href="/" className="inline-flex items-center gap-3">
+                <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
+                  <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain" />
+                </div>
+              </Link>
             </div>
-          </Link>
 
-          <nav className="hidden lg:flex items-center gap-8">
-            {['Hoteis', 'Pacotes', 'Rotas', 'Passeios', 'Aldeias', 'Eventos', 'Biodiversidade', 'Gastronomia', 'Comunidades'].map(item => (
-              <Link key={item} href={`/${item.toLowerCase()}`}
-                className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-slate-600 hover:text-[#00577C] transition-colors`}>
-                {item}
+            <nav className="hidden lg:flex items-center justify-center gap-12">
+              {menuGroups.map((group) => (
+                <div key={group.label} className="relative group py-2">
+                  <button className={`${jakarta.className} flex items-center gap-1.5 text-xs font-black uppercase tracking-[0.2em] text-slate-600 group-hover:text-[#00577C] transition-colors`}>
+                    {group.label} <ChevronDown size={14} className="group-hover:rotate-180 transition-transform duration-300" />
+                  </button>
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max bg-white/95 backdrop-blur-xl border border-slate-100 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] rounded-2xl p-2 opacity-0 invisible translate-y-2 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 transition-all duration-300 z-50 flex flex-row items-center gap-1">
+                    {group.links.map((link) => (
+                      <Link key={link} href={`/${link.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`} className={`${jakarta.className} block px-5 py-3 text-sm font-bold text-slate-600 hover:text-[#00577C] hover:bg-slate-50 rounded-xl transition-all whitespace-nowrap`}>
+                        {link}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </nav>
+
+            <div className="flex-1 flex justify-end items-center gap-4">
+              <Link href="/cadastro" className={`hidden lg:inline-flex ${jakarta.className} bg-[#F9C400] text-[#002f40] px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-sm`}>
+                Residente
               </Link>
-            ))}
-            <Link href="/cadastro"
-              className={`${jakarta.className} bg-[#F9C400] text-[#002f40] px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-sm`}>
-              Cartão Residente
-            </Link>
-          </nav>
-
-          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="rounded-xl p-2 lg:hidden bg-slate-50 text-[#00577C] hover:bg-slate-100 transition-colors">
-            {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
-        </div>
-
-        {isMobileMenuOpen && (
-          <div className="absolute top-full left-0 w-full bg-white border-b border-slate-200 p-6 flex flex-col gap-4 shadow-2xl lg:hidden z-50">
-            {['Hoteis', 'Pacotes', 'Rotas', 'Passeios', 'Aldeias', 'Eventos', 'Biodiversidade', 'Gastronomia', 'Comunidades'].map(item => (
-              <Link key={item} href={`/${item.toLowerCase()}`}
-                className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>
-                {item}
-              </Link>
-            ))}
-            <Link href="/cadastro"
-              className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md mt-2`}>
-              Cartão Residente
-            </Link>
+              <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="rounded-xl p-2 lg:hidden bg-slate-50 text-[#00577C] hover:bg-slate-100 transition-colors">
+                {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              </button>
+            </div>
           </div>
-        )}
-      </header>
+
+          {/* Menu Mobile */}
+          {isMobileMenuOpen && (
+            <div className="absolute top-full left-0 w-full bg-white border-b border-slate-200 p-6 flex flex-col gap-6 shadow-2xl lg:hidden z-50 max-h-[85vh] overflow-y-auto">
+              {menuGroups.map((group) => (
+                <div key={group.label} className="flex flex-col gap-3">
+                  <p className={`${jakarta.className} text-[10px] font-black uppercase tracking-[0.2em] text-[#00577C] border-b border-slate-100 pb-2`}>{group.label}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {group.links.map((link) => (
+                      <Link key={link} href={`/${link.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`} onClick={() => setIsMobileMenuOpen(false)} className={`${jakarta.className} font-bold text-slate-700 text-sm bg-slate-50 px-4 py-2 rounded-lg border border-slate-100 hover:text-[#00577C] hover:bg-slate-100 transition-colors`}>
+                        {link}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              <div className="border-t border-slate-100 pt-4 mt-2 flex flex-col gap-3">
+                <Link href="/cadastro" onClick={() => setIsMobileMenuOpen(false)} className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md`}>
+                  Cartão Residente
+                </Link>
+              </div>
+            </div>
+          )}
+        </header>
 
         {/* ── HERO ── */}
         <section className="relative pt-36 md:pt-44 pb-20 md:pb-28 bg-[#00577C] overflow-hidden">
@@ -459,7 +482,7 @@ export default function InformacoesPage() {
               Descubra roteiros, eventos e experiências únicas em São Geraldo do Araguaia.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Link href="/rotas" className={`${dmSans.className} inline-flex items-center gap-2 bg-[#00577C] text-white px-8 py-4 rounded-full font-semibold text-sm uppercase tracking-widest shadow-lg hover:-translate-y-1 transition-transform`}>
+              <Link href="/roteiros" className={`${dmSans.className} inline-flex items-center gap-2 bg-[#00577C] text-white px-8 py-4 rounded-full font-semibold text-sm uppercase tracking-widest shadow-lg hover:-translate-y-1 transition-transform`}>
                 Explorar Roteiros <ArrowRight size={16} />
               </Link>
               <Link href="/pacotes" className={`${dmSans.className} inline-flex items-center gap-2 bg-[#00577C] text-white px-8 py-4 rounded-full font-semibold text-sm uppercase tracking-widest shadow-lg hover:-translate-y-1 transition-transform`}>
@@ -470,34 +493,33 @@ export default function InformacoesPage() {
         </section>
 
         {/* ── FOOTER ── */}
-        {/* FOOTER */}
-      <footer className="py-20 px-8 border-t border-slate-200 bg-white text-left">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
-          <div className="flex flex-col items-center md:items-start gap-4">
-            <div className="flex items-center gap-6">
-              <Image src="/logop.png" alt="SagaTurismo" width={160} height={50} className="object-contain" />
-              <div className="w-px h-12 bg-slate-200 hidden md:block" />
-              <Image src="/prefeitura.png" alt="Prefeitura de São Geraldo do Araguaia" width={140} height={50} className="object-contain" />
+        <footer className="py-20 px-8 border-t border-slate-200 bg-white text-left">
+          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
+            <div className="flex flex-col items-center md:items-start gap-4">
+              <div className="flex items-center gap-6">
+                <Image src="/logop.png" alt="SagaTurismo" width={160} height={50} className="object-contain" />
+                <div className="w-px h-12 bg-slate-200 hidden md:block" />
+                <Image src="/prefeitura.png" alt="Prefeitura de São Geraldo do Araguaia" width={140} height={50} className="object-contain" />
+              </div>
+              <div className="text-left space-y-1">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                  © 2026 Secretaria Municipal de Turismo - SGA | Todos os direitos reservados
+                </p>
+                <p className="text-[10px] font-bold text-slate-400/80">
+                  CNPJ: 10.249.241/0001-22
+                </p>
+              </div>
             </div>
-            <div className="text-left space-y-1">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                © 2026 Secretaria Municipal de Turismo - SGA | Todos os direitos reservados
-              </p>
-              <p className="text-[10px] font-bold text-slate-400/80">
-                CNPJ: 10.249.241/0001-22
-              </p>
-            </div>
-          </div>
 
-          <div className="flex gap-10">
-            <div className="text-left border-l-2 border-slate-100 pl-9">
-              <p className="text-[10px] font-black text-[#00577C] uppercase mb-1">Contato Oficial</p>
-              <p className="text-xs font-bold text-slate-500 tracking-tight">setursaga@gmail.com</p>
+            <div className="flex gap-10">
+              <div className="text-left border-l-2 border-slate-100 pl-9">
+                <p className="text-[10px] font-black text-[#00577C] uppercase mb-1">Contato Oficial</p>
+                <p className="text-xs font-bold text-slate-500 tracking-tight">setursaga@gmail.com</p>
+              </div>
+              <ShieldCheck size={40} className="text-[#009640] opacity-30" />
             </div>
-            <ShieldCheck size={40} className="text-[#009640] opacity-30" />
           </div>
-        </div>
-      </footer>
+        </footer>
 
       </main>
     </>

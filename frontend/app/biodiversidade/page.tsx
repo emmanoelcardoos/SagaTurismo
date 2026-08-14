@@ -604,55 +604,84 @@ export default function BiodiversidadePage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
+  // ── NOVO MENU AGRUPADO ──
+  const menuGroups = [
+    { label: 'Conhecer', links: ['Atrativos', 'Roteiros', 'História', 'Biodiversidade', 'Galeria'] },
+    { label: 'Viver', links: ['Passeios', 'Eventos', 'Comunidades', 'Aldeias'] },
+    { label: 'Planejar', links: ['Hotéis', 'Gastronomia', 'Agências', 'Informações', 'Parceiros'] }
+  ];
+
   return (
     <main className={`${inter.className} min-h-screen flex flex-col bg-[#021a0d] text-white overflow-x-hidden`}>
       <div className="flex-1">
         
-        {/* ── HEADER PADRÃO ATUALIZADO ── */}
+        {/* ── HEADER PADRÃO COM DROPDOWN ── */}
         <header
           className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${showHeader ? 'translate-y-0' : '-translate-y-full'} ${isScrolled ? 'bg-[#021a0d]/95 backdrop-blur-md shadow-sm border-b border-white/10' : 'bg-transparent'}`}
         >
-          <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4">
-            <Link href="/" className="flex items-center gap-3">
-              <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
-                <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain brightness-0 invert" />
-              </div>
-            </Link>
-
-            <nav className="hidden lg:flex items-center gap-8">
-              {['Hoteis', 'Pacotes', 'Atracoes', 'Passeios', 'Biodiversidade', 'Gastronomia', 'Comunidades',  'Parceiros'].map(item => (
-                <Link key={item} href={`/${item.toLowerCase()}`}
-                  className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-white/50 hover:text-white transition-colors`}
-                >
-                  {item}
-                </Link>
-              ))}
-              <Link href="/cadastro"
-                className={`${jakarta.className} bg-[#F9C400] text-[#002f40] px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-sm`}>
-                Residente
+          <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4 relative">
+            <div className="flex-1">
+              <Link href="/" className="inline-flex items-center gap-3">
+                <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
+                  <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain brightness-0 invert" />
+                </div>
               </Link>
+            </div>
+
+            <nav className="hidden lg:flex items-center justify-center gap-12">
+              {menuGroups.map((group) => (
+                <div key={group.label} className="relative group py-2">
+                  <button className={`${jakarta.className} flex items-center gap-1.5 text-xs font-black uppercase tracking-[0.2em] text-white/60 group-hover:text-white transition-colors`}>
+                    {group.label} <ChevronDown size={14} className="group-hover:rotate-180 transition-transform duration-300" />
+                  </button>
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max bg-[#021a0d]/95 backdrop-blur-xl border border-white/10 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.5)] rounded-2xl p-2 opacity-0 invisible translate-y-2 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 transition-all duration-300 z-50 flex flex-row items-center gap-1">
+                    {group.links.map((link) => {
+                      const path = `/${link.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`;
+                      return (
+                        <Link key={link} href={path} className={`${jakarta.className} block px-5 py-3 text-sm font-bold text-white/60 hover:text-white hover:bg-white/5 rounded-xl transition-all whitespace-nowrap`}>
+                          {link}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </nav>
 
-            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="rounded-xl p-2 lg:hidden bg-white/10 text-white hover:bg-white/20 transition-colors">
-              {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-            </button>
+            <div className="flex-1 flex justify-end items-center gap-4">
+              <Link href="/cadastro" className={`hidden lg:inline-flex ${jakarta.className} bg-[#F9C400] text-[#002f40] px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-sm`}>
+                Residente
+              </Link>
+              <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="rounded-xl p-2 lg:hidden bg-white/10 text-white hover:bg-white/20 transition-colors">
+                {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              </button>
+            </div>
           </div>
 
+          {/* Menu Mobile */}
           {isMobileMenuOpen && (
-            <div className="absolute top-full left-0 w-full bg-[#021a0d] border-b border-white/10 p-6 flex flex-col gap-4 shadow-2xl lg:hidden z-50">
-              {['Hoteis', 'Pacotes', 'Atracoes', 'Passeios', 'Biodiversidade', 'Gastronomia', 'Comunidades', 'Parceiros'].map(item => (
-                <Link key={item} href={`/${item.toLowerCase()}`}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className={`${jakarta.className} font-black text-white/60 hover:text-white text-lg border-b border-white/10 pb-2 transition-colors`}>
-                  {item}
-                </Link>
+            <div className="absolute top-full left-0 w-full bg-[#021a0d] border-b border-white/10 p-6 flex flex-col gap-6 shadow-2xl lg:hidden z-50 max-h-[85vh] overflow-y-auto">
+              {menuGroups.map((group) => (
+                <div key={group.label} className="flex flex-col gap-3">
+                  <p className={`${jakarta.className} text-[10px] font-black uppercase tracking-[0.2em] text-[#F9C400] border-b border-white/10 pb-2`}>{group.label}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {group.links.map((link) => {
+                      const path = `/${link.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`;
+                      return (
+                        <Link key={link} href={path} onClick={() => setIsMobileMenuOpen(false)} className={`${jakarta.className} font-bold text-white/60 hover:text-white text-sm bg-white/5 px-4 py-2 rounded-lg border border-white/10 hover:bg-white/10 transition-colors`}>
+                          {link}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
               ))}
-              <Link href="/cadastro"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md mt-2`}>
-                Cartão Residente
-              </Link>
+              <div className="border-t border-white/10 pt-4 mt-2 flex flex-col gap-3">
+                <Link href="/cadastro" onClick={() => setIsMobileMenuOpen(false)} className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md`}>
+                  Cartão Residente
+                </Link>
+              </div>
             </div>
           )}
         </header>
@@ -668,12 +697,30 @@ export default function BiodiversidadePage() {
       </div>
 
       {/* ── FOOTER PADRÃO ATUALIZADO ── */}
-      <footer className="relative z-10 py-7 bg-[#021a0d] border-t border-white/10">
-        <div className="w-full max-w-[1400px] mx-auto px-8 md:px-14 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className={`${jakarta.className} text-[10px] font-bold text-white/20 uppercase tracking-widest`}>
-            © {new Date().getFullYear()} Prefeitura Municipal de São Geraldo do Araguaia — Todos os direitos reservados.
-          </p>
-          
+      <footer className="py-20 px-8 border-t border-white/10 bg-[#021a0d] text-left mt-auto">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
+          <div className="flex flex-col items-center md:items-start gap-4">
+            <div className="flex items-center gap-6">
+              <Image src="/logop.png" alt="SagaTurismo" width={160} height={50} className="object-contain brightness-0 invert" />
+              <div className="w-px h-12 bg-white/10 hidden md:block" />
+              <Image src="/prefeitura.png" alt="Prefeitura de São Geraldo do Araguaia" width={140} height={50} className="object-contain brightness-0 invert" />
+            </div>
+            <div className="text-left space-y-1">
+              <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">
+                © 2026 Secretaria Municipal de Turismo - SGA | Todos os direitos reservados
+              </p>
+              <p className="text-[10px] font-bold text-white/20">
+                CNPJ: 10.249.241/0001-22
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-10">
+            <div className="text-left border-l-2 border-white/10 pl-9">
+              <p className="text-[10px] font-black text-[#F9C400] uppercase mb-1">Contato Oficial</p>
+              <p className="text-xs font-bold text-white/40 tracking-tight">setursaga@gmail.com</p>
+            </div>
+            <ShieldCheck size={40} className="text-[#009640] opacity-30" />
+          </div>
         </div>
       </footer>
     </main>

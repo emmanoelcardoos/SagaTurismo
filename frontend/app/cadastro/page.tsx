@@ -20,15 +20,14 @@ import {
   CalendarDays,
   Users,
   Wallet,
-  X
+  X,
+  ChevronDown
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 
 import CPFInput from '@/components/ui/CPFInput';
 import FileUploader from '@/components/ui/FileUploader';
 import { cadastrarResidente, type CadastroResponse } from '@/lib/api';
-
-// ── IMPORTS DAS ANIMAÇÕES LOTTIE ──
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -105,59 +104,98 @@ function validate(
   return errs;
 }
 
+// ── NOVO HEADER COM DROPDOWN ──
 function Header() {
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      if (currentScrollY < 80) setShowHeader(true);
-      else if (currentScrollY > lastScrollY) setShowHeader(false);
+      const y = window.scrollY;
+      setIsScrolled(y > 50);
+      if (y < 80) setShowHeader(true);
+      else if (y > lastScrollY) setShowHeader(false);
       else setShowHeader(true);
-      setLastScrollY(currentScrollY);
+      setLastScrollY(y);
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
-  return (
-    <header className="relative z-50 w-full bg-white border-b border-slate-200 py-4">
-      <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6">
-        <Link href="/" className="flex items-center gap-3">
-           <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
-              <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain" />
-           </div>
-        </Link>
+  const menuGroups = [
+    { label: 'Conhecer', links: ['Atrativos', 'Roteiros', 'História', 'Biodiversidade', 'Galeria'] },
+    { label: 'Viver', links: ['Passeios', 'Eventos', 'Comunidades', 'Aldeias'] },
+    { label: 'Planejar', links: ['Hotéis', 'Gastronomia', 'Agências', 'Informações', 'Parceiros'] }
+  ];
 
-        <nav className="hidden lg:flex items-center gap-8">
-          {['Hoteis', 'Pacotes', 'Passeios','Atracoes', 'Biodiversidade', 'Gastronomia', 'Comunidades'].map(item => (
-            <Link key={item} href={`/${item.toLowerCase()}`} className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-slate-600 hover:text-[#00577C] transition-colors`}>
-              {item}
-            </Link>
-          ))}
-          <Link href="/parceiros" className={`${jakarta.className} bg-[#F9C400] text-[#002f40] px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-sm`}>
-            Seja um Parceiro
+  return (
+    <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${showHeader ? 'translate-y-0' : '-translate-y-full'} ${isScrolled ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100' : 'bg-white border-b border-slate-200'}`}>
+      <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4 relative">
+        
+        <div className="flex-1">
+          <Link href="/" className="inline-flex items-center gap-3">
+            <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
+              <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain" />
+            </div>
           </Link>
+        </div>
+
+        <nav className="hidden lg:flex items-center justify-center gap-12">
+          {menuGroups.map((group) => (
+            <div key={group.label} className="relative group py-2">
+              <button className={`${jakarta.className} flex items-center gap-1.5 text-xs font-black uppercase tracking-[0.2em] text-slate-600 group-hover:text-[#00577C] transition-colors`}>
+                {group.label} <ChevronDown size={14} className="group-hover:rotate-180 transition-transform duration-300" />
+              </button>
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max bg-white/95 backdrop-blur-xl border border-slate-100 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] rounded-2xl p-2 opacity-0 invisible translate-y-2 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 transition-all duration-300 z-50 flex flex-row items-center gap-1">
+                {group.links.map((link) => {
+                  const path = `/${link.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`;
+                  return (
+                    <Link key={link} href={path} className={`${jakarta.className} block px-5 py-3 text-sm font-bold text-slate-600 hover:text-[#00577C] hover:bg-slate-50 rounded-xl transition-all whitespace-nowrap`}>
+                      {link}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
-        <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="rounded-xl p-2 lg:hidden bg-slate-50 text-[#00577C] hover:bg-slate-100 transition-colors">
-          {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </button>
+        <div className="flex-1 flex justify-end items-center gap-4">
+          <Link href="/cadastro" className={`hidden lg:inline-flex ${jakarta.className} bg-[#F9C400] text-[#002f40] px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-sm`}>
+            Residente
+          </Link>
+          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="rounded-xl p-2 lg:hidden bg-slate-50 text-[#00577C] hover:bg-slate-100 transition-colors">
+            {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
+        </div>
       </div>
 
       {/* Menu Mobile */}
       {isMobileMenuOpen && (
-        <div className="absolute top-full left-0 w-full bg-white border-b border-slate-200 p-6 flex flex-col gap-4 shadow-2xl lg:hidden z-50">
-          <Link href="/hoteis" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Hoteis</Link>
-          <Link href="/pacotes" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Pacotes</Link>
-        
-          <Link href="/biodiversidade" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Biodiversidade</Link>
-          <Link href="/gastronomia" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Gastronomia</Link>
-          <Link href="/comunidades" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Comunidades</Link>
-          <Link href="/cadastro" className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md mt-2`}>Cartão Residente</Link>
+        <div className="absolute top-full left-0 w-full bg-white border-b border-slate-200 p-6 flex flex-col gap-6 shadow-2xl lg:hidden z-50 max-h-[85vh] overflow-y-auto">
+          {menuGroups.map((group) => (
+            <div key={group.label} className="flex flex-col gap-3">
+              <p className={`${jakarta.className} text-[10px] font-black uppercase tracking-[0.2em] text-[#00577C] border-b border-slate-100 pb-2`}>{group.label}</p>
+              <div className="flex flex-wrap gap-2">
+                {group.links.map((link) => {
+                  const path = `/${link.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`;
+                  return (
+                    <Link key={link} href={path} onClick={() => setIsMobileMenuOpen(false)} className={`${jakarta.className} font-bold text-slate-700 text-sm bg-slate-50 px-4 py-2 rounded-lg border border-slate-100 hover:text-[#00577C] hover:bg-slate-100 transition-colors`}>
+                      {link}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+          <div className="border-t border-slate-100 pt-4 mt-2 flex flex-col gap-3">
+            <Link href="/cadastro" onClick={() => setIsMobileMenuOpen(false)} className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md`}>
+              Cartão Residente
+            </Link>
+          </div>
         </div>
       )}
     </header>
@@ -233,9 +271,7 @@ export default function CadastroPage() {
       .split(' ')
       .map((palavra) => {
         if (palavra.length === 0) return palavra;
-        // Mantém as preposições em minúsculo
         if (['de', 'da', 'do', 'das', 'dos'].includes(palavra)) return palavra;
-        // Capitaliza a primeira letra das outras palavras
         return palavra.charAt(0).toUpperCase() + palavra.slice(1);
       })
       .join(' ');
@@ -289,27 +325,22 @@ export default function CadastroPage() {
         textoMensagem.includes('redirecionando');
 
       if (isAprovadoBackend) {
-        // Tenta encontrar o token de qualquer maneira
         const tokenFinal = res?.token || res?.dados?.token || res?.data?.token || res?.codigo_pedido || '';
         
-        // 🔴 SALVA NA MEMÓRIA DO NAVEGADOR ANTES DE MUDAR DE PÁGINA
         if (typeof window !== 'undefined') {
            localStorage.setItem('saga_residente_nome', nome);
            localStorage.setItem('saga_residente_email', email);
-           // ◄── NOVA LINHA: Guarda a quantidade total (Titular + Dependentes) ──►
            localStorage.setItem('saga_residente_quantidade', String(integrantes.length));
         }
 
         if (tokenFinal) {
            router.push(`/checkout-carteira?token=${tokenFinal}`);
         } else {
-           // O BACKEND APROVOU, MAS NÃO ENVIOU O TOKEN. CAI AQUI PARA EVITAR A TELA VERMELHA ERRADA.
            setSucessoSemToken({
              mensagem: res?.mensagem || "O seu registo foi aprovado, mas o servidor não nos enviou o link para o pagamento."
            });
         }
       } else {
-        // A IA REALMENTE REJEITOU
         setRejeicaoIA({
           mensagem: res?.mensagem || 'Infelizmente não foi possível aprovar a sua documentação. Verifique se as fotos estão nítidas e comprovam a residência.'
         });
@@ -388,7 +419,7 @@ export default function CadastroPage() {
     );
   }
 
-  // ── ECRÃ VERMELHO: RECUSA REAL DA IA COM ANIMAÇÃO LOTTIE ──
+  // ── ECRÃ VERMELHO: RECUSA REAL DA IA ──
   if (rejeicaoIA) {
     return (
       <main className={`${inter.className} min-h-screen flex flex-col bg-slate-50 text-slate-900`}>
@@ -448,7 +479,7 @@ export default function CadastroPage() {
   return (
     <main className={`${inter.className} min-h-screen flex flex-col bg-white text-slate-900 text-left relative`}>
       
-      {/* ── OVERLAY DE LOADING: ANIMAÇÃO DA IA A PENSAR ── */}
+      {/* ── OVERLAY DE LOADING ── */}
       {loading && (
         <div className="fixed inset-0 z-[100] bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-300">
           <div className="mb-6 -mt-10">
@@ -465,7 +496,7 @@ export default function CadastroPage() {
 
       <Header />
 
-      <div className="flex-1">
+      <div className="flex-1 mt-[72px] md:mt-[80px]">
         {/* HERO SECTION CLEAN & RESPONSIVA */}
         <section className="relative overflow-hidden pt-28 pb-16 md:pt-36 md:pb-24 text-left bg-slate-900">
           <div className="absolute inset-0 z-0 pointer-events-none">
@@ -481,8 +512,6 @@ export default function CadastroPage() {
 
           <div className="relative z-10 mx-auto max-w-7xl px-5 md:px-6">
             <div className="max-w-2xl">
-              
-              
               <h1 className={`${jakarta.className} text-3xl sm:text-5xl md:text-6xl font-black text-white leading-tight mb-4 md:mb-6`}>
                 Cartão <span className="text-[#F9C400]">Residente.</span>
               </h1>
@@ -616,7 +645,6 @@ export default function CadastroPage() {
                              </select>
                              <select value={dep.mes} onChange={(e) => updateDependente(index, 'mes', e.target.value)} className="flex-1 rounded-xl border border-slate-200 bg-slate-50 p-2 md:p-3 text-xs font-bold outline-none cursor-pointer">
                                <option value="">Mês</option>
-                               {/* Aqui também corrigi para mostrar o nome do mês (Janeiro, Fevereiro) em vez dos números (01, 02) */}
                                {months.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                              </select>
                              <select value={dep.ano} onChange={(e) => updateDependente(index, 'ano', e.target.value)} className="flex-1 rounded-xl border border-slate-200 bg-slate-50 p-2 md:p-3 text-xs font-bold outline-none cursor-pointer">
@@ -642,10 +670,9 @@ export default function CadastroPage() {
                       </div>
                     </div>
 
-                    {/* CAIXA DE REGRAS EXPLICADAS (DECRETO MUNICIPAL) */}
+                    {/* CAIXA DE REGRAS EXPLICADAS */}
                     <div className="mb-8 md:mb-10 space-y-3 md:space-y-4 text-left">
                       
-                      {/* Regras Gerais */}
                       <div className="rounded-2xl border-2 border-blue-50 bg-blue-50/50 p-5 md:p-6">
                         <div className="mb-3 md:mb-4 flex items-center gap-3"><Info className="h-5 w-5 md:h-6 md:w-6 shrink-0 text-[#00577C]" /><p className="font-black text-[#00577C] text-sm md:text-base">Regras de Verificação</p></div>
                         <ul className="ml-7 md:ml-9 list-disc space-y-1.5 md:space-y-2 text-xs md:text-sm text-slate-600 font-medium">
@@ -656,7 +683,6 @@ export default function CadastroPage() {
                         </ul>
                       </div>
 
-                      {/* O que é aceito */}
                       <div className="rounded-2xl border-2 border-green-50 bg-green-50/50 p-5 md:p-6">
                         <div className="mb-3 md:mb-4 flex items-center gap-3"><CheckCircle2 className="h-5 w-5 md:h-6 md:w-6 shrink-0 text-[#009640]" /><p className="font-black text-[#009640] text-sm md:text-base">Documentos Aceitos</p></div>
                         <ul className="ml-7 md:ml-9 list-disc space-y-1.5 md:space-y-2 text-xs md:text-sm text-slate-600 font-medium">
@@ -665,8 +691,6 @@ export default function CadastroPage() {
                           <li><strong className="text-[#009640]">Para classes especiais:</strong> Contracheque/Contrato (Professores), Identidade Militar, ou Laudo Médico (PCD).</li>
                         </ul>
                       </div>
-
-                      
                     </div>
 
                     {/* UPLOADS */}
@@ -684,7 +708,6 @@ export default function CadastroPage() {
                       </div>
 
                       <div className="space-y-5 md:space-y-6">
-                        {/* ◄── INÍCIO DA DICA DE FOTO (TUTORIAL VISUAL) ──► */}
                         <div className="rounded-2xl border-2 border-amber-100 bg-amber-50 p-4 md:p-5 shadow-sm">
                           <div className="flex items-start gap-3 mb-4">
                             <Info className="h-5 w-5 shrink-0 text-amber-600 mt-0.5" />
@@ -694,14 +717,10 @@ export default function CadastroPage() {
                             </div>
                           </div>
 
-                          {/* Grid do Tutorial Visual */}
                           <div className="grid grid-cols-2 gap-3 md:gap-4 mt-2">
-                            {/* Exemplo CORRETO */}
                             <div className="flex flex-col items-center justify-center p-3 md:p-4 rounded-xl border border-green-200 bg-white">
                               <div className="relative h-16 w-16 mb-2 rounded-full bg-slate-100 border-2 border-green-500 flex items-end justify-center overflow-hidden shadow-inner">
-                                {/* Ícone grande simulando rosto de perto */}
                                 <User className="h-14 w-14 text-slate-400 translate-y-1" strokeWidth={1.5} />
-                                
                               </div>
                               <span className="text-[10px] md:text-xs font-bold text-green-700 text-center leading-tight">
                                 ✅ Perto e Nítido<br/>
@@ -709,12 +728,9 @@ export default function CadastroPage() {
                               </span>
                             </div>
 
-                            {/* Exemplo INCORRETO */}
                             <div className="flex flex-col items-center justify-center p-3 md:p-4 rounded-xl border border-red-200 bg-white">
                               <div className="relative h-16 w-16 mb-2 rounded-full bg-slate-100 border-2 border-red-400 flex items-center justify-center shadow-inner">
-                                {/* Ícone pequeno simulando corpo inteiro longe */}
                                 <User className="h-6 w-6 text-slate-400" strokeWidth={2} />
-                                
                               </div>
                               <span className="text-[10px] md:text-xs font-bold text-red-700 text-center leading-tight">
                                 ❌ Longe ou com<br/>
@@ -723,7 +739,6 @@ export default function CadastroPage() {
                             </div>
                           </div>
                         </div>
-                        {/* ◄── FIM DA DICA DE FOTO ──► */}
 
                         <div className={`rounded-3xl border-2 bg-slate-50 p-5 md:p-6 transition-colors ${errors.foto ? 'border-red-300' : 'border-slate-100 hover:border-slate-200'}`}>
                           <p className="text-xs font-black uppercase tracking-widest text-[#00577C] mb-4 md:mb-5 flex items-center gap-2"><Camera size={16} className="md:w-[18px] md:h-[18px]"/> Selfie do Titular *</p>
@@ -759,14 +774,11 @@ export default function CadastroPage() {
                       </div>
                     )}
 
-                    {/* ◄── INÍCIO DO NOVO BLOCO: AVISO LGPD ──► */}
                     <div className="mb-6 rounded-2xl bg-slate-50 border border-slate-200 p-4 md:p-5 text-xs font-medium text-slate-500 leading-relaxed shadow-sm">
                       <p>
                         Ao clicar em <strong>"Avançar para Verificação"</strong>, você concorda com os nossos <Link href="/termos" target="_blank" className="text-[#00577C] font-bold hover:underline transition-colors">Termos de Uso</Link> e a nossa <Link href="/privacidade" target="_blank" className="text-[#00577C] font-bold hover:underline transition-colors">Política de Privacidade</Link>, em conformidade com a <strong>LGPD (Lei Geral de Proteção de Dados)</strong>.
                       </p>
-                      
                     </div>
-                    {/* ◄── FIM DO NOVO BLOCO ──► */}
 
                     <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                       <button

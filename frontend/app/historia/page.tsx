@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState, useRef, ReactNode } from 'react';
 import {
-  Menu, BookOpen, Camera, Loader2, Compass, Landmark, History, Fish, TreePine, Mountain, Waves, Leaf, ChevronDown, X, ShieldCheck, Users, MapPin, CalendarDays
+  Menu, BookOpen, Camera, Loader2, Compass, Landmark, History, Fish, TreePine, Mountain, Waves, Leaf, ChevronDown, X, ShieldCheck, Users, MapPin, CalendarDays, ArrowRight
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -71,6 +71,7 @@ function AnimatedSection({
 export default function HistoriaPage() {
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [fotos, setFotos] = useState<FotoHistoria[]>([]);
   const [loading, setLoading] = useState(true);
@@ -91,6 +92,7 @@ export default function HistoriaPage() {
   useEffect(() => {
     const handleScroll = () => {
       const y = window.scrollY;
+      setIsScrolled(y > 50);
       if (y < 80) setShowHeader(true);
       else if (y > lastScrollY) setShowHeader(false);
       else setShowHeader(true);
@@ -99,6 +101,13 @@ export default function HistoriaPage() {
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
+
+  // ── MENU AGRUPADO (padrão do site) ──
+  const menuGroups = [
+    { label: 'Conhecer', links: ['Atrativos', 'Roteiros', 'História', 'Biodiversidade', 'Galeria'] },
+    { label: 'Viver', links: ['Passeios', 'Eventos', 'Comunidades', 'Aldeias'] },
+    { label: 'Planejar', links: ['Hotéis', 'Gastronomia', 'Agências', 'Informações', 'Parceiros'] }
+  ];
 
   const fotosOrigens = fotos.filter(f => f.seccao === 'origens');
   const fotosGuerrilha = fotos.filter(f => f.seccao === 'guerrilha');
@@ -111,48 +120,77 @@ export default function HistoriaPage() {
   return (
     <main className={`${inter.className} min-h-screen bg-[#FDFCF7] text-slate-800 overflow-x-hidden`}>
 
-      {/* HEADER (padrão do site) */}
-      <header className="relative z-50 w-full bg-white border-b border-slate-200 py-4">
-        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6">
-          <Link href="/" className="flex items-center gap-3">
-             <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
+      {/* ── HEADER PADRÃO COM DROPDOWN ── */}
+      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${showHeader ? 'translate-y-0' : '-translate-y-full'} ${isScrolled ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100' : 'bg-white border-b border-slate-200'}`}>
+        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4 relative">
+          
+          <div className="flex-1">
+            <Link href="/" className="inline-flex items-center gap-3">
+              <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
                 <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain" />
-             </div>
-          </Link>
-
-          <nav className="hidden lg:flex items-center gap-8">
-            {['Hoteis', 'Pacotes', 'Rotas','Passeios', 'Aldeias', 'Eventos', 'Biodiversidade', 'Gastronomia', 'Comunidades'].map(item => (
-              <Link key={item} href={`/${item.toLowerCase()}`} className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-slate-600 hover:text-[#00577C] transition-colors`}>
-                {item}
-              </Link>
-            ))}
-            <Link href="/cadastro" className={`${jakarta.className} bg-[#F9C400] text-[#002f40] px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-sm`}>
-              Cartão Residente
+              </div>
             </Link>
+          </div>
+
+          <nav className="hidden lg:flex items-center justify-center gap-12">
+            {menuGroups.map((group) => (
+              <div key={group.label} className="relative group py-2">
+                <button className={`${jakarta.className} flex items-center gap-1.5 text-xs font-black uppercase tracking-[0.2em] text-slate-600 group-hover:text-[#00577C] transition-colors`}>
+                  {group.label} <ChevronDown size={14} className="group-hover:rotate-180 transition-transform duration-300" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max bg-white/95 backdrop-blur-xl border border-slate-100 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] rounded-2xl p-2 opacity-0 invisible translate-y-2 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 transition-all duration-300 z-50 flex flex-row items-center gap-1">
+                  {group.links.map((link) => {
+                    const path = `/${link.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`;
+                    return (
+                      <Link key={link} href={path} className={`${jakarta.className} block px-5 py-3 text-sm font-bold text-slate-600 hover:text-[#00577C] hover:bg-slate-50 rounded-xl transition-all whitespace-nowrap`}>
+                        {link}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </nav>
 
-          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="rounded-xl p-2 lg:hidden bg-slate-50 text-[#00577C] hover:bg-slate-100 transition-colors">
-            {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
+          <div className="flex-1 flex justify-end items-center gap-4">
+            <Link href="/cadastro" className={`hidden lg:inline-flex ${jakarta.className} bg-[#F9C400] text-[#002f40] px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-sm`}>
+              Residente
+            </Link>
+            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="rounded-xl p-2 lg:hidden bg-slate-50 text-[#00577C] hover:bg-slate-100 transition-colors">
+              {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
+          </div>
         </div>
 
         {/* Menu Mobile */}
         {isMobileMenuOpen && (
-          <div className="absolute top-full left-0 w-full bg-white border-b border-slate-200 p-6 flex flex-col gap-4 shadow-2xl lg:hidden z-50">
-            <Link href="/rotas" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Rotas Turísticas</Link>
-            <Link href="/eventos" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Agenda Cultural</Link>
-            <Link href="/pacotes" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Pacotes</Link>
-            <Link href="/rotas" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Roteiros</Link>
-            <Link href="/biodiversidade" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Biodiversidade</Link>
-            <Link href="/gastronomia" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Gastronomia</Link>
-            <Link href="/comunidades" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>Comunidades</Link>
-            <Link href="/cadastro" className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md mt-2`}>Cartão Residente</Link>
+          <div className="absolute top-full left-0 w-full bg-white border-b border-slate-200 p-6 flex flex-col gap-6 shadow-2xl lg:hidden z-50 max-h-[85vh] overflow-y-auto">
+            {menuGroups.map((group) => (
+              <div key={group.label} className="flex flex-col gap-3">
+                <p className={`${jakarta.className} text-[10px] font-black uppercase tracking-[0.2em] text-[#00577C] border-b border-slate-100 pb-2`}>{group.label}</p>
+                <div className="flex flex-wrap gap-2">
+                  {group.links.map((link) => {
+                    const path = `/${link.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`;
+                    return (
+                      <Link key={link} href={path} onClick={() => setIsMobileMenuOpen(false)} className={`${jakarta.className} font-bold text-slate-700 text-sm bg-slate-50 px-4 py-2 rounded-lg border border-slate-100 hover:text-[#00577C] hover:bg-slate-100 transition-colors`}>
+                        {link}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+            <div className="border-t border-slate-100 pt-4 mt-2 flex flex-col gap-3">
+              <Link href="/cadastro" onClick={() => setIsMobileMenuOpen(false)} className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md`}>
+                Cartão Residente
+              </Link>
+            </div>
           </div>
         )}
       </header>
 
       {/* HERO SECTION (Agora com Imagem de Fundo) */}
-      <section className="relative min-h-[70vh] flex flex-col items-center justify-center overflow-hidden bg-[#002f40]">
+      <section className="relative min-h-[70vh] flex flex-col items-center justify-center overflow-hidden bg-[#002f40] mt-[72px] md:mt-[80px]">
         
         {/* Imagem de Fundo com efeito de época */}
         <div className="absolute inset-0 z-0">
@@ -182,12 +220,7 @@ export default function HistoriaPage() {
             </p>
           </AnimatedSection>
 
-          <AnimatedSection animation="fade-up" delay={600}>
-            <a href="#origens" className="mt-10 inline-flex flex-col items-center gap-2 text-white/50 hover:text-white transition-colors group">
-              <span className="text-[9px] font-black uppercase tracking-widest">Mergulhar na história</span>
-              <ChevronDown className="w-5 h-5 animate-bounce" />
-            </a>
-          </AnimatedSection>
+          
         </div>
       </section>
 
@@ -222,7 +255,6 @@ export default function HistoriaPage() {
               {loading ? (
                 <div className="flex justify-center py-10"><Loader2 className="animate-spin text-[#00577C]" size={32} /></div>
               ) : imagemPrincipalOrigem ? (
-                // ◄── Aqui aplicamos o fill com altura gigante ──►
                 <div className="relative w-full h-[450px] md:h-[750px] rounded-2xl overflow-hidden shadow-2xl group">
                   <Image 
                     src={imagemPrincipalOrigem.imagem_url} 
@@ -342,7 +374,6 @@ export default function HistoriaPage() {
               {loading || !imagemPrincipalArqueologia ? (
                 <div className="bg-slate-100 w-full h-[450px] md:h-[750px] rounded-xl flex items-center justify-center"><Camera className="text-slate-300" size={48} /></div>
               ) : (
-                // ◄── Aqui também aplicamos o fill com altura gigante ──►
                 <div className="relative w-full h-[450px] md:h-[750px] rounded-2xl overflow-hidden shadow-2xl group">
                   <Image 
                     src={imagemPrincipalArqueologia.imagem_url} 
@@ -463,15 +494,16 @@ export default function HistoriaPage() {
               <Link href="/galeria" className="bg-[#F9C400] text-[#002f40] px-6 py-3 rounded-full font-black text-xs uppercase tracking-widest shadow-lg hover:scale-105 transition flex items-center gap-2">
                 <Camera size={16} /> Álbum de Fotos
               </Link>
-              <Link href="/rotas" className="border-2 border-white/30 text-white px-6 py-3 rounded-full font-black text-xs uppercase tracking-widest hover:bg-white/10 transition flex items-center gap-2">
-                <Compass size={16} /> Explorar Rotas Turísticas
+              {/* Link corrigido para /roteiros em vez de /rotas */}
+              <Link href="/roteiros" className="border-2 border-white/30 text-white px-6 py-3 rounded-full font-black text-xs uppercase tracking-widest hover:bg-white/10 transition flex items-center gap-2">
+                <Compass size={16} /> Explorar Roteiros Turísticos
               </Link>
             </div>
           </AnimatedSection>
         </div>
       </section>
 
-      {/* FOOTER padrão */}
+      {/* FOOTER (igual ao padrão) */}
       <footer className="py-20 px-8 border-t border-slate-200 bg-white">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
           <div className="flex flex-col items-center md:items-start gap-4">

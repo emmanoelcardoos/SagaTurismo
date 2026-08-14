@@ -135,7 +135,7 @@ function RotaCard({ rota, index }: { rota: RotaTuristica; index: number }) {
 
           <div className="mt-auto border-t border-slate-100 pt-8 flex">
             <Link
-              href={`/rotas/${rota.id}`}
+              href={`/roteiros/${rota.id}`}
               className="group/btn inline-flex items-center gap-3 px-8 py-4 rounded-full font-black text-xs uppercase tracking-widest shadow-xl shadow-[#00577C]/20 bg-[#00577C] text-white hover:bg-[#004a6b] transition-all duration-300 hover:-translate-y-1"
             >
               Explorar esta rota
@@ -268,33 +268,48 @@ export default function RotasPage() {
       {/* ══════════════════════════════════════
           HERO EDITORIAL SOFT (COM VÍDEO)
       ══════════════════════════════════════ */}
-      <section className="relative pt-28 md:pt-36 px-4 sm:px-6 max-w-[1400px] mx-auto w-full">
-        <Reveal anim="zoom">
-          <div className="relative w-full h-[40vh] md:h-[60vh] min-h-[400px] rounded-[2.5rem] md:rounded-[3rem] overflow-hidden shadow-2xl border-[4px] border-white bg-slate-100 group">
-            <video
-              src="/videorota.mp4"
-              autoPlay loop muted playsInline
-              className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-[3000ms] ease-out"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/70 via-slate-900/20 to-transparent" />
+      {/* ══════════════════════════════════════
+          HERO SOFT & CLEAN INSTITUCIONAL (IGUAL AOS ATRATIVOS)
+      ══════════════════════════════════════ */}
+      <section className="relative pt-12 pb-16 md:pt-20 md:pb-32 px-6 bg-[#FDFCF7] overflow-hidden mt-[72px] md:mt-[80px]">
+        {/* Background Graphics Suaves */}
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#009640]/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-[#00577C]/5 rounded-full blur-3xl translate-y-1/3 -translate-x-1/3 pointer-events-none" />
+
+        <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-center relative z-10">
+          
+          <Reveal anim="left" className="lg:col-span-5 flex flex-col items-center text-center lg:items-start lg:text-left">
             
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#F9C400] mb-4 drop-shadow-md">
-                Explore a Natureza
-              </p>
-              <h1 className={`${jakarta.className} text-4xl md:text-5xl lg:text-7xl font-black text-white leading-[1.05] tracking-tight drop-shadow-lg`}>
-                Jornadas <br />
-                <span className="italic text-[#F9C400]">Memoráveis.</span>
-              </h1>
-            </div>
-          </div>
-        </Reveal>
+
+            <h1 className={`${jakarta.className} text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 leading-[1.05] tracking-tight mb-6`}>
+              Roteiros<br />
+              <span className="italic text-[#009640]">Turísticos.</span>
+            </h1>
+
+            <p className="text-slate-500 text-base md:text-lg leading-relaxed font-medium mb-10 text-justify md:text-left">
+              Descubra trilhas, caminhos e percursos pensados para revelar o melhor da nossa região. Prepare-se para uma aventura inesquecível pelo coração da natureza.
+            </p>
+          </Reveal>
+
+          <Reveal anim="right" className="lg:col-span-7 w-full mt-4 lg:mt-0">
+             <div className="relative w-full h-[400px] md:h-[500px] rounded-[2.5rem] md:rounded-[3rem] overflow-hidden shadow-2xl border-[4px] border-white z-10">
+               <Image 
+                 src="https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/IMG_1803.PNG" 
+                 alt="Roteiros Turísticos" 
+                 fill 
+                 className="object-cover hover:scale-105 transition-transform duration-[2000ms]" 
+                 priority 
+               />
+               <div className="absolute inset-0 bg-gradient-to-t from-slate-900/10 to-transparent" />
+             </div>
+          </Reveal>
+        </div>
       </section>
 
       {/* ══════════════════════════════════════
           FAIXA UNIFICADA (PESAM E APA - FLUTUANTE)
       ══════════════════════════════════════ */}
-      <section className="relative z-20 w-full px-6 -mt-16 md:-mt-24 mb-24 max-w-[1200px] mx-auto">
+      <section className="relative z-20 w-full px-6 -mt-10 mb-24 max-w-[1400px] mx-auto">
         <Reveal anim="up">
           <div className="bg-white/90 backdrop-blur-xl rounded-[2rem] shadow-xl border border-slate-100 p-8 md:p-12 grid grid-cols-1 md:grid-cols-2 gap-y-10 gap-x-6 md:gap-0 md:divide-x divide-slate-200">
             {Object.values(unidadesConfig).map((item, i) => (
@@ -315,6 +330,8 @@ export default function RotasPage() {
           </div>
         </Reveal>
       </section>
+
+      
 
       {/* ══════════════════════════════════════
           LISTAGEM DE ROTAS
@@ -352,55 +369,7 @@ export default function RotasPage() {
         </div>
       </section>
 
-      {/* ══════════════════════════════════════
-          CTA FINAL (INTEGRADO & SOFISTICADO)
-      ══════════════════════════════════════ */}
-      {!loading && rotas.length > 0 && (
-        <section className="py-24 px-6 md:px-12 border-t border-slate-200 bg-[#FDFCF7]">
-          <div className="max-w-[1400px] mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-10">
-              
-              <Reveal anim="up" className="md:col-span-2">
-                <div className="rounded-[3rem] p-10 md:p-14 lg:p-16 h-full flex flex-col justify-center relative overflow-hidden bg-gradient-to-br from-[#00577C] to-[#003d57]">
-                  <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-white/5 rounded-full blur-3xl" />
-                  <div className="relative z-10">
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#F9C400] mb-4">Experiências Guiadas</p>
-                    <h3 className={`${jakarta.className} text-4xl md:text-5xl lg:text-6xl font-black text-white leading-[1.05] tracking-tight mb-6`}>
-                      Procuras um roteiro <br />
-                      <span className="italic text-[#F9C400]">já planeado?</span>
-                    </h3>
-                    <p className="text-white/80 text-base md:text-lg leading-relaxed max-w-lg font-medium mb-10">
-                      Roteiros com guias locais credenciados. Apenas precisas de aparecer, relaxar e conectar-te com a natureza.
-                    </p>
-                    <Link href="/agencias"
-                      className="inline-flex items-center gap-3 px-8 py-4.5 rounded-full font-black text-xs uppercase tracking-widest transition-all hover:-translate-y-1 shadow-xl bg-[#F9C400] text-[#002f40] hover:bg-[#e5b500]">
-                      Consultar Agências <ArrowRight size={16} />
-                    </Link>
-                  </div>
-                </div>
-              </Reveal>
-
-              <Reveal anim="up" delay={150}>
-                <div className="rounded-[3rem] p-10 md:p-14 h-full flex flex-col justify-center bg-gradient-to-br from-[#F9C400] to-[#e5b500] shadow-lg">
-                  <ShieldCheck size={40} className="text-[#002f40] mb-8" />
-                  <h3 className={`${jakarta.className} text-4xl font-black text-[#002f40] leading-[1.05] tracking-tight mb-4`}>
-                    Cartão<br />
-                    <span className="italic">Residente</span>
-                  </h3>
-                  <p className="text-[#002f40]/80 text-base leading-relaxed font-medium mb-10">
-                    50% de desconto na entrada de atrações parceiras para moradores do município.
-                  </p>
-                  <Link href="/cadastro"
-                    className="inline-flex items-center gap-3 px-8 py-4 rounded-full font-black text-[10px] uppercase tracking-widest transition-all hover:-translate-y-1 shadow-lg bg-[#002f40] text-[#F9C400] hover:bg-[#001f2e]">
-                    Pedir Cartão <ArrowRight size={16} />
-                  </Link>
-                </div>
-              </Reveal>
-
-            </div>
-          </div>
-        </section>
-      )}
+    
 
       {/* ── FOOTER (mesmo da página de atrativos) ── */}
       <footer className="py-20 px-8 border-t border-slate-200 bg-white text-left mt-auto">

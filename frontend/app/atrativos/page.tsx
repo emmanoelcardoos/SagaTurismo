@@ -2,11 +2,11 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useEffect, useState, ReactNode } from 'react';
+import { useEffect, useState, useRef, ReactNode } from 'react';
 import {
   Menu, X, ArrowRight, Loader2, Compass,
   ChevronDown, MapPin, Camera, Ticket, ShieldCheck,
-  Mountain, Waves, Clock, Users, Phone, Mail
+  Mountain, Leaf, Waves, UserCircle
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -15,18 +15,17 @@ const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
 
 // ── TIPAGEM ──
-type RotaTuristica = {
+type Atracao = {
   id: string;
-  titulo: string;
-  descricao_curta: string;
+  nome: string;
+  tipo?: string;
+  descricao?: string;
   imagem_url: string;
-  unidade?: string; // 'PESAM' ou 'APA'
-  duracao?: string;
-  dificuldade?: string;
-  grupo?: string;
+  preco_entrada?: number;
+  link_google_maps?: string;
 };
 
-// ── SISTEMA DE UNIDADES DE CONSERVAÇÃO ──
+// ── SISTEMA DE UNIDADES DE CONSERVAÇÃO (PESAM e APA) ──
 const unidadesConfig: Record<string, any> = {
   'PESAM': { 
     cor: '#009640', bgLight: 'bg-[#009640]/10', textLight: 'text-[#009640]', borderLight: 'border-[#009640]/20', 
@@ -40,17 +39,16 @@ const unidadesConfig: Record<string, any> = {
 
 // ── MOTOR DE SCROLL ──
 function useScrollAnimation(threshold = 0.08) {
-  const [ref, setRef] = useState<HTMLDivElement | null>(null);
+  const ref = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
   useEffect(() => {
-    if (!ref) return;
     const observer = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting) { setIsVisible(true); observer.unobserve(entry.target); }
     }, { threshold });
-    observer.observe(ref);
-    return () => { if (ref) observer.unobserve(ref); };
-  }, [ref, threshold]);
-  return { ref: setRef, isVisible };
+    if (ref.current) observer.observe(ref.current);
+    return () => { if (ref.current) observer.unobserve(ref.current); };
+  }, [threshold]);
+  return { ref, isVisible };
 }
 
 function Reveal({ children, className = '', anim = 'up', delay = 0 }: {
@@ -76,17 +74,10 @@ function Reveal({ children, className = '', anim = 'up', delay = 0 }: {
 }
 
 // ══════════════════════════════════════
-// CARD DE ROTA (DESIGN SOFT & EDITORIAL)
+// CARD DE ATRAÇÃO (DESIGN SOFT & EDITORIAL)
 // ══════════════════════════════════════
-function RotaCard({ rota, index }: { rota: RotaTuristica; index: number }) {
+function AtracaoCard({ atracao, index }: { atracao: Atracao; index: number }) {
   const isPar = index % 2 === 0;
-  
-  const siglaUnidade = rota.unidade?.toUpperCase().includes('APA') ? 'APA' : 'PESAM';
-  const theme = unidadesConfig[siglaUnidade];
-
-  const duracao = rota.duracao || 'Não informada';
-  const dificuldade = rota.dificuldade || 'Não informada';
-  const grupo = rota.grupo || 'Sem limite';
 
   return (
     <Reveal anim="up" delay={index * 50}>
@@ -95,50 +86,56 @@ function RotaCard({ rota, index }: { rota: RotaTuristica; index: number }) {
         {/* ── IMAGEM PREMIUM ── */}
         <div className="relative w-full h-[350px] lg:h-auto lg:min-h-[480px] lg:w-[50%] rounded-[2.5rem] overflow-hidden bg-slate-100 shrink-0">
           <Image
-            src={rota.imagem_url || 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09'}
-            alt={rota.titulo}
+            src={atracao.imagem_url || 'https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/atracoes/casapedra.png'}
+            alt={atracao.nome}
             fill
             className="object-cover transition-transform duration-[2000ms] ease-out group-hover:scale-105"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 via-transparent to-transparent opacity-60 group-hover:opacity-30 transition-opacity duration-700" />
 
-          {/* Etiqueta Temática */}
-          <div className={`absolute top-6 left-6 z-10 flex items-center gap-2 bg-white/95 backdrop-blur-md px-4 py-2.5 rounded-2xl shadow-sm border border-slate-100 ${theme.textLight}`}>
-            {theme.icon}
-            <span className="text-[10px] font-black uppercase tracking-[0.2em]">{theme.sigla}</span>
-          </div>
+          {/* Etiqueta Dinâmica */}
+          {atracao.tipo && (
+            <div className="absolute top-6 left-6 z-10 flex items-center gap-2 bg-white/95 backdrop-blur-md px-4 py-2.5 rounded-2xl shadow-sm text-[#00577C]">
+              <Camera size={14} />
+              <span className="text-[10px] font-black uppercase tracking-[0.2em]">{atracao.tipo}</span>
+            </div>
+          )}
         </div>
 
         {/* ── TEXTO E INFORMAÇÕES ── */}
         <div className="flex-1 py-4 lg:py-12 px-4 lg:px-8 flex flex-col justify-center">
           <h2 className={`${jakarta.className} text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 leading-[1.05] tracking-tight mb-6`}>
-            {rota.titulo}
+            {atracao.nome}
           </h2>
 
           <p className="text-slate-500 text-base md:text-lg leading-relaxed mb-10 font-medium">
-            {rota.descricao_curta}
+            {atracao.descricao || 'Descubra a beleza única e os cenários inesquecíveis que esta maravilha natural oferece aos seus visitantes.'}
           </p>
 
-          {/* Tags Refinadas */}
+          {/* Tags de Detalhes */}
           <div className="flex flex-wrap gap-3 mb-12">
-            {[
-              { icon: <Clock size={16} />, valor: duracao },
-              { icon: <MapPin size={16} />, valor: dificuldade },
-              { icon: <Users size={16} />, valor: grupo },
-            ].map((m, i) => (
-              <span key={i} className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl text-xs font-bold bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-100 transition-colors">
-                <span className={theme.textLight}>{m.icon}</span>
-                {m.valor}
+            {atracao.link_google_maps && (
+              <a href={atracao.link_google_maps} target="_blank" rel="noopener noreferrer" 
+                 className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl text-xs font-bold bg-[#00577C]/5 border border-[#00577C]/10 text-[#00577C] hover:bg-[#00577C] hover:text-white transition-colors">
+                <MapPin size={16} />
+                Como chegar
+              </a>
+            )}
+            
+            {atracao.preco_entrada !== undefined && atracao.preco_entrada !== null && (
+              <span className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl text-xs font-bold bg-[#009640]/5 border border-[#009640]/10 text-[#009640]">
+                <Ticket size={16} />
+                {Number(atracao.preco_entrada) === 0 ? 'Entrada Livre' : `Acesso: R$ ${Number(atracao.preco_entrada).toFixed(2)}`}
               </span>
-            ))}
+            )}
           </div>
 
           <div className="mt-auto border-t border-slate-100 pt-8 flex">
             <Link
-              href={`/rotas/${rota.id}`}
+              href={`/atrativos/${atracao.id}`}
               className="group/btn inline-flex items-center gap-3 px-8 py-4 rounded-full font-black text-xs uppercase tracking-widest shadow-xl shadow-[#00577C]/20 bg-[#00577C] text-white hover:bg-[#004a6b] transition-all duration-300 hover:-translate-y-1"
             >
-              Explorar esta rota
+              Explorar Atrativo
               <ArrowRight size={16} className="group-hover/btn:translate-x-1 transition-transform" />
             </Link>
           </div>
@@ -151,26 +148,28 @@ function RotaCard({ rota, index }: { rota: RotaTuristica; index: number }) {
 // ══════════════════════════════════════
 // PÁGINA PRINCIPAL
 // ══════════════════════════════════════
-export default function RotasPage() {
+export default function AtracoesPage() {
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [rotas, setRotas] = useState<RotaTuristica[]>([]);
+  const [isReservaModalOpen, setIsReservaModalOpen] = useState(false);
+  const [atracoes, setAtracoes] = useState<Atracao[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchRotas() {
+    async function fetchAtracoes() {
+      // Adicionámos o .order() para respeitar a sua coluna 'ordem'
       const { data, error } = await supabase
-        .from('rotas')
+        .from('atracoes')
         .select('*')
         .order('ordem', { ascending: true, nullsFirst: false });
 
-      if (data) setRotas(data as RotaTuristica[]);
-      if (error) console.error('Erro ao buscar rotas:', error);
+      if (data) setAtracoes(data as Atracao[]);
+      if (error) console.error('Erro ao buscar atrações:', error);
       setLoading(false);
     }
-    fetchRotas();
+    fetchAtracoes();
   }, []);
 
   useEffect(() => {
@@ -186,9 +185,9 @@ export default function RotasPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
-  // ── MENU DO HEADER (com "Roteiros" em vez de "Rotas") ──
+  // ── MENU DO HEADER (Sincronizado com a Homepage) ──
   const menuGroups = [
-    { label: 'Conhecer', links: ['Atrativos', 'Roteiros', 'História', 'Biodiversidade', 'Galeria'] },
+    { label: 'Conhecer', links: ['Atrações', 'Roteiros', 'História', 'Biodiversidade', 'Galeria'] },
     { label: 'Viver', links: ['Passeios', 'Eventos', 'Comunidades', 'Aldeias'] },
     { label: 'Planejar', links: ['Hotéis', 'Gastronomia', 'Agências', 'Informações', 'Parceiros'] }
   ];
@@ -197,9 +196,10 @@ export default function RotasPage() {
     <main className={`${inter.className} text-slate-900 overflow-x-hidden min-h-screen bg-[#FDFCF7]`}>
 
       {/* ── HEADER EDITORIAL (CENTRALIZADO & DROPDOWN HORIZONTAL) ── */}
-      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${showHeader ? 'translate-y-0' : '-translate-y-full'} ${isScrolled ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100' : 'bg-white border-b border-slate-200'}`}>
+      <header
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${showHeader ? 'translate-y-0' : '-translate-y-full'} ${isScrolled ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100' : 'bg-white border-b border-slate-200'}`}
+      >
         <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4 relative">
-          
           <div className="flex-1">
             <Link href="/" className="inline-flex items-center gap-3">
               <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
@@ -257,6 +257,9 @@ export default function RotasPage() {
               </div>
             ))}
             <div className="border-t border-slate-100 pt-4 mt-2 flex flex-col gap-3">
+              <button onClick={() => { setIsMobileMenuOpen(false); setIsReservaModalOpen(true); }} className={`${jakarta.className} flex items-center justify-center gap-2 font-black text-[#00577C] text-sm bg-slate-50 py-4 rounded-xl border border-slate-100`}>
+                <UserCircle size={18} /> Minhas Reservas
+              </button>
               <Link href="/cadastro" onClick={() => setIsMobileMenuOpen(false)} className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md`}>
                 Cartão Residente
               </Link>
@@ -266,37 +269,50 @@ export default function RotasPage() {
       </header>
 
       {/* ══════════════════════════════════════
-          HERO EDITORIAL SOFT (COM VÍDEO)
+          HERO SOFT & CLEAN INSTITUCIONAL
       ══════════════════════════════════════ */}
-      <section className="relative pt-28 md:pt-36 px-4 sm:px-6 max-w-[1400px] mx-auto w-full">
-        <Reveal anim="zoom">
-          <div className="relative w-full h-[40vh] md:h-[60vh] min-h-[400px] rounded-[2.5rem] md:rounded-[3rem] overflow-hidden shadow-2xl border-[4px] border-white bg-slate-100 group">
-            <video
-              src="/videorota.mp4"
-              autoPlay loop muted playsInline
-              className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-[3000ms] ease-out"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/70 via-slate-900/20 to-transparent" />
+      <section className="relative pt-12 pb-16 md:pt-20 md:pb-32 px-6 bg-[#FDFCF7] overflow-hidden mt-[72px] md:mt-[80px]">
+        {/* Background Graphics Suaves */}
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#009640]/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-[#00577C]/5 rounded-full blur-3xl translate-y-1/3 -translate-x-1/3 pointer-events-none" />
+
+        <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-center relative z-10">
+          
+          <Reveal anim="left" className="lg:col-span-5 flex flex-col items-center text-center lg:items-start lg:text-left">
             
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#F9C400] mb-4 drop-shadow-md">
-                Explore a Natureza
-              </p>
-              <h1 className={`${jakarta.className} text-4xl md:text-5xl lg:text-7xl font-black text-white leading-[1.05] tracking-tight drop-shadow-lg`}>
-                Jornadas <br />
-                <span className="italic text-[#F9C400]">Memoráveis.</span>
-              </h1>
-            </div>
-          </div>
-        </Reveal>
+
+            <h1 className={`${jakarta.className} text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 leading-[1.05] tracking-tight mb-6`}>
+              Atrativos<br />
+              <span className="italic text-[#009640]">Turísticos.</span>
+            </h1>
+
+            <p className="text-slate-500 text-base md:text-lg leading-relaxed font-medium mb-10 text-justify md:text-left">
+              De cascatas escondidas na selva a praias fluviais de areia fina. Descubra os cenários inesquecíveis e os atrativos que tornam o nosso destino num santuário ecológico único no Brasil.
+            </p>
+          </Reveal>
+
+          <Reveal anim="right" className="lg:col-span-7 w-full mt-4 lg:mt-0">
+             <div className="relative w-full h-[400px] md:h-[500px] rounded-[2.5rem] md:rounded-[3rem] overflow-hidden shadow-2xl border-[4px] border-white z-10">
+               <Image 
+                 src="https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/atracoes/casapedra.png" 
+                 alt="Cenário Natural" 
+                 fill 
+                 className="object-cover hover:scale-105 transition-transform duration-[2000ms]" 
+                 priority 
+               />
+               <div className="absolute inset-0 bg-gradient-to-t from-slate-900/10 to-transparent" />
+             </div>
+          </Reveal>
+        </div>
       </section>
 
       {/* ══════════════════════════════════════
           FAIXA UNIFICADA (PESAM E APA - FLUTUANTE)
       ══════════════════════════════════════ */}
-      <section className="relative z-20 w-full px-6 -mt-16 md:-mt-24 mb-24 max-w-[1200px] mx-auto">
+      <section className="relative z-20 w-full px-6 -mt-10 mb-24 max-w-[1400px] mx-auto">
         <Reveal anim="up">
           <div className="bg-white/90 backdrop-blur-xl rounded-[2rem] shadow-xl border border-slate-100 p-8 md:p-12 grid grid-cols-1 md:grid-cols-2 gap-y-10 gap-x-6 md:gap-0 md:divide-x divide-slate-200">
+            
             {Object.values(unidadesConfig).map((item, i) => (
               <div key={item.sigla} className={`flex items-center justify-start md:justify-center gap-6 ${i === 1 ? 'md:pl-12 lg:pl-16' : 'md:pr-12 lg:pr-16'}`}>
                 <div className={`w-16 h-16 shrink-0 rounded-[1.2rem] flex items-center justify-center border ${item.borderLight} ${item.bgLight} ${item.textLight}`}>
@@ -312,40 +328,41 @@ export default function RotasPage() {
                 </div>
               </div>
             ))}
+            
           </div>
         </Reveal>
       </section>
 
       {/* ══════════════════════════════════════
-          LISTAGEM DE ROTAS
+          LISTAGEM DE ATRAÇÕES
       ══════════════════════════════════════ */}
-      <section id="rotas" className="pb-24 px-6 md:px-12">
+      <section id="atrativos" className="pb-24 px-6 md:px-12">
         <div className="max-w-[1400px] mx-auto">
           {loading && (
             <div className="flex flex-col items-center justify-center py-32 bg-white rounded-[3rem] border border-slate-100 shadow-sm">
               <Loader2 className="animate-spin w-12 h-12 mb-4 text-[#00577C]" />
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                A preparar os roteiros...
+                A preparar o itinerário...
               </p>
             </div>
           )}
 
-          {!loading && rotas.length === 0 && (
+          {!loading && atracoes.length === 0 && (
             <div className="flex flex-col items-center justify-center py-32 text-center bg-white rounded-[3rem] border border-slate-100 shadow-sm">
               <Compass size={64} className="text-slate-200 mb-6" />
               <h3 className={`${jakarta.className} text-3xl font-black mb-3 text-slate-800`}>
-                Novos roteiros em breve
+                Novos destinos a caminho
               </h3>
               <p className="text-sm font-medium text-slate-500">
-                Estamos a desenvolver novas jornadas para si. Volte em breve.
+                Estamos a catalogar as melhores atrações da região. Volte em breve.
               </p>
             </div>
           )}
 
-          {!loading && rotas.length > 0 && (
+          {!loading && atracoes.length > 0 && (
             <div>
-              {rotas.map((rota, index) => (
-                <RotaCard key={rota.id} rota={rota} index={index} />
+              {atracoes.map((atracao, index) => (
+                <AtracaoCard key={atracao.id} atracao={atracao} index={index} />
               ))}
             </div>
           )}
@@ -355,8 +372,8 @@ export default function RotasPage() {
       {/* ══════════════════════════════════════
           CTA FINAL (INTEGRADO & SOFISTICADO)
       ══════════════════════════════════════ */}
-      {!loading && rotas.length > 0 && (
-        <section className="py-24 px-6 md:px-12 border-t border-slate-200 bg-[#FDFCF7]">
+      {!loading && atracoes.length > 0 && (
+        <section className="py-24 px-6 md:px-12 bg-white border-t border-slate-100">
           <div className="max-w-[1400px] mx-auto">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-10">
               
@@ -364,13 +381,13 @@ export default function RotasPage() {
                 <div className="rounded-[3rem] p-10 md:p-14 lg:p-16 h-full flex flex-col justify-center relative overflow-hidden bg-gradient-to-br from-[#00577C] to-[#003d57]">
                   <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-white/5 rounded-full blur-3xl" />
                   <div className="relative z-10">
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#F9C400] mb-4">Experiências Guiadas</p>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#F9C400] mb-4">Experiências Completas</p>
                     <h3 className={`${jakarta.className} text-4xl md:text-5xl lg:text-6xl font-black text-white leading-[1.05] tracking-tight mb-6`}>
-                      Procuras um roteiro <br />
-                      <span className="italic text-[#F9C400]">já planeado?</span>
+                      Quer uma viagem <br />
+                      <span className="italic text-[#F9C400]">já planeada?</span>
                     </h3>
                     <p className="text-white/80 text-base md:text-lg leading-relaxed max-w-lg font-medium mb-10">
-                      Roteiros com guias locais credenciados. Apenas precisas de aparecer, relaxar e conectar-te com a natureza.
+                      Conheça as nossas agências locais parceiras que oferecem roteiros seguros, transportes e guias credenciados pela região.
                     </p>
                     <Link href="/agencias"
                       className="inline-flex items-center gap-3 px-8 py-4.5 rounded-full font-black text-xs uppercase tracking-widest transition-all hover:-translate-y-1 shadow-xl bg-[#F9C400] text-[#002f40] hover:bg-[#e5b500]">
@@ -388,7 +405,7 @@ export default function RotasPage() {
                     <span className="italic">Residente</span>
                   </h3>
                   <p className="text-[#002f40]/80 text-base leading-relaxed font-medium mb-10">
-                    50% de desconto na entrada de atrações parceiras para moradores do município.
+                    Aproveite 50% de desconto na entrada dos principais parques naturais. Registe-se agora.
                   </p>
                   <Link href="/cadastro"
                     className="inline-flex items-center gap-3 px-8 py-4 rounded-full font-black text-[10px] uppercase tracking-widest transition-all hover:-translate-y-1 shadow-lg bg-[#002f40] text-[#F9C400] hover:bg-[#001f2e]">
@@ -402,31 +419,23 @@ export default function RotasPage() {
         </section>
       )}
 
-      {/* ── FOOTER (mesmo da página de atrativos) ── */}
-      <footer className="py-20 px-8 border-t border-slate-200 bg-white text-left mt-auto">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
+      {/* ── FOOTER ── */}
+      <footer className="py-20 px-8 border-t border-slate-200 bg-[#FDFCF7] text-left mt-auto">
+        <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
           <div className="flex flex-col items-center md:items-start gap-4">
             <div className="flex items-center gap-6">
               <Image src="/logop.png" alt="SagaTurismo" width={160} height={50} className="object-contain" />
               <div className="w-px h-12 bg-slate-200 hidden md:block" />
-              <Image src="/prefeitura.png" alt="Prefeitura de São Geraldo do Araguaia" width={140} height={50} className="object-contain" />
+              <Image src="/prefeitura.png" alt="Prefeitura de SGA" width={140} height={50} className="object-contain" />
             </div>
             <div className="text-left space-y-1 text-center md:text-left">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                © 2026 Secretaria Municipal de Turismo - SGA | Todos os direitos reservados
+                © 2026 Secretaria Municipal de Turismo - SGA
               </p>
               <p className="text-[10px] font-bold text-slate-400/80">
                 CNPJ: 10.249.241/0001-22
               </p>
             </div>
-          </div>
-
-          <div className="flex gap-10">
-            <div className="text-left border-l-2 border-slate-100 pl-9">
-              <p className="text-[10px] font-black text-[#00577C] uppercase mb-1">Contato Oficial</p>
-              <p className="text-xs font-bold text-slate-500 tracking-tight">setursaga@gmail.com</p>
-            </div>
-            <ShieldCheck size={40} className="text-[#009640] opacity-30" />
           </div>
         </div>
       </footer>

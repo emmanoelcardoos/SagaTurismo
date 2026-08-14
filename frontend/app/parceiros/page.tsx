@@ -1,217 +1,461 @@
 'use client';
 
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import {
+  Menu, X, Lock, Mail, Building2,
+  Users2, HeartHandshake, Sprout, ShieldCheck,
+  ArrowRight, Loader2, Bed, Compass, ClipboardList, ArrowLeft, ExternalLink,
+  ChevronDown
+} from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
-import { ArrowLeft, Menu, X, Building2, ClipboardList, MapPin } from 'lucide-react';
-import { useState, useEffect } from 'react';
 
-const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '700', '800'] });
+// ◄── IMPORTAÇÃO DO SUPABASE ──►
+import { supabase } from '@/lib/supabase';
+
+const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['600', '700', '800'] });
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
 
-// ── ÍCONE DO WHATSAPP (SVG) ──
-const WhatsAppIcon = ({ size = 20, className = "" }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-  </svg>
-);
+type TipoPortal = 'hotel' | 'guia' | 'pacote';
+
+function ScrollReveal({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
+  const [isVisible, setIsVisible] = useState(false);
+  const domRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) {
+        setTimeout(() => setIsVisible(true), delay);
+        if (domRef.current) observer.unobserve(domRef.current);
+      }
+    }, { threshold: 0.15 });
+    if (domRef.current) observer.observe(domRef.current);
+    return () => observer.disconnect();
+  }, [delay]);
+
+  return (
+    <div
+      ref={domRef}
+      className={`transition-all duration-1000 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'} ${className}`}
+    >
+      {children}
+    </div>
+  );
+}
 
 export default function ParceirosPage() {
-  const [isScrolled, setIsScrolled] = useState(false);
+  const router = useRouter();
+
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const [portalSelecionado, setPortalSelecionado] = useState<TipoPortal | null>(null);
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginSenha, setLoginSenha] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [erroLogin, setErroLogin] = useState('');
 
   useEffect(() => {
     const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      setIsScrolled(currentScrollY > 50);
-      if (currentScrollY < 80) setShowHeader(true);
-      else if (currentScrollY > lastScrollY) setShowHeader(false);
-      else setShowHeader(true);
-      setLastScrollY(currentScrollY);
+      const cur = window.scrollY;
+      setIsScrolled(cur > 50);
+      setShowHeader(cur < 80 || cur < lastScrollY);
+      setLastScrollY(cur);
     };
-    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
-  // Contatos e Links
-  const whatsappNumber = "55949844949474"; 
-  const googleFormsLink = "https://docs.google.com/forms/d/e/1FAIpQLScUnwAEfwvfbjwf5w81F_3OynXVNDdCBx9QsDmxtunXftQchg/viewform?usp=publish-editor";
+  // ── MENU AGRUPADO (PADRÃO VINCI) ──
+  const menuGroups = [
+    { label: 'Conhecer', links: ['Atrativos', 'Roteiros', 'História', 'Biodiversidade', 'Galeria'] },
+    { label: 'Viver', links: ['Passeios', 'Eventos', 'Comunidades', 'Aldeias'] },
+    { label: 'Planejar', links: ['Hotéis', 'Gastronomia', 'Agências', 'Informações', 'Parceiros'] }
+  ];
+
+  // ◄── FUNÇÃO DE LOGIN ──►
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoggingIn(true);
+    setErroLogin('');
+
+    try {
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: loginEmail,
+        password: loginSenha,
+      });
+
+      if (authError) {
+        setErroLogin("E-mail ou palavra-passe incorretos.");
+        setIsLoggingIn(false);
+        return;
+      }
+
+      const { data: parceiroData, error: parceiroError } = await supabase
+        .from('parceiros')
+        .select('*')
+        .eq('email', loginEmail)
+        .single();
+
+      if (parceiroError || !parceiroData) {
+        setErroLogin("Perfil de parceiro não encontrado no sistema.");
+        await supabase.auth.signOut();
+        setIsLoggingIn(false);
+        return;
+      }
+
+      if (parceiroData.status !== 'ativo') {
+        setErroLogin("A sua conta encontra-se pendente. Por favor, ative a conta ou contacte a prefeitura.");
+        await supabase.auth.signOut();
+        setIsLoggingIn(false);
+        return;
+      }
+
+      localStorage.setItem("parceiro_id", parceiroData.id);
+      localStorage.setItem("nome_negocio", parceiroData.nome_negocio);
+      const tipoFinal = parceiroData.tipo_parceiro || portalSelecionado;
+      localStorage.setItem("tipo_parceiro", tipoFinal);
+
+      if (tipoFinal === 'hotel') router.push("/parceiros/dashboard-hotel");
+      else if (tipoFinal === 'guia') router.push("/parceiros/dashboard-guia");
+      else if (tipoFinal === 'pacote' || tipoFinal === 'agencia') router.push("/parceiros/dashboard-agencia");
+      else router.push("/parceiros/dashboard-hotel");
+
+    } catch (error) {
+      setErroLogin("Falha na conexão com o servidor.");
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
 
   return (
-    <main className={`${inter.className} min-h-screen flex flex-col bg-[#002f40] relative overflow-hidden`}>
+    <main className={`${inter.className} min-h-screen bg-[#F5F7FA] text-slate-900 flex flex-col overflow-x-hidden`}>
 
-      {/* Foto de fundo com overlay */}
-      <div className="absolute inset-0 z-0">
-        <Image
-          src="https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/IMG_1804.PNG"
-          alt="Parceiros do Turismo em São Geraldo do Araguaia"
-          fill
-          className="object-cover opacity-25 md:opacity-35"
-          priority
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#002f40]/70 via-[#002f40]/60 to-[#002f40]/30 md:from-[#002f40]/50 md:via-[#002f40]/40 md:to-[#002f40]/20" />
-      </div>
-
-      {/* Halo amarelo — canto superior direito */}
-      <div className="absolute top-0 right-0 z-0 w-[300px] h-[300px] md:w-[500px] md:h-[500px] pointer-events-none"
-        style={{ background: 'radial-gradient(ellipse at top right, rgba(249,196,0,0.15) 0%, transparent 65%)' }} />
-
-      {/* Halo verde — canto inferior esquerdo */}
-      <div className="absolute bottom-0 left-0 z-0 w-[250px] h-[250px] md:w-[460px] md:h-[360px] pointer-events-none"
-        style={{ background: 'radial-gradient(ellipse at bottom left, rgba(0,150,64,0.15) 0%, transparent 65%)' }} />
-
-      {/* ── HEADER (COMPLETO E NAVEGÁVEL) ── */}
-      <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${showHeader ? 'translate-y-0' : '-translate-y-full'} ${isScrolled ? 'bg-[#002f40]/95 backdrop-blur-md shadow-sm border-b border-white/10' : 'bg-transparent'}`}
-      >
-        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-5 py-4 md:px-6">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="relative h-9 w-24 md:h-12 md:w-36 shrink-0">
-              <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain brightness-0 invert" />
-            </div>
-          </Link>
-
-          <nav className="hidden lg:flex items-center gap-8">
-            {['Hoteis', 'Pacotes', 'Atracoes', 'Passeios', 'Biodiversidade', 'Gastronomia', 'Comunidades', 'Parceiros'].map(item => (
-              <Link key={item} href={`/${item.toLowerCase()}`}
-                className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-white/50 hover:text-white transition-colors`}
-              >
-                {item}
-              </Link>
-            ))}
-            <Link href="/cadastro"
-              className={`${jakarta.className} bg-[#F9C400] text-[#002f40] px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-sm`}>
-              Residente
+      {/* ── HEADER EDITORIAL CENTRALIZADO ── */}
+      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${showHeader ? 'translate-y-0' : '-translate-y-full'} ${isScrolled ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100' : 'bg-white border-b border-slate-200'}`}>
+        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4 relative">
+          <div className="flex-1">
+            <Link href="/" className="inline-flex items-center gap-3">
+              <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
+                <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain" />
+              </div>
             </Link>
+          </div>
+
+          <nav className="hidden lg:flex items-center justify-center gap-12">
+            {menuGroups.map((group) => (
+              <div key={group.label} className="relative group py-2">
+                <button className={`${jakarta.className} flex items-center gap-1.5 text-xs font-black uppercase tracking-[0.2em] text-slate-600 group-hover:text-[#00577C] transition-colors`}>
+                  {group.label} <ChevronDown size={14} className="group-hover:rotate-180 transition-transform duration-300" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max bg-white/95 backdrop-blur-xl border border-slate-100 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] rounded-2xl p-2 opacity-0 invisible translate-y-2 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 transition-all duration-300 z-50 flex flex-row items-center gap-1">
+                  {group.links.map((link) => (
+                    <Link key={link} href={`/${link.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`} className={`${jakarta.className} block px-5 py-3 text-sm font-bold text-slate-600 hover:text-[#00577C] hover:bg-slate-50 rounded-xl transition-all whitespace-nowrap`}>
+                      {link}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ))}
           </nav>
 
-          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="rounded-xl p-2 lg:hidden bg-white/10 text-white hover:bg-white/20 transition-colors">
-            {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
+          <div className="flex-1 flex justify-end items-center gap-4">
+            <Link href="/cadastro" className={`hidden lg:inline-flex ${jakarta.className} bg-[#F9C400] text-[#002f40] px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-sm`}>
+              Residente
+            </Link>
+            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="rounded-xl p-2 lg:hidden bg-slate-50 text-[#00577C] hover:bg-slate-100 transition-colors">
+              {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
+          </div>
         </div>
 
         {/* Menu Mobile */}
         {isMobileMenuOpen && (
-          <div className="absolute top-full left-0 w-full bg-[#002f40] border-b border-white/10 p-5 flex flex-col gap-4 shadow-2xl lg:hidden z-50">
-            {['Hoteis', 'Pacotes', 'Atracoes', 'Passeios', 'Biodiversidade', 'Gastronomia', 'Comunidades', 'Parceiros'].map(item => (
-              <Link key={item} href={`/${item.toLowerCase()}`}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className={`${jakarta.className} font-black text-white/60 hover:text-white text-lg border-b border-white/10 pb-2 transition-colors`}>
-                {item}
-              </Link>
+          <div className="absolute top-full left-0 w-full bg-white border-b border-slate-200 p-6 flex flex-col gap-6 shadow-2xl lg:hidden z-50 max-h-[85vh] overflow-y-auto">
+            {menuGroups.map((group) => (
+              <div key={group.label} className="flex flex-col gap-3">
+                <p className={`${jakarta.className} text-[10px] font-black uppercase tracking-[0.2em] text-[#00577C] border-b border-slate-100 pb-2`}>{group.label}</p>
+                <div className="flex flex-wrap gap-2">
+                  {group.links.map((link) => (
+                    <Link key={link} href={`/${link.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`} onClick={() => setIsMobileMenuOpen(false)} className={`${jakarta.className} font-bold text-slate-700 text-sm bg-slate-50 px-4 py-2 rounded-lg border border-slate-100 hover:text-[#00577C] hover:bg-slate-100 transition-colors`}>
+                      {link}
+                    </Link>
+                  ))}
+                </div>
+              </div>
             ))}
-            <Link href="/cadastro"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md mt-2`}>
-              Cartão Residente
-            </Link>
+            <div className="border-t border-slate-100 pt-4 mt-2 flex flex-col gap-3">
+              <Link href="/cadastro" onClick={() => setIsMobileMenuOpen(false)} className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md`}>
+                Cartão Residente
+              </Link>
+            </div>
           </div>
         )}
       </header>
 
-      {/* ── CONTEÚDO PRINCIPAL (MOBILE FIRST) ── */}
-      <div className="relative z-10 flex-1 flex flex-col justify-center mt-16 md:mt-20">
-        <div className="w-full max-w-[1400px] mx-auto px-5 md:px-14 py-10 md:py-0">
-          <div className="grid md:grid-cols-2 gap-12 md:gap-20 items-center">
+      {/* ── HERO ── */}
+      <section className="relative w-full min-h-[100vh] lg:min-h-[85vh] bg-[#002f40] pt-[80px] md:pt-[100px] pb-12 md:pb-20 flex items-center overflow-hidden">
+        <div className="absolute inset-0 z-0">
+          <Image src="https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/IMG_1804.PNG" alt="Turismo" fill className="object-cover mix-blend-overlay" priority />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#002f40] via-[#002f40]/9 to-transparent" />
+        </div>
 
-            {/* Coluna esquerda — texto */}
-            <div className="flex flex-col gap-8 md:gap-10">
+        <div className="mx-auto w-full max-w-7xl px-5 relative z-10">
+          <div className="grid lg:grid-cols-2 gap-10 lg:gap-20 items-center">
 
-              {/* Título */}
-              <div className="flex flex-col gap-1">
-                <h1 className={`${jakarta.className} font-black text-white leading-[0.97]`}
-                  style={{ fontSize: 'clamp(36px, 6vw, 72px)' }}>
-                  A nossa
-                </h1>
-                <h1 className={`${jakarta.className} font-black text-[#F9C400] leading-[0.97]`}
-                  style={{ fontSize: 'clamp(36px, 6vw, 72px)' }}>
-                  rede
-                </h1>
-                <h1 className={`${jakarta.className} font-black text-white leading-[0.97]`}
-                  style={{ fontSize: 'clamp(42px, 5.5vw, 72px)' }}>
-                  começa aqui
-                </h1>
-              </div>
+            {/* TEXTO HERO COMUNITÁRIO */}
+            <ScrollReveal delay={100} className="text-left mt-6 lg:mt-0">
+              <h1 className={`${jakarta.className} text-4xl sm:text-5xl md:text-6xl font-black text-white leading-tight mb-6 drop-shadow-lg`}>
+                O turismo da nossa terra,<br />feito pela <span className="text-[#F9C400]">nossa gente.</span>
+              </h1>
 
-              {/* Descrições */}
-              <div className="flex flex-col gap-5">
-                <p className={`${inter.className} text-white/70 text-sm md:text-lg leading-relaxed max-w-md`}>
-                  Hoteleiros, guias turísticos, restaurantes e agentes de viagens poderão anunciar os seus negócios <strong className="text-white">gratuitamente</strong> na página oficial de turismo de São Geraldo do Araguaia.
-                </p>
-                <p className={`${inter.className} text-[#F9C400] text-sm md:text-base font-medium leading-relaxed max-w-md`}>
-                  Tem um negócio voltado para o turismo local e quer garantir o seu espaço? Preencha o cadastro abaixo.
-                </p>
-              </div>
+              <p className="text-white/75 font-medium text-base md:text-lg leading-relaxed max-w-xl mb-8">
+                Uma rede colaborativa, transparente e livre de taxas para conectar os nossos parceiros locais — pousadeiros, guias e iniciativas comunitárias — aos viajantes que querem viver a verdadeira essência do Araguaia.
+              </p>
+            </ScrollReveal>
 
-              {/* CTAs de Contato (Botões empilhados no mobile) */}
-              <div className="flex flex-col sm:flex-row gap-4 sm:gap-3 w-full max-w-md">
-                <a
-                  href={googleFormsLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`${jakarta.className} w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-[#009640] hover:bg-[#007a33] text-white px-7 py-4 md:py-4 rounded-xl md:rounded-full font-black text-xs uppercase tracking-widest transition-all duration-200 shadow-lg`}
-                >
-                  <ClipboardList size={18} />
-                  Fazer Cadastro
-                </a>
-                <a
-                  href={`https://wa.me/${whatsappNumber}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`${jakarta.className} w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-white/10 hover:bg-white/20 text-white px-7 py-4 md:py-4 rounded-xl md:rounded-full font-black text-xs uppercase tracking-widest transition-all duration-200 border border-white/5`}
-                >
-                  <WhatsAppIcon size={18} />
-                  Dúvidas?
-                </a>
-              </div>
-              
-              
-            </div>
+            {/* LOBBY DE ACESSO */}
+            <ScrollReveal delay={300} className="w-full max-w-md mx-auto lg:ml-auto">
+              <div className="relative w-full h-[480px]">
 
-            {/* Coluna direita — foto estática de apoio (Oculta em telas muito pequenas, visível de tablet para cima) */}
-            <div className="hidden md:flex items-center justify-center">
-              <div className="relative w-full max-w-[420px] aspect-[3/4] rounded-[2.5rem] overflow-hidden"
-                style={{ boxShadow: '0 40px 80px -20px rgba(0,0,0,0.7)' }}>
-                <Image
-                  src="https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/IMG_1804.PNG"
-                  alt="Rede de Parceiros"
-                  fill
-                  className="object-cover"
-                  style={{ filter: 'brightness(0.72) saturate(0.85)' }}
-                  priority
-                />
-                {/* Gradiente inferior suave */}
-                <div className="absolute inset-0"
-                  style={{ background: 'linear-gradient(to top, rgba(0,47,64,0.85) 0%, transparent 50%)' }} />
+                {/* CARTÕES DE SELEÇÃO */}
+                <div className={`absolute inset-0 w-full transition-all duration-500 ease-in-out ${portalSelecionado ? '-translate-x-full opacity-0 pointer-events-none' : 'translate-x-0 opacity-100'}`}>
+                  <div className="bg-white rounded-[2rem] shadow-2xl p-7 flex flex-col gap-4">
+                    <div>
+                      <h3 className={`${jakarta.className} text-slate-900 text-xl font-black mb-1`}>Área da Comunidade</h3>
+                      <p className="text-xs text-slate-500 font-medium">Selecione o seu perfil para entrar</p>
+                    </div>
 
-                {/* Legenda discreta dentro da foto */}
-                <div className="absolute bottom-0 left-0 right-0 p-8">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Building2 size={14} className="text-[#F9C400]" />
-                    <p className={`${jakarta.className} text-white/40 text-[9px] font-black uppercase tracking-[0.3em]`}>
-                      Portal de Serviços
-                    </p>
+                    <button onClick={() => setPortalSelecionado('hotel')} className="w-full bg-slate-50 rounded-2xl p-4 flex items-center gap-4 hover:ring-4 ring-[#00577C]/20 hover:bg-blue-50 transition-all group text-left border-2 border-transparent hover:border-[#00577C]/30">
+                      <div className="w-12 h-12 bg-blue-50 rounded-xl text-[#00577C] flex items-center justify-center group-hover:scale-110 transition-transform shrink-0"><Bed size={24} /></div>
+                      <div className="flex-1">
+                        <h4 className={`${jakarta.className} text-base font-bold text-slate-900`}>Alojamentos Locais</h4>
+                        <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Gestão de Quartos</p>
+                      </div>
+                      <ArrowRight className="text-slate-300 group-hover:text-[#00577C] transition-colors" />
+                    </button>
+
+                    <button onClick={() => setPortalSelecionado('guia')} className="w-full bg-slate-50 rounded-2xl p-4 flex items-center gap-4 hover:ring-4 ring-[#1a6b2f]/20 hover:bg-green-50 transition-all group text-left border-2 border-transparent hover:border-[#1a6b2f]/30">
+                      <div className="w-12 h-12 bg-green-50 rounded-xl text-[#1a6b2f] flex items-center justify-center group-hover:scale-110 transition-transform shrink-0"><Compass size={24} /></div>
+                      <div className="flex-1">
+                        <h4 className={`${jakarta.className} text-base font-bold text-slate-900`}>Guias & Condutores</h4>
+                        <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Experiências Guiadas</p>
+                      </div>
+                      <ArrowRight className="text-slate-300 group-hover:text-[#1a6b2f] transition-colors" />
+                    </button>
+
+                    <button onClick={() => setPortalSelecionado('pacote')} className="w-full bg-slate-50 rounded-2xl p-4 flex items-center gap-4 hover:ring-4 ring-amber-500/20 hover:bg-yellow-50 transition-all group text-left border-2 border-transparent hover:border-amber-400/30">
+                      <div className="w-12 h-12 bg-yellow-50 rounded-xl text-amber-700 flex items-center justify-center group-hover:scale-110 transition-transform shrink-0"><ClipboardList size={24} /></div>
+                      <div className="flex-1">
+                        <h4 className={`${jakarta.className} text-base font-bold text-slate-900`}>Agências & Iniciativas</h4>
+                        <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Roteiros Integrados</p>
+                      </div>
+                      <ArrowRight className="text-slate-300 group-hover:text-amber-600 transition-colors" />
+                    </button>
+
+                    <div className="flex items-center gap-2 my-1">
+                      <div className="flex-1 h-px bg-slate-100" />
+                      <span className="text-[11px] text-slate-400">Quer juntar-se à rede?</span>
+                      <div className="flex-1 h-px bg-slate-100" />
+                    </div>
+                    <a href="#cadastro" className={`${jakarta.className} block w-full py-3 text-center bg-[#1a6b2f] hover:bg-[#0f4f20] text-white font-black text-xs uppercase tracking-widest rounded-xl transition-colors`}>
+                      Participar do portal municipal
+                    </a>
                   </div>
-                  <p className={`${jakarta.className} text-white font-black text-xl leading-snug`}>
-                    Visibilidade para <br /> o seu Negócio
-                  </p>
                 </div>
+
+                {/* FORMULÁRIO DE LOGIN */}
+                <div className={`absolute inset-0 w-full transition-all duration-500 ease-in-out ${!portalSelecionado ? 'translate-x-full opacity-0 pointer-events-none' : 'translate-x-0 opacity-100'}`}>
+                  <div className="bg-white rounded-[2rem] shadow-2xl p-8 border border-slate-100 h-full flex flex-col relative overflow-hidden">
+                    <div className={`absolute top-0 left-0 right-0 h-2 ${portalSelecionado === 'hotel' ? 'bg-[#00577C]' : portalSelecionado === 'guia' ? 'bg-[#1a6b2f]' : 'bg-[#F9C400]'}`} />
+
+                    <button type="button" onClick={() => { setPortalSelecionado(null); setErroLogin(''); }} className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:text-slate-800 transition-colors mb-4 border border-slate-200 shadow-sm">
+                      <ArrowLeft size={16} />
+                    </button>
+
+                    <div className="mb-6">
+                      <div className="flex items-center gap-3 mb-2">
+                        {portalSelecionado === 'hotel' && <Bed className="text-[#00577C]" size={24} />}
+                        {portalSelecionado === 'guia' && <Compass className="text-[#1a6b2f]" size={24} />}
+                        {portalSelecionado === 'pacote' && <ClipboardList className="text-amber-700" size={24} />}
+                        <h2 className={`${jakarta.className} text-xl md:text-2xl font-black text-slate-900`}>
+                          {portalSelecionado === 'hotel' && 'Portal Hoteleiro'}
+                          {portalSelecionado === 'guia' && 'Portal do Guia'}
+                          {portalSelecionado === 'pacote' && 'Portal das Agências'}
+                        </h2>
+                      </div>
+                      <p className="text-xs text-slate-500 font-medium">Bem-vindo de volta à nossa rede. Insira os seus dados de acesso.</p>
+                    </div>
+
+                    <form onSubmit={handleLogin} className="space-y-4 flex-1 flex flex-col">
+                      <div>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block mb-2">E-mail Registado</label>
+                        <div className="relative">
+                          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                          <input type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} required
+                            className={`w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-3 pl-11 pr-4 text-sm font-bold text-slate-800 outline-none transition-all ${portalSelecionado === 'hotel' ? 'focus:border-[#00577C]' : portalSelecionado === 'guia' ? 'focus:border-[#1a6b2f]' : 'focus:border-amber-500'}`}
+                            placeholder="seu@email.com" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block mb-2">Palavra-passe</label>
+                        <div className="relative">
+                          <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                          <input type="password" value={loginSenha} onChange={e => setLoginSenha(e.target.value)} required
+                            className={`w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-3 pl-11 pr-4 text-sm font-bold text-slate-800 outline-none transition-all ${portalSelecionado === 'hotel' ? 'focus:border-[#00577C]' : portalSelecionado === 'guia' ? 'focus:border-[#1a6b2f]' : 'focus:border-amber-500'}`}
+                            placeholder="••••••••" />
+                        </div>
+                      </div>
+
+                      {erroLogin && <p className="text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg border border-red-100 text-center">{erroLogin}</p>}
+
+                      <div className="mt-auto">
+                        <button type="submit" disabled={isLoggingIn}
+                          className={`w-full text-white py-4 rounded-xl font-black uppercase text-xs tracking-widest shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2 ${portalSelecionado === 'hotel' ? 'bg-[#00577C] hover:bg-[#004a6b]' : portalSelecionado === 'guia' ? 'bg-[#1a6b2f] hover:bg-[#0f4f20]' : 'bg-amber-600 hover:bg-amber-700'}`}>
+                          {isLoggingIn ? <><Loader2 className="animate-spin" size={18} /> A aceder...</> : <span>Entrar na sua área</span>}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+
               </div>
-            </div>
+            </ScrollReveal>
 
           </div>
         </div>
-      </div>
+      </section>
+
+      {/* ── VALORES COMUNITÁRIOS ── */}
+      <section className="py-16 md:py-28 px-5 bg-white text-center overflow-hidden">
+        <div className="max-w-7xl mx-auto">
+          <ScrollReveal>
+            <h2 className={`${jakarta.className} text-3xl md:text-4xl font-black text-slate-900 mb-10 md:mb-16`}>Porquê fazer parte da nossa rede comunitária?</h2>
+          </ScrollReveal>
+
+          <div className="grid md:grid-cols-3 gap-6 md:gap-10">
+            <ScrollReveal delay={0}>
+              <div className="bg-slate-50 rounded-[2rem] p-8 md:p-10 border border-slate-100 text-left hover:-translate-y-2 transition-transform duration-300 h-full">
+                <div className="w-14 h-14 rounded-2xl bg-blue-100 text-[#00577C] flex items-center justify-center mb-6"><HeartHandshake size={28} /></div>
+                <h3 className={`${jakarta.className} text-xl font-bold text-slate-800 mb-4`}>Comunidade Fortalecida</h3>
+                <p className="text-slate-600 font-medium leading-relaxed text-sm">Pequena pousada, barqueiro ou guia — todos têm o mesmo espaço. O seu trabalho é valorizado e divulgado através dos canais oficiais do município.</p>
+              </div>
+            </ScrollReveal>
+
+            <ScrollReveal delay={200}>
+              <div className="bg-slate-50 rounded-[2rem] p-8 md:p-10 border border-slate-100 text-left hover:-translate-y-2 transition-transform duration-300 h-full">
+                <div className="w-14 h-14 rounded-2xl bg-green-100 text-[#1a6b2f] flex items-center justify-center mb-6"><Sprout size={28} /></div>
+                <h3 className={`${jakarta.className} text-xl font-bold text-slate-800 mb-4`}>Economia Circular</h3>
+                <p className="text-slate-600 font-medium leading-relaxed text-sm">O sistema municipal não cobra comissões abusivas. O valor do seu trabalho fica na nossa cidade, gerando renda e desenvolvimento local.</p>
+              </div>
+            </ScrollReveal>
+
+            <ScrollReveal delay={400}>
+              <div className="bg-slate-50 rounded-[2rem] p-8 md:p-10 border border-slate-100 text-left hover:-translate-y-2 transition-transform duration-300 h-full">
+                <div className="w-14 h-14 rounded-2xl bg-yellow-100 text-[#d4a800] flex items-center justify-center mb-6"><ShieldCheck size={28} /></div>
+                <h3 className={`${jakarta.className} text-xl font-bold text-slate-800 mb-4`}>Apoio e Estrutura</h3>
+                <p className="text-slate-600 font-medium leading-relaxed text-sm">Oferecemos-lhe um portal moderno para gerir as suas reservas e calendário de forma simples, com o suporte direto da equipa da Secretaria de Turismo.</p>
+              </div>
+            </ScrollReveal>
+          </div>
+        </div>
+      </section>
+
+      {/* ── INTEGRAÇÃO GOOGLE FORMS E ATIVAÇÃO ── */}
+      <section id="cadastro" className="py-16 md:py-28 px-5 bg-[#F5F7FA]">
+        <div className="max-w-6xl mx-auto flex flex-col lg:flex-row gap-12 md:gap-16 items-center">
+
+          <ScrollReveal delay={100} className="flex-1 text-left">
+            <p className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.25em] text-[#1a6b2f] mb-3`}>Rede de Turismo</p>
+            <h2 className={`${jakarta.className} text-3xl md:text-4xl font-black text-slate-900 leading-tight mb-5`}>
+              Junte-se à nossa<br />
+              <span className="italic text-[#1a6b2f]">rede de parceiros locais.</span>
+            </h2>
+            <p className="text-slate-500 text-base leading-relaxed mb-8">
+              Ao inscrever a sua iniciativa no portal, passará a fazer parte do ecossistema oficial de turismo de São Geraldo do Araguaia. A nossa equipa irá avaliar a sua proposta e criar-lhe um ambiente digital pronto a receber visitantes.
+            </p>
+
+            <div className="space-y-0 divide-y divide-dashed divide-slate-200">
+              {[
+                { num: '1', title: 'Preencha o formulário', desc: 'Indique os dados da sua iniciativa e as experiências que deseja oferecer.' },
+                { num: '2', title: 'Validação Comunitária', desc: 'A equipa da Secretaria de Turismo verifica o seu registo para garantir a segurança dos nossos visitantes.' },
+                { num: '3', title: 'Ative a sua presença', desc: 'Recebe o acesso, ativa a conta e o seu trabalho ganha visibilidade imediata.' },
+              ].map(step => (
+                <div key={step.num} className="flex gap-4 py-5 items-start">
+                  <div className="w-9 h-9 rounded-full bg-[#F9C400] text-[#002f40] flex items-center justify-center font-black text-sm flex-shrink-0 mt-0.5">{step.num}</div>
+                  <div>
+                    <p className={`${jakarta.className} font-bold text-slate-800 text-sm mb-1`}>{step.title}</p>
+                    <p className="text-slate-500 text-sm">{step.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </ScrollReveal>
+
+          <ScrollReveal delay={300} className="w-full lg:w-[460px] bg-white rounded-[2rem] p-8 md:p-10 shadow-lg border border-slate-100 text-center flex flex-col justify-center items-center">
+             <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mb-6">
+               <Users2 size={32} className="text-[#1a6b2f]" />
+             </div>
+             
+             <h3 className={`${jakarta.className} text-2xl font-black text-slate-900 mb-4`}>Faça parte da rede</h3>
+             <p className="text-slate-500 text-sm font-medium leading-relaxed mb-8">
+               O cadastro é gratuito e destina-se a promover e organizar os serviços turísticos da nossa região.
+             </p>
+
+             <a
+               href="https://docs.google.com/forms/d/e/1FAIpQLScUnwAEfwvfbjwf5w81F_3OynXVNDdCBx9QsDmxtunXftQchg/viewform"
+               target="_blank"
+               rel="noopener noreferrer"
+               className={`${jakarta.className} w-full bg-[#1a6b2f] hover:bg-[#0f4f20] text-white py-4 rounded-xl font-black uppercase text-xs tracking-widest shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2 mb-4`}
+             >
+               Preencher Formulário <ExternalLink size={16} />
+             </a>
+
+             <div className="flex items-center gap-3 w-full my-4">
+                <div className="h-px bg-slate-100 flex-1" />
+                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">Já fez o pedido?</span>
+                <div className="h-px bg-slate-100 flex-1" />
+             </div>
+
+             <Link
+               href="/ativar-conta"
+               className={`${jakarta.className} w-full bg-slate-50 hover:bg-slate-100 border-2 border-slate-200 text-slate-700 py-4 rounded-xl font-black uppercase text-[10px] tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2`}
+             >
+               Ative a sua conta aqui
+             </Link>
+          </ScrollReveal>
+
+        </div>
+      </section>
 
       {/* ── FOOTER ── */}
-      <footer className="relative z-10 py-6 md:py-7 border-t border-white/5 mt-8 md:mt-0">
-        <div className="w-full max-w-[1400px] mx-auto px-5 md:px-14 flex flex-col md:flex-row justify-center md:justify-between items-center gap-4 text-center md:text-left">
-          <p className={`${jakarta.className} text-[9px] md:text-[10px] font-bold text-white/20 uppercase tracking-widest`}>
-            © {new Date().getFullYear()}  — Todos os direitos reservados.
-          </p>
+      <footer className="py-20 px-8 border-t border-slate-200 bg-white text-left">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
+          <div className="flex flex-col items-center md:items-start gap-4">
+            <div className="flex items-center gap-6">
+              <Image src="/logop.png" alt="SagaTurismo" width={160} height={50} className="object-contain" />
+              <div className="w-px h-12 bg-slate-200 hidden md:block" />
+              <Image src="/prefeitura.png" alt="Prefeitura de São Geraldo do Araguaia" width={140} height={50} className="object-contain" />
+            </div>
+            <div className="text-left space-y-1">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                © 2026 Secretaria Municipal de Turismo - SGA | Todos os direitos reservados
+              </p>
+              <p className="text-[10px] font-bold text-slate-400/80">CNPJ: 10.249.241/0001-22</p>
+            </div>
+          </div>
+
+          <div className="flex gap-10">
+            <div className="text-left border-l-2 border-slate-100 pl-9">
+              <p className="text-[10px] font-black text-[#00577C] uppercase mb-1">Contato Oficial</p>
+              <p className="text-xs font-bold text-slate-500 tracking-tight">setursaga@gmail.com</p>
+            </div>
+            <ShieldCheck size={40} className="text-[#1a6b2f] opacity-30" />
+          </div>
         </div>
       </footer>
 
