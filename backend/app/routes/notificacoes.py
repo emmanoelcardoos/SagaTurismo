@@ -2,6 +2,7 @@ from fastapi import APIRouter, Request, HTTPException
 from pydantic import BaseModel
 import os
 from supabase import create_client, Client
+from app.services.email_service import enviar_email_boas_vindas
 
 # Importação dos e-mails transacionais do service
 from app.services.email_service import notificar_admin_novo_passeio, notificar_guia_passeio_aprovado
@@ -18,6 +19,9 @@ class SchemaNotificacaoPasseio(BaseModel):
     preco: float
     descricao: str
     data_evento: str
+
+class SchemaEmailBoasVindas(BaseModel):
+    email: str
 
 # 1. ROTA DE NOTIFICAÇÃO INICIAL (CHAMADA PELO FRONTEND)
 @router.post("/api/v1/notificacoes/novo-passeio")
@@ -104,3 +108,14 @@ async def disparar_newsletter(payload: SchemaNewsletter):
     except Exception as e:
         print(f"[ERRO NEWSLETTER API] {e}")
         raise HTTPException(status_code=500, detail="Falha crítica ao processar o disparo em lote.")
+
+@router.post("/api/v1/newsletter/boas-vindas")
+async def disparar_boas_vindas(payload: SchemaEmailBoasVindas):
+    try:
+        sucesso = enviar_email_boas_vindas(payload.email)
+        if sucesso:
+            return {"sucesso": True, "mensagem": "E-mail de boas-vindas enviado."}
+        raise HTTPException(status_code=500, detail="Falha ao disparar o e-mail pelo Resend.")
+    except Exception as e:
+        print(f"[ERRO BOAS-VINDAS] {e}")
+        raise HTTPException(status_code=500, detail="Erro interno no servidor.")
