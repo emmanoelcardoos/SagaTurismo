@@ -614,7 +614,7 @@ function TabNewsletter() {
       // Como a API do seu backend em Python (FastAPI/Next) gere o envio com o Resend, 
       // pode disparar diretamente por fetch para a rota ou chamar a função se estiver no mesmo ambiente Next.js.
       // Aqui simulamos a chamada via API interna do projeto:
-      const response = await fetch('/api/v1/newsletter/disparar', {
+      const response = await fetch('https://sagaturismo-production.up.railway.app/api/v1/newsletter/disparar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
