@@ -66,3 +66,41 @@ async def webhook_supabase_passeio_aprovado(request: Request):
     except Exception as e:
         print(f"[WEBHOOK APROVAÇÃO ERRO] Falha: {e}")
         return {"status": "handled_with_error"}
+
+# ==========================================
+# 3. ROTA DE DISPARO DA NEWSLETTER COMERCIAL
+# ==========================================
+from app.services.email_service import enviar_newsletter_comercial
+from typing import List, Optional
+
+class SchemaNewsletter(BaseModel):
+    emails: List[str]
+    assunto: str
+    titulo_noticia: str
+    texto_html: str
+    imagem_url: Optional[str] = None
+    link_botao: Optional[str] = None
+    texto_botao: Optional[str] = None
+
+@router.post("/api/v1/newsletter/disparar")
+async def disparar_newsletter(payload: SchemaNewsletter):
+    try:
+        sucessos = enviar_newsletter_comercial(
+            emails_destino=payload.emails,
+            assunto=payload.assunto,
+            titulo_noticia=payload.titulo_noticia,
+            texto_html=payload.texto_html,
+            imagem_url=payload.imagem_url,
+            link_botao=payload.link_botao,
+            texto_botao=payload.texto_botao
+        )
+        
+        return {
+            "sucesso": True, 
+            "enviados": sucessos, 
+            "total": len(payload.emails),
+            "mensagem": f"Newsletter disparada com sucesso para {sucessos} destinatários."
+        }
+    except Exception as e:
+        print(f"[ERRO NEWSLETTER API] {e}")
+        raise HTTPException(status_code=500, detail="Falha crítica ao processar o disparo em lote.")
