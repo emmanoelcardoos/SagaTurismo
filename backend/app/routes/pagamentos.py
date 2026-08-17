@@ -422,7 +422,7 @@ async def processar_pagamento(pedido: PedidoPagamento):
                         valor_repasse = round(lucro_agente_split * fator_liquido, 2)
                         recebedores_split.append({ "walletId": rec_id_agente, "fixedValue": valor_repasse })
 
-        # Lógica de Split Asaas
+        # Lógica de Split Asaas EM DESUSO NO MOMENTO
         soma_splits_reais = sum(r["fixedValue"] for r in recebedores_split)
         valor_total_arredondado = round(valor_total, 2)
 
@@ -907,7 +907,7 @@ async def testar_conexao_bb():
     except Exception as e:
         return {"sucesso": False, "erro": str(e)}
     finally:
-        # Limpeza de segurança dos certificados temporários
+
         if pub_path and os.path.exists(pub_path): os.remove(pub_path)
         if priv_path and os.path.exists(priv_path): os.remove(priv_path)
 
