@@ -514,7 +514,7 @@ async def processar_pagamento(pedido: PedidoPagamento):
                 supabase.table("repasses_financeiros").insert(repasses_db).execute()
 
         # ==============================================================
-        # INTEGRAÇÃO OFICIAL COM ASAAS API
+        # INTEGRAÇÃO OFICIAL COM ASAAS API PARA DIVISÃO DE PAGAMENTO
         # ==============================================================
         async with httpx.AsyncClient() as client:
             headers = {"access_token": ASAAS_API_KEY, "Content-Type": "application/json"}
@@ -546,7 +546,7 @@ async def processar_pagamento(pedido: PedidoPagamento):
             if splits_array:
                 asaas_payload["split"] = splits_array
 
-            # 3. Adiciona dados do Cartão se for Cartão
+            # 3. Adiciona dados do Cartão se for Cartão PARA O ASAAS
             if pedido.metodo_pagamento == "cartao":
                 if not pedido.dados_cartao:
                     raise HTTPException(status_code=400, detail="Dados do cartão ausentes.")
@@ -569,7 +569,7 @@ async def processar_pagamento(pedido: PedidoPagamento):
                     "phone": telefone_limpo
                 }
 
-            # 4. Dispara a Cobrança
+            # 4. Dispara a Cobrança ASAAS
             resp_pay = await client.post(f"{ASAAS_API_URL}/payments", json=asaas_payload, headers=headers)
             if resp_pay.status_code not in [200, 201]:
                 print(f"Erro Asaas Payment: {resp_pay.json()}")
@@ -866,7 +866,7 @@ async def reenviar_voucher(payload: PedidoReenvio):
         raise HTTPException(status_code=500, detail=str(e))
 
 # ==========================================
-# ROTAS BANCO DO BRASIL (mTLS e PIX)
+# ROTAS BANCO DO BRASIL (mTLS e PIX) O QUE ESTAMOS USANDO NO MOMENTO PARA EMITIR AS CARTEIRAS 
 # ==========================================
 @router.get("/api/v1/pagamentos/teste-bb")
 async def testar_conexao_bb():
