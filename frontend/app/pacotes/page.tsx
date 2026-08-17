@@ -65,7 +65,7 @@ export default function PacotesPage() {
           </Link>
 
           <nav className="hidden lg:flex items-center gap-8">
-            {['Hoteis', 'Pacotes', 'Atracoes', 'Passeios', 'Biodiversidade', 'Gastronomia', 'Comunidades',  'Parceiros'].map(item => (
+            {['Hoteis', 'Pacotes', 'Atracoes', 'Biodiversidade', 'Gastronomia', 'Comunidades',  'Parceiros'].map(item => (
               <Link key={item} href={`/${item.toLowerCase()}`}
                 className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-white/50 hover:text-white transition-colors`}
               >
@@ -86,7 +86,7 @@ export default function PacotesPage() {
 
         {isMobileMenuOpen && (
           <div className="absolute top-full left-0 w-full bg-[#002f40] border-b border-white/10 p-5 flex flex-col gap-4 shadow-2xl lg:hidden z-50">
-            {['Hoteis', 'Pacotes', 'Atracoes', 'Passeios', 'Biodiversidade',  'Parceiros'].map(item => (
+            {['Hoteis', 'Pacotes', 'Atracoes', 'Biodiversidade',  'Parceiros'].map(item => (
               <Link key={item} href={`/${item.toLowerCase()}`}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={`${jakarta.className} font-black text-white/60 hover:text-white text-lg border-b border-white/10 pb-2 transition-colors`}>

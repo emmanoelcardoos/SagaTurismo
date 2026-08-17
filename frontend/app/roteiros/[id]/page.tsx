@@ -138,7 +138,7 @@ export default function RotaDetailPage() {
   // ── NOVO MENU AGRUPADO (header padrão) ──
   const menuGroups = [
     { label: 'Conhecer', links: ['Atrativos', 'Roteiros', 'História', 'Biodiversidade', 'Galeria'] },
-    { label: 'Viver', links: ['Passeios', 'Eventos', 'Comunidades', 'Aldeias'] },
+    { label: 'Viver', links: ['Passeios', 'Eventos', 'Comunidades'] },
     { label: 'Planejar', links: ['Hotéis', 'Gastronomia', 'Agências', 'Informações', 'Parceiros'] }
   ];
 
@@ -462,7 +462,7 @@ export default function RotaDetailPage() {
         <section className="max-w-[1400px] mx-auto w-full px-6 mb-24">
           <Reveal anim="up">
             <h3 className={`${jakarta.className} text-3xl md:text-4xl font-black text-slate-900 mb-8 flex items-center gap-3 border-b border-slate-200 pb-6`}>
-              <ImageIcon size={32} className={theme.textLight} /> Galeria Visual
+              <ImageIcon size={32} className={theme.textLight} /> Galeria de Imagens
             </h3>
             
             <div className="flex gap-4 md:gap-6 overflow-x-auto snap-x snap-mandatory pb-6 hide-scrollbar">
@@ -478,29 +478,25 @@ export default function RotaDetailPage() {
       )}
 
       {/* ── FOOTER ── */}
-      <footer className="py-20 px-8 border-t border-slate-200 bg-white text-left mt-auto">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
-          <div className="flex flex-col items-center md:items-start gap-4">
-            <div className="flex items-center gap-6">
-              <Image src="/logop.png" alt="SagaTurismo" width={160} height={50} className="object-contain" />
-              <div className="w-px h-12 bg-slate-200 hidden md:block" />
-              <Image src="/prefeitura.png" alt="Prefeitura de São Geraldo do Araguaia" width={140} height={50} className="object-contain" />
-            </div>
-            <div className="text-left space-y-1">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                © 2026 Secretaria Municipal de Turismo - SGA | Todos os direitos reservados
-              </p>
-            </div>
-          </div>
-          <div className="flex gap-10">
-            <div className="text-left border-l-2 border-slate-100 pl-9">
-              <p className="text-[10px] font-black text-[#00577C] uppercase mb-1">Contato Oficial</p>
-              <p className="text-xs font-bold text-slate-500 tracking-tight">setursaga@gmail.com</p>
-            </div>
-            <ShieldCheck size={40} className="text-[#009640] opacity-30" />
-          </div>
-        </div>
-      </footer>
+      <footer className="py-20 px-8 border-t border-slate-200 bg-[#FDFCF7] text-left mt-auto">
+              <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
+                <div className="flex flex-col items-center md:items-start gap-4">
+                  <div className="flex items-center gap-6">
+                    <Image src="/logop.png" alt="SagaTurismo" width={160} height={50} className="object-contain" />
+                    <div className="w-px h-12 bg-slate-200 hidden md:block" />
+                    <Image src="/prefeitura.png" alt="Prefeitura de SGA" width={140} height={50} className="object-contain" />
+                  </div>
+                  <div className="text-left space-y-1 text-center md:text-left">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                      © 2026 Secretaria Municipal de Turismo - SGA
+                    </p>
+                    <p className="text-[10px] font-bold text-slate-400/80">
+                      CNPJ: 10.249.241/0001-22
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </footer>
     </main>
   );
 }

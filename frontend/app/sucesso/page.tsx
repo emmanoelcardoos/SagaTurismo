@@ -151,7 +151,7 @@ function SucessoContent() {
           </Link>
 
           <nav className="hidden lg:flex items-center gap-8">
-            {['Hoteis', 'Pacotes', 'Roteiros','Passeios', 'Aldeias', 'Eventos', 'Biodiversidade', 'Gastronomia', 'Comunidades'].map(item => (
+            {['Hoteis', 'Pacotes', 'Roteiros','Passeios', 'Eventos', 'Biodiversidade', 'Gastronomia', 'Comunidades'].map(item => (
               <Link key={item} href={`/${item.toLowerCase()}`} className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-slate-600 hover:text-[#00577C] transition-colors`}>
                 {item}
               </Link>
@@ -372,7 +372,7 @@ function SucessoContent() {
 
       <footer className="mt-auto py-8 md:py-12 text-center border-t border-slate-200 bg-[#F8F9FA]">
          <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] md:tracking-[0.5em] px-4 leading-relaxed">
-            © {new Date().getFullYear()} · Secretaria de Turismo de São Geraldo do Araguaia
+            © {new Date().getFullYear()} ·© 2026 Prefeitura Munícipal de São Geraldo do Araguaia - PA
          </p>
       </footer>
     </main>

@@ -12,6 +12,8 @@ import {
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
 
+
+
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['600', '700', '800'] });
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
 
@@ -151,14 +153,14 @@ function HotelDetalheContent() {
   // ── MENU GROUPS ──
   const menuGroups = [
     { label: 'Conhecer', links: ['Atrativos', 'Rotas', 'História', 'Biodiversidade', 'Galeria'] },
-    { label: 'Viver', links: ['Passeios', 'Eventos', 'Comunidades', 'Aldeias'] },
+    { label: 'Viver', links: ['Eventos', 'Comunidades'] },
     { label: 'Planejar', links: ['Hotéis', 'Gastronomia', 'Agências', 'Informações', 'Parceiros'] }
   ];
 
   if (!mounted || loading) return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#FDFCF7] text-[#00577C]">
       <Loader2 className="w-10 h-10 md:w-12 md:h-12 animate-spin mb-4 text-[#00577C]" />
-      <p className="font-bold uppercase tracking-widest text-[10px] md:text-xs text-slate-500">A carregar informações da hospedagem...</p>
+      <p className="font-bold uppercase tracking-widest text-[10px] md:text-xs text-slate-500">Buscando informações da hospedagem...</p>
     </div>
   );
 
@@ -235,25 +237,31 @@ function HotelDetalheContent() {
         )}
       </header>
 
-      {/* ── HERO SECTION ORIGINAL ── */}
-      <div className="w-full h-[60vh] md:h-[70vh] relative bg-[#002f40]">
-        <Image src={hotel.imagem_url} alt={hotel.nome} fill className="object-cover opacity-90" priority />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-        
-        <Link href="/hoteis" className="absolute top-4 md:top-6 left-4 md:left-6 z-20 flex items-center gap-2 text-xs md:text-sm font-bold text-slate-800 bg-white hover:bg-slate-50 px-3 md:px-4 py-1.5 md:py-2 rounded-full shadow-lg transition-colors">
-          <ArrowLeft size={16} /> Voltar
-        </Link>
+            {/* ── HERO SECTION ORIGINAL (COM BOTÃO VOLTAR VISÍVEL) ── */}
+            <div className="w-full h-[60vh] md:h-[70vh] relative bg-[#002f40]">
+              <Image src={hotel.imagem_url} alt={hotel.nome} fill className="object-cover opacity-90" priority />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+              
+              {/* Botão Voltar (corrigido com z-index elevado e fundo sólido) */}
+              <div className="absolute top-4 md:top-6 left-4 md:left-6 z-30">
+                <Link
+                  href="/hoteis"
+                  className="inline-flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-800 px-4 py-2.5 rounded-full text-sm font-bold shadow-lg transition-all border border-slate-200/50 backdrop-blur-sm"
+                >
+                  <ArrowLeft size={16} /> Voltar
+                </Link>
+              </div>
 
-        <div className="absolute bottom-6 md:bottom-10 left-5 md:left-16 z-20 text-left pr-5">
-          <div className="flex items-center gap-2 mb-2 md:mb-3">
-            <span className="bg-[#F9C400] text-[#00577C] px-2 md:px-3 py-1 md:py-1.5 rounded-lg text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-md">{hotel.tipo}</span>
-            <div className="flex gap-0.5 md:gap-1">
-              {Array.from({ length: hotel.estrelas }).map((_, i) => <Star key={i} className="h-3.5 w-3.5 md:h-4 md:w-4 fill-[#F9C400] text-[#F9C400]" />)}
+              <div className="absolute bottom-6 md:bottom-10 left-5 md:left-16 z-20 text-left pr-5">
+                <div className="flex items-center gap-2 mb-2 md:mb-3">
+                  <span className="bg-[#F9C400] text-[#00577C] px-2 md:px-3 py-1 md:py-1.5 rounded-lg text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-md">{hotel.tipo}</span>
+                  <div className="flex gap-0.5 md:gap-1">
+                    {Array.from({ length: hotel.estrelas }).map((_, i) => <Star key={i} className="h-3.5 w-3.5 md:h-4 md:w-4 fill-[#F9C400] text-[#F9C400]" />)}
+                  </div>
+                </div>
+                <h1 className={`${jakarta.className} text-3xl sm:text-4xl md:text-6xl font-black text-white leading-tight drop-shadow-lg`}>{hotel.nome}</h1>
+              </div>
             </div>
-          </div>
-          <h1 className={`${jakarta.className} text-3xl sm:text-4xl md:text-6xl font-black text-white leading-tight drop-shadow-lg`}>{hotel.nome}</h1>
-        </div>
-      </div>
 
       {/* ── ESTRUTURA PRINCIPAL ── */}
       <div className="mx-auto w-full max-w-7xl px-4 md:px-5 py-8 md:py-12 flex flex-col gap-10 md:gap-14 relative z-10">
@@ -321,7 +329,7 @@ function HotelDetalheContent() {
                   Interessado no Alojamento?
                </h3>
                <p className="text-sm text-slate-500 mb-6 font-medium leading-relaxed">
-                 Entre em contacto direto com o proprietário para verificar a disponibilidade de quartos, consultar valores e tirar dúvidas.
+                 Entre em contato direto com o proprietário para verificar a disponibilidade de quartos, consultar valores e tirar dúvidas.
                </p>
 
                <div className="space-y-3">
@@ -341,7 +349,7 @@ function HotelDetalheContent() {
                      rel="noopener noreferrer"
                      className={`${jakarta.className} w-full bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F77737] hover:opacity-90 text-white py-4 md:py-5 rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2`}
                    >
-                     <InstagramIcon size={22} /> Seguir no Instagram
+                     <InstagramIcon size={22} /> Instagram
                    </a>
                  )}
                </div>
@@ -422,31 +430,24 @@ function HotelDetalheContent() {
 
       {/* ── FOOTER INSTITUCIONAL INTEGRADO ── */}
       <footer className="py-20 px-8 border-t border-slate-200 bg-[#FDFCF7] text-left mt-auto">
-        <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
-          <div className="flex flex-col items-center md:items-start gap-4">
-            <div className="flex items-center gap-6">
-              <Image src="/logop.png" alt="SagaTurismo" width={160} height={50} className="object-contain" />
-              <div className="w-px h-12 bg-slate-200 hidden md:block" />
-              <Image src="/prefeitura.png" alt="Prefeitura de São Geraldo do Araguaia" width={140} height={50} className="object-contain" />
-            </div>
-            <div className="text-left space-y-1 text-center md:text-left">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                © 2026 Secretaria Municipal de Turismo - SGA | Todos os direitos reservados
-              </p>
-              <p className="text-[10px] font-bold text-slate-400/80">
-                CNPJ: 10.249.241/0001-22
-              </p>
-            </div>
-          </div>
-          <div className="flex gap-10">
-            <div className="text-left border-l-2 border-slate-100 pl-9">
-              <p className="text-[10px] font-black text-[#00577C] uppercase mb-1">Contato Oficial</p>
-              <p className="text-xs font-bold text-slate-500 tracking-tight">setursaga@gmail.com</p>
-            </div>
-            <ShieldCheck size={40} className="text-[#009640] opacity-30" />
-          </div>
-        </div>
-      </footer>
+              <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
+                <div className="flex flex-col items-center md:items-start gap-4">
+                  <div className="flex items-center gap-6">
+                    <Image src="/logop.png" alt="SagaTurismo" width={160} height={50} className="object-contain" />
+                    <div className="w-px h-12 bg-slate-200 hidden md:block" />
+                    <Image src="/prefeitura.png" alt="Prefeitura de SGA" width={140} height={50} className="object-contain" />
+                  </div>
+                  <div className="text-left space-y-1 text-center md:text-left">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                      © 2026 Prefeitura Munícipal de São Geraldo do Araguaia - PA
+                    </p>
+                    <p className="text-[10px] font-bold text-slate-400/80">
+                      CNPJ: 10.249.241/0001-22
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </footer>
     </div>
   );
 }

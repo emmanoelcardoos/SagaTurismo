@@ -7,7 +7,7 @@ import {
   ArrowRight, ShieldCheck, Star, ExternalLink, Menu, Landmark, Hotel,
   Mountain, Waves, TreePine, CalendarDays, MapPin, Ticket,
   Loader2, Sparkles, Image as ImageIcon, Compass, CheckCircle2, X,
-  ChevronLeft, ChevronRight, Route, ChevronDown, ChevronUp, UserCircle
+  ChevronLeft, ChevronRight, Route, ChevronDown, ChevronUp, UserCircle, Link2, Share2, Phone, Mail, Clock
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -120,6 +120,98 @@ type FotoGaleria = {
   titulo: string;
 };
 
+
+// ==========================================
+// COMPONENTE: ÚLTIMOS ARTIGOS DO BLOG
+// ==========================================
+function UltimosArtigosBlog() {
+  const [posts, setPosts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1542382156909-9ae37b3f56fd?q=80&w=2069";
+
+  useEffect(() => {
+    async function fetchPosts() {
+      const { data } = await supabase
+        .from('blog')
+        .select('id, titulo, imagem_url, data_publicacao')
+        .eq('ativo', true)
+        .order('data_publicacao', { ascending: false })
+        .limit(3);
+      if (data) setPosts(data);
+      setLoading(false);
+    }
+    fetchPosts();
+  }, []);
+
+  const formatarData = (dataStr: string) => {
+    if (!dataStr) return '';
+    const date = new Date(dataStr + 'T00:00:00');
+    return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+  };
+
+  return (
+    <section className="py-24 bg-white overflow-hidden border-t border-slate-100">
+      <div className="max-w-[1400px] mx-auto px-6">
+        
+        <AnimatedSection animation="fade-up" className="mb-16">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div>
+              <h2 className={`${jakarta.className} text-5xl md:text-7xl font-black text-slate-900 leading-[0.9]`}>
+                Blog & <span className="italic text-[#F9C400]">Notícias</span>
+              </h2>
+            </div>
+            <Link href="/blog" className="inline-flex items-center gap-2 font-black text-[10px] uppercase tracking-[0.2em] text-[#00577C] hover:gap-4 transition-all">
+              Ler todos os artigos <ArrowRight size={16} />
+            </Link>
+          </div>
+        </AnimatedSection>
+
+        {loading ? (
+          <div className="flex justify-center py-12"><Loader2 className="animate-spin w-10 h-10 text-[#00577C]" /></div>
+        ) : posts.length === 0 ? (
+          <div className="text-center text-slate-500 font-medium">Nenhum artigo publicado recentemente.</div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-12">
+            {posts.map((post, i) => (
+              <AnimatedSection key={post.id} animation="fade-up" delay={i * 150}>
+                <Link href={`/blog/${post.id}`} className="group flex flex-col gap-5 block h-full">
+                  
+                  {/* Imagem do Post */}
+                  <div className="relative w-full aspect-[4/3] rounded-[2rem] overflow-hidden bg-slate-100 shadow-sm">
+                    <Image 
+                      src={post.imagem_url || FALLBACK_IMAGE} 
+                      alt={post.titulo} 
+                      fill 
+                      className="object-cover group-hover:scale-105 transition-transform duration-[1500ms] ease-out" 
+                    />
+                  </div>
+                  
+                  {/* Textos Editoriais */}
+                  <div className="flex flex-col items-start text-left gap-3 px-2">
+                    {post.data_publicacao && (
+                      <span className="text-[11px] font-bold text-slate-400 tracking-widest uppercase">
+                        {formatarData(post.data_publicacao)}
+                      </span>
+                    )}
+                    <h3 className={`${jakarta.className} text-2xl font-black text-slate-900 leading-[1.2] group-hover:text-[#00577C] transition-colors line-clamp-3`}>
+                      {post.titulo}
+                    </h3>
+                    <span className="text-[#00577C] text-[13px] mt-1 font-bold tracking-wide underline underline-offset-4 decoration-slate-200 group-hover:decoration-[#00577C] transition-colors">
+                      Leia mais
+                    </span>
+                  </div>
+
+                </Link>
+              </AnimatedSection>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 // ==========================================
 // COMPONENTE: DESTAQUES VERÃO 2026
 // ==========================================
@@ -153,7 +245,7 @@ function DestaquesVerao() {
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div>
               <h2 className={`${jakarta.className} text-5xl md:text-7xl font-black text-slate-900 leading-[0.9]`}>
-                Agenda Turistica e  <span className="italic text-[#00577C]">Cultural</span>
+                Agenda de <span className="italic text-[#00577C]"> Eventos</span>
               </h2>
             </div>
             <Link href="/eventos" className="inline-flex items-center gap-2 font-black text-[10px] uppercase tracking-[0.2em] text-[#00577C] hover:gap-4 transition-all">
@@ -201,6 +293,7 @@ function DestaquesVerao() {
     </section>
   );
 }
+
 
 // ==========================================
 // COMPONENTE: GALERIA VERÃO 2026
@@ -379,76 +472,6 @@ function SeccaoHoteis() {
   );
 }
 
-// ==========================================
-// COMPONENTE: SECÇÃO PACOTES (AGORA APONTA PARA AGÊNCIAS)
-// ==========================================
-function SeccaoPacotes() {
-  const [pacotes, setPacotes] = useState<PacoteData[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchPacotes() {
-      const { data } = await supabase.from('pacotes').select('*').eq('ativo', true).limit(3);
-      if (data) setPacotes(data);
-      setLoading(false);
-    }
-    fetchPacotes();
-  }, []);
-
-  return (
-    <section id="pacotes" className="py-24 bg-[#002f40] overflow-hidden">
-      <div className="max-w-[1400px] mx-auto px-6">
-        <AnimatedSection animation="fade-up" className="mb-16">
-          
-          <h2 className={`${jakarta.className} text-5xl md:text-7xl font-black text-white leading-[0.9]`}>
-            Pacotes <span className="italic text-[#F9C400]">Turísticos</span>
-          </h2>
-        </AnimatedSection>
-
-        {loading ? (
-          <div className="flex justify-center py-12"><Loader2 className="animate-spin w-10 h-10 text-[#F9C400]" /></div>
-        ) : (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {pacotes.map((pacote, i) => (
-                <AnimatedSection key={pacote.id} animation="fade-up" delay={i * 120}>
-                  <Link href={`/pacotes/${pacote.id}`} className="group relative h-[380px] rounded-[2rem] overflow-hidden bg-slate-900 flex flex-col block">
-                    <Image
-                      src={pacote.imagem_principal || 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09'}
-                      alt={pacote.titulo} fill
-                      className="object-cover opacity-75 group-hover:scale-105 group-hover:opacity-90 transition-all duration-700"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent" />
-                    
-                    
-                    
-                    <div className="absolute bottom-8 left-8 right-8 text-white">
-                      <h3 className={`${jakarta.className} text-2xl font-black mb-2 line-clamp-1`}>{pacote.titulo}</h3>
-                      <p className="text-white/70 text-sm line-clamp-2 mb-4">{pacote.descricao_curta}</p>
-                      
-                      {/* ── NOVO BOTÃO COM TEXTO ── */}
-                      <div className="flex items-center">
-                        <span className="inline-flex items-center gap-2 bg-[#F9C400] text-[#002f40] px-5 py-2.5 rounded-full font-black text-[10px] uppercase tracking-widest shadow-md transition-transform group-hover:scale-105">
-                          Conhecer pacote <ArrowRight size={14} />
-                        </span>
-                      </div>
-                    </div>
-                  </Link>
-                </AnimatedSection>
-              ))}
-            </div>
-
-            <AnimatedSection animation="fade-up" delay={200} className="mt-10">
-              <Link href="/agencias" className="inline-flex items-center gap-2 font-black text-[10px] uppercase tracking-[0.2em] text-white/70 hover:text-white hover:gap-4 transition-all">
-                Ver agências parceiras <ArrowRight size={16} />
-              </Link>
-            </AnimatedSection>
-          </>
-        )}
-      </div>
-    </section>
-  );
-}
 
 // ==========================================
 // COMPONENTE: SECÇÃO PASSEIOS
@@ -534,11 +557,9 @@ function SeccaoPasseios() {
                       <div className="absolute bottom-6 left-6 right-6 text-white">
                         <h3 className={`${jakarta.className} text-xl font-black line-clamp-1 mb-2`}>{passeio.titulo}</h3>
                         <div className="flex items-center justify-between mt-1">
-                          <p className={`${jakarta.className} text-base font-black text-[#009640] bg-white/10 px-2 py-1 rounded backdrop-blur-sm`}>
-                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(passeio.valor_total || 0))}
-                          </p>
+                          
                           <span className="inline-flex items-center gap-1.5 bg-[#F9C400] text-[#002f40] px-3 py-1.5 rounded-full font-black text-[9px] uppercase tracking-widest transition-transform group-hover:scale-105">
-                            Ver <ArrowRight size={12} />
+                            Ver passeio<ArrowRight size={12} />
                           </span>
                         </div>
                       </div>
@@ -563,17 +584,28 @@ function SeccaoPasseios() {
 // ==========================================
 // COMPONENTE PRINCIPAL: HOMEPAGE
 // ==========================================
-// ==========================================
-// COMPONENTE PRINCIPAL: HOMEPAGE
-// ==========================================
 export default function HomePage() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const [isHovered, setIsHovered] = useState(false);
+  const isHeaderSolid = isScrolled || isHovered || isMobileMenuOpen;
   
   // ◄── ESTADO DO MODAL DE RESERVAS ──►
   const [isReservaModalOpen, setIsReservaModalOpen] = useState(false);
+
+  // ── REF PARA O VÍDEO ──
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // ── EFECTO PARA TORNAR O VÍDEO MAIS LENTO ──
+  useEffect(() => {
+    if (videoRef.current) {
+      // Reduz a velocidade para 0.25x (2s → 8s)
+      videoRef.current.playbackRate = 0.25;
+    }
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -590,8 +622,8 @@ export default function HomePage() {
 
   // ── MENU AGRUPADO (COM PARCEIROS NO PLANEJAR) ──
   const menuGroups = [
-    { label: 'Conhecer', links: ['Atrativos', 'Roteiros', 'História', 'Biodiversidade', 'Galeria'] },
-    { label: 'Viver', links: ['Passeios', 'Eventos', 'Comunidades', 'Aldeias'] },
+    { label: 'Conhecer', links: ['Atrativos', 'História', 'Biodiversidade', 'Galeria'] },
+    { label: 'Viver', links: ['Eventos', 'Comunidades'] },
     { label: 'Planejar', links: ['Hotéis', 'Gastronomia', 'Agências', 'Informações', 'Parceiros'] }
   ];
 
@@ -599,31 +631,31 @@ export default function HomePage() {
     <main className={`${inter.className} bg-[#FDFCF7] text-slate-900 overflow-x-hidden`}>
 
       {/* ── HEADER EDITORIAL (CENTRALIZADO & DROPDOWN HORIZONTAL) ── */}
+      {/* ── HEADER EDITORIAL (TRANSPARENTE NO TOPO, BRANCO NO SCROLL) ── */}
+      {/* ── HEADER EDITORIAL (TRANSPARENTE TOTAL NO TOPO, BRANCO NO HOVER/SCROLL) ── */}
       <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${showHeader ? 'translate-y-0' : '-translate-y-full'} ${isScrolled ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100' : 'bg-white border-b border-slate-200'}`}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${showHeader ? 'translate-y-0' : '-translate-y-full'} ${isHeaderSolid ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100' : 'bg-transparent border-b border-transparent'}`}
       >
         <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4 relative">
           
-          {/* LADO ESQUERDO: Logo */}
+          {/* LADO ESQUERDO: Logo Totalmente Transparente */}
           <div className="flex-1">
-            <Link href="/" className="inline-flex items-center gap-3">
+            <Link href="/" className="inline-flex items-center gap-3 transition-all duration-300">
               <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
                 <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain" />
               </div>
             </Link>
           </div>
 
-          {/* CENTRO: Navegação Desktop (Dropdown Horizontal) */}
-          {/* CENTRO: Navegação Desktop (Dropdown Horizontal Maior) */}
+          {/* CENTRO: Navegação Desktop */}
           <nav className="hidden lg:flex items-center justify-center gap-12">
             {menuGroups.map((group) => (
               <div key={group.label} className="relative group py-2">
-                {/* TÍTULO PRINCIPAL (Aumentado para text-xs) */}
-                <button className={`${jakarta.className} flex items-center gap-1.5 text-xs font-black uppercase tracking-[0.2em] text-slate-600 group-hover:text-[#00577C] transition-colors`}>
+                <button className={`${jakarta.className} flex items-center gap-1.5 text-xs font-black uppercase tracking-[0.2em] transition-colors ${isHeaderSolid ? 'text-slate-600 group-hover:text-[#00577C]' : 'text-white group-hover:text-[#F9C400] drop-shadow-md'}`}>
                   {group.label} <ChevronDown size={14} className="group-hover:rotate-180 transition-transform duration-300" />
                 </button>
-
-                {/* Dropdown Menu HORIZONTAL */}
                 <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max bg-white/95 backdrop-blur-xl border border-slate-100 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] rounded-2xl p-2 opacity-0 invisible translate-y-2 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 transition-all duration-300 z-50 flex flex-row items-center gap-1">
                   {group.links.map((link) => {
                     const path = `/${link.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`;
@@ -631,7 +663,6 @@ export default function HomePage() {
                       <Link
                         key={link}
                         href={path}
-                        /* LINKS INTERNOS (Aumentados para text-sm e mais espaço) */
                         className={`${jakarta.className} block px-5 py-3 text-sm font-bold text-slate-600 hover:text-[#00577C] hover:bg-slate-50 rounded-xl transition-all whitespace-nowrap`}
                       >
                         {link}
@@ -646,14 +677,14 @@ export default function HomePage() {
           {/* LADO DIREITO: Botões */}
           <div className="flex-1 flex justify-end items-center gap-4">
             <Link href="/cadastro"
-              className={`hidden lg:inline-flex ${jakarta.className} bg-[#F9C400] text-[#002f40] px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-sm`}>
+              className={`hidden lg:inline-flex ${jakarta.className} px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-sm ${isHeaderSolid ? 'bg-[#F9C400] text-[#002f40]' : 'bg-white/20 backdrop-blur-md text-white border border-white/30 hover:bg-white/30'}`}>
               Residente
             </Link>
             
-            {/* Botão Mobile */}
+            {/* Botão Mobile Totalmente Transparente */}
             <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="rounded-xl p-2 lg:hidden bg-slate-50 text-[#00577C] hover:bg-slate-100 transition-colors">
-              {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              className={`rounded-xl p-2 lg:hidden transition-all duration-300 ${isHeaderSolid ? 'text-[#00577C] hover:bg-slate-100' : 'text-white hover:bg-white/20'}`}>
+              {isMobileMenuOpen ? <X className="h-8 w-8" /> : <Menu className="h-8 w-8" />}
             </button>
           </div>
         </div>
@@ -683,8 +714,6 @@ export default function HomePage() {
             ))}
 
             <div className="border-t border-slate-100 pt-4 mt-2 flex flex-col gap-3">
-              
-
               <Link href="/cadastro"
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md`}>
@@ -697,108 +726,144 @@ export default function HomePage() {
       </header>
 
       {/* ── VISÃO GERAL DA CIDADE (HERO MODERNO & CLEAN) ── */}
-      <section className="relative pt-12 pb-16 md:pt-20 md:pb-24 px-6 bg-[#FDFCF7] overflow-hidden mt-[72px] md:mt-[80px]">
-        {/* Background Graphics Suaves */}
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#009640]/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-[#00577C]/5 rounded-full blur-3xl translate-y-1/3 -translate-x-1/3 pointer-events-none" />
+      <section className="relative h-[100dvh] min-h-[600px] w-full flex items-center justify-center overflow-hidden">
+  
+        {/* Imagem de Fundo a cobrir 100% do ecrã */}
+        <div className="absolute inset-0 z-0">
+          <video
+            ref={videoRef}   // ← REF ADICIONADA
+            autoPlay
+            loop
+            muted
+            playsInline
+            preload="auto"
+            className="object-cover w-full h-full scale-105"
+            src="/video_cortado.mp4"
+          />
+          {/* Overlay escuro para garantir que o texto branco tem contraste */}
+          <div className="absolute inset-0 bg-gradient-to-b from-slate-900/40 via-slate-900/20 to-slate-900/60" />
+        </div>
 
-        <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-12 items-center relative z-10">
+        {/* Conteúdo Centralizado */}
+        <div className="relative z-10 flex flex-col items-center text-center px-6 mt-16 max-w-4xl mx-auto">
           
-          {/* COLUNA ESQUERDA: Texto Oficial */}
-          <AnimatedSection animation="fade-right" className="lg:col-span-5 flex flex-col items-center text-center lg:items-start lg:text-left">
+          <AnimatedSection animation="fade-up" className="flex flex-col items-center w-full">
             
-            
-            <h1 className={`${jakarta.className} text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 leading-[1.1] mb-6 tracking-tight`}>
-              Conheça <br />
-              <span className="italic text-[#00577C]">São Geraldo do Araguaia</span>
-            </h1>
-            
-            <p className="text-slate-500 text-base md:text-lg leading-relaxed font-medium mb-10 text-justify md:text-left">
-              São Geraldo do Araguaia é um município brasileiro localizado no sudeste do estado do Pará, na Região Norte do Brasil. Situada à margem esquerda do rio Araguaia, na região geográfica de Marabá, a cidade fica a aproximadamente 711 km da capital Belém, sendo conhecida pela proximidade com a Serra das Andorinhas e o Rio Araguaia.
-            </p>
-
-            <div className="flex flex-wrap gap-4 justify-center lg:justify-start">
-              <Link href="/atrativos" className="inline-flex items-center gap-2 bg-[#F9C400] text-[#002f40] px-8 py-4 rounded-full font-black text-xs uppercase tracking-widest shadow-xl hover:scale-105 transition-all hover:-translate-y-1">
-                Conheça os nossos atrativos <ArrowRight size={16} />
-              </Link>
+            {/* O TRUQUE TIPOGRÁFICO PARA NOMES LONGOS */}
+            <div className="flex flex-col items-center leading-none mb-6 w-full">
+              <h1 className={`${jakarta.className} flex flex-col items-center w-full`}>
+                <span className="text-4xl md:text-6xl lg:text-7xl text-white font-black tracking-tight drop-shadow-lg">
+                  SÃO GERALDO DO 
+                </span>
+                
+                {/* O TEXTO GIGANTE E VAZADO */}
+                <span 
+                  className="text-[4rem] sm:text-[6rem] md:text-[8rem] lg:text-[11rem] font-black uppercase tracking-tighter mt-2 md:mt-4 lg:mt-4 w-full"
+                  style={{
+                    WebkitTextStroke: '2px rgba(255, 255, 255, 0.95)',
+                    color: 'transparent',
+                  }}
+                >
+                  Araguaia
+                </span>
+              </h1>
             </div>
-          </AnimatedSection>
-
-          {/* COLUNA DIREITA: Imagem Única e Ampla */}
-          <AnimatedSection animation="fade-left" className="lg:col-span-7 w-full mt-4 lg:mt-0">
-             
-             {/* A altura agora é controlada diretamente aqui, impedindo qualquer sobreposição! */}
-             <div className="relative w-full h-[450px] md:h-[650px] rounded-[2.5rem] md:rounded-[3rem] overflow-hidden shadow-2xl border-[4px] border-white z-10">
-               <Image 
-                 src="https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/IMG_1804.PNG" 
-                 alt="Serra das Andorinhas" 
-                 fill 
-                 className="object-cover hover:scale-105 transition-transform duration-[2000ms]" 
-                 priority 
-               />
-               <div className="absolute inset-0 bg-gradient-to-t from-slate-900/20 to-transparent" />
-             </div>
 
           </AnimatedSection>
 
         </div>
+
+        {/* ── ONDA DE TRANSIÇÃO (WAVE SHAPE DIVIDER) ── */}
+        <div className="absolute bottom-0 left-0 w-full overflow-hidden leading-none z-20 translate-y-[1px]">
+          <svg 
+            className="relative block w-full h-[40px] md:h-[50px]" 
+            data-name="Layer 1" 
+            xmlns="http://www.w3.org/2000/svg" 
+            viewBox="0 0 1200 120" 
+            preserveAspectRatio="none"
+          >
+            <path 
+              d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V120H0V95.8C59.71,118.06,130.83,115.54,191.13,97.8,235.34,84.7,279.16,71.21,321.39,56.44Z" 
+              fill="#FDFCF7"
+            ></path>
+          </svg>
+        </div>
       </section>
 
-      {/* ── ROTA TURÍSTICA — BENTO GRID ── */}
-      <section className="py-24 bg-[#FDFCF7]">
-        <div className="max-w-[1400px] mx-auto px-6">
-          <AnimatedSection animation="fade-up">
-            <h2 className={`${jakarta.className} text-5xl md:text-7xl font-black text-slate-900 mb-16 leading-[0.9]`}>
-              Roteiros e <span className="italic text-[#00577C]">Cultura</span>
-            </h2>
-          </AnimatedSection>
+      {/* ── ROTA TURÍSTICA — BENTO GRID REFINADO (DESIGNER EDITION) ── */}
+<section className="py-20 md:py-24 bg-[#FDFCF7]">
+  <div className="max-w-[1200px] mx-auto px-6">
+    
+    <AnimatedSection animation="fade-up" className="text-center mb-12 md:mb-16">
+      <h2 className={`${jakarta.className} text-4xl md:text-5xl font-black text-slate-900 mb-4 tracking-tight`}>
+        Descubra São Geraldo do Araguaia
+      </h2>
+      <p className="text-slate-500 font-medium text-sm md:text-base">
+        Atrativos, hospedagens, gastronomia, agências e muito mais.
+      </p>
+    </AnimatedSection>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <AnimatedSection animation="fade-right" className="md:col-span-2 md:row-span-2">
-              <Link href="/roteiros" className="relative h-[500px] rounded-[2rem] overflow-hidden group block">
-                <div className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-                  style={{ backgroundImage: "url('https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/IMG_1803.PNG')" }} />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent" />
-                <div className="absolute bottom-8 left-8 right-8 text-white">
-                  <h3 className={`${jakarta.className} text-4xl font-black mb-2`}>Roteiros</h3>
-                  <p className="text-white/70 text-base mb-4">Descubra a nossa natureza ainda intacta.</p>
-                  <span className="inline-flex items-center gap-2 bg-[#F9C400] text-[#00577C] px-6 py-2.5 rounded-full font-black text-xs uppercase tracking-widest">
-                    Explorar rota <ArrowRight size={14} />
-                  </span>
-                </div>
-              </Link>
-            </AnimatedSection>
-
-            <AnimatedSection animation="fade-left" delay={200}>
-              <Link href="/comunidades" className="relative h-[240px] rounded-[2rem] overflow-hidden group block">
-                <div className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-                  style={{ backgroundImage: "url('https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/df417333-2d29-4ae1-80cb-47a0491c8d40.JPG')" }} />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent" />
-                <div className="absolute bottom-6 left-6 right-6 text-white">
-                  <h3 className={`${jakarta.className} text-2xl font-black mb-3`}>Comunidades</h3>
-                  <span className="inline-flex items-center gap-2 bg-[#F9C400] text-[#00577C] px-4 py-2 rounded-full font-black text-[10px] uppercase tracking-widest">
-                    Explorar <ArrowRight size={12} />
-                  </span>
-                </div>
-              </Link>
-            </AnimatedSection>
-
-            <AnimatedSection animation="fade-left" delay={400}>
-              <Link href="/gastronomia" className="relative h-[240px] rounded-[2rem] overflow-hidden group block">
-                <div className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-                  style={{ backgroundImage: "url('https://images.pexels.com/photos/3727208/pexels-photo-3727208.jpeg?_gl=1*1xsyb3f*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzk5NjEyMzQkbzY3JGcxJHQxNzc5OTYxMjczJGoyMSRsMCRoMA..')" }} />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent" />
-                <div className="absolute bottom-6 left-6 right-6 text-white">
-                  <h3 className={`${jakarta.className} text-2xl font-black mb-2`}>Gastronomia</h3>
-                  <span className="inline-flex items-center gap-2 bg-[#F9C400] text-[#00577C] px-4 py-2 rounded-full font-black text-[10px] uppercase tracking-widest">
-                    Explorar <ArrowRight size={12} />
-                  </span>
-                </div>
-              </Link>
-            </AnimatedSection>
+    {/* Grelha mais contida, com gaps mais elegantes */}
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 md:gap-5">
+      
+      {/* 1. Atrativos (Linha de topo) */}
+      <AnimatedSection animation="fade-up" delay={0} className="md:col-span-1 lg:col-span-3">
+        <Link href="/biodiversidade" className="relative h-[260px] md:h-[280px] rounded-[2rem] overflow-hidden group block shadow-md hover:shadow-xl transition-all duration-500 border border-slate-100/10">
+          <div className="absolute inset-0 bg-cover bg-center transition-transform duration-[2000ms] group-hover:scale-105" style={{ backgroundImage: "url('https://images.pexels.com/photos/18064280/pexels-photo-18064280.jpeg?_gl=1*1at0h8g*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzk1MDQ0MjUkbzUyJGcxJHQxNzc5NTA0ODIxJGo1OSRsMCRoMA..')" }} />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/10 to-transparent" />
+          <div className="absolute bottom-6 left-6 right-6 text-white flex flex-col items-start">
+            <h3 className={`${jakarta.className} text-2xl md:text-3xl font-bold drop-shadow-sm`}>Parque Serra das Andorinhas</h3>
           </div>
-        </div>
-      </section>
+        </Link>
+      </AnimatedSection>
+
+      {/* 2. Hospedagens (Linha de topo) */}
+      <AnimatedSection animation="fade-up" delay={100} className="md:col-span-1 lg:col-span-3">
+        <Link href="/atrativos" className="relative h-[260px] md:h-[280px] rounded-[2rem] overflow-hidden group block shadow-md hover:shadow-xl transition-all duration-500 border border-slate-100/10">
+          <div className="absolute inset-0 bg-cover bg-center transition-transform duration-[2000ms] group-hover:scale-105" style={{ backgroundImage: "url('https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/atracoes/casapedra.png')" }} />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/10 to-transparent" />
+          <div className="absolute bottom-6 left-6 right-6 text-white flex flex-col items-start">
+            <h3 className={`${jakarta.className} text-2xl md:text-3xl font-bold drop-shadow-sm`}>Atrativos</h3>
+          </div>
+        </Link>
+      </AnimatedSection>
+
+      {/* 3. Gastronomia (Linha de baixo) */}
+      <AnimatedSection animation="fade-up" delay={200} className="md:col-span-1 lg:col-span-2">
+        <Link href="/gastronomia" className="relative h-[240px] md:h-[260px] rounded-[2rem] overflow-hidden group block shadow-md hover:shadow-xl transition-all duration-500 border border-slate-100/10">
+          <div className="absolute inset-0 bg-cover bg-center transition-transform duration-[2000ms] group-hover:scale-105" style={{ backgroundImage: "url('https://images.pexels.com/photos/4791748/pexels-photo-4791748.jpeg?_gl=1*17bsc2t*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3ODY4NDQzNTkkbzkyJGcxJHQxNzg2ODQ5MTUzJGo1OSRsMCRoMA..')" }} />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/10 to-transparent" />
+          <div className="absolute bottom-6 left-6 right-6 text-white flex flex-col items-start">
+            <h3 className={`${jakarta.className} text-xl md:text-2xl font-bold drop-shadow-sm`}>Gastronomia</h3>
+          </div>
+        </Link>
+      </AnimatedSection>
+
+      {/* 4. Agências (Linha de baixo) */}
+      <AnimatedSection animation="fade-up" delay={300} className="md:col-span-1 lg:col-span-2">
+        <Link href="/agencias" className="relative h-[240px] md:h-[260px] rounded-[2rem] overflow-hidden group block shadow-md hover:shadow-xl transition-all duration-500 border border-slate-100/10">
+          <div className="absolute inset-0 bg-cover bg-center transition-transform duration-[2000ms] group-hover:scale-105" style={{ backgroundImage: "url('https://images.pexels.com/photos/8828425/pexels-photo-8828425.jpeg?_gl=1*uh3hye*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3ODY4MzgyNjgkbzkwJGcxJHQxNzg2ODM4MzAzJGoyNSRsMCRoMA..')" }} />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/10 to-transparent" />
+          <div className="absolute bottom-6 left-6 right-6 text-white flex flex-col items-start">
+            <h3 className={`${jakarta.className} text-xl md:text-2xl font-bold drop-shadow-sm`}>Agências</h3>
+          </div>
+        </Link>
+      </AnimatedSection>
+
+      {/* 5. Comunidades (Linha de baixo) */}
+      <AnimatedSection animation="fade-up" delay={400} className="md:col-span-2 lg:col-span-2">
+        <Link href="/hoteis" className="relative h-[240px] md:h-[260px] rounded-[2rem] overflow-hidden group block shadow-md hover:shadow-xl transition-all duration-500 border border-slate-100/10">
+          <div className="absolute inset-0 bg-cover bg-center transition-transform duration-[2000ms] group-hover:scale-105" style={{ backgroundImage: "url('https://images.pexels.com/photos/14883357/pexels-photo-14883357.jpeg?_gl=1*19tl3ec*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3ODY4NDQzNTkkbzkyJGcxJHQxNzg2ODUxNDUwJGo0MCRsMCRoMA..')" }} />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/10 to-transparent" />
+          <div className="absolute bottom-6 left-6 right-6 text-white flex flex-col items-start">
+            <h3 className={`${jakarta.className} text-xl md:text-2xl font-bold drop-shadow-sm`}>Hospedagens</h3>
+          </div>
+        </Link>
+      </AnimatedSection>
+
+    </div>
+  </div>
+</section>
 
       {/* ── AGENDA CULTURAL ── */}
       <AgendaCultural />
@@ -806,17 +871,10 @@ export default function HomePage() {
       {/* ── DESTAQUES VERÃO ── */}
       <DestaquesVerao />
 
-      {/* ── GALERIA ── */}
-      <GaleriaVerao />
-
-      {/* ── HOTÉIS ── */}
-      <SeccaoHoteis />
-
-      {/* ── PACOTES ── */}
-      <SeccaoPacotes />
-
-      {/* ── PASSEIOS ── */}
-      <SeccaoPasseios />
+      {/* ── ÚLTIMAS DO BLOG ── */}
+      <UltimosArtigosBlog />
+    
+      
 
       {/* ── HISTÓRIA (INTEGRADA & FULL WIDTH) ── */}
       <section id="historia" className="py-24 bg-white overflow-hidden border-t border-slate-100">
@@ -836,7 +894,7 @@ export default function HomePage() {
               </p>
               
               <Link href="/historia" className="inline-flex items-center gap-3 bg-[#00577C] text-white px-8 py-4 rounded-full font-black text-xs uppercase tracking-widest hover:bg-[#004a6b] shadow-lg hover:shadow-xl transition-all hover:-translate-y-1">
-                Ler História Completa <ArrowRight size={16} />
+                História Completa <ArrowRight size={16} />
               </Link>
             </AnimatedSection>
 
@@ -897,7 +955,7 @@ export default function HomePage() {
                 </p>
                 
                 <p className="text-xl md:text-2xl font-bold text-slate-700 mb-6">
-                  de desconto na entrada
+                  de desconto na entrada da Cachoeira Três Quedas
                 </p>
                 
                 <div className="border-t border-slate-100 pt-5">
@@ -913,45 +971,85 @@ export default function HomePage() {
       </section>
 
       {/* ── FOOTER ── */}
-      <footer className="py-20 px-6 bg-[#FDFCF7] border-t border-slate-100">
-        <div className="max-w-[1400px] mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-10 md:gap-16 mb-20">
-            <div className="space-y-6">
-              <img src="/logop.png" alt="Prefeitura SGA" className="h-20 object-contain" />
-              <p className="text-xs text-slate-400 font-black uppercase tracking-widest leading-relaxed">
-                São Geraldo do Araguaia<br />"Cidade Amada, seguindo em frente"
-              </p>
+      {/* ── FOOTER ── */}
+      <footer className="border-t border-slate-200 bg-[#FDFCF7] py-16 px-6">
+        <div className="max-w-[1200px] mx-auto">
+          {/* Primeira linha: logos */}
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6 pb-8 border-b border-slate-200">
+            <div className="flex items-center gap-6">
+              <Image src="/logop.png" alt="SagaTurismo" width={160} height={50} className="object-contain" />
+              <div className="w-px h-12 bg-slate-200 hidden md:block" />
+              <Image src="/prefeitura.png" alt="Prefeitura de SGA" width={140} height={50} className="object-contain" />
+            </div>
+          </div>
+
+          {/* Segunda linha: colunas de links */}
+          <div className="grid grid-cols-1 md:grid-cols-[1.3fr_1fr_1fr_1fr] gap-10 pt-10">
+            {/* Coluna 1: Contato */}
+            <div>
+              <p className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-[#00577C] mb-4`}>Contato</p>
+              <div className="space-y-2.5 text-sm text-slate-600">
+                <p className="flex items-start gap-2.5">
+                  <MapPin size={16} className="text-[#00577C] mt-0.5 shrink-0" />
+                  R. Antônio Nonato Pedrosa, 324 - Vila Administrativa, São Geraldo do Araguaia - PA, 68570-000
+                </p>
+                <p className="flex items-center gap-2.5">
+                  <Phone size={16} className="text-[#00577C] shrink-0" />
+                  (94) 98420-5736
+                </p>
+                <p className="flex items-center gap-2.5">
+                  <Mail size={16} className="text-[#00577C] shrink-0" />
+                  contato@saogeraldodoaraguaia.pa.gov.br
+                </p>
+                <p className="flex items-center gap-2.5">
+                  <Clock size={16} className="text-[#00577C] shrink-0" />
+                  Seg-Sex das 8h às 17h
+                </p>
+              </div>
             </div>
 
-            <div className="space-y-6">
-              <h5 className="font-black text-slate-900 text-[10px] uppercase tracking-widest border-b border-slate-100 pb-4">Gestão Executiva</h5>
-              <ul className="text-xs text-slate-500 space-y-3 font-medium">
-                <li>Prefeito:<br /><b>Jefferson Douglas de Jesus Oliveira</b></li>
-                <li>Vice-Prefeito:<br /><b>Marcos Antônio Candido de Lucena</b></li>
+            {/* Coluna 2: Descubra */}
+            <div>
+              <p className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-[#00577C] mb-4`}>Descubra</p>
+              <ul className="space-y-2.5 text-sm">
+                <li><Link href="/atrativos" className="text-slate-600 hover:text-[#00577C] transition-colors">Atrativos</Link></li>
+                <li><Link href="/hoteis" className="text-slate-600 hover:text-[#00577C] transition-colors">Hospedagens</Link></li>
+                <li><Link href="/gastronomia" className="text-slate-600 hover:text-[#00577C] transition-colors">Gastronomia</Link></li>
+                <li><Link href="/comunidades" className="text-slate-600 hover:text-[#00577C] transition-colors">Comunidades</Link></li>
+                <li><Link href="/historia" className="text-slate-600 hover:text-[#00577C] transition-colors">História</Link></li>
               </ul>
             </div>
 
-            <div className="space-y-6">
-              <h5 className="font-black text-slate-900 text-[10px] uppercase tracking-widest border-b border-slate-100 pb-4">Turismo (SEMTUR)</h5>
-              <ul className="text-xs text-slate-500 space-y-3 font-medium">
-                <li>Secretária:<br /><b>Micheli Stephany de Souza</b></li>
-                <li>Contato: <b>(94) 98145-2067</b></li>
-                <li>Email: <b>setursaga@gmail.com</b></li>
+            {/* Coluna 3: Planeje sua viagem */}
+            <div>
+              <p className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-[#00577C] mb-4`}>Planeje sua viagem</p>
+              <ul className="space-y-2.5 text-sm">
+                <li><Link href="/informacoes" className="text-slate-600 hover:text-[#00577C] transition-colors">Como Chegar</Link></li>
+                <li><Link href="/eventos" className="text-slate-600 hover:text-[#00577C] transition-colors">Agenda de Eventos</Link></li>
+                <li><Link href="/blog" className="text-slate-600 hover:text-[#00577C] transition-colors">Blog</Link></li>
+                <li><Link href="/contato" className="text-slate-600 hover:text-[#00577C] transition-colors">Contatos Úteis</Link></li>
               </ul>
             </div>
 
-            <div className="space-y-6">
-              <h5 className="font-black text-slate-900 text-[10px] uppercase tracking-widest border-b border-slate-100 pb-4">Equipe Técnica</h5>
-              <ul className="text-xs text-slate-500 space-y-2 font-medium">
-                <li>• Adriana da Luz Lima</li>
-                <li>• Carmelita Luz da Silva</li>
-                <li>• Diego Silva Costa</li>
+            {/* Coluna 4: Institucional */}
+            <div>
+              <p className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-[#00577C] mb-4`}>Institucional</p>
+              <ul className="space-y-2.5 text-sm">
+                <li><Link href="/quem-somos" className="text-slate-600 hover:text-[#00577C] transition-colors">Quem Somos</Link></li>
+                <li><Link href="/parceiros" className="text-slate-600 hover:text-[#00577C] transition-colors">Parceiros</Link></li>
+                <li><Link href="/termos" className="text-slate-600 hover:text-[#00577C] transition-colors">Termos de Uso</Link></li>
+                <li><Link href="/privacidade" className="text-slate-600 hover:text-[#00577C] transition-colors">Política de Privacidade</Link></li>
+                <li><Link href="https://saogeraldodoaraguaia.pa.gov.br" className="text-slate-600 hover:text-[#00577C] transition-colors">O Governo</Link></li>
               </ul>
             </div>
           </div>
 
-          <div className="text-center pt-10 border-t border-slate-100">
-            <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.4em]">© 2026 Secretaria Municipal de Turismo — São Geraldo do Araguaia (PA)</p>
+          {/* Rodapé inferior com copyright */}
+          <div className="border-t border-slate-200 mt-10 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
+            <p className="text-[11px] text-slate-400 font-medium text-center md:text-left">
+              © 2026 Prefeitura Municipal de São Geraldo do Araguaia. Todos os direitos reservados. · CNPJ: 10.249.241/0001-22
+            </p>
+            <Image src="/prefeitura.png" alt="Prefeitura de São Geraldo do Araguaia" width={100} height={30} className="object-contain opacity-70" />
           </div>
         </div>
       </footer>

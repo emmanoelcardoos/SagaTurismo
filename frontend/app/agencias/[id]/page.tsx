@@ -5,17 +5,24 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
-  Menu, MapPin, ShieldCheck, X, ArrowLeft, ArrowRight,
-  AtSign, Mail, Clock, Compass, AlertCircle, Loader2, Briefcase,
-  ChevronDown
+  Menu, MapPin, ShieldCheck, X, ArrowLeft,
+  Mail, Compass, AlertCircle, Loader2, Briefcase,
+  ChevronDown, Image as ImageIcon, Footprints, Waves, Mountain, Leaf
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
+
 
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '700', '800'] });
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'] });
 
 // ── TIPAGEM ──
+type Especialidade = {
+  nome: string;
+  desc: string;
+  imagem_url: string;
+};
+
 type Agencia = {
   id: string;
   nome: string;
@@ -28,30 +35,35 @@ type Agencia = {
   instagram?: string;
   email?: string;
   whatsapp?: string;
+  galeria?: string[];
+  especialidades?: any; // Nova coluna dinâmica
   ativo: boolean;
 };
 
-type Pacote = {
-  id: string;
-  titulo: string;
-  descricao_curta: string;
-  imagem_principal?: string;
-  duracao?: string;
-  preco?: number;
+// ── UTILITÁRIOS DE PARSE ──
+const parseGaleria = (galeriaRaw: any): string[] => {
+  if (!galeriaRaw) return [];
+  if (Array.isArray(galeriaRaw)) return galeriaRaw;
+  if (typeof galeriaRaw === 'string') {
+    try { return JSON.parse(galeriaRaw); } catch (e) { return []; }
+  }
+  return [];
 };
+
+const parseEspecialidades = (raw: any): Especialidade[] => {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === 'string') {
+    try { return JSON.parse(raw); } catch (e) { return []; }
+  }
+  return [];
+};
+
+
 
 // ── ÍCONE PERSONALIZADO DO INSTAGRAM (SVG inline) ──
 const InstagramIcon = ({ size = 16 }: { size?: number }) => (
-  <svg 
-    width={size} 
-    height={size} 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    stroke="currentColor" 
-    strokeWidth="2" 
-    strokeLinecap="round" 
-    strokeLinejoin="round"
-  >
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <rect width="20" height="20" x="2" y="2" rx="5" ry="5"/>
     <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
     <line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/>
@@ -60,16 +72,7 @@ const InstagramIcon = ({ size = 16 }: { size?: number }) => (
 
 // ── ÍCONE PERSONALIZADO DO WHATSAPP (SVG inline) ──
 const WhatsAppIcon = ({ size = 16 }: { size?: number }) => (
-  <svg 
-    width={size} 
-    height={size} 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    stroke="currentColor" 
-    strokeWidth="2" 
-    strokeLinecap="round" 
-    strokeLinejoin="round"
-  >
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"/>
     <path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1"/>
   </svg>
@@ -81,19 +84,21 @@ function AgenciaIdPageContent() {
   const id = params.id as string;
 
   const [agencia, setAgencia] = useState<Agencia | null>(null);
-  const [pacotes, setPacotes] = useState<Pacote[]>([]);
   const [loading, setLoading] = useState(true);
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // ── MENU AGRUPADO (PADRÃO VINCI) ──
+  // ── MENU AGRUPADO ──
   const menuGroups = [
-    { label: 'Conhecer', links: ['Atrativos', 'Roteiros', 'História', 'Biodiversidade', 'Galeria'] },
-    { label: 'Viver', links: ['Passeios', 'Eventos', 'Comunidades', 'Aldeias'] },
+    { label: 'Conhecer', links: ['Atrativos', 'História', 'Biodiversidade', 'Galeria'] },
+    { label: 'Viver', links: ['Eventos', 'Comunidades'] },
     { label: 'Planejar', links: ['Hotéis', 'Gastronomia', 'Agências', 'Informações', 'Parceiros'] }
   ];
+
+  // ── ESPECIALIDADES FIXAS (Visual) ──
+  
 
   useEffect(() => {
     async function fetchData() {
@@ -107,16 +112,7 @@ function AgenciaIdPageContent() {
 
       if (agenciaData) {
         setAgencia(agenciaData as Agencia);
-        
-        const { data: pacotesData } = await supabase
-          .from('pacotes')
-          .select('*')
-          .eq('agencia_id', id)
-          .eq('ativo', true);
-          
-        if (pacotesData) setPacotes(pacotesData as Pacote[]);
       }
-      
       setLoading(false);
     }
     fetchData();
@@ -136,19 +132,18 @@ function AgenciaIdPageContent() {
   }, [lastScrollY]);
 
   const FALLBACK_CAPA = "https://images.unsplash.com/photo-1533240332313-0cb49f47c0a8";
-  const FALLBACK_PACOTE = "https://live.staticflickr.com/65535/54668340687_2c7f6b5c39_4k.jpg";
 
-  // Função para formatar o link do Instagram
   const formatInstagramUrl = (instagram: string) => {
+    if (!instagram) return '#';
     let username = instagram.trim();
-    if (username.startsWith('@')) {
-      username = username.substring(1);
-    }
-    if (username.startsWith('http://') || username.startsWith('https://')) {
-      return username;
-    }
+    if (username.startsWith('@')) username = username.substring(1);
+    if (username.startsWith('http://') || username.startsWith('https://')) return username;
     return `https://instagram.com/${username}`;
   };
+
+  const galeriaImagens = agencia ? parseGaleria(agencia.galeria) : [];
+
+  const especialidadesList = agencia ? parseEspecialidades(agencia.especialidades) : [];
 
   if (loading) {
     return (
@@ -178,7 +173,7 @@ function AgenciaIdPageContent() {
   return (
     <div className={`${inter.className} min-h-screen bg-[#FDFCF7] text-slate-900 flex flex-col`}>
       
-      {/* ── HEADER EDITORIAL CENTRALIZADO ── */}
+      {/* ── HEADER ── */}
       <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${showHeader ? 'translate-y-0' : '-translate-y-full'} ${isScrolled ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100' : 'bg-white border-b border-slate-200'}`}>
         <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4 relative">
           <div className="flex-1">
@@ -216,7 +211,6 @@ function AgenciaIdPageContent() {
           </div>
         </div>
 
-        {/* Menu Mobile */}
         {isMobileMenuOpen && (
           <div className="absolute top-full left-0 w-full bg-white border-b border-slate-200 p-6 flex flex-col gap-6 shadow-2xl lg:hidden z-50 max-h-[85vh] overflow-y-auto">
             <Link href="/agencias" className={`${jakarta.className} font-black text-slate-700 text-lg border-b border-slate-100 pb-2`}>← Voltar às Agências</Link>
@@ -232,25 +226,14 @@ function AgenciaIdPageContent() {
                 </div>
               </div>
             ))}
-            <div className="border-t border-slate-100 pt-4 mt-2 flex flex-col gap-3">
-              <Link href="/cadastro" onClick={() => setIsMobileMenuOpen(false)} className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md`}>
-                Cartão Residente
-              </Link>
-            </div>
           </div>
         )}
       </header>
 
-      {/* ── HERO DA AGÊNCIA (CAPA E LOGO RESTRUTURADOS) ── */}
+      {/* ── HERO DA AGÊNCIA ── */}
       <section className="relative w-full bg-white border-b border-slate-100 mt-[72px] md:mt-[80px]">
-        {/* Capa */}
         <div className="relative h-[25vh] md:h-[35vh] min-h-[200px] w-full bg-[#002f40]">
-          <Image
-            src={agencia.capa_url || FALLBACK_CAPA}
-            alt={`Capa da ${agencia.nome}`}
-            fill
-            className="object-cover opacity-80"
-          />
+          <Image src={agencia.capa_url || FALLBACK_CAPA} alt={`Capa da ${agencia.nome}`} fill className="object-cover opacity-80" />
           <div className="absolute top-6 left-6 md:left-12 z-10">
             <Link href="/agencias" className="inline-flex items-center gap-2 bg-white/40 hover:bg-white/60 backdrop-blur-md px-4 py-2 rounded-full text-slate-900 text-[10px] font-black uppercase tracking-widest transition-colors shadow-sm">
               <ArrowLeft size={14} /> Voltar
@@ -258,40 +241,77 @@ function AgenciaIdPageContent() {
           </div>
         </div>
 
-        {/* Informações do Perfil */}
         <div className="max-w-[1400px] mx-auto px-6">
           <div className="flex flex-col md:flex-row gap-6 md:gap-8 pb-10">
-            
-            {/* Logo puxada pra cima da capa */}
             <div className="-mt-16 md:-mt-24 relative z-10 w-32 h-32 md:w-48 md:h-48 rounded-full border-[6px] border-white bg-white overflow-hidden shadow-md shrink-0 flex items-center justify-center">
               {agencia.logo_url ? (
-                <Image src={agencia.logo_url} alt={`Logo ${agencia.nome}`} fill className="object-contain p-3" />
+                <Image src={agencia.logo_url} alt={`Logo ${agencia.nome}`} fill className="object-cover object-center" />
               ) : (
                 <Briefcase size={48} className="text-slate-300" />
               )}
             </div>
-            
-            {/* Textos alinhados normalmente na faixa branca */}
             <div className="pt-2 md:pt-6 flex-1 text-center md:text-left">
-              <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 mb-3">
-            
-              </div>
               <h1 className={`${jakarta.className} text-4xl md:text-5xl font-black text-slate-900 leading-tight`}>{agencia.nome}</h1>
               <p className="text-slate-500 font-medium mt-2 max-w-2xl text-sm md:text-base">
                 {agencia.descricao_curta || 'Especialistas em criar experiências inesquecíveis em São Geraldo do Araguaia.'}
               </p>
             </div>
-
           </div>
         </div>
       </section>
 
-      {/* ── CONTEÚDO PRINCIPAL (SOBRE E PACOTES) + SIDEBAR ── */}
+      {/* ── CONTEÚDO PRINCIPAL + SIDEBAR ── */}
       <section className="flex-1 max-w-[1400px] mx-auto px-6 py-16 grid grid-cols-1 lg:grid-cols-12 gap-12 items-start w-full">
         
-        {/* COLUNA ESQUERDA (Sobre + Pacotes) */}
-        <div className="lg:col-span-8 space-y-16">
+        {/* COLUNA ESQUERDA */}
+        <div className="lg:col-span-8 space-y-12">
           
+          {/* Especialidades (Cards Horizontais com Imagens) */}
+          {/* ── ESPECIALIDADES DA AGÊNCIA (CARROSSEL HORIZONTAL PREMIUM) ── */}
+          {especialidadesList.length > 0 && (
+            <div className="w-full flex flex-col items-center lg:items-start mb-8">
+              <h2 className={`${jakarta.className} text-2xl font-black text-slate-900 mb-8 flex items-center gap-3 w-full justify-center lg:justify-start`}>
+                <Compass size={28} className="text-[#F9C400]" /> Nossas Especialidades
+              </h2>
+              
+              {/* Container de Scroll Horizontal (Slider) */}
+              <div className="flex gap-6 overflow-x-auto pb-8 pt-2 w-full snap-x snap-mandatory hide-scrollbar">
+                {especialidadesList.map((esp, idx) => (
+                  <div key={idx} className="shrink-0 snap-center w-[260px] md:w-[300px] group relative aspect-[4/5] rounded-[2.5rem] overflow-hidden shadow-lg hover:shadow-2xl border-[4px] border-white bg-slate-100 cursor-default transition-all duration-500">
+                    
+                    <Image 
+                      src={esp.imagem_url || FALLBACK_CAPA} 
+                      alt={esp.nome} 
+                      fill 
+                      className="object-cover group-hover:scale-105 transition-transform duration-[2000ms]" 
+                    />
+                    
+                    {/* Gradiente elegante para leitura impecável */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/95 via-slate-900/10 to-transparent opacity-70 group-hover:opacity-95 transition-opacity duration-500" />
+                    
+                    {/* Conteúdo animado que surge ao passar o rato */}
+                    <div className="absolute bottom-0 left-0 right-0 p-6 translate-y-3 group-hover:translate-y-0 transition-transform duration-500">
+                      <h3 className={`${jakarta.className} text-xl md:text-2xl font-black text-white tracking-tight drop-shadow-md mb-2 leading-tight`}>
+                        {esp.nome}
+                      </h3>
+                      
+                      {esp.desc && (
+                        <div className="grid grid-rows-[0fr] group-hover:grid-rows-[1fr] transition-all duration-500 ease-in-out">
+                          <p className="text-white/80 text-sm font-medium overflow-hidden line-clamp-3">
+                            {esp.desc}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {/* Traço de Elegância Animado */}
+                      <div className="w-8 h-1 bg-[#F9C400] mt-4 rounded-full scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Sobre a Agência */}
           {agencia.sobre && (
             <div className="bg-white rounded-[2rem] p-8 md:p-10 shadow-sm border border-slate-100">
@@ -303,61 +323,10 @@ function AgenciaIdPageContent() {
               </div>
             </div>
           )}
-
-          {/* Pacotes da Agência */}
-          <div>
-            <h2 className={`${jakarta.className} text-3xl font-black text-slate-900 mb-8`}>
-              Pacotes Oferecidos ({pacotes.length})
-            </h2>
-
-            {pacotes.length === 0 ? (
-              <div className="bg-white rounded-[2rem] p-12 text-center border-2 border-dashed border-slate-200">
-                <Compass size={48} className="mx-auto text-slate-300 mb-4" />
-                <h3 className={`${jakarta.className} text-xl font-bold text-slate-700 mb-2`}>Nenhum pacote disponível</h3>
-                <p className="text-slate-500 text-sm">Esta agência ainda não publicou pacotes na plataforma.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {pacotes.map((pacote) => (
-                  <Link href={`/pacotes/${pacote.id}`} key={pacote.id} className="group bg-white rounded-3xl overflow-hidden shadow-sm border border-slate-100 hover:shadow-xl transition-all hover:-translate-y-1 flex flex-col">
-                    <div className="relative h-48 w-full bg-slate-100 overflow-hidden">
-                      <Image 
-                        src={pacote.imagem_principal || FALLBACK_PACOTE} 
-                        alt={pacote.titulo} 
-                        fill 
-                        className="object-cover group-hover:scale-105 transition-transform duration-700" 
-                      />
-                      {pacote.preco && (
-                        <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-xl font-black text-[#009640] shadow-sm">
-                          R$ {pacote.preco.toFixed(2)}
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-6 flex flex-col flex-1">
-                      <h3 className={`${jakarta.className} text-lg font-black text-slate-900 mb-2 group-hover:text-[#00577C] transition-colors line-clamp-2`}>
-                        {pacote.titulo}
-                      </h3>
-                      <p className="text-slate-500 text-xs line-clamp-2 mb-4 leading-relaxed flex-1">
-                        {pacote.descricao_curta}
-                      </p>
-                      <div className="border-t border-slate-100 pt-4 flex items-center justify-between mt-auto">
-                        
-                        <span className="text-[#00577C] font-black text-[10px] uppercase tracking-widest flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                          Ver Detalhes <ArrowRight size={12} />
-                        </span>
-                      </div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
 
-        {/* COLUNA DIREITA (Sidebar Contatos e Mapa) */}
+        {/* COLUNA DIREITA (Sidebar) */}
         <aside className="lg:col-span-4 space-y-6">
-          
-          {/* Card de Contato */}
           <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100 lg:sticky lg:top-28">
             <h3 className={`${jakarta.className} text-xl font-black text-slate-900 mb-6 border-b border-slate-100 pb-4`}>
               Informações de Contato
@@ -366,9 +335,7 @@ function AgenciaIdPageContent() {
             <div className="space-y-5 mb-8">
               {agencia.endereco && (
                 <div className="flex gap-4 items-start">
-                  <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center shrink-0 text-[#00577C]">
-                    <MapPin size={18} />
-                  </div>
+                  <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center shrink-0 text-[#00577C]"><MapPin size={18} /></div>
                   <div>
                     <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Endereço</p>
                     <p className="text-sm font-medium text-slate-700 leading-tight">{agencia.endereco}</p>
@@ -378,109 +345,84 @@ function AgenciaIdPageContent() {
 
               {agencia.email && (
                 <div className="flex gap-4 items-start">
-                  <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center shrink-0 text-[#00577C]">
-                    <Mail size={18} />
-                  </div>
+                  <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center shrink-0 text-[#00577C]"><Mail size={18} /></div>
                   <div>
                     <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">E-mail</p>
-                    <a href={`mailto:${agencia.email}`} className="text-sm font-medium text-slate-700 hover:text-[#00577C] break-all">
-                      {agencia.email}
-                    </a>
-                  </div>
-                </div>
-              )}
-
-              {agencia.instagram && (
-                <div className="flex gap-4 items-start">
-                  <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center shrink-0 text-[#00577C]">
-                    <InstagramIcon size={18} />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Instagram</p>
-                    <a href={formatInstagramUrl(agencia.instagram)} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-slate-700 hover:text-[#00577C]">
-                      @{agencia.instagram.replace('https://instagram.com/', '').replace('http://instagram.com/', '').replace('@', '').replace('/', '')}
-                    </a>
+                    <a href={`mailto:${agencia.email}`} className="text-sm font-medium text-slate-700 hover:text-[#00577C] break-all">{agencia.email}</a>
                   </div>
                 </div>
               )}
 
               {agencia.cadastur && (
-                <div className="flex gap-4 items-start">
-                  <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center shrink-0 text-[#009640]">
-                    <ShieldCheck size={18} />
-                  </div>
+                <div className="flex gap-4 items-start bg-amber-50 border-2 border-amber-200 rounded-2xl p-4 shadow-sm">
                   <div>
-                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Cadastur</p>
-                    <p className="text-sm font-black text-slate-700">{agencia.cadastur}</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-amber-700">Número Cadastur</p>
+                    <p className="text-base font-black text-amber-900">{agencia.cadastur}</p>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Botão WhatsApp */}
             {agencia.whatsapp ? (
-              <a 
-                href={`https://wa.me/55${agencia.whatsapp.replace(/\D/g, '')}?text=Olá! Encontrei a ${agencia.nome} no portal SagaTurismo e gostaria de mais informações.`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full bg-[#009640] hover:bg-[#007a33] text-white py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg shadow-green-900/20 transition-all flex items-center justify-center gap-2 hover:-translate-y-1"
-              >
-                <WhatsAppIcon size={18} />
-                Falar no WhatsApp
+              <a href={`https://wa.me/55${agencia.whatsapp.replace(/\D/g, '')}?text=Olá! Encontrei a ${agencia.nome} no portal SagaTurismo e gostaria de mais informações.`} target="_blank" rel="noopener noreferrer" className="w-full bg-[#009640] hover:bg-[#007a33] text-white py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg shadow-green-900/20 transition-all flex items-center justify-center gap-2 hover:-translate-y-1 mb-4">
+                <WhatsAppIcon size={18} /> Falar no WhatsApp
               </a>
             ) : (
-              <button disabled className="w-full bg-slate-100 text-slate-400 py-4 rounded-xl font-black text-sm uppercase tracking-widest cursor-not-allowed">
+              <button disabled className="w-full bg-slate-100 text-slate-400 py-4 rounded-xl font-black text-sm uppercase tracking-widest cursor-not-allowed mb-4">
                 WhatsApp Indisponível
               </button>
             )}
 
-            {/* Mapa do Google Incorporado */}
+            {agencia.instagram && (
+              <a href={formatInstagramUrl(agencia.instagram)} target="_blank" rel="noopener noreferrer" className="w-full bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F77737] hover:opacity-90 text-white py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg shadow-pink-500/20 transition-all flex items-center justify-center gap-2 hover:-translate-y-1">
+                <InstagramIcon size={18} /> Seguir no Instagram
+              </a>
+            )}
+
             <div className="mt-8 pt-6 border-t border-slate-100">
                <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-4">Localização no Mapa</p>
                <div className="w-full h-48 bg-slate-100 rounded-2xl overflow-hidden border border-slate-200 shadow-inner relative">
-                 <iframe 
-                    width="100%" 
-                    height="100%" 
-                    frameBorder="0" 
-                    scrolling="no" 
-                    marginHeight={0} 
-                    marginWidth={0} 
-                    src={mapsEmbedUrl}
-                    title={`Mapa da agência ${agencia.nome}`}
-                    className="absolute inset-0"
-                 />
+                 <iframe width="100%" height="100%" frameBorder="0" scrolling="no" marginHeight={0} marginWidth={0} src={mapsEmbedUrl} title={`Mapa da agência ${agencia.nome}`} className="absolute inset-0" />
                </div>
             </div>
-
           </div>
         </aside>
       </section>
 
+      {/* ── GALERIA ── */}
+      {galeriaImagens.length > 0 && (
+        <section className="max-w-[1400px] mx-auto w-full px-6 mb-16">
+          <div className="bg-white rounded-[2rem] p-6 md:p-10 shadow-sm border border-slate-100">
+            <h3 className={`${jakarta.className} text-2xl md:text-3xl font-black text-[#00577C] mb-6 flex items-center gap-3`}>
+              <ImageIcon size={28} className="text-[#F9C400]" /> Galeria de Imagens
+            </h3>
+            <div className="flex gap-4 md:gap-6 overflow-x-auto pb-4 hide-scrollbar snap-x snap-mandatory">
+              {galeriaImagens.map((imgUrl, i) => (
+                <div key={i} className="relative shrink-0 snap-center rounded-2xl overflow-hidden w-[280px] h-[350px] md:w-[400px] md:h-[500px] lg:w-[450px] lg:h-[550px] group shadow-sm bg-slate-100">
+                  <Image src={imgUrl} alt={`Galeria ${i+1} da agência ${agencia.nome}`} fill className="object-cover group-hover:scale-105 transition-transform duration-700" />
+                  <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors duration-500" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* FOOTER */}
-      <footer className="py-20 px-8 border-t border-slate-200 bg-white text-left mt-auto">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
+      <footer className="py-20 px-8 border-t border-slate-200 bg-[#FDFCF7] text-left mt-auto">
+        <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
           <div className="flex flex-col items-center md:items-start gap-4">
             <div className="flex items-center gap-6">
               <Image src="/logop.png" alt="SagaTurismo" width={160} height={50} className="object-contain" />
               <div className="w-px h-12 bg-slate-200 hidden md:block" />
-              <Image src="/prefeitura.png" alt="Prefeitura de São Geraldo do Araguaia" width={140} height={50} className="object-contain" />
+              <Image src="/prefeitura.png" alt="Prefeitura de SGA" width={140} height={50} className="object-contain" />
             </div>
-            <div className="text-left space-y-1">
+            <div className="text-left space-y-1 text-center md:text-left">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                © 2026 Secretaria Municipal de Turismo - SGA | Todos os direitos reservados
+                © 2026 Prefeitura Munícipal de São Geraldo do Araguaia - PA
               </p>
-              <p className="text-[10px] font-bold text-slate-400/80">
-                CNPJ: 10.249.241/0001-22
-              </p>
+              <p className="text-[10px] font-bold text-slate-400/80">CNPJ: 10.249.241/0001-22</p>
             </div>
-          </div>
-
-          <div className="flex gap-10">
-            <div className="text-left border-l-2 border-slate-100 pl-9">
-              <p className="text-[10px] font-black text-[#00577C] uppercase mb-1">Contato Oficial</p>
-              <p className="text-xs font-bold text-slate-500 tracking-tight">setursaga@gmail.com</p>
-            </div>
-            <ShieldCheck size={40} className="text-[#009640] opacity-30" />
           </div>
         </div>
       </footer>

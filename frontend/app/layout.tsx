@@ -15,7 +15,7 @@ const geistMono = localFont({
 
 // ◄── AQUI ESTÁ A CORREÇÃO DO TÍTULO E DESCRIÇÃO
 export const metadata: Metadata = {
-  title: "SagaTurismo | São Geraldo do Araguaia",
+  title: " Visite São Geraldo do Araguaia",
   description: "Plataforma oficial de turismo e emissão da Carteira de Residente de São Geraldo do Araguaia - PA.",
 };
 

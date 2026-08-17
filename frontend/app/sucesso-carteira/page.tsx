@@ -175,7 +175,7 @@ function SucessoCarteiraContent() {
             </div>
             <div className="hidden border-l border-slate-200 pl-4 lg:block">
               <p className={`${jakarta.className} text-2xl font-bold leading-none text-[#00577C]`}>SagaTurismo</p>
-              <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Secretaria de Turismo</p>
+              <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Secretaria Municipal de Turismo</p>
             </div>
           </Link>
           <button className="rounded-xl border border-slate-200 p-2 md:hidden"><Menu className="h-5 w-5 text-[#00577C]" /></button>
@@ -344,7 +344,7 @@ function SucessoCarteiraContent() {
             </div>
             
             <div className="mt-10 md:mt-14 text-center">
-               <Link href="/passeios" className="inline-flex items-center justify-center gap-2 bg-slate-50 text-[#00577C] font-black uppercase tracking-widest text-[10px] md:text-xs px-6 py-3.5 md:px-8 md:py-4 rounded-xl md:rounded-2xl border border-slate-200 hover:bg-slate-100 hover:border-slate-300 transition-all shadow-sm active:scale-95">
+               <Link href="/agencias" className="inline-flex items-center justify-center gap-2 bg-slate-50 text-[#00577C] font-black uppercase tracking-widest text-[10px] md:text-xs px-6 py-3.5 md:px-8 md:py-4 rounded-xl md:rounded-2xl border border-slate-200 hover:bg-slate-100 hover:border-slate-300 transition-all shadow-sm active:scale-95">
                  Ver todas as expedições locais <ArrowRight size={16}/>
                </Link>
             </div>
@@ -354,7 +354,7 @@ function SucessoCarteiraContent() {
 
       <footer className="mt-auto py-8 md:py-12 text-center border-t border-slate-200 bg-[#F8F9FA]">
          <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] md:tracking-[0.5em] px-4 leading-relaxed">
-            © {new Date().getFullYear()} · Secretaria de Turismo de São Geraldo do Araguaia
+            © {new Date().getFullYear()} · © 2026 Prefeitura Munícipal de São Geraldo do Araguaia - PA
          </p>
       </footer>
     </main>

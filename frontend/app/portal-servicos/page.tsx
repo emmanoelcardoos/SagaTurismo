@@ -6,20 +6,35 @@ import { Plus_Jakarta_Sans, Inter } from "next/font/google";
 import { supabase } from "@/lib/supabase";
 import { 
   Calendar as CalendarIcon, Bell, CheckCircle2, Clock, Map, Package, Activity, AlertCircle,
-  Upload, Image as ImageIcon, Save, Loader2, FileSpreadsheet, Utensils, MapPin, Phone, Plus, Trash2 
+  Upload, Image as ImageIcon, Save, Loader2, FileSpreadsheet, Utensils, MapPin, Phone, Plus, Trash2,
+  Building2, Briefcase, Compass, Newspaper
 } from 'lucide-react';
+// Cole isto junto aos outros imports no topo do ficheiro
+import dynamic from 'next/dynamic';
+import 'react-quill/dist/quill.snow.css'; // Estilos do editor
+
+// Como o Next.js usa SSR (Server Side Rendering), o Quill tem de ser importado dinamicamente
+const ReactQuill = dynamic(() => import('react-quill'), { 
+  ssr: false,
+  loading: () => <p className="text-sm text-slate-400 p-4">A carregar editor de texto...</p>
+});
+
+// Configuração da barra de ferramentas (Opções que o utilizador vai ter)
+const quillModules = {
+  toolbar: [
+    [{ 'header': [1, 2, 3, 4, false] }], // Tamanhos de título
+    ['bold', 'italic', 'underline', 'strike'], // Formatações básicas
+    [{ 'color': [] }, { 'background': [] }], // Cores
+    [{ 'list': 'ordered'}, { 'list': 'bullet' }, { 'align': [] }], // Listas e alinhamento
+    ['link', 'image', 'video'], // Links e multimédia
+    ['clean'] // Limpar formatação
+  ],
+};
 
 const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["600", "700", "800"] });
 const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
-// ─── Tipos ────────────────────────────────────────────────────────────────────
-
-interface Rota {
-  id: string; titulo: string; descricao_curta: string; descricao_longa: string | null;
-  imagem_url: string | null; ordem: number; ativo: boolean; criado_em: string;
-  duracao: string | null; dificuldade: string | null; grupo: string | null;
-  guia: string | null; galeria: string[] | null; como_chegar: string | null;
-}
+// ─── Tipos Limpos e Diretos ──────────────────────────────────────────────────
 
 interface Evento {
   id: string; titulo: string; subtitulo: string | null; descricao: string | null;
@@ -28,53 +43,25 @@ interface Evento {
   classificacao: string | null; link_bilheteira: string | null; destaque: boolean;
 }
 
-interface Passeio {
-  id: string; titulo: string; descricao_curta: string | null; descricao_completa: string | null;
-  imagem_principal: string | null; imagens_galeria: string[] | null; data_passeio: string;
-  horario_saida: string | null; ponto_encontro: string | null; coordenadas_google_maps: string | null;
-  nome_guia: string | null; guia_id: string | null; valor_total: number; taxa_prefeitura: number;
-  vagas_totais: number; vagas_disponiveis: number; ativo: boolean; destaque: boolean;
-  created_at: string; categoria: string | null;
-}
-
-interface Parceiro {
-  id: string; nome_negocio: string; tipo_parceiro: string; email: string;
-  telefone: string | null; status: string; criado_em: string;
-}
-
-interface Pedido {
-  id: string; codigo_pedido: string; tipo_item: string; item_id: string;
-  nome_cliente: string; cpf_cliente: string; email_cliente: string;
-  valor_total: number; metodo_pagamento: string; status_pagamento: string;
-  criado_em: string; data_checkin: string | null; data_checkout: string | null;
-  endereco_completo: string | null; quantidade: number; telefone_cliente: string | null;
-  data_nascimento: string | null; foto_url: string | null; hotel_id: string | null;
-  guia_id: string | null; tipo_quarto: string | null; checkin_realizado_em: string | null;
-  checkout_realizado_em: string | null; nome_item: string | null; repasse_hotel: number;
-  repasse_guia: number; taxa_prefeitura: number; quantidade_pessoas: number | null;
-  quantidade_quartos: number | null; hospedes_extras: any[] | null; quarto_tipo_id: string | null;
-}
-
-interface TaxaServico { tipo_servico: string; porcentagem: number; }
-
-interface Pacote {
-  id: string; titulo: string; descricao_curta: string; imagem_principal: string;
-  dias: number; noites: number; ativo: boolean; roteiro_detalhado: string | null;
-  imagens_galeria: string[] | null; horarios_info: string | null; preco: number;
-  categoria: string; vagas_totais: number; vagas_vendidas: number;
-  parceiro_id: string | null; agencia_id: string | null;
+interface Atracao {
+  id: string; nome: string; tipo: string; descricao: string; imagem_url: string;
+  preco_entrada: number; asaas_wallet_id: string | null; whatsapp: string | null;
+  link_google_maps: string | null; link_hospedagem: string | null; galeria: string[] | null;
 }
 
 interface Hotel {
   id: string; nome: string; tipo: string; descricao: string; estrelas: number;
   imagem_url: string; whatsapp: string | null; endereco: string | null;
   preco_medio: string | null; comodidades: string[] | null; galeria: string[] | null;
-  asaas_wallet_id: string | null; quarto_standard_nome: string | null;
-  quarto_standard_preco: number; quarto_luxo_nome: string | null; quarto_luxo_preco: number;
-  quarto_standard_comodidades: string[] | null; quarto_luxo_comodidades: string[] | null;
-  quarto_standard_imagens: string[] | null; quarto_luxo_imagens: string[] | null;
-  politicas: any | null; contatos: any | null; avaliacoes_info: any | null;
-  porcentagem_acompanhante: number; max_parcelas_sem_juros: number;
+  ativo: boolean;
+}
+
+interface Agencia {
+  id: string; nome: string; descricao_curta: string | null; sobre: string | null;
+  capa_url: string | null; logo_url: string | null; cadastur: string | null;
+  endereco: string | null; instagram: string | null; email: string | null;
+  whatsapp: string | null; galeria: string[] | null; especialidades: any | null;
+  ativo: boolean;
 }
 
 interface Gastronomia {
@@ -84,25 +71,21 @@ interface Gastronomia {
   foto_equipe_url: string | null; galeria: string[] | null; cardapio: any[] | null;
 }
 
-interface Atracao {
-  id: string; nome: string; tipo: string; descricao: string; imagem_url: string;
-  preco_entrada: number; asaas_wallet_id: string | null; whatsapp: string | null;
-  link_google_maps: string | null; link_hospedagem: string | null; galeria: string[] | null;
+interface Pedido {
+  id: string; codigo_pedido: string; tipo_item: string; item_id: string;
+  nome_cliente: string; cpf_cliente: string; email_cliente: string;
+  valor_total: number; status_pagamento: string; criado_em: string;
 }
 
-// ─── Constantes ────────────────────────────────────────────────────────────────
+// NOVO TIPO: Blog
+interface BlogPost {
+  id: string; titulo: string; resumo: string; conteudo: string;
+  imagem_url: string | null; data_publicacao: string;
+  ativo: boolean; autor: string | null; categoria: string | null;
+  destaque: boolean;
+}
 
-const DURACAO_OPCOES = ["1–2 horas", "2–3 horas", "3–4 horas", "4–6 horas", "6–8 horas", "8+ horas"];
-const DIFICULDADE_OPCOES = ["Fácil", "Moderada", "Difícil", "Extremo"];
-const GRUPO_OPCOES = ["Sem limite", "Até 8 pessoas", "Até 15 pessoas", "Até 30 pessoas"];
-const GUIA_OPCOES = ["Recomendado", "Obrigatório", "Não necessário"];
-
-const EMPTY_ROTA = {
-  titulo: "", descricao_curta: "", descricao_longa: null, imagem_url: null, ativo: true,
-  duracao: null, dificuldade: null, grupo: null, guia: null, galeria: null, como_chegar: null,
-};
-
-// ─── Helpers & micro-components ───────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const inputCls = "w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-[#00577C] focus:ring-2 focus:ring-[#00577C]/20 transition placeholder:text-slate-400";
 
@@ -118,33 +101,16 @@ function Skeleton({ rows }: { rows: number }) {
   return <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm">{Array.from({ length: rows }).map((_, i) => <div key={i} className="h-14 bg-slate-50 border-b border-slate-100 animate-pulse" />)}</div>;
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const styles: Record<string, string> = {
-    ativo: "bg-[#009640]/10 text-[#009640] border-[#009640]/20",
-    inativo: "bg-slate-100 text-slate-500 border-slate-200",
-    pendente: "bg-amber-50 text-amber-700 border-amber-200",
-  };
-  return <span className={`text-xs px-2 py-0.5 rounded-full border font-medium capitalize ${styles[status] || styles.inativo}`}>{status}</span>;
-}
-
-function tipoEmoji(tipo: string) {
-  const map: Record<string, string> = { hotel: "🏨", passeios: "🥾", pacotes: "📦", guia: "🧭" };
-  return map[tipo] || "🤝";
-}
-
 function fmtData(iso: string) {
-  if (!iso) return "—";
-  const [y, m, d] = iso.split("-");
-  return `${d}/${m}/${y}`;
+  if (!iso) return "—"; const [y, m, d] = iso.split("-"); return `${d}/${m}/${y}`;
 }
 
 function fmtDatetime(iso: string) {
-  if (!iso) return "—";
-  const d = new Date(iso);
+  if (!iso) return "—"; const d = new Date(iso);
   return d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
-// ─── Componente Principal com Login via Supabase RPC ─────────────────────────
+// ─── Login ───────────────────────────────────────────────────────────────────
 
 export default function PortalServicos() {
   const [role, setRole] = useState<"geral" | "turismo" | "meio_ambiente" | null>(null);
@@ -159,27 +125,15 @@ export default function PortalServicos() {
     setLoadingLogin(true);
 
     try {
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: senha,
-      });
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password: senha });
+      if (authError) throw new Error("Credenciais inválidas.");
 
-      if (authError) throw new Error("Credenciais inválidas no sistema principal.");
-
-      const { data: roleData, error: roleError } = await supabase.rpc("verificar_login_admin", {
-        p_email: email,
-        p_senha: senha,
-      });
-
+      const { data: roleData, error: roleError } = await supabase.rpc("verificar_login_admin", { p_email: email, p_senha: senha });
       if (roleError) throw roleError;
 
-      if (roleData) {
-        setRole(roleData as "geral" | "turismo" | "meio_ambiente");
-      } else {
-        setErroLogin("Usuário sem permissões administrativas.");
-      }
+      if (roleData) setRole(roleData as "geral" | "turismo" | "meio_ambiente");
+      else setErroLogin("Usuário sem permissões administrativas.");
     } catch (error) {
-      console.error("Erro ao verificar login:", error);
       setErroLogin("E-mail ou senha incorretos.");
     } finally {
       setLoadingLogin(false);
@@ -191,27 +145,15 @@ export default function PortalServicos() {
       <div className={`${inter.className} min-h-screen bg-[#FDFCF7] flex items-center justify-center p-4`}>
         <div className="w-full max-w-sm">
           <div className="mb-8 flex flex-col items-center">
-            <div className="relative w-32 h-16 mb-4">
-              <Image src="/logop.png" alt="Logo" fill className="object-contain" priority />
-            </div>
-            <h1 className={`${jakarta.className} text-xl font-black text-[#00577C]`}>Portal de Serviços</h1>
-            <p className="text-sm text-slate-500 mt-1">Acesso Administrativo</p>
+            <div className="relative w-32 h-16 mb-4"><Image src="/logop.png" alt="Logo" fill className="object-contain" priority /></div>
+            <h1 className={`${jakarta.className} text-xl font-black text-[#00577C]`}>CMS Institucional</h1>
+            <p className="text-sm text-slate-500 mt-1">Gestão do Portal SagaTurismo</p>
           </div>
-
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
             <form onSubmit={handleLogin} className="space-y-4">
-              <div>
-                <label className="block text-xs font-black text-slate-500 mb-1.5 uppercase tracking-wider">E-mail de acesso</label>
-                <input type="email" value={email} onChange={(e) => { setEmail(e.target.value); setErroLogin(""); }} className={inputCls} placeholder="admin@sagaturismo.com.br" required autoFocus />
-              </div>
-              <div>
-                <label className="block text-xs font-black text-slate-500 mb-1.5 uppercase tracking-wider">Senha de acesso</label>
-                <input type="password" value={senha} onChange={(e) => { setSenha(e.target.value); setErroLogin(""); }} className={inputCls} placeholder="••••••••" required />
-                {erroLogin && <p className="text-red-500 text-xs mt-2 font-medium">{erroLogin}</p>}
-              </div>
-              <button type="submit" disabled={loadingLogin} className="w-full bg-[#00577C] hover:bg-[#004a6b] text-white font-black rounded-lg py-3 text-sm transition shadow-sm uppercase tracking-widest mt-2 disabled:opacity-70 disabled:cursor-not-allowed">
-                {loadingLogin ? "Verificando..." : "Entrar"}
-              </button>
+              <FormField label="E-mail de acesso"><input type="email" value={email} onChange={(e) => { setEmail(e.target.value); setErroLogin(""); }} className={inputCls} placeholder="admin@sagaturismo.com.br" required autoFocus /></FormField>
+              <FormField label="Senha de acesso"><input type="password" value={senha} onChange={(e) => { setSenha(e.target.value); setErroLogin(""); }} className={inputCls} placeholder="••••••••" required />{erroLogin && <p className="text-red-500 text-xs mt-2 font-medium">{erroLogin}</p>}</FormField>
+              <button type="submit" disabled={loadingLogin} className="w-full bg-[#00577C] hover:bg-[#004a6b] text-white font-black rounded-lg py-3 text-sm transition shadow-sm uppercase tracking-widest mt-2 disabled:opacity-70">{loadingLogin ? "A verificar..." : "Entrar"}</button>
             </form>
           </div>
         </div>
@@ -222,32 +164,22 @@ export default function PortalServicos() {
   return <AdminDashboard role={role} onLogout={() => { supabase.auth.signOut(); setRole(null); setEmail(""); setSenha(""); }} />;
 }
 
-// ─── Dashboard ────────────────────────────────────────────────────────────────
+// ─── Dashboard Base ──────────────────────────────────────────────────────────
 
 function AdminDashboard({ role, onLogout }: { role: "geral" | "turismo" | "meio_ambiente"; onLogout: () => void }) {
-  const allTabs = [
-    { id: "dashboard",   label: "Painel Geral",     icon: "📊" },
-    { id: "rotas",       label: "Rotas Turísticas", icon: "🗺️" },
-    { id: "eventos",     label: "Eventos",          icon: "📅" },
-    { id: "passeios",    label: "Passeios",         icon: "🥾" },
-    { id: "pacotes",     label: "Pacotes",          icon: "🎒" },
-    { id: "atracoes",    label: "Atrações",         icon: "🏞️" },
-    { id: "parceiros",   label: "Parceiros",        icon: "🤝" },
-    { id: "hoteis",      label: "Hotéis",           icon: "🏨" },
-    { id: "gastronomia", label: "Gastronomia",      icon: "🍽️" },
-    { id: "taxas",       label: "Taxas de Serviço", icon: "💰" },
-    { id: "pedidos",     label: "Pedidos",          icon: "🛒" },
-  ] as const;
+  // Adicionamos o separador BLOG
+  const allowedTabs = [
+    { id: "dashboard",   label: "Painel Geral", icon: <Activity size={18} /> },
+    { id: "blog",        label: "Blog/Notícias",icon: <Newspaper size={18} /> },
+    { id: "eventos",     label: "Eventos",      icon: <CalendarIcon size={18} /> },
+    { id: "atracoes",    label: "Atrações",     icon: <MapPin size={18} /> },
+    { id: "hoteis",      label: "Hotéis",       icon: <Building2 size={18} /> },
+    { id: "gastronomia", label: "Gastronomia",  icon: <Utensils size={18} /> },
+    { id: "agencias",    label: "Agências",     icon: <Briefcase size={18} /> },
+    { id: "pedidos",     label: "Pedidos",      icon: <CheckCircle2 size={18} /> },
+  ];
 
-  const allowedTabs = allTabs.filter(tab => {
-    if (role === "geral") return true; 
-    if (role === "turismo") return ["dashboard", "rotas", "eventos", "passeios", "pacotes", "atracoes"].includes(tab.id);
-    if (role === "meio_ambiente") return ["dashboard", "parceiros", "taxas", "pedidos", "hoteis", "gastronomia"].includes(tab.id);
-    return false;
-  });
-
-  const [activeTab, setActiveTab] = useState<string>(allowedTabs[0].id);
-  const nomeSecretaria = role === "turismo" ? "Sec. de Turismo" : role === "meio_ambiente" ? "Sec. de Meio Ambiente" : "Administração Geral";
+  const [activeTab, setActiveTab] = useState<string>("dashboard");
 
   return (
     <div className={`${inter.className} min-h-screen bg-[#FDFCF7] text-slate-800`}>
@@ -255,7 +187,7 @@ function AdminDashboard({ role, onLogout }: { role: "geral" | "turismo" | "meio_
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="relative w-28 h-8"><Image src="/logop.png" alt="Logo" fill className="object-contain object-left" priority /></div>
-            <span className="hidden sm:block text-xs font-bold text-slate-500 border-l border-slate-200 pl-3 uppercase tracking-wider">{nomeSecretaria}</span>
+            <span className="hidden sm:block text-xs font-bold text-slate-500 border-l border-slate-200 pl-3 uppercase tracking-wider">Painel Administrativo</span>
           </div>
           <button onClick={onLogout} className="text-xs text-slate-500 hover:text-[#00577C] transition flex items-center gap-1.5 font-bold uppercase tracking-widest">Sair</button>
         </div>
@@ -263,259 +195,211 @@ function AdminDashboard({ role, onLogout }: { role: "geral" | "turismo" | "meio_
 
       <div className="bg-white border-b border-slate-200 overflow-x-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex gap-0 min-w-max">
+          <div className="flex gap-2 min-w-max py-2">
             {allowedTabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-5 py-3.5 text-sm font-black border-b-2 transition ${activeTab === tab.id ? "border-[#F9C400] text-[#00577C]" : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"}`}
-              >
-                <span>{tab.icon}</span>{tab.label}
+              <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex items-center gap-2 px-4 py-2 text-sm font-black rounded-xl transition ${activeTab === tab.id ? "bg-[#00577C] text-white shadow-sm" : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"}`}>
+                {tab.icon} {tab.label}
               </button>
             ))}
           </div>
         </div>
       </div>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         {activeTab === "dashboard"   && <TabDashboard />}
-        {activeTab === "rotas"       && <TabRotas />}
+        {activeTab === "blog"        && <TabBlog />}
         {activeTab === "eventos"     && <TabEventos />}
-        {activeTab === "passeios"    && <TabPasseiosAdmin />}
-        {activeTab === "parceiros"   && <TabParceiros />}
-        {activeTab === "taxas"       && <TabTaxasServico />}
-        {activeTab === "pedidos"     && <TabPedidos />}
-        {activeTab === "pacotes"     && <TabPacotes />}
-        {activeTab === "hoteis"      && <TabHoteis />}
-        {activeTab === "gastronomia" && <TabGastronomia />}
         {activeTab === "atracoes"    && <TabAtracoes />}
+        {activeTab === "gastronomia" && <TabGastronomia />}
+        {activeTab === "pedidos"     && <TabPedidos />}
+        {activeTab === "hoteis"      && <TabHoteis />} 
+        {activeTab === "agencias"    && <TabAgencias />}
       </main>
     </div>
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// DASHBOARD CENTRAL
-// ═══════════════════════════════════════════════════════════════════════════════
+// ─── Aba: Dashboard (Simplificada) ───────────────────────────────────────────
 
 function TabDashboard() {
   const [eventos, setEventos] = useState<any[]>([]);
-  const [pendentes, setPendentes] = useState<any[]>([]);
+  const [stats, setStats] = useState({ hoteis: 0, agencias: 0, restaurantes: 0, atracoes: 0 });
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ parceiros: 0, hoteis: 0 });
-
-  const dataHoje = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
   useEffect(() => { carregarDashboard(); }, []);
 
   async function carregarDashboard() {
     setLoading(true);
     const hoje = new Date();
-    const daquiA7Dias = new Date();
-    daquiA7Dias.setDate(hoje.getDate() + 7);
-    
+    const daquiA7Dias = new Date(); daquiA7Dias.setDate(hoje.getDate() + 7);
     const hojeIso = hoje.toISOString().split('T')[0];
     const daquiA7DiasIso = daquiA7Dias.toISOString().split('T')[0];
 
+    // Busca Eventos da Semana
     const { data: eventosData } = await supabase.from('eventos').select('titulo, data, local').gte('data', hojeIso).lte('data', daquiA7DiasIso).order('data', { ascending: true });
     setEventos(eventosData || []);
 
-    const { data: passeiosData } = await supabase.from('passeios').select('id, titulo, parceiro_id').eq('status', 'pendente');
-    const { data: pacotesData } = await supabase.from('pacotes').select('id, titulo, parceiro_id').eq('status', 'pendente');
-    const { data: parceirosPendentes } = await supabase.from('parceiros').select('id, nome_negocio, tipo_parceiro').eq('status', 'pendente');
+    // Conta os Registos Ativos
+    const { count: cAtracoes } = await supabase.from('atracoes').select('*', { count: 'exact', head: true });
+    const { count: cHoteis } = await supabase.from('hoteis').select('*', { count: 'exact', head: true });
+    const { count: cAgencias } = await supabase.from('agencias').select('*', { count: 'exact', head: true });
+    const { count: cRest } = await supabase.from('gastronomia').select('*', { count: 'exact', head: true });
 
-    const listaPendentes = [
-      ...(passeiosData || []).map(p => ({ ...p, tipo: 'passeios', icone: Map })),
-      ...(pacotesData || []).map(p => ({ ...p, tipo: 'pacotes', icone: Package })),
-      ...(parceirosPendentes || []).map(p => ({ ...p, titulo: p.nome_negocio, tipo: 'parceiros', icone: Bell }))
-    ];
-    setPendentes(listaPendentes);
-
-    const { count: countParceiros } = await supabase.from('parceiros').select('*', { count: 'exact', head: true }).eq('status', 'ativo');
-    const { count: countHoteis } = await supabase.from('hoteis').select('*', { count: 'exact', head: true });
-    setStats({ parceiros: countParceiros || 0, hoteis: countHoteis || 0 });
-    
+    setStats({ 
+      atracoes: cAtracoes || 0, hoteis: cHoteis || 0, 
+      agencias: cAgencias || 0, restaurantes: cRest || 0 
+    });
     setLoading(false);
   }
 
-  async function aprovarItem(id: string, tabela: string) {
-    if (!confirm(`Deseja aprovar este item e publicá-lo no portal?`)) return;
-    const statusValue = tabela === 'parceiros' ? 'ativo' : 'aprovado';
-    await supabase.from(tabela).update({ status: statusValue }).eq('id', id);
-    carregarDashboard(); 
-  }
-
-  if (loading) return <div className="py-20 flex justify-center"><Activity className="animate-spin text-[#00577C]" size={32}/></div>;
+  if (loading) return <div className="py-20 flex justify-center"><Loader2 className="animate-spin text-[#00577C]" size={32}/></div>;
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
-      
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <section className="bg-white border border-slate-200 rounded-[2rem] p-6 shadow-sm">
-          <div className="flex items-center gap-3 border-b border-slate-100 pb-4 mb-4">
-            <div className="bg-amber-100 text-amber-600 p-2 rounded-xl"><Bell size={20}/></div>
-            <h3 className={`${jakarta.className} text-xl font-black text-slate-800`}>Fila de Aprovação</h3>
-            {pendentes.length > 0 && <span className="ml-auto bg-amber-500 text-white text-[10px] font-black px-2 py-1 rounded-full">{pendentes.length}</span>}
-          </div>
-
-          {pendentes.length === 0 ? (
-            <div className="text-center py-12">
-              <CheckCircle2 size={40} className="mx-auto text-slate-200 mb-3"/>
-              <p className="font-bold text-slate-400">Tudo em dia!</p>
-              <p className="text-xs text-slate-400">Nenhum passeio ou pacote aguardando aprovação.</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {pendentes.map((item, idx) => {
-                const Icon = item.icone;
-                return (
-                  <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-2xl">
-                    <div className="flex items-center gap-4">
-                      <div className="bg-white p-2 rounded-xl shadow-sm text-slate-400"><Icon size={16}/></div>
-                      <div>
-                        <p className="text-xs font-black uppercase text-slate-400 tracking-wider mb-0.5">Novo {item.tipo.slice(0, -1)}</p>
-                        <p className="font-bold text-sm text-slate-800 line-clamp-1">{item.titulo}</p>
-                      </div>
-                    </div>
-                    <button onClick={() => aprovarItem(item.id, item.tipo)} className="bg-[#009640] hover:bg-green-700 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-colors shadow-sm">Aprovar</button>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </section>
-
-        <section className="bg-white border border-slate-200 rounded-[2rem] p-6 shadow-sm">
-          <div className="flex items-center gap-3 border-b border-slate-100 pb-4 mb-4">
-            <div className="bg-[#00577C]/10 text-[#00577C] p-2 rounded-xl"><CalendarIcon size={20}/></div>
-            <h3 className={`${jakarta.className} text-xl font-black text-slate-800`}>Eventos (Próximos 7 Dias)</h3>
-          </div>
-
-          {eventos.length === 0 ? (
-            <div className="text-center py-12">
-              <Clock size={40} className="mx-auto text-slate-200 mb-3"/>
-              <p className="font-bold text-slate-400">Agenda livre.</p>
-              <p className="text-xs text-slate-400">Nenhum evento municipal programado para esta semana.</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {eventos.map((ev, idx) => {
-                const [ano, mes, dia] = ev.data.split('-');
-                return (
-                  <div key={idx} className="flex items-center gap-4 p-4 bg-blue-50/50 border border-blue-100 rounded-2xl">
-                    <div className="bg-white border border-blue-100 rounded-xl w-14 h-14 flex flex-col items-center justify-center shrink-0 shadow-sm">
-                      <span className="text-[10px] font-black uppercase text-[#00577C] leading-none mb-1">{new Date(ev.data).toLocaleString('pt-BR', { month: 'short' })}</span>
-                      <span className={`${jakarta.className} text-xl font-black text-slate-900 leading-none`}>{dia}</span>
-                    </div>
-                    <div>
-                      <p className="font-bold text-sm text-slate-800">{ev.titulo}</p>
-                      <p className="text-xs text-slate-500 font-medium flex items-center gap-1 mt-1"><Map size={12}/> {ev.local}</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </section>
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
+      {/* Cards de Resumo */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+        <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col items-center text-center">
+          <div className="w-12 h-12 bg-blue-50 text-[#00577C] rounded-2xl flex items-center justify-center mb-3"><MapPin size={24}/></div>
+          <span className={`${jakarta.className} text-3xl font-black text-slate-800`}>{stats.atracoes}</span>
+          <span className="text-xs font-black text-slate-400 uppercase tracking-widest mt-1">Atrações</span>
+        </div>
+        <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col items-center text-center">
+          <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mb-3"><Building2 size={24}/></div>
+          <span className={`${jakarta.className} text-3xl font-black text-slate-800`}>{stats.hoteis}</span>
+          <span className="text-xs font-black text-slate-400 uppercase tracking-widest mt-1">Hotéis</span>
+        </div>
+        <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col items-center text-center">
+          <div className="w-12 h-12 bg-green-50 text-[#009640] rounded-2xl flex items-center justify-center mb-3"><Utensils size={24}/></div>
+          <span className={`${jakarta.className} text-3xl font-black text-slate-800`}>{stats.restaurantes}</span>
+          <span className="text-xs font-black text-slate-400 uppercase tracking-widest mt-1">Restaurantes</span>
+        </div>
+        <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col items-center text-center">
+          <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center mb-3"><Briefcase size={24}/></div>
+          <span className={`${jakarta.className} text-3xl font-black text-slate-800`}>{stats.agencias}</span>
+          <span className="text-xs font-black text-slate-400 uppercase tracking-widest mt-1">Agências</span>
+        </div>
       </div>
+
+      {/* Próximos Eventos */}
+      <section className="bg-white border border-slate-200 rounded-[2rem] p-6 shadow-sm max-w-3xl mx-auto">
+        <div className="flex items-center gap-3 border-b border-slate-100 pb-4 mb-4">
+          <div className="bg-[#00577C]/10 text-[#00577C] p-2 rounded-xl"><CalendarIcon size={20}/></div>
+          <h3 className={`${jakarta.className} text-xl font-black text-slate-800`}>Eventos Municipais (Próximos 7 Dias)</h3>
+        </div>
+        {eventos.length === 0 ? (
+          <div className="text-center py-12">
+            <Clock size={40} className="mx-auto text-slate-200 mb-3"/>
+            <p className="font-bold text-slate-400">Agenda livre.</p>
+            <p className="text-xs text-slate-400">Nenhum evento programado para esta semana.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {eventos.map((ev, idx) => {
+              const [ano, mes, dia] = ev.data.split('-');
+              return (
+                <div key={idx} className="flex items-center gap-4 p-4 bg-blue-50/50 border border-blue-100 rounded-2xl">
+                  <div className="bg-white border border-blue-100 rounded-xl w-14 h-14 flex flex-col items-center justify-center shrink-0 shadow-sm">
+                    <span className="text-[10px] font-black uppercase text-[#00577C] leading-none mb-1">{new Date(ev.data).toLocaleString('pt-BR', { month: 'short' })}</span>
+                    <span className={`${jakarta.className} text-xl font-black text-slate-900 leading-none`}>{dia}</span>
+                  </div>
+                  <div>
+                    <p className="font-bold text-sm text-slate-800">{ev.titulo}</p>
+                    <p className="text-xs text-slate-500 font-medium flex items-center gap-1 mt-1"><MapPin size={12}/> {ev.local}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
     </div>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// ROTAS
+// BLOG / NOTÍCIAS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function TabRotas() {
-  const [rotas, setRotas] = useState<Rota[]>([]);
+function TabBlog() {
+  const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [editando, setEditando] = useState<Rota | null>(null);
-  const [form, setForm] = useState<any>(EMPTY_ROTA);
-  const [imagemCapaFile, setImagemCapaFile] = useState<File | null>(null);
-  const [galeriaFiles, setGaleriaFiles] = useState<File[]>([]);
+  const [editando, setEditando] = useState<BlogPost | null>(null);
+  
+  const formVazio = { 
+    titulo: "", resumo: "", conteudo: "", 
+    data_publicacao: new Date().toISOString().split('T')[0], 
+    autor: "Redação", categoria: "Turismo", 
+    ativo: true, destaque: false 
+  };
+  const [form, setForm] = useState<any>(formVazio);
+  
+  const [imagemFile, setImagemFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState("");
 
-  useEffect(() => { fetchRotas(); }, []);
+  useEffect(() => { fetchPosts(); }, []);
 
-  async function fetchRotas() {
+  async function fetchPosts() {
     setLoading(true);
-    const { data } = await supabase.from("rotas").select("*").order("ordem", { ascending: true });
-    setRotas(data || []);
+    const { data } = await supabase.from("blog").select("*").order("data_publicacao", { ascending: false });
+    setPosts(data || []);
     setLoading(false);
   }
 
-  async function getProximaOrdem() {
-    const { data } = await supabase.from("rotas").select("ordem").order("ordem", { ascending: false }).limit(1);
-    if (data && data.length > 0) return data[0].ordem + 1;
-    return 1;
-  }
-
   function abrirFormNovo() {
-    setEditando(null); setForm(EMPTY_ROTA); setImagemCapaFile(null); setGaleriaFiles([]); setShowForm(true);
+    setEditando(null); setForm(formVazio); setImagemFile(null); setShowForm(true);
   }
 
-  function abrirFormEditar(rota: Rota) {
-    setEditando(rota);
-    setForm({ titulo: rota.titulo, descricao_curta: rota.descricao_curta, descricao_longa: rota.descricao_longa, imagem_url: rota.imagem_url, ativo: rota.ativo, duracao: rota.duracao, dificuldade: rota.dificuldade, grupo: rota.grupo, guia: rota.guia, galeria: rota.galeria, como_chegar: rota.como_chegar });
-    setImagemCapaFile(null); setGaleriaFiles([]); setShowForm(true);
+  function abrirFormEditar(post: BlogPost) {
+    setEditando(post); setForm({ ...post }); setImagemFile(null); setShowForm(true);
+  }
+
+  async function toggleAtivo(id: string, estadoAtual: boolean) {
+    await supabase.from("blog").update({ ativo: !estadoAtual }).eq("id", id);
+    fetchPosts();
   }
 
   async function handleSave() {
-    if (!form.titulo || !form.descricao_curta) { setFeedback("Título e descrição curta são obrigatórios."); return; }
+    if (!form.titulo || !form.conteudo) { setFeedback("Título e Conteúdo são obrigatórios."); return; }
     setSaving(true); setFeedback("Salvando...");
-
-    let imagem_url = form.imagem_url;
-    if (imagemCapaFile) {
-      const ext = imagemCapaFile.name.split(".").pop();
-      const path = `rotas/capa/${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage.from("rotas").upload(path, imagemCapaFile, { upsert: true });
-      if (!upErr) {
-        const { data: pub } = supabase.storage.from("rotas").getPublicUrl(path);
+    
+    let imagem_url = editando?.imagem_url || null;
+    
+    if (imagemFile) {
+      const ext = imagemFile.name.split(".").pop();
+      const path = `blog/${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("galeria").upload(path, imagemFile, { upsert: true }); // Pode usar outro bucket se preferir
+      if (!error) {
+        const { data: pub } = supabase.storage.from("galeria").getPublicUrl(path);
         imagem_url = pub.publicUrl;
       }
     }
-
-    let galeriaUrls: string[] = form.galeria ? [...form.galeria] : [];
-    for (const file of galeriaFiles) {
-      const ext = file.name.split(".").pop();
-      const path = `rotas/galeria/${Date.now()}-${Math.random()}.${ext}`;
-      const { error: upErr } = await supabase.storage.from("rotas").upload(path, file, { upsert: true });
-      if (!upErr) {
-        const { data: pub } = supabase.storage.from("rotas").getPublicUrl(path);
-        galeriaUrls.push(pub.publicUrl);
-      }
-    }
-
-    const payload = { ...form, imagem_url, galeria: galeriaUrls.length ? galeriaUrls : (form.galeria || null) };
-
-    if (editando) await supabase.from("rotas").update(payload).eq("id", editando.id);
-    else {
-      const novaOrdem = await getProximaOrdem();
-      await supabase.from("rotas").insert({ ...payload, ordem: novaOrdem });
-    }
-
-    setFeedback(editando ? "Rota atualizada com sucesso!" : "Rota publicada!");
-    setTimeout(() => { setShowForm(false); setSaving(false); fetchRotas(); setFeedback(""); }, 2000);
+    
+    const payload = { ...form, imagem_url };
+    
+    if (editando) await supabase.from("blog").update(payload).eq("id", editando.id);
+    else await supabase.from("blog").insert(payload);
+    
+    setFeedback(editando ? "Artigo atualizado com sucesso!" : "Novo artigo publicado!");
+    setTimeout(() => { setShowForm(false); setSaving(false); fetchPosts(); setFeedback(""); }, 2000);
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Remover esta rota permanentemente?")) return;
-    await supabase.from("rotas").delete().eq("id", id); 
-    fetchRotas();
+    if (!confirm("Tem certeza que deseja apagar este artigo permanentemente?")) return;
+    await supabase.from("blog").delete().eq("id", id); 
+    fetchPosts();
   }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className={`${jakarta.className} text-xl font-black text-[#00577C]`}>Vitrine de Rotas</h2>
-          <p className="text-xs text-slate-500 mt-1">{rotas.length} roteiros em exibição</p>
+          <h2 className={`${jakarta.className} text-xl font-black text-[#00577C]`}>Gestão do Blog</h2>
+          <p className="text-xs text-slate-500 mt-1">{posts.length} artigos publicados</p>
         </div>
         <button onClick={abrirFormNovo} className="bg-[#00577C] hover:bg-[#004a6b] text-white font-black text-sm px-5 py-2.5 rounded-xl transition shadow-md flex items-center gap-2">
-          <Plus size={16} /> Novo Roteiro
+          <Plus size={16} /> Novo Artigo
         </button>
       </div>
 
@@ -523,41 +407,46 @@ function TabRotas() {
         <div className="bg-white rounded-[2rem] p-8 shadow-lg border border-slate-100 animate-in fade-in slide-in-from-bottom-4">
           <div className="flex items-center justify-between mb-8 border-b border-slate-100 pb-4">
             <h3 className={`${jakarta.className} text-2xl font-black text-slate-800 flex items-center gap-2`}>
-              <Map className="text-[#F9C400]" /> {editando ? "Editar Rota" : "Construtor de Página de Rota"}
+              <Newspaper className="text-[#F9C400]" /> {editando ? "Editar Artigo" : "Escrever Novo Artigo"}
             </h3>
             <button onClick={() => setShowForm(false)} className="text-sm font-bold text-slate-400 hover:text-slate-800">Cancelar</button>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-8">
-            <div className="space-y-5">
-              <h4 className="font-black text-[#00577C] border-b pb-2">Informações da Rota</h4>
-              <FormField label="Título da Rota *"><input value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value })} className={inputCls} placeholder="Ex: Rota das Cachoeiras" /></FormField>
-              <FormField label="Descrição Curta (Resumo) *"><textarea value={form.descricao_curta} onChange={(e) => setForm({ ...form, descricao_curta: e.target.value })} rows={2} className={inputCls} placeholder="Aparece no cartão principal..." /></FormField>
-              <FormField label="Descrição Longa (História)"><textarea value={form.descricao_longa || ""} onChange={(e) => setForm({ ...form, descricao_longa: e.target.value || null })} rows={4} className={inputCls} placeholder="Conte todos os detalhes deste roteiro..." /></FormField>
-              <FormField label="Como Chegar (Instruções)"><textarea value={form.como_chegar || ""} onChange={(e) => setForm({ ...form, como_chegar: e.target.value || null })} rows={3} className={inputCls} placeholder="Ex: Acesso pela via BR..."/></FormField>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-8 gap-y-8">
+            <div className="lg:col-span-2 space-y-5">
+              <FormField label="Título da Notícia/Artigo *"><input value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value })} className={inputCls} placeholder="Ex: Novo roteiro descoberto..." /></FormField>
+              <FormField label="Resumo Breve"><textarea value={form.resumo || ""} onChange={(e) => setForm({ ...form, resumo: e.target.value })} rows={2} className={inputCls} placeholder="Uma breve frase sobre o artigo" /></FormField>
+              <FormField label="Conteúdo Completo (Editor Visual) *">
+                <div className="bg-white border border-slate-200 rounded-lg">
+                  <ReactQuill 
+                    theme="snow" 
+                    value={form.conteudo || ""} 
+                    onChange={(content) => setForm({ ...form, conteudo: content })} 
+                    modules={quillModules}
+                    placeholder="Escreva a sua notícia ou roteiro aqui..."
+                    className="h-[300px] mb-12" 
+                  />
+                </div>
+              </FormField>
             </div>
             
             <div className="space-y-5">
-              <h4 className="font-black text-[#00577C] border-b pb-2">Especificações e Mídia</h4>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField label="Duração"><select value={form.duracao || ""} onChange={(e) => setForm({ ...form, duracao: e.target.value })} className={inputCls}><option value="">Selecione</option>{DURACAO_OPCOES.map(opt => <option key={opt}>{opt}</option>)}</select></FormField>
-                <FormField label="Dificuldade"><select value={form.dificuldade || ""} onChange={(e) => setForm({ ...form, dificuldade: e.target.value })} className={inputCls}><option value="">Selecione</option>{DIFICULDADE_OPCOES.map(opt => <option key={opt}>{opt}</option>)}</select></FormField>
-                <FormField label="Tamanho do Grupo"><select value={form.grupo || ""} onChange={(e) => setForm({ ...form, grupo: e.target.value })} className={inputCls}><option value="">Selecione</option>{GRUPO_OPCOES.map(opt => <option key={opt}>{opt}</option>)}</select></FormField>
-                <FormField label="Exigência de Guia"><select value={form.guia || ""} onChange={(e) => setForm({ ...form, guia: e.target.value })} className={inputCls}><option value="">Selecione</option>{GUIA_OPCOES.map(opt => <option key={opt}>{opt}</option>)}</select></FormField>
-              </div>
+              <h4 className="font-black text-[#00577C] border-b pb-2">Detalhes & Publicação</h4>
+              <FormField label="Autor"><input value={form.autor || ""} onChange={(e) => setForm({ ...form, autor: e.target.value })} className={inputCls} placeholder="Ex: Redação, Nome..." /></FormField>
+              <FormField label="Categoria"><input value={form.categoria || ""} onChange={(e) => setForm({ ...form, categoria: e.target.value })} className={inputCls} placeholder="Ex: Turismo, Eventos..." /></FormField>
+              <FormField label="Data de Publicação *"><input type="date" value={form.data_publicacao} onChange={(e) => setForm({ ...form, data_publicacao: e.target.value })} className={inputCls} /></FormField>
               
-              <FormField label="Imagem de Capa">
-                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 text-slate-500 p-4 rounded-xl cursor-pointer hover:border-[#00577C] transition-colors">
-                  <input type="file" accept="image/*" className="hidden" onChange={(e) => setImagemCapaFile(e.target.files?.[0] || null)} />
-                  <ImageIcon size={18} /> {imagemCapaFile ? imagemCapaFile.name : form.imagem_url ? "Trocar imagem atual" : "Clique para anexar Capa da Rota"}
-                </label>
-              </FormField>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField label="Visibilidade"><select value={String(form.ativo)} onChange={(e) => setForm({ ...form, ativo: e.target.value === 'true' })} className={inputCls}><option value="true">Público</option><option value="false">Oculto</option></select></FormField>
+                <FormField label="Destaque?"><select value={String(form.destaque)} onChange={(e) => setForm({ ...form, destaque: e.target.value === 'true' })} className={inputCls}><option value="false">Não</option><option value="true">Sim</option></select></FormField>
+              </div>
 
-              <FormField label="Galeria de Fotos do Local (Múltiplas)">
-                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 text-slate-500 p-4 rounded-xl cursor-pointer hover:border-[#00577C] transition-colors">
-                  <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => { if (e.target.files) setGaleriaFiles(Array.from(e.target.files)); }} />
-                  <ImageIcon size={18} /> {galeriaFiles.length > 0 ? `${galeriaFiles.length} fotos selecionadas` : "Selecionar várias fotos para galeria"}
+              <FormField label="Imagem de Capa">
+                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 text-slate-500 p-6 rounded-xl cursor-pointer hover:border-[#00577C] transition-colors text-center text-xs">
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => setImagemFile(e.target.files?.[0] || null)} />
+                  <ImageIcon size={18} /> {imagemFile ? imagemFile.name : form.imagem_url ? "Trocar imagem atual" : "Anexar Imagem"}
                 </label>
+                {form.imagem_url && !imagemFile && <img src={form.imagem_url} alt="Capa atual" className="mt-3 h-24 w-full object-cover rounded-xl border border-slate-200" />}
               </FormField>
             </div>
           </div>
@@ -565,30 +454,42 @@ function TabRotas() {
           <div className="mt-10 flex items-center justify-between pt-6 border-t border-slate-100">
             <span className="text-sm font-bold text-[#009640]">{feedback}</span>
             <button onClick={handleSave} disabled={saving} className="bg-[#009640] hover:bg-green-700 text-white px-10 py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg flex items-center gap-2 transition-all">
-              {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Publicar Rota
+              {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Publicar Artigo
             </button>
           </div>
         </div>
       ) : (
         loading ? <div className="py-12 flex justify-center"><Loader2 size={32} className="text-[#00577C] animate-spin" /></div> : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {rotas.map((rota) => (
-              <div key={rota.id} className={`bg-white rounded-[2rem] border border-slate-200 p-4 flex flex-col hover:shadow-xl transition-all ${!rota.ativo ? 'opacity-60 grayscale-[30%]' : ''}`}>
-                <div className="relative w-full h-48 rounded-2xl overflow-hidden bg-slate-100 mb-4">
-                  <img src={rota.imagem_url || "/placeholder.png"} alt={rota.titulo} className="object-cover w-full h-full" />
-                  <div className="absolute top-3 left-3 bg-white/90 backdrop-blur px-2 py-1 rounded text-[10px] font-black text-[#00577C] shadow-sm uppercase">{rota.dificuldade || 'Turismo'}</div>
-                </div>
-                <div className="px-2 pb-2 flex-1 flex flex-col">
-                  <h3 className={`${jakarta.className} text-xl font-black text-slate-800 mb-1`}>{rota.titulo}</h3>
-                  <p className="text-xs font-medium text-slate-500 line-clamp-2 mb-4">{rota.descricao_curta}</p>
-                  
-                  <div className="mt-auto flex items-center justify-between pt-4 border-t border-slate-100">
-                    <button onClick={() => abrirFormEditar(rota)} className="text-xs font-bold text-[#00577C] hover:underline">Editar Rota</button>
-                    <button onClick={() => handleDelete(rota.id)} className="text-xs font-bold text-red-500 hover:underline">Remover</button>
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm overflow-x-auto">
+            <table className="w-full text-sm min-w-[800px]">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50">
+                  <Th className="w-16">Capa</Th><Th>Título do Artigo</Th><Th>Categoria</Th><Th>Data</Th><Th>Status</Th><Th className="text-right">Ações</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {posts.map((post) => (
+                  <tr key={post.id} className="border-b border-slate-100 hover:bg-slate-50 transition">
+                    <td className="px-4 py-3"><img src={post.imagem_url || "/placeholder.png"} alt={post.titulo} className="w-10 h-10 rounded-lg object-cover" /></td>
+                    <td className="px-4 py-3"><p className="font-bold text-slate-800 line-clamp-1">{post.titulo}</p><p className="text-xs text-slate-500 line-clamp-1 mt-0.5">{post.resumo}</p></td>
+                    <td className="px-4 py-3 text-slate-600">{post.categoria || "—"}</td>
+                    <td className="px-4 py-3 text-slate-600">{fmtData(post.data_publicacao)}</td>
+                    <td className="px-4 py-3">
+                      <button onClick={() => toggleAtivo(post.id, post.ativo)} className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-full transition-colors ${post.ativo ? 'text-[#009640] bg-green-50 hover:bg-green-100' : 'text-slate-500 bg-slate-200 hover:bg-slate-300'}`}>
+                        {post.ativo ? "Público" : "Oculto"}
+                      </button>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex justify-end gap-3">
+                         <button onClick={() => abrirFormEditar(post)} className="text-xs font-bold text-[#00577C] hover:underline">Editar</button>
+                         <button onClick={() => handleDelete(post.id)} className="text-xs font-bold text-red-500 hover:underline">Remover</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {posts.length === 0 && (<tr><td colSpan={6} className="px-4 py-10 text-center text-slate-400">Nenhum artigo publicado no blog.</td></tr>)}
+              </tbody>
+            </table>
           </div>
         )
       )}
@@ -945,276 +846,6 @@ function TabEventos() {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// PASSEIOS (Apenas Auditoria)
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function TabPasseiosAdmin() {
-  const [passeios, setPasseios] = useState<Passeio[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => { fetchPasseios(); }, []);
-
-  async function fetchPasseios() {
-    setLoading(true);
-    const { data } = await supabase.from("passeios").select("*").order("created_at", { ascending: false });
-    setPasseios(data || []);
-    setLoading(false);
-  }
-
-  async function toggleAtivo(id: string, ativo: boolean) {
-    await supabase.from("passeios").update({ ativo: !ativo }).eq("id", id);
-    fetchPasseios();
-  }
-
-  async function handleDelete(id: string) {
-    if (!confirm("Remover este passeio permanentemente do portal?")) return;
-    await supabase.from("passeios").delete().eq("id", id);
-    fetchPasseios();
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className={`${jakarta.className} text-lg font-black text-[#00577C]`}>Auditoria de Passeios</h2>
-          <p className="text-xs text-slate-500">{passeios.length} passeios listados pelos parceiros</p>
-        </div>
-      </div>
-
-      {loading ? (
-        <Skeleton rows={5} />
-      ) : (
-        <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50">
-                <Th>Imagem</Th><Th>Passeio</Th><Th>Data</Th><Th>Valor</Th><Th>Vagas</Th><Th>Visibilidade</Th><Th className="text-right">Ações</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {passeios.map((p) => (
-                <tr key={p.id} className="border-b border-slate-100 hover:bg-slate-50">
-                  <td className="px-4 py-3"><img src={p.imagem_principal || "/placeholder.png"} alt={p.titulo} className="w-12 h-12 rounded-lg object-cover" /></td>
-                  <td className="px-4 py-3"><div className="font-medium">{p.titulo}</div><div className="text-xs text-slate-400 line-clamp-1">{p.descricao_curta}</div></td>
-                  <td className="px-4 py-3 whitespace-nowrap">{fmtData(p.data_passeio)}</td>
-                  <td className="px-4 py-3">R$ {p.valor_total.toFixed(2)}</td>
-                  <td className="px-4 py-3">{p.vagas_disponiveis}/{p.vagas_totais}</td>
-                  <td className="px-4 py-3">
-                    <button onClick={() => toggleAtivo(p.id, p.ativo)} className={`text-xs px-2 py-1 rounded-full font-medium ${p.ativo ? "bg-[#009640]/10 text-[#009640]" : "bg-slate-100 text-slate-500"}`}>
-                      {p.ativo ? "Público" : "Oculto"}
-                    </button>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex justify-end gap-2">
-                      <button onClick={() => handleDelete(p.id)} className="text-xs text-red-500 border border-red-200 bg-red-50 px-2 py-1 rounded-md">Remover</button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// PARCEIROS
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function TabParceiros() {
-  const [parceiros, setParceiros] = useState<Parceiro[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [filtro, setFiltro] = useState<string>("todos");
-  const [actionId, setActionId] = useState<string | null>(null);
-  const [feedback, setFeedback] = useState("");
-  const [showForm, setShowForm] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ nome_negocio: "", tipo_parceiro: "hotel", email: "", telefone: "" });
-
-  const tipos = ["todos", "hotel", "passeios", "pacotes", "guia"];
-
-  useEffect(() => { fetchParceiros(); }, []);
-
-  async function fetchParceiros() {
-    setLoading(true);
-    const { data } = await supabase.from("parceiros").select("*").order("criado_em", { ascending: false });
-    setParceiros(data || []);
-    setLoading(false);
-  }
-
-  async function alterarStatus(id: string, novoStatus: "ativo" | "inativo") {
-    setActionId(id);
-    await supabase.from("parceiros").update({ status: novoStatus }).eq("id", id);
-    setActionId(null);
-    setFeedback(novoStatus === "ativo" ? "Parceiro ativado." : "Parceiro desativado.");
-    fetchParceiros();
-    setTimeout(() => setFeedback(""), 3000);
-  }
-
-  function abrirFormNovo() {
-    setForm({ nome_negocio: "", tipo_parceiro: "hotel", email: "", telefone: "" });
-    setShowForm(true);
-  }
-
-  async function handleSave() {
-    if (!form.nome_negocio || !form.email) {
-      setFeedback("Nome do negócio e e-mail são obrigatórios."); return;
-    }
-    setSaving(true);
-    const { error } = await supabase.from("parceiros").insert({
-      nome_negocio: form.nome_negocio, tipo_parceiro: form.tipo_parceiro, email: form.email,
-      telefone: form.telefone || null, status: "pendente"
-    });
-
-    if (error) { alert("Erro ao cadastrar parceiro: " + error.message); setSaving(false); return; }
-
-    setFeedback("Parceiro pré-cadastrado com sucesso!");
-    setShowForm(false); setSaving(false); fetchParceiros(); setTimeout(() => setFeedback(""), 3000);
-  }
-
-  const filtered = filtro === "todos" ? parceiros : parceiros.filter((p) => p.tipo_parceiro === filtro);
-  const pendentes = parceiros.filter((p) => p.status === "pendente");
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div><h2 className={`${jakarta.className} text-lg font-black text-[#00577C]`}>Gestão de Parceiros</h2><p className="text-xs text-slate-500">{parceiros.length} parceiros · {pendentes.length} pendente(s)</p></div>
-        <div className="flex items-center gap-3">
-          {feedback && <span className="text-xs text-[#009640] font-bold">{feedback}</span>}
-          <button onClick={abrirFormNovo} className="bg-[#00577C] hover:bg-[#004a6b] text-white font-black text-sm px-4 py-2 rounded-lg transition shadow-sm flex items-center gap-1.5 uppercase tracking-wider"><span className="text-base leading-none">+</span> Novo parceiro</button>
-        </div>
-      </div>
-
-      {showForm && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
-            <div className="flex items-center justify-between p-5 border-b border-slate-200">
-              <h3 className={`${jakarta.className} font-black text-slate-800`}>Pré-cadastrar Parceiro</h3>
-              <button onClick={() => setShowForm(false)} className="text-slate-400 hover:text-slate-700 transition text-lg leading-none">✕</button>
-            </div>
-            <div className="p-5 space-y-4">
-              <FormField label="Nome do Negócio *"><input value={form.nome_negocio} onChange={(e) => setForm({ ...form, nome_negocio: e.target.value })} className={inputCls} placeholder="Ex: Pousada Paraíso" /></FormField>
-              <FormField label="Tipo de Parceiro"><select value={form.tipo_parceiro} onChange={(e) => setForm({ ...form, tipo_parceiro: e.target.value })} className={inputCls}><option value="hotel">Hotel</option><option value="passeios">Passeios</option><option value="agencia">Agência</option><option value="guia">Guia</option></select></FormField>
-              <FormField label="E-mail *"><input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className={inputCls} placeholder="contato@empresa.com" /></FormField>
-              <FormField label="Telefone / WhatsApp"><input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} className={inputCls} placeholder="(00) 00000-0000" /></FormField>
-              <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 mt-2"><p className="text-xs text-blue-700 font-medium">Após cadastrar, a empresa deverá ir à página de "Ativar Conta" e usar este e-mail para criar a sua senha.</p></div>
-            </div>
-            <div className="flex gap-2 p-5 border-t border-slate-200">
-              <button onClick={() => setShowForm(false)} className="flex-1 py-2 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 transition">Cancelar</button>
-              <button onClick={handleSave} disabled={saving} className="flex-1 py-2 rounded-lg bg-[#00577C] hover:bg-[#004a6b] text-white font-black text-sm transition disabled:opacity-50 shadow-sm uppercase tracking-wider">{saving ? "Salvando…" : "Cadastrar"}</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {pendentes.length > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-          <p className="text-sm font-semibold text-amber-700 mb-3">⏳ {pendentes.length} parceiro(s) aguardando ativação de senha</p>
-          <div className="space-y-2">
-            {pendentes.map((p) => (
-              <div key={p.id} className="flex items-center justify-between bg-white border border-amber-100 rounded-lg px-3 py-2">
-                <div><p className="text-sm text-slate-800 font-medium">{p.nome_negocio}</p><p className="text-xs text-slate-500">{p.email} · {p.tipo_parceiro}</p></div>
-                <button onClick={() => alterarStatus(p.id, "ativo")} disabled={actionId === p.id} className="text-xs bg-[#009640] hover:bg-[#007a33] text-white font-semibold px-3 py-1 rounded-md transition shadow-sm">Aprovar Manualmente</button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className="flex gap-1 flex-wrap">
-        {tipos.map((t) => (
-          <button key={t} onClick={() => setFiltro(t)} className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition border ${filtro === t ? "bg-[#00577C] text-white border-[#00577C]" : "text-slate-500 border-slate-200 hover:border-[#00577C]/40 hover:text-[#00577C] bg-white"}`}>
-            {t === "todos" ? `Todos (${parceiros.length})` : `${t} (${parceiros.filter(p => p.tipo_parceiro === t).length})`}
-          </button>
-        ))}
-      </div>
-
-      {loading ? (
-        <Skeleton rows={4} />
-      ) : (
-        <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm">
-          <table className="w-full text-sm">
-            <thead><tr className="border-b border-slate-200 bg-slate-50"><Th>Parceiro</Th><Th>Tipo</Th><Th>Contacto</Th><Th>Registado em</Th><Th>Estado</Th><Th className="text-right">Ações</Th></tr></thead>
-            <tbody>
-              {filtered.map((p) => (
-                <tr key={p.id} className="border-b border-slate-100 hover:bg-slate-50">
-                  <td className="px-4 py-3"><div className="flex items-center gap-2.5"><div className="w-8 h-8 rounded-lg bg-[#00577C]/10 border border-[#00577C]/20 flex items-center justify-center text-sm">{tipoEmoji(p.tipo_parceiro)}</div><span className="font-medium text-slate-800">{p.nome_negocio}</span></div></td>
-                  <td className="px-4 py-3"><span className="text-xs bg-[#00577C]/10 text-[#00577C] border border-[#00577C]/20 px-2 py-0.5 rounded-full font-medium capitalize">{p.tipo_parceiro}</span></td>
-                  <td className="px-4 py-3 text-slate-500 text-xs"><div>{p.email}</div>{p.telefone && <div>{p.telefone}</div>}</td>
-                  <td className="px-4 py-3 text-slate-500 text-xs whitespace-nowrap">{fmtDatetime(p.criado_em)}</td>
-                  <td className="px-4 py-3"><StatusBadge status={p.status} /></td>
-                  <td className="px-4 py-3">
-                    <div className="flex justify-end">
-                      {p.status === "ativo"
-                        ? <button onClick={() => alterarStatus(p.id, "inativo")} disabled={actionId === p.id} className="text-xs text-slate-500 hover:text-red-500 border border-slate-200 hover:border-red-200 hover:bg-red-50 px-2.5 py-1 rounded-md">Desativar</button>
-                        : <button onClick={() => alterarStatus(p.id, "ativo")} disabled={actionId === p.id} className="text-xs text-[#009640] hover:text-[#007a33] border border-emerald-200 hover:border-emerald-300 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-md font-medium">Ativar</button>
-                      }
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// TAXAS DE SERVIÇO
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function TabTaxasServico() {
-  const [taxas, setTaxas] = useState<TaxaServico[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [feedback, setFeedback] = useState("");
-
-  useEffect(() => { fetchTaxas(); }, []);
-
-  async function fetchTaxas() {
-    setLoading(true);
-    const { data } = await supabase.from("taxas_servicos").select("*");
-    setTaxas(data || []);
-    setLoading(false);
-  }
-
-  async function updateTaxa(tipo: string, porcentagem: number) {
-    await supabase.from("taxas_servicos").upsert({ tipo_servico: tipo, porcentagem });
-    setFeedback(`Taxa para ${tipo} atualizada!`);
-    fetchTaxas();
-    setTimeout(() => setFeedback(""), 3000);
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div><h2 className={`${jakarta.className} text-lg font-black text-[#00577C]`}>Taxas de Serviço</h2><p className="text-xs text-slate-500">Percentuais aplicados sobre cada tipo de serviço</p></div>
-        {feedback && <span className="text-xs text-[#009640] font-bold">{feedback}</span>}
-      </div>
-
-      {loading ? <Skeleton rows={3} /> : (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-          <table className="w-full">
-            <thead><tr className="border-b border-slate-200 bg-slate-50"><Th>Tipo de Serviço</Th><Th>Taxa (%)</Th><Th className="text-right">Ações</Th></tr></thead>
-            <tbody>
-              {taxas.map((taxa) => (
-                <tr key={taxa.tipo_servico} className="border-b border-slate-100">
-                  <td className="px-4 py-3 capitalize font-medium">{taxa.tipo_servico}</td>
-                  <td className="px-4 py-3"><input type="number" step="0.01" defaultValue={taxa.porcentagem} onBlur={(e) => updateTaxa(taxa.tipo_servico, parseFloat(e.target.value))} className="w-24 px-2 py-1 border border-slate-200 rounded-lg" /></td>
-                  <td className="px-4 py-3 text-right"><button onClick={() => updateTaxa(taxa.tipo_servico, taxa.porcentagem)} className="text-xs text-[#00577C] border border-[#00577C]/20 px-2 py-1 rounded-md">Salvar</button></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // PEDIDOS
@@ -1272,197 +903,295 @@ function TabPedidos() {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// PACOTES (Apenas Auditoria)
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function TabPacotes() {
-  const [pacotes, setPacotes] = useState<Pacote[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => { fetchPacotes(); }, []);
-
-  async function fetchPacotes() {
-    setLoading(true);
-    const { data } = await supabase.from("pacotes").select("*").order("titulo");
-    setPacotes(data || []);
-    setLoading(false);
-  }
-
-  async function toggleAtivo(id: string, ativo: boolean) {
-    await supabase.from("pacotes").update({ ativo: !ativo }).eq("id", id);
-    fetchPacotes();
-  }
-
-  async function handleDelete(id: string) {
-    if (!confirm("Remover este pacote permanentemente do portal?")) return;
-    await supabase.from("pacotes").delete().eq("id", id);
-    fetchPacotes();
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div><h2 className={`${jakarta.className} text-lg font-black text-[#00577C]`}>Auditoria de Pacotes</h2><p className="text-xs text-slate-500">{pacotes.length} pacotes listados pelos parceiros</p></div>
-      </div>
-
-      {loading ? <Skeleton rows={4} /> : (
-        <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm overflow-x-auto">
-          <table className="w-full text-sm min-w-[600px]">
-            <thead><tr className="border-b bg-slate-50"><Th>Imagem</Th><Th>Título</Th><Th>Dias</Th><Th>Preço</Th><Th>Visibilidade</Th><Th className="text-right">Ações</Th></tr></thead>
-            <tbody>{pacotes.map(p => (
-              <tr key={p.id} className="border-b">
-                <td className="px-4 py-3"><img src={p.imagem_principal || "/placeholder.png"} className="w-10 h-10 rounded-lg object-cover" /></td>
-                <td className="px-4 py-3 font-medium">{p.titulo}</td>
-                <td className="px-4 py-3">{p.dias} dias</td>
-                <td className="px-4 py-3">R$ {p.preco.toFixed(2)}</td>
-                <td className="px-4 py-3"><button onClick={() => toggleAtivo(p.id, p.ativo)} className={`text-xs px-2 py-1 rounded-full ${p.ativo ? "bg-[#009640]/10 text-[#009640]" : "bg-slate-100 text-slate-500"}`}>{p.ativo ? "Público" : "Oculto"}</button></td>
-                <td className="px-4 py-3 text-right">
-                  <button onClick={() => handleDelete(p.id)} className="ml-2 text-xs text-red-500 border border-red-200 px-2 py-1 rounded-md">Remover</button>
-                </td>
-              </tr>
-            ))}</tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// HOTÉIS
+// HOTÉIS & POUSADAS
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function TabHoteis() {
   const [hoteis, setHoteis] = useState<any[]>([]);
-  const [parceiros, setParceiros] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [editando, setEditando] = useState<any | null>(null);
-  const [form, setForm] = useState<any>({});
-  const [imagemFile, setImagemFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState("");
-  const fileRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { fetchHoteis(); fetchParceirosAtivos(); }, []);
+  const formVazio = { nome: "", tipo: "Hotel", descricao: "", estrelas: 3, whatsapp: "", endereco: "", instagram: "", ativo: true };
+  const [form, setForm] = useState(formVazio);
+  const [editando, setEditando] = useState<any | null>(null);
+  
+  const [imagemFile, setImagemFile] = useState<File | null>(null);
+  const [galeriaFiles, setGaleriaFiles] = useState<File[]>([]);
+  const [comodidadesTexto, setComodidadesTexto] = useState("");
+  
+  const [quartos, setQuartos] = useState<any[]>([{ id: null, nome: "", preco: "", desc: "", file: null, imagem_url: "" }]);
+
+  useEffect(() => { fetchHoteis(); }, []);
 
   async function fetchHoteis() {
     setLoading(true);
-    const { data } = await supabase.from("hoteis").select("*, parceiros(nome_negocio)").order("nome");
-    setHoteis(data || []);
+    
+    // 1. Vai buscar os hotéis
+    const { data: hoteisData, error: hoteisError } = await supabase.from('hoteis').select('*').order('nome');
+    
+    // 2. Vai buscar TODOS os quartos à tabela correta no SINGULAR
+    const { data: quartosData, error: quartosError } = await supabase.from('tipos_quarto').select('*');
+
+    if (hoteisData) {
+      // 3. Junta os quartos ao hotel correspondente
+      const hoteisComQuartos = hoteisData.map(hotel => {
+        const quartosDoHotel = (quartosData || []).filter((q: any) => q.hotel_id === hotel.id);
+        return { ...hotel, tipos_quarto: quartosDoHotel };
+      });
+      setHoteis(hoteisComQuartos);
+    } else {
+      setHoteis([]);
+    }
+    
     setLoading(false);
   }
 
-  async function fetchParceirosAtivos() {
-    const { data } = await supabase.from("parceiros").select("id, nome_negocio, tipo_parceiro").eq("status", "ativo");
-    setParceiros(data || []);
+  function abrirNovo() {
+    setEditando(null); setForm(formVazio); setImagemFile(null); setGaleriaFiles([]); 
+    setComodidadesTexto(""); setQuartos([{ id: null, nome: "", preco: "", desc: "", file: null, imagem_url: "" }]);
+    setShowForm(true);
   }
 
-  function abrirFormNovo() {
-    setEditando(null); setForm({ nome: "", tipo: "Pousada", descricao: "", estrelas: 3, parceiro_id: "", imagem_url: "" });
-    setImagemFile(null); setShowForm(true);
-  }
-
-  function abrirFormEditar(h: any) {
-    setEditando(h); setForm({ ...h }); setImagemFile(null); setShowForm(true);
-  }
-
-  async function handleSave() {
-    if (!form.nome || !form.parceiro_id) { setFeedback("Nome do hotel e Parceiro são obrigatórios."); return; }
-    setSaving(true);
+  function abrirEditar(hotel: any) {
+    setEditando(hotel);
+    setForm({ nome: hotel.nome, tipo: hotel.tipo, descricao: hotel.descricao, estrelas: hotel.estrelas || 3, whatsapp: hotel.whatsapp || "", endereco: hotel.endereco || "", instagram: hotel.instagram || "", ativo: hotel.ativo ?? true });
+    setImagemFile(null); setGaleriaFiles([]);
+    setComodidadesTexto(hotel.comodidades ? hotel.comodidades.join(", ") : "");
     
-    let imagem_url = form.imagem_url;
-    if (imagemFile) {
-      const ext = imagemFile.name.split(".").pop();
-      const path = `capas/${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage.from("hoteis").upload(path, imagemFile, { upsert: true });
-      if (!upErr) { const { data: pub } = supabase.storage.from("hoteis").getPublicUrl(path); imagem_url = pub.publicUrl; }
+    // Mapeia os quartos que foram injetados no fetchHoteis
+    let quartosParsed = [];
+    if (hotel.tipos_quarto && Array.isArray(hotel.tipos_quarto)) {
+      quartosParsed = hotel.tipos_quarto.map((q: any) => ({
+        id: q.id,
+        nome: q.nome_quarto || q.nome || "", 
+        preco: q.preco_quarto || q.preco_base || "",
+        desc: q.descricao || "",
+        imagem_url: q.imagem_url || "",
+        file: null
+      }));
     }
+    
+    setQuartos(quartosParsed.length > 0 ? quartosParsed : [{ id: null, nome: "", preco: "", desc: "", file: null, imagem_url: "" }]);
+    setShowForm(true);
+  }
 
-    const payload = { nome: form.nome, tipo: form.tipo, descricao: form.descricao, estrelas: form.estrelas, parceiro_id: form.parceiro_id, imagem_url: imagem_url };
-
-    if (editando) {
-      await supabase.from("hoteis").update(payload).eq("id", editando.id);
-      setFeedback("Hotel atualizado!");
-    } else {
-      await supabase.from("hoteis").insert(payload);
-      setFeedback("Hotel pré-cadastrado!");
+  const addQuarto = () => setQuartos([...quartos, { id: null, nome: "", preco: "", desc: "", file: null, imagem_url: "" }]);
+  
+  const removeQuarto = async (index: number) => {
+    const quarto = quartos[index];
+    if (quarto.id) {
+      if (!confirm("Tem a certeza que deseja remover este quarto permanentemente da base de dados?")) return;
+      // Apaga o quarto da tabela no SINGULAR
+      await supabase.from('tipos_quarto').delete().eq('id', quarto.id);
     }
+    setQuartos(quartos.filter((_, i) => i !== index));
+  };
 
-    setShowForm(false); setSaving(false); fetchHoteis(); setTimeout(() => setFeedback(""), 3000);
+  const handleQuartoChange = (index: number, field: string, value: any) => {
+    const novos = [...quartos]; novos[index] = { ...novos[index], [field]: value }; setQuartos(novos);
+  };
+
+  async function uploadImagem(file: File, pasta: string): Promise<string | null> {
+    const ext = file.name.split('.').pop();
+    const path = `${pasta}/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+    const { error } = await supabase.storage.from('hoteis').upload(path, file);
+    if (error) return null;
+    const { data } = supabase.storage.from('hoteis').getPublicUrl(path);
+    return data.publicUrl;
+  }
+
+  async function handleSalvar() {
+    if (!form.nome) { alert("Nome do estabelecimento é obrigatório."); return; }
+    setSaving(true); setFeedback("A guardar ficheiros e alojamento...");
+
+    try {
+      let imagem_url = editando?.imagem_url || null;
+      if (imagemFile) imagem_url = await uploadImagem(imagemFile, 'capas');
+
+      let galeriaFinal = editando?.galeria || [];
+      if (galeriaFiles.length > 0) {
+        const novasUrls = [];
+        for (const file of galeriaFiles) { const url = await uploadImagem(file, 'galeria'); if (url) novasUrls.push(url); }
+        galeriaFinal = [...galeriaFinal, ...novasUrls];
+      }
+
+      const comodidadesArray = comodidadesTexto.split(',').map(c => c.trim()).filter(c => c);
+
+      // 1. Gravar o Hotel
+      const payloadHotel = { 
+        ...form, 
+        imagem_url, 
+        galeria: galeriaFinal.length > 0 ? galeriaFinal : null,
+        comodidades: comodidadesArray.length > 0 ? comodidadesArray : null
+      };
+
+      let hotelId = editando?.id;
+
+      if (editando) {
+        await supabase.from('hoteis').update(payloadHotel).eq('id', hotelId);
+      } else {
+        const { data: novoHotel, error: insertError } = await supabase.from('hoteis').insert([payloadHotel]).select('id').single();
+        if (insertError) throw insertError;
+        hotelId = novoHotel.id;
+      }
+
+      // 2. Gravar os Quartos na Tabela 'tipos_quarto'
+      for (const q of quartos) {
+        if (!q.nome.trim()) continue; 
+
+        let qUrl = q.imagem_url;
+        if (q.file) {
+          const uploadedUrl = await uploadImagem(q.file, 'quartos');
+          if (uploadedUrl) qUrl = uploadedUrl;
+        }
+
+        const payloadQuarto = {
+          hotel_id: hotelId,
+          nome_quarto: q.nome,
+          preco_quarto: parseFloat(q.preco) || 0,
+          descricao: q.desc,
+          imagem_url: qUrl,
+          capacidade: 2, 
+          estoque_total: 1 
+        };
+
+        if (q.id) {
+          // Grava no SINGULAR
+          await supabase.from('tipos_quarto').update(payloadQuarto).eq('id', q.id);
+        } else {
+          // Grava no SINGULAR
+          await supabase.from('tipos_quarto').insert([payloadQuarto]);
+        }
+      }
+
+      setFeedback(editando ? "Hotel atualizado!" : "Hotel publicado!");
+      setTimeout(() => { setShowForm(false); setFeedback(""); fetchHoteis(); }, 2000);
+    } catch (err: any) { alert("Erro ao salvar: " + err.message); setFeedback(""); } finally { setSaving(false); }
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Remover este hotel permanentemente?")) return;
-    await supabase.from("hoteis").delete().eq("id", id);
+    if (!confirm("Remover permanentemente? Os quartos associados também serão apagados.")) return;
+    await supabase.from('hoteis').delete().eq('id', id); fetchHoteis();
+  }
+
+  async function toggleAtivo(id: string, estadoAtual: boolean) {
+    await supabase.from('hoteis').update({ ativo: !estadoAtual }).eq('id', id);
     fetchHoteis();
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div><h2 className={`${jakarta.className} text-lg font-black text-[#00577C]`}>Hotéis e Alojamentos</h2><p className="text-xs text-slate-500">{hoteis.length} unidades cadastradas</p></div>
-        <div className="flex gap-3">
-          {feedback && <span className="text-xs text-[#009640] font-bold">{feedback}</span>}
-          <button onClick={abrirFormNovo} className="bg-[#00577C] hover:bg-[#004a6b] text-white font-black text-sm px-4 py-2 rounded-lg transition">+ Novo Hotel</button>
-        </div>
+        <div><h2 className={`${jakarta.className} text-xl font-black text-[#00577C]`}>Vitrine de Hotéis</h2><p className="text-xs text-slate-500 mt-1">{hoteis.length} alojamentos</p></div>
+        <button onClick={abrirNovo} className="bg-[#00577C] text-white font-black text-sm px-5 py-2.5 rounded-xl flex items-center gap-2"><Plus size={16} /> Novo Hotel</button>
       </div>
 
-      {showForm && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-5 space-y-4">
-            <div className="flex justify-between border-b pb-3"><h3 className="font-black text-slate-800">Cadastro Inicial de Hotel</h3><button onClick={() => setShowForm(false)} className="text-slate-400">✕</button></div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField label="Nome do Estabelecimento *"><input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} className={inputCls} /></FormField>
-              <FormField label="Tipo"><select value={form.tipo} onChange={(e) => setForm({ ...form, tipo: e.target.value })} className={inputCls}><option value="Hotel">Hotel</option><option value="Pousada">Pousada</option><option value="Resort">Resort</option><option value="Hostel">Hostel</option></select></FormField>
-              <FormField label="Parceiro Dono (Obrigatório) *" className="md:col-span-2">
-                <select value={form.parceiro_id} onChange={(e) => setForm({ ...form, parceiro_id: e.target.value })} className={inputCls}>
-                  <option value="">Selecione o parceiro ativo...</option>
-                  {parceiros.map(p => (<option key={p.id} value={p.id}>{p.nome_negocio} ({p.tipo_parceiro})</option>))}
-                </select>
-              </FormField>
-              <FormField label="Descrição Curta" className="md:col-span-2"><textarea value={form.descricao || ""} onChange={(e) => setForm({ ...form, descricao: e.target.value })} rows={2} className={inputCls} /></FormField>
-              <FormField label="Estrelas"><input type="number" min="1" max="5" value={form.estrelas} onChange={(e) => setForm({ ...form, estrelas: parseInt(e.target.value) })} className={inputCls} /></FormField>
-              <FormField label="Foto Principal (Capa)">
-                {form.imagem_url && !imagemFile && <img src={form.imagem_url} alt="Capa" className="h-12 rounded mb-2 object-cover" />}
-                <input ref={fileRef} type="file" accept="image/*" onChange={(e) => setImagemFile(e.target.files?.[0] || null)} className="hidden" />
-                <button type="button" onClick={() => fileRef.current?.click()} className="text-xs border border-dashed border-slate-300 px-3 py-2 rounded-lg w-full">Escolher Imagem</button>
-              </FormField>
+      {showForm ? (
+        <div className="bg-white rounded-[2rem] p-8 shadow-lg border border-slate-100">
+          <div className="flex items-center justify-between mb-8 border-b pb-4"><h3 className={`${jakarta.className} text-2xl font-black text-slate-800`}><Building2 className="text-[#F9C400] inline mr-2"/>{editando ? "Editar Alojamento" : "Novo Alojamento"}</h3><button onClick={() => setShowForm(false)} className="text-sm font-bold text-slate-400">Cancelar</button></div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-8">
+            <div className="space-y-5">
+              <h4 className="font-black text-[#00577C] border-b pb-2">Informações Principais</h4>
+              <FormField label="Nome *"><input type="text" value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} className={inputCls} /></FormField>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField label="Tipo"><select value={form.tipo} onChange={e => setForm({...form, tipo: e.target.value})} className={inputCls}><option>Hotel</option><option>Pousada</option><option>Pensão</option><option>Resort</option></select></FormField>
+                {form.tipo === 'Hotel' && <FormField label="Estrelas"><input type="number" min="1" max="5" value={form.estrelas} onChange={e => setForm({...form, estrelas: parseInt(e.target.value)})} className={inputCls} /></FormField>}
+              </div>
+              <FormField label="Descrição"><textarea rows={4} value={form.descricao} onChange={e => setForm({...form, descricao: e.target.value})} className={inputCls} /></FormField>
+              <FormField label="Comodidades (Separadas por vírgula)"><input type="text" placeholder="Ex: Piscina, Wi-Fi..." value={comodidadesTexto} onChange={e => setComodidadesTexto(e.target.value)} className={inputCls} /></FormField>
             </div>
-            <div className="flex gap-2 border-t pt-4">
-              <button onClick={() => setShowForm(false)} className="flex-1 py-2 border rounded-lg text-sm text-slate-600">Cancelar</button>
-              <button onClick={handleSave} disabled={saving} className="flex-1 py-2 bg-[#00577C] text-white font-black text-sm rounded-lg">{saving ? "Salvando…" : "Salvar Casca Inicial"}</button>
+            
+            <div className="space-y-5">
+              <h4 className="font-black text-[#00577C] border-b pb-2">Contatos e Mídia</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField label="WhatsApp"><div className="relative"><Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" /><input type="text" value={form.whatsapp} onChange={e => setForm({...form, whatsapp: e.target.value})} className={`${inputCls} pl-10`} /></div></FormField>
+                <FormField label="Instagram"><div className="relative"><span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">@</span><input type="text" value={form.instagram} onChange={e => setForm({...form, instagram: e.target.value})} className={`${inputCls} pl-9`} /></div></FormField>
+              </div>
+              <FormField label="Endereço"><div className="relative"><MapPin size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" /><input type="text" value={form.endereco} onChange={e => setForm({...form, endereco: e.target.value})} className={`${inputCls} pl-10`} /></div></FormField>
+              
+              <FormField label="Foto Principal (Vitrine)">
+                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 p-4 rounded-xl cursor-pointer hover:border-[#00577C] text-slate-500">
+                  <input type="file" accept="image/*" className="hidden" onChange={e => setImagemFile(e.target.files?.[0] || null)} />
+                  <ImageIcon size={18} /> {imagemFile ? imagemFile.name : (editando?.imagem_url ? 'Substituir Imagem' : 'Anexar Imagem')}
+                </label>
+              </FormField>
+              <FormField label="Adicionar Fotos à Galeria">
+                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 p-4 rounded-xl cursor-pointer hover:border-[#00577C] text-slate-500">
+                  <input type="file" accept="image/*" multiple className="hidden" onChange={e => { if (e.target.files) setGaleriaFiles(Array.from(e.target.files)); }} />
+                  <ImageIcon size={18} /> {galeriaFiles.length > 0 ? `${galeriaFiles.length} ficheiros novos` : 'Anexar Fotos'}
+                </label>
+              </FormField>
+              <FormField label="Visibilidade"><select value={String(form.ativo)} onChange={e => setForm({...form, ativo: e.target.value === 'true'})} className={inputCls}><option value="true">Público (Ativo)</option><option value="false">Oculto</option></select></FormField>
             </div>
           </div>
-        </div>
-      )}
 
-      {loading ? <Skeleton rows={5} /> : (
-        <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm overflow-x-auto">
-          <table className="w-full text-sm min-w-[700px]">
-            <thead><tr className="border-b bg-slate-50"><Th>Foto</Th><Th>Nome</Th><Th>Parceiro</Th><Th>Tipo</Th><Th className="text-right">Ações</Th></tr></thead>
-            <tbody>{hoteis.map(h => (
-              <tr key={h.id} className="border-b">
-                <td className="px-4 py-3"><img src={h.imagem_url || "/placeholder.png"} className="w-10 h-10 rounded-lg object-cover" /></td>
-                <td className="px-4 py-3 font-medium">{h.nome}</td>
-                <td className="px-4 py-3 text-xs text-slate-500">{h.parceiros?.nome_negocio || "Sem dono"}</td>
-                <td className="px-4 py-3 capitalize">{h.tipo}</td>
-                <td className="px-4 py-3 text-right">
-                  <button onClick={() => abrirFormEditar(h)} className="text-xs text-[#00577C] border border-[#00577C]/20 px-2 py-1 rounded-md">Editar</button>
-                  <button onClick={() => handleDelete(h.id)} className="ml-2 text-xs text-red-500 border border-red-200 px-2 py-1 rounded-md">Remover</button>
-                </td>
-              </tr>
-            ))}</tbody>
-          </table>
+          <div className="mt-12 space-y-4">
+            <div className="flex items-center justify-between border-b pb-2"><h4 className="font-black text-[#00577C]">Quartos Disponíveis</h4><button onClick={addQuarto} className="text-xs font-bold text-[#009640] flex items-center gap-1"><Plus size={14}/> Adicionar Quarto</button></div>
+            <div className="space-y-4">
+              {quartos.map((item, index) => (
+                <div key={index} className="flex flex-col gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                  <div className="flex flex-col md:flex-row gap-3">
+                    <div className="flex-1 w-full"><input type="text" value={item.nome} onChange={e => handleQuartoChange(index, 'nome', e.target.value)} placeholder="Ex: Suíte Casal" className={inputCls} /></div>
+                    <div className="flex-[2] w-full"><input type="text" value={item.desc} onChange={e => handleQuartoChange(index, 'desc', e.target.value)} placeholder="Breve descrição ou itens" className={inputCls} /></div>
+                    <div className="w-full md:w-40"><input type="text" value={item.preco} onChange={e => handleQuartoChange(index, 'preco', e.target.value)} placeholder="R$ / diária" className={inputCls} /></div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="flex-1 flex items-center justify-center gap-2 border border-slate-200 bg-white text-slate-500 py-2 rounded-lg cursor-pointer text-xs font-bold hover:border-[#00577C] transition-colors">
+                      <input type="file" accept="image/*" className="hidden" onChange={e => handleQuartoChange(index, 'file', e.target.files?.[0] || null)} />
+                      <Upload size={14}/> {item.file ? "Foto pronta ✓" : (item.imagem_url ? "Tem foto ✓" : "Anexar Foto do Quarto")}
+                    </label>
+                    <button onClick={() => removeQuarto(index)} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 border border-red-200"><Trash2 size={16} /></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-10 flex items-center justify-between pt-6 border-t border-slate-100">
+            <span className="text-sm font-bold text-[#009640]">{feedback}</span>
+            <button onClick={handleSalvar} disabled={saving} className="bg-[#009640] text-white px-10 py-4 rounded-xl font-black text-sm shadow-lg flex items-center gap-2">{saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Guardar Hotel</button>
+          </div>
         </div>
+      ) : (
+        loading ? (<div className="py-12 flex justify-center"><Loader2 size={32} className="text-[#00577C] animate-spin" /></div>) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {hoteis.map((hotel) => (
+              <div key={hotel.id} className={`bg-white rounded-[2rem] border border-slate-200 p-4 flex flex-col hover:shadow-xl transition-all ${!hotel.ativo && 'opacity-60 bg-slate-50'}`}>
+                <div className="relative w-full h-48 rounded-2xl overflow-hidden bg-slate-100 mb-4">
+                  <img src={hotel.imagem_url || "/placeholder.png"} alt={hotel.nome} className="object-cover w-full h-full" />
+                </div>
+                <div className="px-2 pb-2 flex-1 flex flex-col">
+                  <h3 className={`${jakarta.className} text-xl font-black text-slate-800 mb-1`}>{hotel.nome}</h3>
+                  <p className="text-xs font-medium text-slate-500 line-clamp-1 mb-4">{hotel.endereco}</p>
+                  
+                  <div className="mt-auto flex flex-col gap-2 pt-4 border-t border-slate-100">
+                    <div className="flex justify-between items-center w-full">
+                      <button onClick={() => toggleAtivo(hotel.id, hotel.ativo)} className={`text-[10px] font-black uppercase px-2 py-1 rounded-md transition-colors ${hotel.ativo ? 'text-[#009640] bg-green-50 hover:bg-green-100' : 'text-slate-500 bg-slate-200 hover:bg-slate-300'}`}>
+                        {hotel.ativo ? "Público ✓" : "Oculto ✕"}
+                      </button>
+                      <div className="flex gap-3">
+                        <button onClick={() => abrirEditar(hotel)} className="text-xs font-bold text-[#00577C] hover:underline">Editar</button>
+                        <button onClick={() => handleDelete(hotel.id)} className="text-xs font-bold text-red-500 hover:underline">Remover</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )
       )}
     </div>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// GASTRONOMIA - CONSTRUTOR DE VITRINE
+// GASTRONOMIA
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function TabGastronomia() {
@@ -1472,11 +1201,16 @@ function TabGastronomia() {
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState("");
 
-  const [form, setForm] = useState({ titulo: "", descricao_curta: "", sobre_nos_texto: "", whatsapp: "", link_google_maps: "", ordem: 1, ativo: true });
-  const [imagemPrincipal, setImagemPrincipal] = useState<File | null>(null);
-  const [fotoEquipe, setFotoEquipe] = useState<File | null>(null);
+  const formVazio = { titulo: "", descricao_curta: "", whatsapp: "", link_google_maps: "", ativo: true };
+  const [form, setForm] = useState(formVazio);
+  const [editando, setEditando] = useState<any | null>(null);
+
+  const [imagemUrlFile, setImagemUrlFile] = useState<File | null>(null);
+  const [imagemCapaFile, setImagemCapaFile] = useState<File | null>(null);
   const [galeriaFiles, setGaleriaFiles] = useState<File[]>([]);
-  const [cardapio, setCardapio] = useState([{ prato: "", desc: "", preco: "" }]);
+  
+  // Especialidades (Título + Imagem Upload)
+  const [especialidades, setEspecialidades] = useState<any[]>([{ titulo: "", file: null, imagem_url: "" }]);
 
   useEffect(() => { fetchRestaurantes(); }, []);
 
@@ -1487,15 +1221,30 @@ function TabGastronomia() {
     setLoading(false);
   }
 
-  function abrirNovoFormulario() {
-    setForm({ titulo: "", descricao_curta: "", sobre_nos_texto: "", whatsapp: "", link_google_maps: "", ordem: restaurantes.length + 1, ativo: true });
-    setImagemPrincipal(null); setFotoEquipe(null); setGaleriaFiles([]); setCardapio([{ prato: "", desc: "", preco: "" }]); setShowForm(true);
+  function abrirNovo() {
+    setEditando(null); setForm(formVazio); 
+    setImagemUrlFile(null); setImagemCapaFile(null); setGaleriaFiles([]); 
+    setEspecialidades([{ titulo: "", file: null, imagem_url: "" }]);
+    setShowForm(true);
   }
 
-  const addPrato = () => setCardapio([...cardapio, { prato: "", desc: "", preco: "" }]);
-  const removePrato = (index: number) => setCardapio(cardapio.filter((_, i) => i !== index));
-  const handlePratoChange = (index: number, field: string, value: string) => {
-    const novoCardapio = [...cardapio]; novoCardapio[index] = { ...novoCardapio[index], [field]: value }; setCardapio(novoCardapio);
+  function abrirEditar(rest: any) {
+    setEditando(rest);
+    setForm({ titulo: rest.titulo, descricao_curta: rest.descricao_curta || "", whatsapp: rest.whatsapp || "", link_google_maps: rest.link_google_maps || "", ativo: rest.ativo ?? true });
+    setImagemUrlFile(null); setImagemCapaFile(null); setGaleriaFiles([]);
+    
+    let espParsed = [];
+    if (typeof rest.especialidades === 'string') { try { espParsed = JSON.parse(rest.especialidades); } catch(e){} } 
+    else if (Array.isArray(rest.especialidades)) { espParsed = rest.especialidades; }
+    
+    setEspecialidades(espParsed.length > 0 ? espParsed.map((e: any) => ({ ...e, file: null })) : [{ titulo: "", file: null, imagem_url: "" }]);
+    setShowForm(true);
+  }
+
+  const addEsp = () => setEspecialidades([...especialidades, { titulo: "", file: null, imagem_url: "" }]);
+  const removeEsp = (index: number) => setEspecialidades(especialidades.filter((_, i) => i !== index));
+  const handleEspChange = (index: number, field: string, value: any) => {
+    const novos = [...especialidades]; novos[index] = { ...novos[index], [field]: value }; setEspecialidades(novos);
   };
 
   async function uploadImagem(file: File, pasta: string): Promise<string | null> {
@@ -1508,28 +1257,54 @@ function TabGastronomia() {
   }
 
   async function handleSalvar() {
-    if (!form.titulo) { alert("O nome do restaurante é obrigatório!"); return; }
-    setSaving(true); setFeedback("A enviar fotografias...");
+    if (!form.titulo) { alert("Nome é obrigatório!"); return; }
+    setSaving(true); setFeedback("A enviar imagens...");
 
     try {
-      let urlPrincipal = ""; if (imagemPrincipal) urlPrincipal = await uploadImagem(imagemPrincipal, 'capas') || "";
-      let urlEquipe = ""; if (fotoEquipe) urlEquipe = await uploadImagem(fotoEquipe, 'equipes') || "";
-      const urlsGaleria: string[] = [];
-      for (const file of galeriaFiles) { const url = await uploadImagem(file, 'galeria'); if (url) urlsGaleria.push(url); }
-      const cardapioLimpo = cardapio.filter(c => c.prato.trim() !== "");
+      let imagem_url = editando?.imagem_url || null;
+      if (imagemUrlFile) imagem_url = await uploadImagem(imagemUrlFile, 'vitrine');
+      
+      let imagem_capa = editando?.imagem_capa || null;
+      if (imagemCapaFile) imagem_capa = await uploadImagem(imagemCapaFile, 'capas');
 
-      setFeedback("A guardar restaurante na base de dados...");
-      const payload = { ...form, imagem_url: urlPrincipal || null, foto_equipe_url: urlEquipe || null, galeria: urlsGaleria.length > 0 ? urlsGaleria : null, cardapio: cardapioLimpo.length > 0 ? cardapioLimpo : null };
-      const { error } = await supabase.from('gastronomia').insert([payload]);
-      if (error) throw error;
+      let galeriaFinal = editando?.galeria || [];
+      if (galeriaFiles.length > 0) {
+        const novasUrls = [];
+        for (const file of galeriaFiles) { const url = await uploadImagem(file, 'galeria'); if (url) novasUrls.push(url); }
+        galeriaFinal = [...galeriaFinal, ...novasUrls];
+      }
 
-      setFeedback("Restaurante publicado com sucesso!");
+      // Upload das fotos de especialidades
+      const espLimpos = [];
+      for (const esp of especialidades) {
+        if (!esp.titulo.trim()) continue;
+        let espUrl = esp.imagem_url;
+        if (esp.file) {
+          const uploadedUrl = await uploadImagem(esp.file, 'especialidades');
+          if (uploadedUrl) espUrl = uploadedUrl;
+        }
+        espLimpos.push({ titulo: esp.titulo, imagem_url: espUrl });
+      }
+
+      setFeedback("A guardar restaurante...");
+      const payload = { 
+        ...form, 
+        imagem_url, 
+        imagem_capa, 
+        galeria: galeriaFinal.length > 0 ? galeriaFinal : null, 
+        especialidades: espLimpos.length > 0 ? espLimpos : null 
+      };
+
+      if (editando) await supabase.from('gastronomia').update(payload).eq('id', editando.id);
+      else await supabase.from('gastronomia').insert([{ ...payload, ordem: restaurantes.length + 1 }]);
+
+      setFeedback("Salvo com sucesso!");
       setTimeout(() => { setShowForm(false); setFeedback(""); fetchRestaurantes(); }, 2000);
     } catch (err: any) { alert("Erro ao salvar: " + err.message); setFeedback(""); } finally { setSaving(false); }
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Remover este restaurante da vitrine?")) return;
+    if (!confirm("Remover da vitrine?")) return;
     await supabase.from('gastronomia').delete().eq('id', id); fetchRestaurantes();
   }
 
@@ -1537,72 +1312,309 @@ function TabGastronomia() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div><h2 className={`${jakarta.className} text-xl font-black text-[#00577C]`}>Vitrine Gastronómica</h2><p className="text-xs text-slate-500 mt-1">{restaurantes.length} estabelecimentos</p></div>
-        <button onClick={abrirNovoFormulario} className="bg-[#00577C] text-white font-black text-sm px-5 py-2.5 rounded-xl flex items-center gap-2"><Plus size={16} /> Novo Restaurante</button>
+        <button onClick={abrirNovo} className="bg-[#00577C] text-white font-black text-sm px-5 py-2.5 rounded-xl flex items-center gap-2"><Plus size={16} /> Novo Restaurante</button>
       </div>
 
       {showForm ? (
         <div className="bg-white rounded-[2rem] p-8 shadow-lg border border-slate-100">
-          <div className="flex items-center justify-between mb-8 border-b pb-4"><h3 className={`${jakarta.className} text-2xl font-black text-slate-800`}><Utensils className="text-[#F9C400] inline mr-2"/>Construtor de Página</h3><button onClick={() => setShowForm(false)} className="text-sm font-bold text-slate-400">Cancelar</button></div>
+          <div className="flex items-center justify-between mb-8 border-b pb-4"><h3 className={`${jakarta.className} text-2xl font-black text-slate-800`}><Utensils className="text-[#F9C400] inline mr-2"/>{editando ? "Editar Restaurante" : "Novo Restaurante"}</h3><button onClick={() => setShowForm(false)} className="text-sm font-bold text-slate-400">Cancelar</button></div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-8">
             <div className="space-y-5">
               <h4 className="font-black text-[#00577C] border-b pb-2">Informações Básicas</h4>
               <FormField label="Nome do Estabelecimento *"><input type="text" value={form.titulo} onChange={e => setForm({...form, titulo: e.target.value})} className={inputCls} /></FormField>
-              <FormField label="Descrição Curta"><textarea rows={2} value={form.descricao_curta} onChange={e => setForm({...form, descricao_curta: e.target.value})} className={inputCls} /></FormField>
-              <FormField label="A Nossa História (Sobre Nós)"><textarea rows={4} value={form.sobre_nos_texto} onChange={e => setForm({...form, sobre_nos_texto: e.target.value})} className={inputCls} /></FormField>
+              <FormField label="Descrição Curta"><textarea rows={3} value={form.descricao_curta} onChange={e => setForm({...form, descricao_curta: e.target.value})} className={inputCls} /></FormField>
               <div className="grid grid-cols-2 gap-4">
                 <FormField label="WhatsApp"><div className="relative"><Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" /><input type="text" value={form.whatsapp} onChange={e => setForm({...form, whatsapp: e.target.value})} className={`${inputCls} pl-10`} /></div></FormField>
-                <FormField label="Google Maps"><div className="relative"><MapPin size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" /><input type="text" value={form.link_google_maps} onChange={e => setForm({...form, link_google_maps: e.target.value})} className={`${inputCls} pl-10`} /></div></FormField>
+                <FormField label="Endereço"><div className="relative"><MapPin size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" /><input type="text" value={form.link_google_maps} onChange={e => setForm({...form, link_google_maps: e.target.value})} className={`${inputCls} pl-10`} /></div></FormField>
               </div>
+              <FormField label="Visibilidade"><select value={String(form.ativo)} onChange={e => setForm({...form, ativo: e.target.value === 'true'})} className={inputCls}><option value="true">Público (Ativo)</option><option value="false">Oculto</option></select></FormField>
             </div>
             <div className="space-y-5">
               <h4 className="font-black text-[#00577C] border-b pb-2">Fotografias</h4>
-              <FormField label="Foto Principal (Capa)">
-                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 text-slate-500 p-4 rounded-xl cursor-pointer hover:border-[#00577C] transition-colors">
-                  <input type="file" accept="image/*" className="hidden" onChange={e => setImagemPrincipal(e.target.files?.[0] || null)} />
-                  <ImageIcon size={18} /> {imagemPrincipal ? imagemPrincipal.name : 'Clique para anexar Capa'}
+              <FormField label="Foto da Vitrine (Card principal)">
+                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 text-slate-500 p-4 rounded-xl cursor-pointer hover:border-[#00577C]">
+                  <input type="file" accept="image/*" className="hidden" onChange={e => setImagemUrlFile(e.target.files?.[0] || null)} />
+                  <ImageIcon size={18} /> {imagemUrlFile ? imagemUrlFile.name : (editando?.imagem_url ? 'Substituir Imagem' : 'Anexar Imagem')}
                 </label>
               </FormField>
-              <FormField label="Foto da Equipa / Local">
-                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 text-slate-500 p-4 rounded-xl cursor-pointer hover:border-[#00577C] transition-colors">
-                  <input type="file" accept="image/*" className="hidden" onChange={e => setFotoEquipe(e.target.files?.[0] || null)} />
-                  <ImageIcon size={18} /> {fotoEquipe ? fotoEquipe.name : 'Clique para anexar Foto da Equipa'}
+              <FormField label="Foto de Capa (Página interna)">
+                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 text-slate-500 p-4 rounded-xl cursor-pointer hover:border-[#00577C]">
+                  <input type="file" accept="image/*" className="hidden" onChange={e => setImagemCapaFile(e.target.files?.[0] || null)} />
+                  <ImageIcon size={18} /> {imagemCapaFile ? imagemCapaFile.name : (editando?.imagem_capa ? 'Substituir Capa' : 'Anexar Capa')}
                 </label>
               </FormField>
-              <FormField label="Galeria de Pratos">
-                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 text-slate-500 p-4 rounded-xl cursor-pointer hover:border-[#00577C] transition-colors">
+              <FormField label="Adicionar à Galeria de Fotos">
+                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 text-slate-500 p-4 rounded-xl cursor-pointer hover:border-[#00577C]">
                   <input type="file" accept="image/*" multiple className="hidden" onChange={e => { if (e.target.files) setGaleriaFiles(Array.from(e.target.files)); }} />
-                  <ImageIcon size={18} /> {galeriaFiles.length > 0 ? `${galeriaFiles.length} imagens selecionadas` : 'Selecionar várias fotos'}
+                  <ImageIcon size={18} /> {galeriaFiles.length > 0 ? `${galeriaFiles.length} fotos novas` : 'Anexar Fotos'}
                 </label>
               </FormField>
             </div>
           </div>
           <div className="mt-12 space-y-4">
-            <div className="flex items-center justify-between border-b pb-2"><h4 className="font-black text-[#00577C]">Destaques do Cardápio</h4><button onClick={addPrato} className="text-xs font-bold text-[#009640] flex items-center gap-1 hover:underline"><Plus size={14}/> Adicionar Prato</button></div>
+            <div className="flex items-center justify-between border-b pb-2"><h4 className="font-black text-[#00577C]">Especialidades / Destaques do Cardápio</h4><button onClick={addEsp} className="text-xs font-bold text-[#009640] flex items-center gap-1"><Plus size={14}/> Adicionar Especialidade</button></div>
             <div className="space-y-3">
-              {cardapio.map((item, index) => (
-                <div key={index} className="flex flex-col md:flex-row gap-3 items-start bg-slate-50 p-4 rounded-xl border border-slate-200">
-                  <div className="flex-1 w-full"><input type="text" value={item.prato} onChange={e => handlePratoChange(index, 'prato', e.target.value)} placeholder="Nome do Prato" className={inputCls} /></div>
-                  <div className="flex-[2] w-full"><input type="text" value={item.desc} onChange={e => handlePratoChange(index, 'desc', e.target.value)} placeholder="Descrição" className={inputCls} /></div>
-                  <div className="w-full md:w-40 flex gap-2"><input type="text" value={item.preco} onChange={e => handlePratoChange(index, 'preco', e.target.value)} placeholder="R$ 85,00" className={inputCls} /><button onClick={() => removePrato(index)} className="p-3 bg-red-50 text-red-500 rounded-xl hover:bg-red-100 border border-red-200"><Trash2 size={18} /></button></div>
+              {especialidades.map((item, index) => (
+                <div key={index} className="flex flex-col md:flex-row gap-3 items-center bg-slate-50 p-4 rounded-xl border border-slate-200">
+                  <div className="w-full md:flex-1"><input type="text" value={item.titulo} onChange={e => handleEspChange(index, 'titulo', e.target.value)} placeholder="Ex: Carnes Nobres" className={inputCls} /></div>
+                  <div className="w-full md:flex-1 flex items-center gap-2">
+                    <label className="flex-1 flex items-center justify-center gap-2 border border-slate-200 bg-white text-slate-500 py-2 rounded-lg cursor-pointer text-xs font-bold">
+                      <input type="file" accept="image/*" className="hidden" onChange={e => handleEspChange(index, 'file', e.target.files?.[0] || null)} />
+                      <Upload size={14}/> {item.file ? "Foto pronta ✓" : (item.imagem_url ? "Tem foto ✓" : "Anexar Foto")}
+                    </label>
+                    <button onClick={() => removeEsp(index)} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 border border-red-200"><Trash2 size={16} /></button>
+                  </div>
                 </div>
               ))}
             </div>
           </div>
           <div className="mt-10 flex items-center justify-between pt-6 border-t border-slate-100">
             <span className="text-sm font-bold text-[#009640]">{feedback}</span>
-            <button onClick={handleSalvar} disabled={saving} className="bg-[#009640] text-white px-10 py-4 rounded-xl font-black text-sm shadow-lg flex items-center gap-2">{saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Publicar Restaurante</button>
+            <button onClick={handleSalvar} disabled={saving} className="bg-[#009640] text-white px-10 py-4 rounded-xl font-black text-sm shadow-lg flex items-center gap-2">{saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Guardar Restaurante</button>
           </div>
         </div>
       ) : (
         loading ? (<div className="py-12 flex justify-center"><Loader2 size={32} className="text-[#00577C] animate-spin" /></div>) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {restaurantes.map((rest) => (
-              <div key={rest.id} className="bg-white rounded-[2rem] border border-slate-200 p-4 flex flex-col hover:shadow-xl transition-shadow">
-                <div className="relative w-full h-48 rounded-2xl overflow-hidden bg-slate-100 mb-4"><img src={rest.imagem_url || "/logop.png"} alt={rest.titulo} className="object-cover w-full h-full" /></div>
+              <div key={rest.id} className={`bg-white rounded-[2rem] border border-slate-200 p-4 flex flex-col hover:shadow-xl ${!rest.ativo && 'opacity-60'}`}>
+                <div className="relative w-full h-48 rounded-2xl overflow-hidden bg-slate-100 mb-4"><img src={rest.imagem_url || "/placeholder.png"} alt={rest.titulo} className="object-cover w-full h-full" /></div>
                 <div className="px-2 pb-2 flex-1 flex flex-col">
                   <h3 className={`${jakarta.className} text-xl font-black text-slate-800 mb-1`}>{rest.titulo}</h3>
                   <p className="text-xs font-medium text-slate-500 line-clamp-2 mb-4">{rest.descricao_curta}</p>
-                  <div className="mt-auto flex items-center justify-between pt-4 border-t border-slate-100"><span className="text-[10px] font-black uppercase text-[#009640] flex items-center gap-1"><Utensils size={12}/> Ativo na Vitrine</span><button onClick={() => handleDelete(rest.id)} className="text-xs font-bold text-red-500 hover:underline">Remover</button></div>
+                  <div className="mt-auto flex items-center justify-between pt-4 border-t border-slate-100"><button onClick={() => abrirEditar(rest)} className="text-xs font-bold text-[#00577C] hover:underline">Editar</button><button onClick={() => handleDelete(rest.id)} className="text-xs font-bold text-red-500 hover:underline">Remover</button></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// AGÊNCIAS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function TabAgencias() {
+  const [agencias, setAgencias] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [feedback, setFeedback] = useState("");
+
+  const formVazio = { nome: "", descricao_curta: "", sobre: "", cadastur: "", endereco: "", instagram: "", whatsapp: "", ativo: true };
+  const [form, setForm] = useState(formVazio);
+  const [editando, setEditando] = useState<any | null>(null);
+  
+  const [capaFile, setCapaFile] = useState<File | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [galeriaFiles, setGaleriaFiles] = useState<File[]>([]);
+  
+  const [especialidades, setEspecialidades] = useState<any[]>([{ nome: "", file: null, imagem_url: "" }]);
+
+  useEffect(() => { fetchAgencias(); }, []);
+
+  async function fetchAgencias() {
+    setLoading(true);
+    const { data } = await supabase.from('agencias').select('*').order('nome');
+    setAgencias(data || []);
+    setLoading(false);
+  }
+
+  // NOVA FUNÇÃO: Ativar/Desativar rapidamente com um clique
+  async function toggleAtivo(id: string, estadoAtual: boolean) {
+    await supabase.from('agencias').update({ ativo: !estadoAtual }).eq('id', id);
+    fetchAgencias();
+  }
+
+  function abrirNovo() {
+    setEditando(null); setForm(formVazio); 
+    setCapaFile(null); setLogoFile(null); setGaleriaFiles([]); 
+    setEspecialidades([{ nome: "", file: null, imagem_url: "" }]);
+    setShowForm(true);
+  }
+
+  function abrirEditar(ag: any) {
+    setEditando(ag);
+    setForm({ nome: ag.nome, descricao_curta: ag.descricao_curta || "", sobre: ag.sobre || "", cadastur: ag.cadastur || "", endereco: ag.endereco || "", instagram: ag.instagram || "", whatsapp: ag.whatsapp || "", ativo: ag.ativo ?? true });
+    setCapaFile(null); setLogoFile(null); setGaleriaFiles([]);
+    
+    let espParsed = [];
+    if (typeof ag.especialidades === 'string') { try { espParsed = JSON.parse(ag.especialidades); } catch(e){} } 
+    else if (Array.isArray(ag.especialidades)) { espParsed = ag.especialidades; }
+    
+    setEspecialidades(espParsed.length > 0 ? espParsed.map((e: any) => ({ ...e, file: null })) : [{ nome: "", file: null, imagem_url: "" }]);
+    setShowForm(true);
+  }
+
+  const addEsp = () => setEspecialidades([...especialidades, { nome: "", file: null, imagem_url: "" }]);
+  const removeEsp = (index: number) => setEspecialidades(especialidades.filter((_, i) => i !== index));
+  const handleEspChange = (index: number, field: string, value: any) => {
+    const novos = [...especialidades]; novos[index] = { ...novos[index], [field]: value }; setEspecialidades(novos);
+  };
+
+  async function uploadImagem(file: File, pasta: string): Promise<string | null> {
+    const ext = file.name.split('.').pop();
+    const path = `${pasta}/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+    const { error } = await supabase.storage.from('agencias').upload(path, file);
+    if (error) return null;
+    const { data } = supabase.storage.from('agencias').getPublicUrl(path);
+    return data.publicUrl;
+  }
+
+  async function handleSalvar() {
+    if (!form.nome) { alert("Nome da agência é obrigatório."); return; }
+    setSaving(true); setFeedback("A processar ficheiros...");
+
+    try {
+      let capa_url = editando?.capa_url || null;
+      if (capaFile) capa_url = await uploadImagem(capaFile, 'capas');
+      
+      let logo_url = editando?.logo_url || null;
+      if (logoFile) logo_url = await uploadImagem(logoFile, 'logos');
+
+      let galeriaFinal = editando?.galeria || [];
+      if (galeriaFiles.length > 0) {
+        const novasUrls = [];
+        for (const file of galeriaFiles) { const url = await uploadImagem(file, 'fotos'); if (url) novasUrls.push(url); }
+        galeriaFinal = [...galeriaFinal, ...novasUrls];
+      }
+
+      const espLimpos = [];
+      for (const esp of especialidades) {
+        if (!esp.nome.trim()) continue;
+        let espUrl = esp.imagem_url;
+        if (esp.file) {
+          const uploadedUrl = await uploadImagem(esp.file, 'especialidades');
+          if (uploadedUrl) espUrl = uploadedUrl;
+        }
+        espLimpos.push({ nome: esp.nome, imagem_url: espUrl });
+      }
+
+      setFeedback("A guardar perfil...");
+      const payload = { 
+        ...form, 
+        capa_url, 
+        logo_url,
+        galeria: galeriaFinal.length > 0 ? galeriaFinal : null,
+        especialidades: espLimpos.length > 0 ? espLimpos : null
+      };
+
+      if (editando) await supabase.from('agencias').update(payload).eq('id', editando.id);
+      else await supabase.from('agencias').insert([payload]);
+
+      setFeedback("Agência salva com sucesso!");
+      setTimeout(() => { setShowForm(false); setFeedback(""); fetchAgencias(); }, 2000);
+    } catch (err: any) { alert("Erro ao salvar: " + err.message); setFeedback(""); } finally { setSaving(false); }
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm("Remover esta agência permanentemente?")) return;
+    await supabase.from('agencias').delete().eq('id', id); fetchAgencias();
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div><h2 className={`${jakarta.className} text-xl font-black text-[#00577C]`}>Diretório de Agências</h2><p className="text-xs text-slate-500 mt-1">{agencias.length} agências registadas</p></div>
+        <button onClick={abrirNovo} className="bg-[#00577C] text-white font-black text-sm px-5 py-2.5 rounded-xl flex items-center gap-2"><Plus size={16} /> Nova Agência</button>
+      </div>
+
+      {showForm ? (
+        <div className="bg-white rounded-[2rem] p-8 shadow-lg border border-slate-100">
+          <div className="flex items-center justify-between mb-8 border-b pb-4"><h3 className={`${jakarta.className} text-2xl font-black text-slate-800`}><Briefcase className="text-[#F9C400] inline mr-2"/>{editando ? "Editar Agência" : "Nova Agência Oficial"}</h3><button onClick={() => setShowForm(false)} className="text-sm font-bold text-slate-400">Cancelar</button></div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-8">
+            <div className="space-y-5">
+              <h4 className="font-black text-[#00577C] border-b pb-2">Informações da Empresa</h4>
+              <FormField label="Nome da Agência *"><input type="text" value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} className={inputCls} /></FormField>
+              <FormField label="Cadastur (Registo)"><input type="text" value={form.cadastur} onChange={e => setForm({...form, cadastur: e.target.value})} className={inputCls} placeholder="XX.XXXXXX.XX-X" /></FormField>
+              <FormField label="Resumo (Aparece no Cartão)"><textarea rows={2} value={form.descricao_curta} onChange={e => setForm({...form, descricao_curta: e.target.value})} className={inputCls} /></FormField>
+              <FormField label="História / Sobre a Agência"><textarea rows={5} value={form.sobre} onChange={e => setForm({...form, sobre: e.target.value})} className={inputCls} /></FormField>
+            </div>
+            
+            <div className="space-y-5">
+              <h4 className="font-black text-[#00577C] border-b pb-2">Contatos e Identidade Visual</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField label="WhatsApp"><div className="relative"><Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" /><input type="text" value={form.whatsapp} onChange={e => setForm({...form, whatsapp: e.target.value})} className={`${inputCls} pl-10`} /></div></FormField>
+                <FormField label="Instagram"><div className="relative"><span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">@</span><input type="text" value={form.instagram} onChange={e => setForm({...form, instagram: e.target.value})} className={`${inputCls} pl-9`} /></div></FormField>
+              </div>
+              <FormField label="Endereço Físico"><input type="text" value={form.endereco} onChange={e => setForm({...form, endereco: e.target.value})} className={inputCls} /></FormField>
+              <FormField label="Visibilidade"><select value={String(form.ativo)} onChange={e => setForm({...form, ativo: e.target.value === 'true'})} className={inputCls}><option value="true">Público (Ativo)</option><option value="false">Oculto</option></select></FormField>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <FormField label="Logotipo">
+                  <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 p-4 rounded-xl cursor-pointer hover:border-[#00577C] text-slate-500 text-xs text-center">
+                    <input type="file" accept="image/*" className="hidden" onChange={e => setLogoFile(e.target.files?.[0] || null)} />
+                    {logoFile ? "Pronta ✓" : (editando?.logo_url ? "Substituir" : "Anexar Logo")}
+                  </label>
+                </FormField>
+                <FormField label="Capa do Perfil">
+                  <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 p-4 rounded-xl cursor-pointer hover:border-[#00577C] text-slate-500 text-xs text-center">
+                    <input type="file" accept="image/*" className="hidden" onChange={e => setCapaFile(e.target.files?.[0] || null)} />
+                    {capaFile ? "Pronta ✓" : (editando?.capa_url ? "Substituir" : "Anexar Capa")}
+                  </label>
+                </FormField>
+              </div>
+              
+              <FormField label="Adicionar Fotos à Galeria">
+                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 p-4 rounded-xl cursor-pointer hover:border-[#00577C] text-slate-500 text-xs text-center">
+                  <input type="file" accept="image/*" multiple className="hidden" onChange={e => { if (e.target.files) setGaleriaFiles(Array.from(e.target.files)); }} />
+                  {galeriaFiles.length > 0 ? `${galeriaFiles.length} imagens novas` : 'Selecionar Fotos'}
+                </label>
+              </FormField>
+            </div>
+          </div>
+
+          <div className="mt-12 space-y-4">
+            <div className="flex items-center justify-between border-b pb-2"><h4 className="font-black text-[#00577C]">Especialidades da Agência</h4><button onClick={addEsp} className="text-xs font-bold text-[#009640] flex items-center gap-1"><Plus size={14}/> Adicionar Especialidade</button></div>
+            <div className="space-y-3">
+              {especialidades.map((item, index) => (
+                <div key={index} className="flex flex-col md:flex-row gap-3 items-center bg-slate-50 p-4 rounded-xl border border-slate-200">
+                  <div className="w-full md:flex-1"><input type="text" value={item.nome} onChange={e => handleEspChange(index, 'nome', e.target.value)} placeholder="Nome (Ex: Trilhas)" className={inputCls} /></div>
+                  <div className="w-full md:flex-1 flex items-center gap-2">
+                    <label className="flex-1 flex items-center justify-center gap-2 border border-slate-200 bg-white text-slate-500 py-2 rounded-lg cursor-pointer text-xs font-bold">
+                      <input type="file" accept="image/*" className="hidden" onChange={e => handleEspChange(index, 'file', e.target.files?.[0] || null)} />
+                      <Upload size={14}/> {item.file ? "Foto pronta ✓" : (item.imagem_url ? "Tem foto ✓" : "Anexar Foto")}
+                    </label>
+                    <button onClick={() => removeEsp(index)} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 border border-red-200"><Trash2 size={16} /></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-10 flex items-center justify-between pt-6 border-t border-slate-100">
+            <span className="text-sm font-bold text-[#009640]">{feedback}</span>
+            <button onClick={handleSalvar} disabled={saving} className="bg-[#009640] text-white px-10 py-4 rounded-xl font-black text-sm shadow-lg flex items-center gap-2">{saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Guardar Agência</button>
+          </div>
+        </div>
+      ) : (
+        loading ? (<div className="py-12 flex justify-center"><Loader2 size={32} className="text-[#00577C] animate-spin" /></div>) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {agencias.map((ag) => (
+              <div key={ag.id} className={`bg-white rounded-[2rem] border border-slate-200 p-6 flex flex-col hover:shadow-xl text-center ${!ag.ativo && 'opacity-60 bg-slate-50'}`}>
+                <div className="w-24 h-24 rounded-full mx-auto overflow-hidden border-4 border-slate-100 shadow-sm flex items-center justify-center bg-slate-50">
+                  {ag.logo_url ? <img src={ag.logo_url} className="object-cover w-full h-full" /> : <Briefcase className="text-slate-300"/>}
+                </div>
+                <div className="pt-4 flex-1 flex flex-col">
+                  <h3 className={`${jakarta.className} text-lg font-black text-slate-800 mb-1`}>{ag.nome}</h3>
+                  <p className="text-xs font-medium text-slate-500 line-clamp-1 mb-4">{ag.cadastur ? `Cadastur: ${ag.cadastur}` : 'Turismo Legal'}</p>
+                  
+                  {/* BOTÕES DE AÇÃO COM O TOGGLE ATIVO/INATIVO */}
+                  <div className="mt-auto flex flex-col gap-2 pt-4 border-t border-slate-100">
+                    <div className="flex justify-between items-center w-full">
+                      <button onClick={() => toggleAtivo(ag.id, ag.ativo)} className={`text-[10px] font-black uppercase px-2 py-1 rounded-md transition-colors ${ag.ativo ? 'text-[#009640] bg-green-50 hover:bg-green-100' : 'text-slate-500 bg-slate-200 hover:bg-slate-300'}`}>
+                        {ag.ativo ? "Público ✓" : "Oculto ✕"}
+                      </button>
+                      <div className="flex gap-3">
+                        <button onClick={() => abrirEditar(ag)} className="text-xs font-bold text-[#00577C] hover:underline">Editar</button>
+                        <button onClick={() => handleDelete(ag.id)} className="text-xs font-bold text-red-500 hover:underline">Remover</button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}

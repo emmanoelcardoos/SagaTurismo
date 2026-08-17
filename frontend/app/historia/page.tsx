@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState, useRef, ReactNode } from 'react';
 import {
-  Menu, BookOpen, Camera, Loader2, Compass, Landmark, History, Fish, TreePine, Mountain, Waves, Leaf, ChevronDown, X, ShieldCheck, Users, MapPin, CalendarDays, ArrowRight
+  Menu, BookOpen, Camera, Loader2, Compass, Landmark, History, Fish, TreePine, Mountain, Waves, Leaf, ChevronDown, X, ShieldCheck, Users, MapPin, CalendarDays, ArrowRight, Quote
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -69,10 +69,14 @@ function AnimatedSection({
 }
 
 export default function HistoriaPage() {
+  // ── CONTROLE DO HEADER ──
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
-  const [isScrolled, setIsScrolled] = useState(false);
+  const [isHeaderSolid, setIsHeaderSolid] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  
+  // ── DADOS ──
   const [fotos, setFotos] = useState<FotoHistoria[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -91,21 +95,31 @@ export default function HistoriaPage() {
 
   useEffect(() => {
     const handleScroll = () => {
-      const y = window.scrollY;
-      setIsScrolled(y > 50);
-      if (y < 80) setShowHeader(true);
-      else if (y > lastScrollY) setShowHeader(false);
-      else setShowHeader(true);
-      setLastScrollY(y);
+      const currentScrollY = window.scrollY;
+      
+      // Header fica sólido (branco) APENAS quando rolar além de 80px
+      setIsHeaderSolid(currentScrollY > 80);
+
+      // Lógica de mostrar/esconder ao rolar
+      if (currentScrollY < 80) {
+        setShowHeader(true);
+      } else if (currentScrollY > lastScrollY) {
+        setShowHeader(false);
+      } else {
+        setShowHeader(true);
+      }
+      
+      setLastScrollY(currentScrollY);
     };
+
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
-  // ── MENU AGRUPADO (padrão do site) ──
+  // ── MENU AGRUPADO ──
   const menuGroups = [
-    { label: 'Conhecer', links: ['Atrativos', 'Roteiros', 'História', 'Biodiversidade', 'Galeria'] },
-    { label: 'Viver', links: ['Passeios', 'Eventos', 'Comunidades', 'Aldeias'] },
+    { label: 'Conhecer', links: ['Atrativos', 'História', 'Biodiversidade', 'Galeria'] },
+    { label: 'Viver', links: ['Eventos', 'Comunidades'] },
     { label: 'Planejar', links: ['Hotéis', 'Gastronomia', 'Agências', 'Informações', 'Parceiros'] }
   ];
 
@@ -113,21 +127,41 @@ export default function HistoriaPage() {
   const fotosGuerrilha = fotos.filter(f => f.seccao === 'guerrilha');
   const fotosArqueologia = fotos.filter(f => f.seccao === 'arqueologia');
 
-  // Se houver múltiplas imagens, escolhemos a primeira (mais representativa) para destacar
   const imagemPrincipalOrigem = fotosOrigens.length > 0 ? fotosOrigens[0] : null;
   const imagemPrincipalArqueologia = fotosArqueologia.length > 0 ? fotosArqueologia[0] : null;
 
   return (
-    <main className={`${inter.className} min-h-screen bg-[#FDFCF7] text-slate-800 overflow-x-hidden`}>
+    <main className={`${inter.className} min-h-screen bg-[#FDFCF7] text-slate-800 overflow-x-hidden flex flex-col`}>
 
-      {/* ── HEADER PADRÃO COM DROPDOWN ── */}
-      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${showHeader ? 'translate-y-0' : '-translate-y-full'} ${isScrolled ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100' : 'bg-white border-b border-slate-200'}`}>
+      {/* ── HEADER INTELIGENTE TRANSPARENTE ── */}
+      <header
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${showHeader ? 'translate-y-0' : '-translate-y-full'} ${
+          // HEADER TRANSPARENTE POR PADRÃO, FICA BRANCO QUANDO:
+          // 1. isHeaderSolid (scroll > 80px) OU
+          // 2. isHovered (mouse em cima) OU
+          // 3. isMobileMenuOpen (menu aberto)
+          (isHeaderSolid || isHovered || isMobileMenuOpen) 
+            ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100' 
+            : 'bg-transparent border-b border-transparent'
+        }`}
+      >
         <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4 relative">
-          
           <div className="flex-1">
-            <Link href="/" className="inline-flex items-center gap-3">
+            <Link href="/" className="inline-flex items-center gap-3 transition-all duration-300">
               <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
-                <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain" />
+                <Image 
+                  src="/logop.png" 
+                  alt="SagaTurismo" 
+                  fill 
+                  className={`object-contain transition-all duration-300 ${
+                    // Logo fica branca (invert) quando o header é transparente
+                    (!isHeaderSolid && !isHovered && !isMobileMenuOpen) 
+                      ? 'brightness-0 invert' 
+                      : ''
+                  }`} 
+                />
               </div>
             </Link>
           </div>
@@ -135,7 +169,12 @@ export default function HistoriaPage() {
           <nav className="hidden lg:flex items-center justify-center gap-12">
             {menuGroups.map((group) => (
               <div key={group.label} className="relative group py-2">
-                <button className={`${jakarta.className} flex items-center gap-1.5 text-xs font-black uppercase tracking-[0.2em] text-slate-600 group-hover:text-[#00577C] transition-colors`}>
+                <button className={`${jakarta.className} flex items-center gap-1.5 text-xs font-black uppercase tracking-[0.2em] transition-colors ${
+                  // Texto branco quando transparente, escuro quando sólido
+                  (isHeaderSolid || isHovered || isMobileMenuOpen) 
+                    ? 'text-slate-600 group-hover:text-[#00577C]' 
+                    : 'text-white group-hover:text-[#F9C400] drop-shadow-md'
+                }`}>
                   {group.label} <ChevronDown size={14} className="group-hover:rotate-180 transition-transform duration-300" />
                 </button>
                 <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max bg-white/95 backdrop-blur-xl border border-slate-100 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] rounded-2xl p-2 opacity-0 invisible translate-y-2 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 transition-all duration-300 z-50 flex flex-row items-center gap-1">
@@ -153,11 +192,21 @@ export default function HistoriaPage() {
           </nav>
 
           <div className="flex-1 flex justify-end items-center gap-4">
-            <Link href="/cadastro" className={`hidden lg:inline-flex ${jakarta.className} bg-[#F9C400] text-[#002f40] px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-sm`}>
+            <Link href="/cadastro"
+              className={`hidden lg:inline-flex ${jakarta.className} px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-sm ${
+                (isHeaderSolid || isHovered || isMobileMenuOpen) 
+                  ? 'bg-[#F9C400] text-[#002f40]' 
+                  : 'bg-white/20 backdrop-blur-md text-white border border-white/30 hover:bg-white/30'
+              }`}>
               Residente
             </Link>
-            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="rounded-xl p-2 lg:hidden bg-slate-50 text-[#00577C] hover:bg-slate-100 transition-colors">
-              {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className={`rounded-xl p-2 lg:hidden transition-all duration-300 ${
+                (isHeaderSolid || isHovered || isMobileMenuOpen) 
+                  ? 'text-[#00577C] hover:bg-slate-100' 
+                  : 'text-white hover:bg-white/20'
+              }`}>
+              {isMobileMenuOpen ? <X className="h-8 w-8" /> : <Menu className="h-8 w-8" />}
             </button>
           </div>
         </div>
@@ -189,38 +238,35 @@ export default function HistoriaPage() {
         )}
       </header>
 
-      {/* HERO SECTION (Agora com Imagem de Fundo) */}
-      <section className="relative min-h-[70vh] flex flex-col items-center justify-center overflow-hidden bg-[#002f40] mt-[72px] md:mt-[80px]">
-        
-        {/* Imagem de Fundo com efeito de época */}
+      {/* ══════════════════════════════════════
+          HERO EDITORIAL (PRETO E BRANCO COM GRADIENTE MÍNIMO)
+      ══════════════════════════════════════ */}
+      <section className="relative h-[90vh] min-h-[500px] w-full flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           <Image
-            src="https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/df417333-2d29-4ae1-80cb-47a0491c8d40.JPG"
+            src="https://images.pexels.com/photos/16241890/pexels-photo-16241890.jpeg?_gl=1*pmuncb*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3ODY4NDQzNTkkbzkyJGcxJHQxNzg2ODU1NDQ0JGo1OSRsMCRoMA.."
             alt="História de São Geraldo do Araguaia"
             fill
-            className="object-cover opacity-30 grayscale"
             priority
           />
-          {/* O seu gradiente por cima da imagem */}
-          <div className="absolute inset-0 bg-gradient-to-br from-[#002f40]/90 via-[#00577C]/80 to-[#009640]/90" />
-          <div className="absolute inset-0 opacity-10 bg-[url('/grid.svg')] bg-repeat" />
+          {/* Gradiente MÍNIMO - apenas para legibilidade do texto */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
         </div>
 
-        <div className="relative z-10 text-center px-5 max-w-4xl mx-auto pt-10">
-          <AnimatedSection animation="fade-up" delay={200}>
-            <h1 className={`${jakarta.className} text-5xl md:text-7xl lg:text-8xl font-black text-white leading-tight mb-6`}>
-             A Nossa 
-              <span className="text-[#F9C400]"> História</span>
-            </h1>
-          </AnimatedSection>
+        <div className="relative z-10 flex flex-col items-center text-center px-6 mt-16 max-w-5xl mx-auto">
+          <h1 className={`${jakarta.className} text-[3rem] sm:text-[4.5rem] md:text-[6rem] lg:text-[8rem] font-black uppercase tracking-tighter text-white drop-shadow-2xl leading-none`}>
+            História
+          </h1>
+          <p className="text-white/95 text-lg md:text-2xl font-medium mt-6 drop-shadow-lg max-w-3xl">
+            A trajetória de luta, fé e superação de São Geraldo do Araguaia
+          </p>
+        </div>
 
-          <AnimatedSection animation="fade-up" delay={400}>
-            <p className="text-lg md:text-xl text-white/80 italic leading-relaxed max-w-2xl mx-auto">
-              "Cidade hospitaleira. Altaneira, sempre estás. Livre, forte, independente. És orgulho do Pará"
-            </p>
-          </AnimatedSection>
-
-          
+        {/* ── ONDA DE TRANSIÇÃO ── */}
+        <div className="absolute bottom-0 left-0 w-full overflow-hidden leading-none z-20 translate-y-[1px]">
+          <svg className="relative block w-full h-[20px] md:h-[45px]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none">
+            <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V120H0V95.8C59.71,118.06,130.83,115.54,191.13,97.8,235.34,84.7,279.16,71.21,321.39,56.44Z" fill="#FDFCF7"></path>
+          </svg>
         </div>
       </section>
 
@@ -230,11 +276,9 @@ export default function HistoriaPage() {
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <AnimatedSection animation="fade-right">
               <div className="space-y-6">
-                <div className="inline-flex items-center gap-2 bg-[#00577C]/10 px-4 py-2 rounded-full">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-[#00577C]">A Fundação e a Fé</span>
-                </div>
+                
                 <h2 className={`${jakarta.className} text-4xl md:text-5xl font-black text-slate-800 leading-tight`}>
-                  O Berço do 
+                  O Berço de 
                   <span className="text-[#00577C]"> São Geraldo</span>
                 </h2>
                 <div className="space-y-4 text-slate-600 leading-relaxed text-justify">
@@ -278,80 +322,79 @@ export default function HistoriaPage() {
         </div>
       </section>
 
-      {/* ========== GUERRILHA DO ARAGUAIA (IMAGENS AMPLIADAS LADO A LADO) ========== */}
-      <section className="py-20 md:py-28 px-6 bg-[#002f40] text-white">
+      {/* ========== GUERRILHA DO ARAGUAIA (ESTILO GALERIA DE MUSEU) ========== */}
+      <section className="py-20 md:py-32 px-6 bg-[#FDFCF7] border-t border-slate-100">
         <div className="max-w-7xl mx-auto">
-          <AnimatedSection animation="fade-up" className="text-center mb-12 max-w-3xl mx-auto">
-            <h2 className={`${jakarta.className} text-4xl md:text-5xl font-black text-white mb-4`}>
+          <AnimatedSection animation="fade-up" className="text-center mb-16 max-w-3xl mx-auto">
+            
+            <h2 className={`${jakarta.className} text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 mb-6 tracking-tight`}>
               "Onde o Brasil
-              <span className="text-[#F9C400]"> Silenciou"</span>
-            </h2> <br />
-            <p className="text-white/70 leading-relaxed">
-              Entre <strong>1972 e 1975</strong>, a região de São Geraldo do Araguaia foi palco da <strong className="text-white">Guerrilha do Araguaia</strong> – o maior movimento de resistência armada contra a ditadura militar brasileira. Durante décadas, esse episódio foi mantido sob censura, e a população local sofreu profundamente com a repressão.
+              <span className="italic text-[#00577C]"> Silenciou"</span>
+            </h2>
+            <p className="text-slate-500 text-lg font-medium leading-relaxed">
+              Entre <strong className="text-slate-800">1972 e 1975</strong>, a região de São Geraldo do Araguaia foi palco da Guerrilha do Araguaia – o maior movimento de resistência armada contra a ditadura militar brasileira.
             </p>
           </AnimatedSection>
 
-          <div className="grid md:grid-cols-2 gap-10 mb-12 items-start">
+          <div className="grid md:grid-cols-2 gap-12 lg:gap-16 items-start mb-16">
             <AnimatedSection animation="fade-right">
-              <div className="space-y-4 text-white/70 leading-relaxed text-justify">
+              <div className="space-y-5 text-slate-600 font-medium leading-relaxed text-justify">
                 <p>
-                  A guerrilha foi organizada pelo <strong className="text-white">Partido Comunista do Brasil (PCdoB)</strong>, uma dissidência armada do PCB. Seus membros – entre eles José Genoíno, Osvaldão, Maurício Grabois e João Amazonas – acreditavam ser possível implantar o comunismo no Brasil através de uma "guerra popular prolongada", à semelhança da China e Cuba.
+                  A guerrilha foi organizada pelo <strong className="text-slate-800">Partido Comunista do Brasil (PCdoB)</strong>. Os seus membros instalados clandestinamente na mata prestavam assistência médica e alfabetização aos camponeses, buscando recrutar apoiadores.
                 </p>
                 <p>
-                  Instalados clandestinamente na mata, os guerrilheiros prestavam assistência médica e alfabetização aos camponeses, mas também buscavam recrutar apoiadores. Quando o governo militar descobriu a base, desencadeou a maior operação de contrainsurgência do país desde a Segunda Guerra Mundial: cerca de <strong>3.200 militares</strong> e <strong>12 aviões</strong> (incluindo 4 caças T-6) foram mobilizados.
+                  Quando o governo militar descobriu a base, desencadeou a maior operação de contrainsurgência do país desde a Segunda Guerra Mundial: cerca de <strong className="text-slate-800">3.200 militares</strong> e <strong className="text-slate-800">12 aviões</strong> foram mobilizados. A repressão foi brutal. Dezenas de guerrilheiros foram mortos ou desapareceram. A população ribeirinha sofreu com buscas e destruição das suas propriedades.
                 </p>
                 <p>
-                  A repressão foi brutal. Dezenas de guerrilheiros foram mortos ou desapareceram. A população ribeirinha, que nada tinha a ver com o conflito, sofreu com buscas, interrogatórios, perda de entes queridos e destruição de suas propriedades. A memória desse período ainda está presente nos mais velhos, que muitas vezes se fecham no silêncio.
-                </p>
-                <p>
-                  Com o fim da guerrilha, o governo rebatizou a <strong>Serra dos Martírios</strong> como <strong>Serra das Andorinhas</strong>, numa tentativa de apagar o triste episódio. Mas a verdade histórica, hoje, é resgatada por pesquisadores e pela própria comunidade, que não esquece.
+                  Com o fim da guerrilha, o governo rebatizou a <strong className="text-slate-800">Serra dos Martírios</strong> como <strong className="text-slate-800">Serra das Andorinhas</strong>, numa tentativa de apagar o episódio. Mas a verdade histórica, hoje, é resgatada pela própria comunidade, que não esquece.
                 </p>
               </div>
             </AnimatedSection>
 
-            <AnimatedSection animation="fade-left" className="space-y-6">
-              <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                <p className="text-sm italic text-[#F9C400] mb-2">“Os moradores do local, que nem sabiam o que era regime militar, perseguição política, democracia ou comunismo, sofreram todos os tipos de perdas que estão intrínsecos numa guerra.”</p>
-                <p className="text-right text-white/40 text-xs">— Prof. Juvenal</p>
+            <AnimatedSection animation="fade-left" className="space-y-8">
+              <div className="bg-white rounded-[2rem] p-8 border border-slate-100 shadow-sm relative">
+                <Quote className="absolute -top-4 -left-4 w-12 h-12 text-[#F9C400]/40" />
+                <p className="text-base md:text-lg italic text-slate-700 mb-4 font-medium relative z-10 leading-relaxed">
+                  “Os moradores do local, que nem sabiam o que era regime militar, perseguição política, democracia ou comunismo, sofreram todos os tipos de perdas que estão intrínsecos numa guerra.”
+                </p>
+                <p className="text-right text-[#00577C] text-xs font-black uppercase tracking-widest">— Prof. Juvenal</p>
               </div>
               
-              {/* Lado a Lado com proporções normais (corrigido o efeito espaguete) */}
-              <div className="grid md:grid-cols-2 gap-5">
-                <div className="relative w-full h-[250px] md:h-[320px] rounded-xl overflow-hidden shadow-2xl group">
+              <div className="grid sm:grid-cols-2 gap-6">
+                <div className="relative w-full aspect-[4/5] rounded-[2rem] overflow-hidden shadow-xl border-[4px] border-white group bg-slate-100">
                   <Image 
                     src={IMG_EXERCITO} 
                     alt="Comboio do exército na Serra" 
                     fill
-                    sizes="(max-width: 768px) 100vw, 50vw"
-                    className="object-cover transition-transform duration-1000 group-hover:scale-105"
+                    className="object-cover grayscale group-hover:scale-105 transition-transform duration-[2000ms]"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent pointer-events-none" />
-                  <div className="absolute bottom-0 left-0 right-0 p-4">
-                    <p className="text-white text-sm font-medium leading-tight">Operação militar na Serra (acervo histórico)</p>
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-transparent to-transparent opacity-80" />
+                  <div className="absolute bottom-0 left-0 right-0 p-5">
+                    <p className="text-white text-xs font-bold leading-tight">Operação militar na Serra (acervo histórico)</p>
                   </div>
                 </div>
                 
-                <div className="relative w-full h-[250px] md:h-[320px] rounded-xl overflow-hidden shadow-2xl group">
+                <div className="relative w-full aspect-[4/5] rounded-[2rem] overflow-hidden shadow-xl border-[4px] border-white group bg-slate-100">
                   <Image 
                     src={IMG_CORPO} 
                     alt="Corpo de J.C. Haas" 
                     fill
-                    sizes="(max-width: 768px) 100vw, 50vw"
-                    className="object-cover transition-transform duration-1000 group-hover:scale-105"
+                    className="object-cover grayscale group-hover:scale-105 transition-transform duration-[2000ms]"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent pointer-events-none" />
-                  <div className="absolute bottom-0 left-0 right-0 p-4">
-                    <p className="text-white text-sm font-medium leading-tight">Registro de um dos combatentes (identidade não revelada)</p>
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-transparent to-transparent opacity-80" />
+                  <div className="absolute bottom-0 left-0 right-0 p-5">
+                    <p className="text-white text-xs font-bold leading-tight">Registro de um dos combatentes na selva</p>
                   </div>
                 </div>
               </div> 
             </AnimatedSection>
           </div>
 
-          <AnimatedSection animation="zoom-in" className="mt-6">
-            <div className="bg-white/5 rounded-2xl p-6 border border-white/10 text-center max-w-3xl mx-auto">
-              <p className="text-white/70 text-sm leading-relaxed">
-                A guerrilha durou aproximadamente três anos. Estima-se que mais de 70 pessoas tenham desaparecido ou sido mortas. A região só começou a se reerguer após a criação do GETAT (Grupo Executivo de Terras do Araguaia-Tocantins) e a abertura de estradas pelo exército, que também trouxe o desenvolvimento da pecuária.
+          <AnimatedSection animation="zoom-in">
+            <div className="bg-[#002f40] rounded-[2rem] p-8 md:p-10 border border-[#00577C] text-center max-w-4xl mx-auto shadow-2xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-[#F9C400]/10 rounded-full blur-3xl pointer-events-none" />
+              <p className="text-white/80 text-base md:text-lg leading-relaxed font-medium relative z-10">
+                A guerrilha durou aproximadamente três anos. Estima-se que mais de 70 pessoas tenham desaparecido ou sido mortas. A região só começou a se reerguer após a criação do GETAT e a abertura de estradas, trazendo um novo capítulo de desenvolvimento para o Araguaia.
               </p>
             </div>
           </AnimatedSection>
@@ -478,55 +521,25 @@ export default function HistoriaPage() {
         </div>
       </section>
 
-      {/* CTA FINAL */}
-      <section className="py-20 md:py-28 px-6 bg-gradient-to-br from-[#00577C] to-[#002f40] text-white text-center">
-        <div className="max-w-4xl mx-auto">
-          <AnimatedSection animation="zoom-in">
-            <Landmark className="mx-auto mb-6 text-[#F9C400]" size={48} />
-            <h2 className={`${jakarta.className} text-4xl md:text-5xl font-black mb-6`}>
-              A Cidade Amada<br />
-              <span className="text-[#F9C400]">segue em frente.</span>
-            </h2>
-            <p className="text-white/70 text-lg leading-relaxed mb-10 max-w-2xl mx-auto">
-              São Geraldo do Araguaia transformou um passado de lutas numa história de superação. Uma cidade que se orgulha das raízes ribeirinhas, valoriza o seu património arqueológico inestimável e abre os braços para o ecoturismo — ao som eterno das águas do Araguaia.
-            </p>
-            <div className="flex flex-wrap justify-center gap-4">
-              <Link href="/galeria" className="bg-[#F9C400] text-[#002f40] px-6 py-3 rounded-full font-black text-xs uppercase tracking-widest shadow-lg hover:scale-105 transition flex items-center gap-2">
-                <Camera size={16} /> Álbum de Fotos
-              </Link>
-              {/* Link corrigido para /roteiros em vez de /rotas */}
-              <Link href="/roteiros" className="border-2 border-white/30 text-white px-6 py-3 rounded-full font-black text-xs uppercase tracking-widest hover:bg-white/10 transition flex items-center gap-2">
-                <Compass size={16} /> Explorar Roteiros Turísticos
-              </Link>
-            </div>
-          </AnimatedSection>
-        </div>
-      </section>
+      
 
-      {/* FOOTER (igual ao padrão) */}
-      <footer className="py-20 px-8 border-t border-slate-200 bg-white">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
+      {/* FOOTER */}
+      <footer className="py-20 px-8 border-t border-slate-200 bg-[#FDFCF7] text-left mt-auto">
+        <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
           <div className="flex flex-col items-center md:items-start gap-4">
             <div className="flex items-center gap-6">
               <Image src="/logop.png" alt="SagaTurismo" width={160} height={50} className="object-contain" />
               <div className="w-px h-12 bg-slate-200 hidden md:block" />
-              <Image src="/prefeitura.png" alt="Prefeitura de São Geraldo do Araguaia" width={140} height={50} className="object-contain" />
+              <Image src="/prefeitura.png" alt="Prefeitura de SGA" width={140} height={50} className="object-contain" />
             </div>
-            <div className="text-left space-y-1">
+            <div className="text-left space-y-1 text-center md:text-left">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                © 2026 Secretaria Municipal de Turismo - SGA | Todos os direitos reservados
+                © 2026 Prefeitura Munícipal de São Geraldo do Araguaia - PA
               </p>
               <p className="text-[10px] font-bold text-slate-400/80">
                 CNPJ: 10.249.241/0001-22
               </p>
             </div>
-          </div>
-          <div className="flex gap-10">
-            <div className="text-left border-l-2 border-slate-100 pl-9">
-              <p className="text-[10px] font-black text-[#00577C] uppercase mb-1">Contato Oficial</p>
-              <p className="text-xs font-bold text-slate-500 tracking-tight">setursaga@gmail.com</p>
-            </div>
-            <ShieldCheck size={40} className="text-[#009640] opacity-30" />
           </div>
         </div>
       </footer>

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState, useRef, ReactNode } from 'react';
-import { Menu, X, ArrowRight, Loader2, Users, ShieldCheck, MapPin } from 'lucide-react';
+import { Menu, X, ArrowRight, Loader2, Users, ShieldCheck, MapPin, ChevronDown } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
 
@@ -75,12 +75,16 @@ function AnimatedSection({
 }
 
 export default function ComunidadesPage() {
+  // ── CONTROLE DO HEADER ──
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const [isHeaderSolid, setIsHeaderSolid] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  
+  // ── DADOS ──
   const [comunidades, setComunidades] = useState<Comunidade[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isScrolled, setIsScrolled] = useState(false);
 
   // Buscar comunidades
   useEffect(() => {
@@ -101,20 +105,30 @@ export default function ComunidadesPage() {
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
-      setIsScrolled(currentScrollY > 50);
-      if (currentScrollY < 80) setShowHeader(true);
-      else if (currentScrollY > lastScrollY) setShowHeader(false);
-      else setShowHeader(true);
+      
+      // Define se o header deve ficar sólido (bg branco)
+      setIsHeaderSolid(currentScrollY > 80);
+
+      // Lógica de mostrar/esconder ao rolar
+      if (currentScrollY < 80) {
+        setShowHeader(true);
+      } else if (currentScrollY > lastScrollY) {
+        setShowHeader(false);
+      } else {
+        setShowHeader(true);
+      }
+      
       setLastScrollY(currentScrollY);
     };
+
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
   // ── MENU AGRUPADO (PADRÃO VINCI) ──
   const menuGroups = [
-    { label: 'Conhecer', links: ['Atrativos', 'Rotas', 'História', 'Biodiversidade', 'Galeria'] },
-    { label: 'Viver', links: ['Passeios', 'Eventos', 'Comunidades', 'Aldeias'] },
+    { label: 'Conhecer', links: ['Atrativos', 'História', 'Biodiversidade', 'Galeria'] },
+    { label: 'Viver', links: ['Eventos', 'Comunidades'] },
     { label: 'Planejar', links: ['Hotéis', 'Gastronomia', 'Agências', 'Informações', 'Parceiros'] }
   ];
 
@@ -123,13 +137,30 @@ export default function ComunidadesPage() {
   return (
     <main className={`${inter.className} bg-[#FDFCF7] text-slate-900 overflow-x-hidden min-h-screen flex flex-col`}>
       
-      {/* ── HEADER EDITORIAL CENTRALIZADO ── */}
-      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${showHeader ? 'translate-y-0' : '-translate-y-full'} ${isScrolled ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100' : 'bg-white border-b border-slate-200'}`}>
+      {/* ── HEADER INTELIGENTE TRANSPARENTE ── */}
+      <header
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${showHeader ? 'translate-y-0' : '-translate-y-full'} ${
+          (isHeaderSolid || isHovered || isMobileMenuOpen) 
+            ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100' 
+            : 'bg-transparent border-b border-transparent'
+        }`}
+      >
         <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4 relative">
           <div className="flex-1">
-            <Link href="/" className="inline-flex items-center gap-3">
+            <Link href="/" className="inline-flex items-center gap-3 transition-all duration-300">
               <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
-                <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain" />
+                <Image 
+                  src="/logop.png" 
+                  alt="SagaTurismo" 
+                  fill 
+                  className={`object-contain transition-all duration-300 ${
+                    (!isHeaderSolid && !isHovered && !isMobileMenuOpen) 
+                      ? 'brightness-0 invert' 
+                      : ''
+                  }`} 
+                />
               </div>
             </Link>
           </div>
@@ -137,26 +168,43 @@ export default function ComunidadesPage() {
           <nav className="hidden lg:flex items-center justify-center gap-12">
             {menuGroups.map((group) => (
               <div key={group.label} className="relative group py-2">
-                <button className={`${jakarta.className} flex items-center gap-1.5 text-xs font-black uppercase tracking-[0.2em] text-slate-600 group-hover:text-[#00577C] transition-colors`}>
-                  {group.label} <ArrowRight size={12} className="group-hover:rotate-90 transition-transform duration-300 opacity-0" />
+                <button className={`${jakarta.className} flex items-center gap-1.5 text-xs font-black uppercase tracking-[0.2em] transition-colors ${
+                  (isHeaderSolid || isHovered || isMobileMenuOpen) 
+                    ? 'text-slate-600 group-hover:text-[#00577C]' 
+                    : 'text-white group-hover:text-[#F9C400] drop-shadow-md'
+                }`}>
+                  {group.label} <ChevronDown size={14} className="group-hover:rotate-180 transition-transform duration-300" />
                 </button>
                 <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max bg-white/95 backdrop-blur-xl border border-slate-100 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] rounded-2xl p-2 opacity-0 invisible translate-y-2 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 transition-all duration-300 z-50 flex flex-row items-center gap-1">
-                  {group.links.map((link) => (
-                    <Link key={link} href={`/${link.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`} className={`${jakarta.className} block px-5 py-3 text-sm font-bold text-slate-600 hover:text-[#00577C] hover:bg-slate-50 rounded-xl transition-all whitespace-nowrap`}>
-                      {link}
-                    </Link>
-                  ))}
+                  {group.links.map((link) => {
+                    const path = `/${link.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`;
+                    return (
+                      <Link key={link} href={path} className={`${jakarta.className} block px-5 py-3 text-sm font-bold text-slate-600 hover:text-[#00577C] hover:bg-slate-50 rounded-xl transition-all whitespace-nowrap`}>
+                        {link}
+                      </Link>
+                    );
+                  })}
                 </div>
               </div>
             ))}
           </nav>
 
           <div className="flex-1 flex justify-end items-center gap-4">
-            <Link href="/cadastro" className={`hidden lg:inline-flex ${jakarta.className} bg-[#F9C400] text-[#002f40] px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-sm`}>
+            <Link href="/cadastro"
+              className={`hidden lg:inline-flex ${jakarta.className} px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-sm ${
+                (isHeaderSolid || isHovered || isMobileMenuOpen) 
+                  ? 'bg-[#F9C400] text-[#002f40]' 
+                  : 'bg-white/20 backdrop-blur-md text-white border border-white/30 hover:bg-white/30'
+              }`}>
               Residente
             </Link>
-            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="rounded-xl p-2 lg:hidden bg-slate-50 text-[#00577C] hover:bg-slate-100 transition-colors">
-              {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className={`rounded-xl p-2 lg:hidden transition-all duration-300 ${
+                (isHeaderSolid || isHovered || isMobileMenuOpen) 
+                  ? 'text-[#00577C] hover:bg-slate-100' 
+                  : 'text-white hover:bg-white/20'
+              }`}>
+              {isMobileMenuOpen ? <X className="h-8 w-8" /> : <Menu className="h-8 w-8" />}
             </button>
           </div>
         </div>
@@ -168,11 +216,14 @@ export default function ComunidadesPage() {
               <div key={group.label} className="flex flex-col gap-3">
                 <p className={`${jakarta.className} text-[10px] font-black uppercase tracking-[0.2em] text-[#00577C] border-b border-slate-100 pb-2`}>{group.label}</p>
                 <div className="flex flex-wrap gap-2">
-                  {group.links.map((link) => (
-                    <Link key={link} href={`/${link.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`} onClick={() => setIsMobileMenuOpen(false)} className={`${jakarta.className} font-bold text-slate-700 text-sm bg-slate-50 px-4 py-2 rounded-lg border border-slate-100 hover:text-[#00577C] hover:bg-slate-100 transition-colors`}>
-                      {link}
-                    </Link>
-                  ))}
+                  {group.links.map((link) => {
+                    const path = `/${link.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`;
+                    return (
+                      <Link key={link} href={path} onClick={() => setIsMobileMenuOpen(false)} className={`${jakarta.className} font-bold text-slate-700 text-sm bg-slate-50 px-4 py-2 rounded-lg border border-slate-100 hover:text-[#00577C] hover:bg-slate-100 transition-colors`}>
+                        {link}
+                      </Link>
+                    );
+                  })}
                 </div>
               </div>
             ))}
@@ -185,40 +236,36 @@ export default function ComunidadesPage() {
         )}
       </header>
 
-      {/* ── HERO EDITORIAL COMUNIDADES (IMAGEM EXPANDIDA) ── */}
-      {/* ── HERO EDITORIAL COMUNIDADES (AJUSTADO & PROPORCIONAL) ── */}
-      <section className="relative pt-6 pb-12 md:pt-10 md:pb-16 px-6 bg-[#FDFCF7] overflow-hidden mt-[72px] md:mt-[80px]">
-        {/* Background Graphics Suaves */}
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#F9C400]/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-[#00577C]/5 rounded-full blur-3xl translate-y-1/3 -translate-x-1/3 pointer-events-none" />
+      {/* ══════════════════════════════════════
+          HERO EDITORIAL (COLORIDO - SEM ANIMAÇÃO)
+      ══════════════════════════════════════ */}
+      <section className="relative h-[90vh] min-h-[500px] w-full flex items-center justify-center overflow-hidden">
+        <div className="absolute inset-0 z-0">
+          <Image 
+            src="https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/imagens-passeios/comunidade2.jpg" 
+            alt="Comunidades de São Geraldo do Araguaia" 
+            fill 
+            className="object-cover" // ← SEM animação, SEM escala
+            priority 
+          />
+          {/* Gradiente MÍNIMO - apenas para legibilidade do texto */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
+        </div>
 
-        <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-8 items-center relative z-10">
-          
-          <AnimatedSection animation="fade-right" className="lg:col-span-4 flex flex-col items-center text-center lg:items-start lg:text-left">
-            
-            <h1 className={`${jakarta.className} text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 leading-[1.05] mb-6 tracking-tight`}>
-              As Nossas<br />
-              <span className="italic text-[#00577C]">Comunidades.</span>
-            </h1>
-            
-            <p className="text-slate-500 text-base md:text-lg leading-relaxed font-medium text-justify md:text-left">
-              Gente que mantém viva a história, a cultura e a alma do território. Descubra vilas pacatas, saberes tradicionais e a verdadeira acolhida ribeirinha.
-            </p>
-          </AnimatedSection>
+        <div className="relative z-10 flex flex-col items-center text-center px-6 mt-16 max-w-5xl mx-auto">
+          <h1 className={`${jakarta.className} text-[3rem] sm:text-[4.5rem] md:text-[6rem] lg:text-[8rem] font-black uppercase tracking-tighter text-white drop-shadow-2xl leading-none`}>
+            Comunidades
+          </h1>
+          <p className="text-white/95 text-lg md:text-2xl font-medium mt-6 drop-shadow-lg max-w-3xl">
+            Gente que mantém viva a história, a cultura e a alma do território
+          </p>
+        </div>
 
-          <AnimatedSection animation="fade-left" className="lg:col-span-8 w-full mt-4 lg:mt-0">
-             <div className="relative w-full h-[380px] sm:h-[450px] md:h-[520px] rounded-[2.5rem] md:rounded-[3rem] overflow-hidden shadow-2xl border-[4px] border-white z-10 group">
-               <Image 
-                 src="https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/remanso1.png" 
-                 alt="Cultura e Povo de São Geraldo" 
-                 fill 
-                 className="object-cover group-hover:scale-105 transition-transform duration-[2000ms]" 
-                 priority 
-               />
-               <div className="absolute inset-0 bg-gradient-to-t from-slate-900/20 to-transparent" />
-             </div>
-          </AnimatedSection>
-
+        {/* ── ONDA DE TRANSIÇÃO ── */}
+        <div className="absolute bottom-0 left-0 w-full overflow-hidden leading-none z-20 translate-y-[1px]">
+          <svg className="relative block w-full h-[20px] md:h-[45px]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none">
+            <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V120H0V95.8C59.71,118.06,130.83,115.54,191.13,97.8,235.34,84.7,279.16,71.21,321.39,56.44Z" fill="#FDFCF7"></path>
+          </svg>
         </div>
       </section>
 
@@ -258,11 +305,6 @@ export default function ComunidadesPage() {
                           sizes="(max-width: 1024px) 100vw, 50vw"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-slate-900/30 via-transparent to-transparent opacity-60 group-hover:opacity-30 transition-opacity duration-700" />
-                        
-                        <div className="absolute top-6 left-6 z-10 flex items-center gap-2 bg-white/95 backdrop-blur-md px-4 py-2 rounded-xl shadow-sm text-[#00577C]">
-                          <MapPin size={14} />
-                          <span className="text-[10px] font-black uppercase tracking-widest">Comunidade Local</span>
-                        </div>
                       </div>
 
                       {/* BLOCO DE TEXTO */}
@@ -296,30 +338,22 @@ export default function ComunidadesPage() {
       </section>
 
       {/* FOOTER INSTITUCIONAL */}
-      <footer className="py-20 px-8 border-t border-slate-200 bg-white text-left mt-auto">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
+      <footer className="py-20 px-8 border-t border-slate-200 bg-[#FDFCF7] text-left mt-auto">
+        <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
           <div className="flex flex-col items-center md:items-start gap-4">
             <div className="flex items-center gap-6">
               <Image src="/logop.png" alt="SagaTurismo" width={160} height={50} className="object-contain" />
               <div className="w-px h-12 bg-slate-200 hidden md:block" />
-              <Image src="/prefeitura.png" alt="Prefeitura de São Geraldo do Araguaia" width={140} height={50} className="object-contain" />
+              <Image src="/prefeitura.png" alt="Prefeitura de SGA" width={140} height={50} className="object-contain" />
             </div>
-            <div className="text-left space-y-1">
+            <div className="text-left space-y-1 text-center md:text-left">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                © 2026 Secretaria Municipal de Turismo - SGA | Todos os direitos reservados
+                © 2026 Prefeitura Munícipal de São Geraldo do Araguaia - PA
               </p>
               <p className="text-[10px] font-bold text-slate-400/80">
                 CNPJ: 10.249.241/0001-22
               </p>
             </div>
-          </div>
-
-          <div className="flex gap-10">
-            <div className="text-left border-l-2 border-slate-100 pl-9">
-              <p className="text-[10px] font-black text-[#00577C] uppercase mb-1">Contato Oficial</p>
-              <p className="text-xs font-bold text-slate-500 tracking-tight">setursaga@gmail.com</p>
-            </div>
-            <ShieldCheck size={40} className="text-[#009640] opacity-30" />
           </div>
         </div>
       </footer>

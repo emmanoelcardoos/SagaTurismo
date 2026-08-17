@@ -1,69 +1,66 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Download, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { Download, Menu, X, ChevronDown, MapPin, Phone, Mail, Clock } from 'lucide-react';
+import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
+
+const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['600', '700', '800'] });
+const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
 
 /* -------------------------------------------------------------------------
  * SagaTurismo — Política de Privacidade
  * Secretaria Municipal de Turismo de São Geraldo do Araguaia (SGA/PA)
  * Fundamentada na Lei nº 13.709/2018 (LGPD)
- *
- * ⚠️ Minuta preliminar gerada para fins de estruturação da plataforma.
- * O conteúdo jurídico deve ser revisado e validado pela Procuradoria-Geral
- * do Município antes da publicação oficial, incluindo a designação formal
- * do Encarregado (DPO) e os canais oficiais de contato.
  * ---------------------------------------------------------------------- */
 
 const TOC = [
-  { id: 'introducao', label: '1. Introdução e compromisso com a LGPD' },
-  { id: 'controlador', label: '2. Quem é o controlador dos dados' },
-  { id: 'dados-coletados', label: '3. Dados pessoais coletados' },
+  { id: 'introducao', label: '1. Introdução e compromisso' },
+  { id: 'controlador', label: '2. Controlador dos dados' },
+  { id: 'dados-coletados', label: '3. Dados coletados' },
   { id: 'finalidade', label: '4. Finalidade do tratamento' },
-  { id: 'ia', label: '5. Como a IA processa seus documentos' },
+  { id: 'ia', label: '5. Como a IA processa documentos' },
   { id: 'base-legal', label: '6. Base legal' },
   { id: 'seguranca', label: '7. Armazenamento e segurança' },
-  { id: 'compartilhamento', label: '8. Compartilhamento de dados' },
+  { id: 'compartilhamento', label: '8. Compartilhamento' },
   { id: 'retencao', label: '9. Prazo de retenção' },
   { id: 'direitos', label: '10. Direitos do titular' },
-  { id: 'exercicio', label: '11. Como exercer seus direitos' },
+  { id: 'exercicio', label: '11. Exercício de direitos' },
   { id: 'cookies', label: '12. Cookies' },
-  { id: 'alteracoes', label: '13. Alterações desta Política' },
+  { id: 'alteracoes', label: '13. Alterações da Política' },
   { id: 'contato', label: '14. Contato e ANPD' },
 ];
 
 export default function PoliticaDePrivacidadePage() {
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50 font-['Helvetica'] font-bold text-slate-800">
+    <div className={`${inter.className} flex min-h-screen flex-col bg-[#FDFCF7] text-slate-800`}>
       <Header />
 
-      <main className="flex-1">
+      <main className="flex-1 mt-[72px] md:mt-[80px]">
         <div className="mx-auto max-w-6xl px-6 py-12 md:py-16">
           {/* Cabeçalho da página */}
-          <div className="mb-8 flex flex-col gap-6 border-b border-slate-200 pb-8 sm:flex-row sm:items-end sm:justify-between print:hidden">
+          <div className="mb-10 flex flex-col gap-6 border-b border-slate-200 pb-8 sm:flex-row sm:items-end sm:justify-between print:hidden">
             <div>
-              
-              <h1 className="mt-4 text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
+              <h1 className={`${jakarta.className} mt-4 text-4xl font-black tracking-tight text-[#00577C] md:text-5xl`}>
                 Política de Privacidade
               </h1>
-              <p className="mt-2 text-sm text-slate-500">
-                Plataforma SagaTurismo · Última atualização: 31 de julho de 2026 · Versão preliminar 0.1
+              <p className="mt-4 text-sm text-slate-500 font-medium">
+                Plataforma SagaTurismo · Última atualização: 31 de Julho de 2026 · Versão preliminar 0.1
               </p>
             </div>
 
             <button
               onClick={() => window.print()}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#00577C] px-5 py-3 text-sm font-semibold text-white shadow-sm shadow-[#00577C]/20 transition hover:bg-[#00445f] focus:outline-none focus:ring-2 focus:ring-[#00577C] focus:ring-offset-2"
+              className={`${jakarta.className} inline-flex items-center justify-center gap-2 rounded-full bg-[#00577C] px-6 py-3.5 text-xs uppercase tracking-widest font-black text-white shadow-lg shadow-[#00577C]/20 transition hover:bg-[#004a6b] hover:-translate-y-0.5`}
             >
               <Download className="h-4 w-4" />
-              Baixar como PDF
+              Baixar PDF
             </button>
           </div>
 
-          
-
           <div className="lg:grid lg:grid-cols-[1fr_260px] lg:items-start lg:gap-12">
+            {/* Conteúdo */}
             <article className="min-w-0 divide-y divide-slate-200">
               <Section id="introducao" number="1" title="Introdução e compromisso com a LGPD">
                 <P>
@@ -76,7 +73,7 @@ export default function PoliticaDePrivacidadePage() {
                 <P>
                   Ao utilizar a Plataforma e fornecer seus dados, você declara estar ciente das práticas
                   descritas neste documento, que deve ser lido em conjunto com os{' '}
-                  <Link href="/termos" className="font-medium text-[#00577C] underline underline-offset-2">
+                  <Link href="/termos" className="font-bold text-[#00577C] underline underline-offset-2">
                     Termos de Uso
                   </Link>
                   .
@@ -304,11 +301,12 @@ export default function PoliticaDePrivacidadePage() {
                 <P>
                   Caso não obtenha resposta satisfatória, você também pode registrar reclamação junto à
                   Autoridade Nacional de Proteção de Dados (ANPD), pelo site{' '}
-                  <span className="font-medium text-slate-700">gov.br/anpd</span>.
+                  <span className="font-bold text-[#00577C]">gov.br/anpd</span>.
                 </P>
               </Section>
             </article>
 
+            {/* Sumário lateral (desktop) */}
             <TableOfContents />
           </div>
         </div>
@@ -321,67 +319,14 @@ export default function PoliticaDePrivacidadePage() {
 
 /* --------------------------------- UI bits -------------------------------- */
 
-function Header() {
-  return (
-    <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur print:hidden">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        <Link href="/" className="flex items-center gap-3">
-          <Image
-            src="/logop.png"
-            alt="Prefeitura de São Geraldo do Araguaia · SagaTurismo"
-            width={40}
-            height={40}
-            className="h-10 w-auto"
-          />
-          <div className="leading-tight">
-            <p className="text-sm font-bold text-slate-900">SagaTurismo</p>
-            <p className="text-xs text-slate-500">Secretaria Municipal de Turismo · SGA</p>
-          </div>
-        </Link>
-
-        <nav className="hidden items-center gap-6 text-sm font-medium text-slate-600 sm:flex">
-          <Link href="/termos" className="transition hover:text-[#00577C]">
-            Termos de Uso
-          </Link>
-          <Link href="/privacidade" className="text-[#00577C]">
-            Privacidade
-          </Link>
-        </nav>
-      </div>
-      <div className="h-1 w-full bg-gradient-to-r from-[#00577C] via-[#F9C400] to-[#009640]" />
-    </header>
-  );
-}
-
-function Footer() {
-  return (
-    <footer className="border-t border-slate-200 bg-white print:hidden">
-      <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-10 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
-        <p>
-          © {new Date().getFullYear()} Prefeitura Municipal de São Geraldo do Araguaia — Secretaria
-          Municipal de Turismo.
-        </p>
-        <div className="flex gap-5">
-          <Link href="/termos" className="transition hover:text-[#00577C]">
-            Termos de Uso
-          </Link>
-          <Link href="/privacidade" className="transition hover:text-[#00577C]">
-            Privacidade
-          </Link>
-        </div>
-      </div>
-    </footer>
-  );
-}
-
 function TableOfContents() {
   return (
     <aside className="hidden lg:block">
       <div className="sticky top-28 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+        <p className={`${jakarta.className} mb-3 text-xs font-black uppercase tracking-wide text-slate-400`}>
           Nesta página
         </p>
-        <nav className="space-y-2.5 text-sm">
+        <nav className="space-y-2.5 text-sm font-bold">
           {TOC.map((item) => (
             <a
               key={item.id}
@@ -397,26 +342,16 @@ function TableOfContents() {
   );
 }
 
-function Section({
-  id,
-  number,
-  title,
-  children,
-}: {
-  id: string;
-  number: string;
-  title: string;
-  children: ReactNode;
-}) {
+function Section({ id, number, title, children }: { id: string; number: string; title: string; children: ReactNode; }) {
   return (
     <section id={id} className="scroll-mt-28 py-8 first:pt-0">
       <div className="flex items-start gap-4">
-        <span className="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-[#00577C] text-sm font-bold text-white">
+        <span className="flex h-10 w-10 flex-none items-center justify-center rounded-xl bg-[#00577C]/10 text-sm font-black text-[#00577C]">
           {number}
         </span>
-        <div className="min-w-0 flex-1 pt-1">
-          <h2 className="text-xl font-bold tracking-tight text-slate-900 md:text-2xl">{title}</h2>
-          <div className="mt-3 space-y-3">{children}</div>
+        <div className="min-w-0 flex-1 pt-1.5">
+          <h2 className={`${jakarta.className} text-xl font-black tracking-tight text-slate-900 md:text-2xl`}>{title}</h2>
+          <div className="mt-4 space-y-4">{children}</div>
         </div>
       </div>
     </section>
@@ -424,22 +359,113 @@ function Section({
 }
 
 function H3({ children }: { children: ReactNode }) {
-  return <h3 className="mt-5 text-sm font-bold uppercase tracking-wide text-[#00577C]">{children}</h3>;
+  return <h3 className={`${jakarta.className} mt-6 text-sm font-black uppercase tracking-widest text-[#00577C]`}>{children}</h3>;
 }
 
 function P({ children }: { children: ReactNode }) {
-  return <p className="leading-relaxed text-slate-600">{children}</p>;
+  return <p className="leading-relaxed font-medium text-slate-600">{children}</p>;
 }
 
 function Ul({ children }: { children: ReactNode }) {
-  return <ul className="space-y-2.5">{children}</ul>;
+  return <ul className="space-y-3">{children}</ul>;
 }
 
 function Li({ children }: { children: ReactNode }) {
   return (
     <li className="flex gap-3">
-      <span className="mt-2 h-1.5 w-1.5 flex-none rounded-full bg-[#009640]" />
-      <span className="leading-relaxed text-slate-600">{children}</span>
+      <span className="mt-2.5 h-1.5 w-1.5 flex-none rounded-full bg-[#009640]" />
+      <span className="leading-relaxed font-medium text-slate-600">{children}</span>
     </li>
+  );
+}
+
+function Header() {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const menuGroups = [
+    { label: 'Conhecer', links: ['Atrativos', 'História', 'Biodiversidade', 'Galeria'] },
+    { label: 'Viver', links: ['Eventos', 'Comunidades'] },
+    { label: 'Planejar', links: ['Hotéis', 'Gastronomia', 'Agências', 'Informações', 'Parceiros'] }
+  ];
+
+  return (
+    <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100 transition-all duration-500 print:hidden">
+      <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4 relative">
+        <div className="flex-1">
+          <Link href="/" className="inline-flex items-center gap-3">
+            <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
+              <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain" />
+            </div>
+          </Link>
+        </div>
+
+        <nav className="hidden lg:flex items-center justify-center gap-12">
+          {menuGroups.map((group) => (
+            <div key={group.label} className="relative group py-2">
+              <button className={`${jakarta.className} flex items-center gap-1.5 text-xs font-black uppercase tracking-[0.2em] text-slate-600 hover:text-[#00577C] transition-colors`}>
+                {group.label} <ChevronDown size={14} className="group-hover:rotate-180 transition-transform duration-300" />
+              </button>
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max bg-white/95 backdrop-blur-xl border border-slate-100 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] rounded-2xl p-2 opacity-0 invisible translate-y-2 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 transition-all duration-300 z-50 flex flex-row items-center gap-1">
+                {group.links.map((link) => (
+                  <Link key={link} href={`/${link.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`} className={`${jakarta.className} block px-5 py-3 text-sm font-bold text-slate-600 hover:text-[#00577C] hover:bg-slate-50 rounded-xl transition-all whitespace-nowrap`}>
+                    {link}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ))}
+        </nav>
+
+        <div className="flex-1 flex justify-end items-center gap-4">
+          <Link href="/cadastro" className={`hidden lg:inline-flex ${jakarta.className} px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-[#F9C400] text-[#002f40] hover:scale-105 transition-all shadow-sm`}>
+            Residente
+          </Link>
+          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="rounded-xl p-2 lg:hidden text-[#00577C] hover:bg-slate-100 transition-all duration-300">
+            {isMobileMenuOpen ? <X className="h-8 w-8" /> : <Menu className="h-8 w-8" />}
+          </button>
+        </div>
+      </div>
+
+      {isMobileMenuOpen && (
+        <div className="absolute top-full left-0 w-full bg-white border-b border-slate-200 p-6 flex flex-col gap-6 shadow-2xl lg:hidden z-50 max-h-[85vh] overflow-y-auto">
+          {menuGroups.map((group) => (
+            <div key={group.label} className="flex flex-col gap-3">
+              <p className={`${jakarta.className} text-[10px] font-black uppercase tracking-[0.2em] text-[#00577C] border-b border-slate-100 pb-2`}>{group.label}</p>
+              <div className="flex flex-wrap gap-2">
+                {group.links.map((link) => (
+                  <Link key={link} href={`/${link.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`} onClick={() => setIsMobileMenuOpen(false)} className={`${jakarta.className} font-bold text-slate-700 text-sm bg-slate-50 px-4 py-2 rounded-lg border border-slate-100 hover:text-[#00577C] hover:bg-slate-100 transition-colors`}>
+                    {link}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </header>
+  );
+}
+
+function Footer() {
+  return (
+    <footer className="py-20 px-8 border-t border-slate-200 bg-[#FDFCF7] text-left mt-auto">
+                  <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
+                    <div className="flex flex-col items-center md:items-start gap-4">
+                      <div className="flex items-center gap-6">
+                        <Image src="/logop.png" alt="SagaTurismo" width={160} height={50} className="object-contain" />
+                        <div className="w-px h-12 bg-slate-200 hidden md:block" />
+                        <Image src="/prefeitura.png" alt="Prefeitura de SGA" width={140} height={50} className="object-contain" />
+                      </div>
+                      <div className="text-left space-y-1 text-center md:text-left">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                          © 2026 Prefeitura Munícipal de São Geraldo do Araguaia - PA
+                        </p>
+                        <p className="text-[10px] font-bold text-slate-400/80">
+                          CNPJ: 10.249.241/0001-22
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </footer>
   );
 }

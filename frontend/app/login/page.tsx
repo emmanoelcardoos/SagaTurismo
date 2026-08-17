@@ -97,7 +97,7 @@ export default function LoginPage() {
           </form>
 
           <p className="text-center text-[10px] font-black uppercase tracking-wider text-slate-400 mt-8">
-            Secretaria Municipal de Turismo – São Geraldo do Araguaia (PA)
+            © 2026 Prefeitura Munícipal de São Geraldo do Araguaia - PA
           </p>
         </div>
       </div>

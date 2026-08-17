@@ -104,7 +104,7 @@ export default function FiscalLogin() {
         {/* Rodapé Oficial */}
         <div className="mt-8 text-center">
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-            Secretaria Municipal de Turismo de São Geraldo do Araguaia - PA
+            © 2026 Prefeitura Munícipal de São Geraldo do Araguaia - PA
           </p>
         </div>
       </div>

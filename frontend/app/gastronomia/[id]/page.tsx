@@ -13,21 +13,27 @@ import { Plus_Jakarta_Sans } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
 import { useParams } from 'next/navigation';
 
+
+
 // ── FONTS ──
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '700', '800'] });
 
 // ── TYPES ──
 type MenuItem = { prato: string; preco: string; desc: string };
 
+// ── TYPES ──
+type Especialidade = { titulo: string; imagem_url: string };
+
 type Restaurante = {
   id: string;
   titulo: string;
   descricao_curta: string;
   imagem_url: string;
+  imagem_capa: string | null;
   sobre_nos_texto: string | null;
   foto_equipe_url: string | null;
   galeria: string[] | null;
-  cardapio: MenuItem[] | null;
+  especialidades: Especialidade[] | null; // ◄── A NOSSA NOVA COLUNA
   whatsapp: string | null;
   link_google_maps: string | null;
 };
@@ -185,7 +191,7 @@ export default function RestaurantePage() {
   // ── MENU AGRUPADO (PADRÃO VINCI) ──
   const menuGroups = [
     { label: 'Conhecer', links: ['Atrativos', 'Rotas', 'História', 'Biodiversidade', 'Galeria'] },
-    { label: 'Viver', links: ['Passeios', 'Eventos', 'Comunidades', 'Aldeias'] },
+    { label: 'Viver', links: ['Eventos', 'Comunidades'] },
     { label: 'Planejar', links: ['Hotéis', 'Gastronomia', 'Agências', 'Informações', 'Parceiros'] }
   ];
 
@@ -215,6 +221,9 @@ export default function RestaurantePage() {
   const galeria = restaurante.galeria ?? [];
   const cardapio = restaurante.cardapio ?? [];
   const whatsappNumber = restaurante.whatsapp?.replace(/\D/g, '');
+
+  // Usa imagem_capa se existir, senão fallback para imagem_url
+  const capaImagem = restaurante.imagem_capa || restaurante.imagem_url;
 
   return (
     <main className={`${jakarta.className} bg-[#faf8f4] text-slate-900 overflow-x-hidden min-h-screen`}>
@@ -281,16 +290,27 @@ export default function RestaurantePage() {
         )}
       </header>
 
-      {/* ── HERO REDUZIDO (SEM DESCRIÇÃO E SEM BOTÕES) ── */}
-      <section className="relative w-full h-[60vh] min-h-[400px]">
+      {/* ── HERO REDUZIDO (COM IMAGEM CAPA HORIZONTAL) ── */}
+            {/* ── HERO FULLSCREEN (COM IMAGEM_CAPA E BOTÃO VOLTAR) ── */}
+      <section className="relative w-full h-[75vh] min-h-[600px]">
         <Image
-          src={restaurante.imagem_url}
+          src={restaurante.imagem_capa || restaurante.imagem_url}
           alt={restaurante.titulo}
           fill
           className="object-cover"
           priority
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-900/25 to-slate-900/30" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-900/30 to-transparent" />
+
+        {/* Botão Voltar */}
+        <div className="absolute top-6 left-6 md:top-8 md:left-8 z-20">
+          <Link
+            href="/gastronomia"
+            className="inline-flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-md px-4 py-2 rounded-full text-white text-[10px] font-black uppercase tracking-widest transition-colors shadow-sm border border-white/10"
+          >
+            <ArrowLeft size={14} /> Voltar
+          </Link>
+        </div>
 
         {/* Hero text — bottom */}
         <div className="absolute bottom-0 left-0 right-0 px-6 md:px-14 pb-14 md:pb-20">
@@ -302,146 +322,54 @@ export default function RestaurantePage() {
         </div>
       </section>
 
-      {/* ── SOBRE NÓS (FAMÍLIA) ── */}
-      {(restaurante.sobre_nos_texto || restaurante.foto_equipe_url) && (
-        <section className="py-20 md:py-32 bg-white relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-1/2 h-full bg-[#faf8f4] rounded-r-[5rem] pointer-events-none" />
-
-          <div className="relative mx-auto max-w-7xl px-5 md:px-10">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-center">
-
-              {restaurante.foto_equipe_url && (
-                <Reveal animation="fade-right">
-                  <div className="relative">
-                    <div className="relative aspect-[3/4] w-full rounded-[2.5rem] overflow-hidden shadow-2xl">
-                      <Image
-                        src={restaurante.foto_equipe_url}
-                        alt="Equipa do restaurante"
-                        fill
-                        className="object-cover object-center"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 to-transparent" />
-                    </div>
-                    <div className={`${jakarta.className} absolute -bottom-5 -right-5 bg-[#F9C400] text-[#002f40] px-6 py-4 rounded-2xl shadow-xl font-black text-xs uppercase tracking-widest`}>
-                      <p className="text-[10px] opacity-60">A equipe</p>
-                      <p>A nossa familia</p>
-                    </div>
-                    <div className="absolute -top-6 -left-6 w-24 h-24 rounded-full border-4 border-[#009640]/30 pointer-events-none" />
-                    <div className="absolute -top-3 -left-3 w-12 h-12 rounded-full bg-[#009640]/10 pointer-events-none" />
-                  </div>
-                </Reveal>
-              )}
-
-              <Reveal animation="fade-left" delay={200}>
-                <div>
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 rounded-full bg-[#F9C400]/20 flex items-center justify-center">
-                      <Heart size={18} className="text-[#F9C400]" />
-                    </div>
-                    <span className={`${jakarta.className} text-[10px] font-black uppercase tracking-[0.3em] text-[#009640]`}>
-                      Nossa história
-                    </span>
-                  </div>
-
-                  <h2 className={`${jakarta.className} text-4xl md:text-6xl font-black text-slate-900 leading-[1.1] mb-8`}>
-                    Uma família,<br />
-                    <span className="text-[#00577C]">uma mesa.</span>
-                  </h2>
-
-                  {restaurante.sobre_nos_texto && (
-                    <div className="relative">
-                      <Quote className="absolute -top-4 -left-4 w-10 h-10 text-[#F9C400]/30" />
-                      <p className="text-slate-600 text-base md:text-lg leading-relaxed font-medium pl-4 border-l-4 border-[#F9C400]/40">
-                        {restaurante.sobre_nos_texto}
-                      </p>
-                    </div>
-                  )}
-
-                  <div className="mt-10 grid grid-cols-3 gap-4">
-                    {[
-                      { icon: <Leaf size={20} className="text-[#009640]" />, label: 'Ingredientes Frescos', bg: 'bg-green-50 border-green-100' },
-                      { icon: <ChefHat size={20} className="text-[#00577C]" />, label: 'Receita de Família', bg: 'bg-blue-50 border-blue-100' },
-                      { icon: <Star size={20} className="text-[#d9a000]" />, label: 'Sabor Autêntico', bg: 'bg-yellow-50 border-yellow-100' },
-                    ].map((item, i) => (
-                      <Reveal key={i} delay={i * 100 + 200} animation="fade-up">
-                        <div className={`${item.bg} border rounded-2xl p-4 text-center`}>
-                          <div className="flex justify-center mb-2">{item.icon}</div>
-                          <p className="text-[9px] font-black uppercase tracking-widest text-slate-600 leading-tight">{item.label}</p>
-                        </div>
-                      </Reveal>
-                    ))}
-                  </div>
-                </div>
-              </Reveal>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ── CARDÁPIO DIGITAL ── */}
-      {cardapio.length > 0 && (
-        <section className="py-20 md:py-32 bg-[#faf8f4] relative overflow-hidden">
-          <div className="mx-auto max-w-7xl px-5 md:px-10">
+      {/* ── ESPECIALIDADES DA CASA (VISUAL & PREMIUM) ── */}
+      {restaurante.especialidades && restaurante.especialidades.length > 0 && (
+        <section className="py-20 md:py-32 bg-[#FDFCF7] relative overflow-hidden">
+          <div className="mx-auto max-w-[1400px] px-6 md:px-12">
+            
             <Reveal animation="fade-up">
-              <div className="text-center mb-16 md:mb-20">
-                <div className="flex items-center justify-center gap-3 mb-5">
-                  <span className="w-8 h-0.5 rounded-full bg-[#009640]" />
-                  <span className={`${jakarta.className} text-[10px] font-black uppercase tracking-[0.3em] text-[#009640]`}>
-                    Menú Digital
-                  </span>
-                  <span className="w-8 h-0.5 rounded-full bg-[#009640]" />
-                </div>
+              <div className="text-center mb-12 md:mb-20">
+                
                 <h2 className={`${jakarta.className} text-4xl md:text-6xl font-black text-slate-900`}>
-                  O que temos para si
+                  Especialidades da Casa
                 </h2>
               </div>
             </Reveal>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
-              {cardapio.map((item, i) => (
-                <Reveal key={i} delay={i * 120} animation="fade-up">
-                  <div
-                    onClick={() => setActiveMenuItem(activeMenuItem === i ? null : i)}
-                    className={`relative bg-white rounded-[1.75rem] p-8 border cursor-pointer group transition-all duration-500 overflow-hidden ${activeMenuItem === i ? 'border-[#00577C] shadow-xl shadow-[#00577C]/10' : 'border-slate-100 hover:border-slate-200 hover:shadow-lg'}`}
-                  >
-                    <span className={`${jakarta.className} absolute top-6 right-8 text-7xl font-black text-slate-100 group-hover:text-slate-200 transition-colors leading-none pointer-events-none select-none`}>
-                      {String(i + 1).padStart(2, '0')}
-                    </span>
-
-                    <div className="relative z-10">
-                      <div className="flex items-start justify-between gap-4 mb-3">
-                        <h3 className={`${jakarta.className} text-xl md:text-2xl font-black text-slate-900 leading-tight`}>
-                          {item.prato}
-                        </h3>
-                        <span className={`${jakarta.className} shrink-0 text-base md:text-lg font-black text-[#00577C] bg-blue-50 px-4 py-2 rounded-full`}>
-                          {item.preco}
-                        </span>
-                      </div>
-                      <p className="text-slate-500 text-sm leading-relaxed font-medium">
-                        {item.desc}
-                      </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {restaurante.especialidades.map((item, i) => (
+                <Reveal key={i} delay={i * 100} animation="fade-up">
+                  <div className="group relative aspect-[4/5] rounded-[2.5rem] overflow-hidden shadow-lg border-4 border-white cursor-pointer bg-slate-100">
+                    <Image 
+                      src={item.imagem_url} 
+                      alt={item.titulo} 
+                      fill 
+                      className="object-cover group-hover:scale-110 transition-transform duration-[2000ms]" 
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/20 to-transparent opacity-80 group-hover:opacity-100 transition-opacity duration-500" />
+                    
+                    <div className="absolute bottom-0 left-0 right-0 p-8 text-center translate-y-2 group-hover:translate-y-0 transition-transform duration-500">
+                      <h3 className={`${jakarta.className} text-2xl md:text-3xl font-black text-white tracking-tight drop-shadow-md`}>
+                        {item.titulo}
+                      </h3>
+                      <div className="w-8 h-1 bg-[#F9C400] mx-auto mt-4 rounded-full scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-center" />
                     </div>
                   </div>
                 </Reveal>
               ))}
             </div>
+
           </div>
         </section>
       )}
 
-      {/* ── GALERIA DE FOTOS ── */}
+      {/* ── GALERIA DE FOTOS (AMBIENTE E COMIDA) ── */}
       {galeria.length > 0 && (
         <section className="py-20 md:py-32 bg-white relative">
           <div className="mx-auto max-w-7xl px-5 md:px-10">
             <Reveal animation="fade-up">
               <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-6 mb-12 md:mb-16">
                 <div>
-                  <div className="flex items-center gap-3 mb-4">
-                    <span className="w-8 h-0.5 rounded-full bg-[#F9C400]" />
-                    <span className={`${jakarta.className} text-[10px] font-black uppercase tracking-[0.3em] text-[#F9C400]`}>
-                      Galeria
-                    </span>
-                  </div>
                   <h2 className={`${jakarta.className} text-4xl md:text-6xl font-black text-slate-900`}>
                     Nossos Momentos & Pratos
                   </h2>
@@ -453,40 +381,33 @@ export default function RestaurantePage() {
         </section>
       )}
 
-      {/* ── MAPA / LOCALIZAÇÃO (ORIGINAL) ── */}
-      <section className="py-20 md:py-32 bg-[#002f40] relative overflow-hidden">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full border border-white/5 pointer-events-none" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full border border-white/5 pointer-events-none" />
+      
+      
 
+      {/* ── MAPA / LOCALIZAÇÃO (SOFT & CLEAN) ── */}
+      <section className="py-20 md:py-32 bg-[#FDFCF7] border-t border-slate-100 relative overflow-hidden">
         <div className="relative mx-auto max-w-7xl px-5 md:px-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
 
             <Reveal animation="fade-right">
               <div>
-                <div className="flex items-center gap-3 mb-6">
-                  <span className="w-8 h-0.5 rounded-full bg-[#F9C400]" />
-                  <span className={`${jakarta.className} text-[10px] font-black uppercase tracking-[0.3em] text-[#F9C400]`}>
-                    Onde encontrar
-                  </span>
-                </div>
-                <h2 className={`${jakarta.className} text-4xl md:text-6xl font-black text-white leading-[1.1] mb-8`}>
+                
+                <h2 className={`${jakarta.className} text-4xl md:text-6xl font-black text-slate-900 leading-[1.1] mb-8`}>
                   Venha nos visitar
                 </h2>
-                <p className="text-white/60 text-base leading-relaxed font-medium mb-10 max-w-sm">
-                  Estamos localizados em São Geraldo do Araguaia, no coração da região ribeirinha. Fácil acesso e estacionamento disponível.
+                <p className="text-slate-500 text-base leading-relaxed font-medium mb-10 max-w-sm">
+                  Estamos localizados em São Geraldo do Araguaia. Venha desfrutar de uma experiência gastronómica num ambiente acolhedor e familiar.
                 </p>
 
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-col sm:flex-row gap-4">
                   {restaurante.link_google_maps && (
                     <a
                       href={restaurante.link_google_maps}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={`${jakarta.className} inline-flex items-center gap-3 bg-[#F9C400] text-[#002f40] px-8 py-4 rounded-full font-black text-xs uppercase tracking-widest hover:scale-105 transition-transform shadow-xl w-fit`}
+                      className={`${jakarta.className} inline-flex items-center justify-center gap-3 bg-[#00577C] text-white px-8 py-4 rounded-full font-black text-xs uppercase tracking-widest hover:bg-[#004a6b] transition-transform shadow-xl w-fit`}
                     >
-                      <MapPin size={16} />
-                      Abrir no Google Maps
-                      <ExternalLink size={14} />
+                      <MapPin size={16} /> Google Maps
                     </a>
                   )}
                   {whatsappNumber && (
@@ -494,10 +415,9 @@ export default function RestaurantePage() {
                       href={`https://wa.me/${whatsappNumber}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={`${jakarta.className} inline-flex items-center gap-3 bg-[#25D366] text-white px-8 py-4 rounded-full font-black text-xs uppercase tracking-widest hover:scale-105 transition-transform shadow-xl w-fit`}
+                      className={`${jakarta.className} inline-flex items-center justify-center gap-3 bg-[#25D366] text-white px-8 py-4 rounded-full font-black text-xs uppercase tracking-widest hover:scale-105 transition-transform shadow-xl w-fit`}
                     >
-                      <MessageCircle size={16} />
-                      Falar no WhatsApp
+                      <MessageCircle size={16} /> WhatsApp
                     </a>
                   )}
                 </div>
@@ -507,7 +427,7 @@ export default function RestaurantePage() {
             <Reveal animation="fade-left" delay={200}>
               <div className="relative">
                 {restaurante.link_google_maps ? (
-                  <div className="relative aspect-[4/3] rounded-[2rem] overflow-hidden shadow-2xl border border-white/10">
+                  <div className="relative aspect-[4/3] rounded-[2rem] overflow-hidden shadow-2xl border border-slate-100">
                     <iframe
                       src={`https://maps.google.com/maps?q=S%C3%A3o+Geraldo+do+Araguaia+Par%C3%A1+Brasil&t=&z=13&ie=UTF8&iwloc=&output=embed`}
                       className="w-full h-full"
@@ -517,9 +437,9 @@ export default function RestaurantePage() {
                     />
                   </div>
                 ) : (
-                  <div className="relative aspect-[4/3] rounded-[2rem] overflow-hidden bg-white/5 border border-white/10 flex flex-col items-center justify-center gap-4">
-                    <MapPin className="w-16 h-16 text-[#F9C400]/40" />
-                    <p className={`${jakarta.className} text-[10px] font-black uppercase tracking-widest text-white/30`}>
+                  <div className="relative aspect-[4/3] rounded-[2rem] overflow-hidden bg-slate-100 flex flex-col items-center justify-center gap-4 border border-slate-200">
+                    <MapPin className="w-16 h-16 text-slate-300" />
+                    <p className={`${jakarta.className} text-[10px] font-black uppercase tracking-widest text-slate-400`}>
                       São Geraldo do Araguaia
                     </p>
                   </div>
@@ -554,31 +474,23 @@ export default function RestaurantePage() {
         </Reveal>
       </section>
 
-      {/* ── FOOTER (ORIGINAL) ── */}
-      <footer className="py-20 px-8 border-t border-slate-200 bg-white text-left">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
+      {/* ── FOOTER ── */}
+      <footer className="py-20 px-8 border-t border-slate-200 bg-[#FDFCF7] text-left mt-auto">
+        <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
           <div className="flex flex-col items-center md:items-start gap-4">
             <div className="flex items-center gap-6">
               <Image src="/logop.png" alt="SagaTurismo" width={160} height={50} className="object-contain" />
               <div className="w-px h-12 bg-slate-200 hidden md:block" />
-              <Image src="/prefeitura.png" alt="Prefeitura de São Geraldo do Araguaia" width={140} height={50} className="object-contain" />
+              <Image src="/prefeitura.png" alt="Prefeitura de SGA" width={140} height={50} className="object-contain" />
             </div>
-            <div className="text-left space-y-1">
+            <div className="text-left space-y-1 text-center md:text-left">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                © 2026 Secretaria Municipal de Turismo - SGA | Todos os direitos reservados
+                © 2026 Prefeitura Munícipal de São Geraldo do Araguaia - PA
               </p>
               <p className="text-[10px] font-bold text-slate-400/80">
                 CNPJ: 10.249.241/0001-22
               </p>
             </div>
-          </div>
-
-          <div className="flex gap-10">
-            <div className="text-left border-l-2 border-slate-100 pl-9">
-              <p className="text-[10px] font-black text-[#00577C] uppercase mb-1">Contato Oficial</p>
-              <p className="text-xs font-bold text-slate-500 tracking-tight">setursaga@gmail.com</p>
-            </div>
-            <ShieldCheck size={40} className="text-[#009640] opacity-30" />
           </div>
         </div>
       </footer>

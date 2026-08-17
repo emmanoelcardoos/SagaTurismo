@@ -53,87 +53,6 @@ function AnimatedSection({ children, className = "", animation = "fade-up", dela
   );
 }
 
-// ── HERO CARROSSEL (EDITORIAL & EMOLDURADO) ──
-function HeroCarrossel({ fotos }: { fotos: Foto[] }) {
-  const [current, setCurrent] = useState(0);
-  const [transitioning, setTransitioning] = useState(false);
-  const heroFotos = fotos.slice(0, 6);
-
-  const goTo = (idx: number) => {
-    if (transitioning || idx === current) return;
-    setTransitioning(true);
-    setCurrent(idx);
-    setTimeout(() => setTransitioning(false), 900);
-  };
-
-  const next = () => goTo((current + 1) % heroFotos.length);
-  const prev = () => goTo((current - 1 + heroFotos.length) % heroFotos.length);
-
-  useEffect(() => {
-    const t = setInterval(next, 8000);
-    return () => clearInterval(t);
-  }, [current, heroFotos.length]);
-
-  if (heroFotos.length === 0) return null;
-
-  return (
-    <section className="relative pt-28 md:pt-36 px-4 sm:px-6 max-w-[1400px] mx-auto w-full mb-16">
-      <AnimatedSection animation="zoom-in" className="relative w-full h-[55vh] md:h-[75vh] min-h-[450px] rounded-[2.5rem] md:rounded-[3rem] overflow-hidden shadow-2xl border-[4px] border-white group">
-        
-        {heroFotos.map((foto, idx) => (
-          <div
-            key={foto.id}
-            className="absolute inset-0 transition-opacity duration-1000 ease-in-out"
-            style={{ opacity: idx === current ? 1 : 0, zIndex: idx === current ? 2 : 1 }}
-          >
-            <Image 
-              src={foto.imagem_url} 
-              alt={foto.titulo} 
-              fill 
-              className="object-cover scale-105 group-hover:scale-100 transition-transform duration-[4000ms] ease-out" 
-              priority={idx === 0} 
-            />
-            {/* Gradiente sutil em vez de tela escura */}
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/10 to-transparent" />
-          </div>
-        ))}
-
-        {/* Conteúdo sobre a foto */}
-        <div className="absolute inset-0 z-20 flex flex-col justify-end p-8 md:p-12 lg:p-16">
-          <div className="flex items-center gap-3 mb-4">
-            <span className="h-1 w-10 bg-[#F9C400] rounded-full" />
-            <span className={`${jakarta.className} text-[#F9C400] text-[10px] font-black uppercase tracking-[0.3em] drop-shadow-md`}>
-              {heroFotos[current]?.categoria || 'Destaque'}
-            </span>
-          </div>
-
-          <h1 className={`${jakarta.className} text-4xl md:text-5xl lg:text-7xl font-black text-white leading-[1.05] tracking-tight mb-8 drop-shadow-lg max-w-3xl`}>
-            {heroFotos[current]?.titulo || 'Nossas Memórias'}
-          </h1>
-
-          <div className="flex items-center justify-between border-t border-white/20 pt-6">
-            <div className="flex gap-2">
-              {heroFotos.map((_, i) => (
-                <button key={i} onClick={() => goTo(i)}
-                  className={`transition-all duration-300 rounded-full ${i === current ? 'w-10 h-1.5 bg-[#F9C400]' : 'w-2 h-1.5 bg-white/40 hover:bg-white/80'}`} 
-                />
-              ))}
-            </div>
-            <div className="flex gap-3">
-              <button onClick={prev} className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center backdrop-blur-md transition-all border border-white/10">
-                <ChevronLeft size={20} />
-              </button>
-              <button onClick={next} className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center backdrop-blur-md transition-all border border-white/10">
-                <ChevronRight size={20} />
-              </button>
-            </div>
-          </div>
-        </div>
-      </AnimatedSection>
-    </section>
-  );
-}
-
 // ── LIGHTBOX (VISUALIZAÇÃO EM TELA CHEIA) ──
 function Lightbox({ lista, indexInicial, onClose }: { lista: Foto[]; indexInicial: number; onClose: () => void; }) {
   const [idx, setIdx] = useState(indexInicial);
@@ -192,12 +111,12 @@ export default function GaleriaPage() {
   const [lightbox, setLightbox] = useState<{ lista: Foto[]; idx: number } | null>(null);
   const [categoriaAtiva, setCategoriaAtiva] = useState<string | null>(null);
   
-  // States do Header
+  // ── CONTROLE DO HEADER ──
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
-  const [isScrolled, setIsScrolled] = useState(false);
+  const [isHeaderSolid, setIsHeaderSolid] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isReservaModalOpen, setIsReservaModalOpen] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
   useEffect(() => {
     async function fetchFotos() {
@@ -219,13 +138,21 @@ export default function GaleriaPage() {
 
   useEffect(() => {
     const handleScroll = () => {
-      const y = window.scrollY;
-      setIsScrolled(y > 50);
-      if (y < 80) setShowHeader(true);
-      else if (y > lastScrollY) setShowHeader(false);
-      else setShowHeader(true);
-      setLastScrollY(y);
+      const currentScrollY = window.scrollY;
+      
+      setIsHeaderSolid(currentScrollY > 80);
+
+      if (currentScrollY < 80) {
+        setShowHeader(true);
+      } else if (currentScrollY > lastScrollY) {
+        setShowHeader(false);
+      } else {
+        setShowHeader(true);
+      }
+      
+      setLastScrollY(currentScrollY);
     };
+
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
@@ -242,23 +169,40 @@ export default function GaleriaPage() {
     ? { [categoriaAtiva]: fotosAgrupadas[categoriaAtiva] }
     : fotosAgrupadas;
 
-  // ── MENU DO HEADER (Sincronizado) ──
+  // ── MENU DO HEADER ──
   const menuGroups = [
-    { label: 'Conhecer', links: ['Atrativos', 'Rotas', 'História', 'Biodiversidade', 'Galeria'] },
-    { label: 'Viver', links: ['Passeios', 'Eventos', 'Comunidades', 'Aldeias'] },
+    { label: 'Conhecer', links: ['Atrativos', 'História', 'Biodiversidade', 'Galeria'] },
+    { label: 'Viver', links: ['Eventos', 'Comunidades'] },
     { label: 'Planejar', links: ['Hotéis', 'Gastronomia', 'Agências', 'Informações', 'Parceiros'] }
   ];
 
   return (
     <main className={`${inter.className} min-h-screen bg-[#FDFCF7] text-slate-900 overflow-x-hidden`}>
 
-      {/* ── HEADER EDITORIAL (CENTRALIZADO & DROPDOWN HORIZONTAL) ── */}
-      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${showHeader ? 'translate-y-0' : '-translate-y-full'} ${isScrolled ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100' : 'bg-white border-b border-slate-200'}`}>
+      {/* ── HEADER INTELIGENTE TRANSPARENTE ── */}
+      <header
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${showHeader ? 'translate-y-0' : '-translate-y-full'} ${
+          (isHeaderSolid || isHovered || isMobileMenuOpen) 
+            ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100' 
+            : 'bg-transparent border-b border-transparent'
+        }`}
+      >
         <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4 relative">
           <div className="flex-1">
-            <Link href="/" className="inline-flex items-center gap-3">
+            <Link href="/" className="inline-flex items-center gap-3 transition-all duration-300">
               <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
-                <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain" />
+                <Image 
+                  src="/logop.png" 
+                  alt="SagaTurismo" 
+                  fill 
+                  className={`object-contain transition-all duration-300 ${
+                    (!isHeaderSolid && !isHovered && !isMobileMenuOpen) 
+                      ? 'brightness-0 invert' 
+                      : ''
+                  }`} 
+                />
               </div>
             </Link>
           </div>
@@ -266,7 +210,11 @@ export default function GaleriaPage() {
           <nav className="hidden lg:flex items-center justify-center gap-12">
             {menuGroups.map((group) => (
               <div key={group.label} className="relative group py-2">
-                <button className={`${jakarta.className} flex items-center gap-1.5 text-xs font-black uppercase tracking-[0.2em] text-slate-600 group-hover:text-[#00577C] transition-colors`}>
+                <button className={`${jakarta.className} flex items-center gap-1.5 text-xs font-black uppercase tracking-[0.2em] transition-colors ${
+                  (isHeaderSolid || isHovered || isMobileMenuOpen) 
+                    ? 'text-slate-600 group-hover:text-[#00577C]' 
+                    : 'text-white group-hover:text-[#F9C400] drop-shadow-md'
+                }`}>
                   {group.label} <ChevronDown size={14} className="group-hover:rotate-180 transition-transform duration-300" />
                 </button>
                 <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max bg-white/95 backdrop-blur-xl border border-slate-100 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] rounded-2xl p-2 opacity-0 invisible translate-y-2 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 transition-all duration-300 z-50 flex flex-row items-center gap-1">
@@ -284,11 +232,21 @@ export default function GaleriaPage() {
           </nav>
 
           <div className="flex-1 flex justify-end items-center gap-4">
-            <Link href="/cadastro" className={`hidden lg:inline-flex ${jakarta.className} bg-[#F9C400] text-[#002f40] px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-sm`}>
+            <Link href="/cadastro"
+              className={`hidden lg:inline-flex ${jakarta.className} px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-sm ${
+                (isHeaderSolid || isHovered || isMobileMenuOpen) 
+                  ? 'bg-[#F9C400] text-[#002f40]' 
+                  : 'bg-white/20 backdrop-blur-md text-white border border-white/30 hover:bg-white/30'
+              }`}>
               Residente
             </Link>
-            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="rounded-xl p-2 lg:hidden bg-slate-50 text-[#00577C] hover:bg-slate-100 transition-colors">
-              {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className={`rounded-xl p-2 lg:hidden transition-all duration-300 ${
+                (isHeaderSolid || isHovered || isMobileMenuOpen) 
+                  ? 'text-[#00577C] hover:bg-slate-100' 
+                  : 'text-white hover:bg-white/20'
+              }`}>
+              {isMobileMenuOpen ? <X className="h-8 w-8" /> : <Menu className="h-8 w-8" />}
             </button>
           </div>
         </div>
@@ -312,9 +270,6 @@ export default function GaleriaPage() {
               </div>
             ))}
             <div className="border-t border-slate-100 pt-4 mt-2 flex flex-col gap-3">
-              <button onClick={() => { setIsMobileMenuOpen(false); setIsReservaModalOpen(true); }} className={`${jakarta.className} flex items-center justify-center gap-2 font-black text-[#00577C] text-sm bg-slate-50 py-4 rounded-xl border border-slate-100`}>
-                <UserCircle size={18} /> Minhas Reservas
-              </button>
               <Link href="/cadastro" onClick={() => setIsMobileMenuOpen(false)} className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md`}>
                 Cartão Residente
               </Link>
@@ -331,8 +286,37 @@ export default function GaleriaPage() {
         </div>
       )}
 
-      {/* ── HERO (EMOLDURADO) ── */}
-      {!loading && fotos.length > 0 && <HeroCarrossel fotos={fotos} />}
+      {/* ── HERO EDITORIAL (IMAGEM ÚNICA E TEXTO GIGANTE) ── */}
+      {!loading && (
+        <section className="relative h-[90vh] min-h-[500px] w-full flex items-center justify-center overflow-hidden">
+          <div className="absolute inset-0 z-0">
+            <Image
+              src="https://images.pexels.com/photos/35859443/pexels-photo-35859443.jpeg?_gl=1*vji3f6*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3ODY4NDQzNTkkbzkyJGcxJHQxNzg2ODU1MDU1JGo0MyRsMCRoMA.."
+              alt="Galeria de São Geraldo do Araguaia"
+              fill
+              className="object-cover"
+              priority
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+          </div>
+
+          <div className="relative z-10 flex flex-col items-center text-center px-6 mt-16 max-w-5xl mx-auto">
+            <h1 className={`${jakarta.className} text-[3rem] sm:text-[4.5rem] md:text-[6rem] lg:text-[8rem] font-black uppercase tracking-tighter text-white drop-shadow-2xl leading-none`}>
+              Galeria
+            </h1>
+            <p className="text-white/95 text-lg md:text-2xl font-medium mt-6 drop-shadow-lg max-w-3xl">
+              Memórias e paisagens de São Geraldo do Araguaia
+            </p>
+          </div>
+
+          {/* ── ONDA DE TRANSIÇÃO ── */}
+          <div className="absolute bottom-0 left-0 w-full overflow-hidden leading-none z-20 translate-y-[1px]">
+            <svg className="relative block w-full h-[20px] md:h-[45px]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none">
+              <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V120H0V95.8C59.71,118.06,130.83,115.54,191.13,97.8,235.34,84.7,279.16,71.21,321.39,56.44Z" fill="#FDFCF7"></path>
+            </svg>
+          </div>
+        </section>
+      )}
 
       {/* ── GALERIA IMERSIVA (BENTO / MASONRY STYLE) ── */}
       <section className="max-w-[1400px] mx-auto px-6 py-10 md:py-16">
@@ -372,7 +356,7 @@ export default function GaleriaPage() {
         ) : fotos.length === 0 && !loading ? (
           <div className="text-center py-32 text-slate-400">
             <Camera className="w-16 h-16 mx-auto mb-4 opacity-50" />
-            <p className={`${jakarta.className} text-2xl font-black`}>Nenhuma foto registada.</p>
+            <p className={`${jakarta.className} text-2xl font-black`}>Nenhuma foto encontrada.</p>
           </div>
         ) : (
           <div className="space-y-32">
@@ -388,7 +372,6 @@ export default function GaleriaPage() {
                 {/* Grelha Dinâmica Premium */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
                   {fotosDaCategoria.map((foto, index) => {
-                    // Algumas fotos ocupam 2 colunas e 2 linhas para dar dinamismo (Bento Grid)
                     const isLarge = index % 5 === 0 && fotosDaCategoria.length > 2;
 
                     return (
@@ -409,7 +392,6 @@ export default function GaleriaPage() {
                             className="object-cover transition-transform duration-[2000ms] group-hover:scale-110"
                           />
                           
-                          {/* Overlay de Interação */}
                           <div className="absolute inset-0 bg-gradient-to-t from-[#002f40]/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                           
                           <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500 scale-75 group-hover:scale-100">
@@ -442,23 +424,16 @@ export default function GaleriaPage() {
             <div className="flex items-center gap-6">
               <Image src="/logop.png" alt="SagaTurismo" width={160} height={50} className="object-contain" />
               <div className="w-px h-12 bg-slate-200 hidden md:block" />
-              <Image src="/prefeitura.png" alt="Prefeitura de São Geraldo do Araguaia" width={140} height={50} className="object-contain" />
+              <Image src="/prefeitura.png" alt="Prefeitura de SGA" width={140} height={50} className="object-contain" />
             </div>
             <div className="text-left space-y-1 text-center md:text-left">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                © 2026 Secretaria Municipal de Turismo - SGA | Todos os direitos reservados
+                © 2026 Prefeitura Munícipal de São Geraldo do Araguaia - PA
               </p>
               <p className="text-[10px] font-bold text-slate-400/80">
                 CNPJ: 10.249.241/0001-22
               </p>
             </div>
-          </div>
-          <div className="flex gap-10">
-            <div className="text-left border-l-2 border-slate-100 pl-9">
-              <p className="text-[10px] font-black text-[#00577C] uppercase mb-1">Contato Oficial</p>
-              <p className="text-xs font-bold text-slate-500 tracking-tight">setursaga@gmail.com</p>
-            </div>
-            <ShieldCheck size={40} className="text-[#009640] opacity-30" />
           </div>
         </div>
       </footer>

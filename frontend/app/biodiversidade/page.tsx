@@ -16,6 +16,27 @@ const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] }
 const playfair = Playfair_Display({ subsets: ['latin'], weight: ['400', '700', '900'], style: ['normal', 'italic'] });
 
 // ==========================================
+// MENU GROUPS - HEADER DO SITE
+// ==========================================
+// ==========================================
+// MENU GROUPS - HEADER DO SITE
+// ==========================================
+const menuGroups = [
+  { 
+    label: 'Conhecer', 
+    links: ['Atrativos', 'História', 'Biodiversidade', 'Galeria'] 
+  },
+  { 
+    label: 'Viver', 
+    links: ['Eventos', 'Comunidades'] 
+  },
+  { 
+    label: 'Planejar', 
+    links: ['Hotéis', 'Gastronomia', 'Agências', 'Informações', 'Parceiros'] 
+  }
+];
+
+// ==========================================
 // MOTOR DE ANIMAÇÕES DE SCROLL
 // ==========================================
 function useScrollAnimation(threshold = 0.08) {
@@ -82,7 +103,6 @@ const cachoeiras = [
     nome: "Cachoeira Riacho Fundo",
     altura: "",
     dificuldade: "Não classificada",
-    descricao: "Sem descrição",
     destaque: true,
     imagem: "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/c2085f3b-dde5-4a96-b346-329b30ec4054.JPG"
   },
@@ -90,7 +110,6 @@ const cachoeiras = [
     nome: "Cachoeira Piscinão do Honorato",
     altura: "",
     dificuldade: "Não classificada",
-    descricao: "Sem descrição",
     destaque: true,
     imagem: "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/55aa42b0-0de1-4bdb-be7d-e1e5f6fe88e3.JPG"
   },
@@ -98,7 +117,6 @@ const cachoeiras = [
     nome: "Cachoeira do Poção",
     altura: "",
     dificuldade: "Não classificada",
-    descricao: "Sem descrição",
     destaque: true,
     imagem: "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/24445621-1a43-4ca4-ad51-d2c29c4cc6c3.JPG"
   },
@@ -106,7 +124,6 @@ const cachoeiras = [
     nome: "Cachoeira da Visagem",
     altura: "",
     dificuldade: "Não classificada",
-    descricao: "Sem descrição",
     destaque: true,
     imagem: "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/217474f1-5f64-4320-a672-3449cb669dce.JPG"
   },
@@ -114,7 +131,6 @@ const cachoeiras = [
     nome: "Cachoeira do Espelho",
     altura: "",
     dificuldade: "Não classificada",
-    descricao: "Sem descrição",
     destaque: true,
     imagem: "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/3d237e50-5fe7-4306-80ed-22d76292bbba.JPG"
   },
@@ -122,7 +138,6 @@ const cachoeiras = [
     nome: "Cachoeira da Vargem Grande",
     altura: "",
     dificuldade: "Não classificada",
-    descricao: "Sem descrição",
     destaque: true,
     imagem: "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/PHOTO-2026-06-09-01-00-26.jpg"
   }
@@ -161,14 +176,11 @@ function HeroBiodiversidade() {
       <div className="relative z-10 max-w-[1400px] w-full mx-auto">
         <div className="flex flex-col items-start">
           <h1 className={`${jakarta.className} text-[clamp(3.5rem,8vw,9rem)] font-black text-white leading-[0.88] mb-6`}>
-            Bio<br />
-            <span className="text-[#009640] italic">diversidade</span>
+            Parque<br />
+            <span className="text-[#009640] italic">Serra das Andorinhas</span>
           </h1>
-         
         </div>
       </div>
-
-      
 
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 hidden md:flex gap-8">
         {[
@@ -196,14 +208,13 @@ function SecParque() {
         <Reveal anim="up" className="mb-20">
           <div className="flex flex-col md:flex-row gap-12 md:gap-24 items-end">
             <div className="flex-1">
-             
               <h2 className={`${jakarta.className} text-5xl md:text-7xl font-black text-white leading-[0.9]`}>
                 Serra das<br /><span className="text-[#F9C400] italic">Andorinhas</span>
               </h2>
             </div>
             <div className="flex-1 max-w-md">
               <p className="text-white/50 text-lg leading-relaxed">
-                Criado em 1995, o Parque Estadual Serra das Andorinhas/Martírios protege uma das últimas faixas intactas da transição entre a Floresta Amazônica e o Cerrado no estado do Pará — um mosaico de ecossistemas de valor científico inestimável.
+                Criado em 1995, o Parque Estadual Serra das Andorinhas - Martírios (PESAM) protege uma das últimas faixas intactas da transição entre a Floresta Amazônica e o Cerrado no estado do Pará — um mosaico de ecossistemas de valor científico inestimável.
               </p>
             </div>
           </div>
@@ -248,6 +259,29 @@ function SecParque() {
             </Reveal>
           </div>
         </div>
+
+        <Reveal anim="up" delay={300} className="mt-20">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 border-t border-white/10 pt-16">
+            <div>
+              <h4 className={`${jakarta.className} text-[#F9C400] text-sm font-black uppercase tracking-widest mb-3`}>Importância Ecológica</h4>
+              <p className="text-white/50 text-sm leading-relaxed">
+                A Serra das Andorinhas funciona como um corredor ecológico vital, conectando a Floresta Amazônica ao Cerrado. Esta transição única abriga espécies de ambos os biomas, tornando a região um hotspot de biodiversidade com alto grau de endemismo.
+              </p>
+            </div>
+            <div>
+              <h4 className={`${jakarta.className} text-[#F9C400] text-sm font-black uppercase tracking-widest mb-3`}>Conservação</h4>
+              <p className="text-white/50 text-sm leading-relaxed">
+                A unidade de conservação protege nascentes que abastecem o Rio Araguaia e mantém intactos ecossistemas que funcionam como sumidouros de carbono, contribuindo ativamente para o equilíbrio climático da região amazônica.
+              </p>
+            </div>
+            <div>
+              <h4 className={`${jakarta.className} text-[#F9C400] text-sm font-black uppercase tracking-widest mb-3`}>Patrimônio Cultural</h4>
+              <p className="text-white/50 text-sm leading-relaxed">
+                Além de sua riqueza natural, a Serra das Andorinhas guarda sítios arqueológicos e pinturas rupestres que atestam a presença humana milenar na região, representando um patrimônio cultural de valor incalculável.
+              </p>
+            </div>
+          </div>
+        </Reveal>
       </div>
     </section>
   );
@@ -362,6 +396,14 @@ function SecCachoeiras() {
             ))}
           </div>
         )}
+
+        <Reveal anim="up" delay={400} className="mt-16">
+          <div className="border-t border-white/10 pt-12 text-center max-w-3xl mx-auto">
+            <p className="text-white/40 text-sm leading-relaxed">
+              As cachoeiras da Serra das Andorinhas são formadas por um sistema de nascentes que descem a serra em direção ao Rio Araguaia. Suas águas cristalinas, ricas em minerais, atraem visitantes do mundo inteiro em busca de banhos revigorantes e paisagens de tirar o fôlego.
+            </p>
+          </div>
+        </Reveal>
       </div>
     </section>
   );
@@ -377,7 +419,6 @@ function SecFauna() {
         <Reveal anim="up" className="mb-16">
           <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-8">
             <div>
-              
               <h2 className={`${jakarta.className} text-5xl md:text-8xl font-black text-white leading-[0.88]`}>
                 Animais <span className="text-[#009640] italic">da Serra</span>
               </h2>
@@ -421,6 +462,9 @@ function SecFauna() {
                   <p className="text-white/40 italic text-xs mb-1">{animal.cientifico}</p>
                   <h3 className={`${jakarta.className} text-2xl font-black mb-1`}>{animal.nome}</h3>
                   <p className="text-white/40 text-xs">{animal.habitat}</p>
+                  <span className="inline-block mt-2 bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-3 py-1 rounded-full text-[7px] font-black uppercase tracking-widest">
+                    {animal.ameaca}
+                  </span>
                 </div>
               </div>
             </Reveal>
@@ -443,6 +487,25 @@ function SecFauna() {
             </Reveal>
           ))}
         </div>
+
+        <Reveal anim="up" delay={300} className="mt-16">
+          <div className="border-t border-white/10 pt-12">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-4xl mx-auto">
+              <div>
+                <h4 className={`${jakarta.className} text-[#009640] text-sm font-black uppercase tracking-widest mb-3`}>Espécies Ameaçadas</h4>
+                <p className="text-white/40 text-sm leading-relaxed">
+                  A Serra das Andorinhas abriga importantes populações de espécies vulneráveis como a onça-pintada e o lobo-guará, além de endemismos como o sagui-da-serra e diversas aves que ocorrem apenas nesta região de transição.
+                </p>
+              </div>
+              <div>
+                <h4 className={`${jakarta.className} text-[#009640] text-sm font-black uppercase tracking-widest mb-3`}>Monitoramento</h4>
+                <p className="text-white/40 text-sm leading-relaxed">
+                  Equipes de conservação realizam monitoramento constante da fauna local, utilizando armadilhas fotográficas e coletas de dados que têm revelado comportamentos inéditos de espécies como o boto-cor-de-rosa no Rio Araguaia.
+                </p>
+              </div>
+            </div>
+          </div>
+        </Reveal>
       </div>
     </section>
   );
@@ -458,7 +521,6 @@ function SecFlora() {
         <Reveal anim="up" className="mb-16">
           <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-8">
             <div>
-             
               <h2 className={`${jakarta.className} text-5xl md:text-8xl font-black text-slate-900 leading-[0.88]`}>
                 Árvores <span className="text-[#009640] italic">da Serra</span>
               </h2>
@@ -476,17 +538,6 @@ function SecFlora() {
                 <Image src={planta.imagem} alt={planta.nome} fill className="object-cover opacity-80 group-hover:scale-105 group-hover:opacity-95 transition-all duration-1000" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
 
-                <div className="absolute top-5 left-5">
-                  <span className="text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full border"
-                    style={{
-                      color: planta.habitat.includes('Amazônica') ? '#009640' : '#c2930a',
-                      borderColor: planta.habitat.includes('Amazônica') ? '#00964060' : '#c2930a60',
-                      backgroundColor: planta.habitat.includes('Amazônica') ? '#00964020' : '#c2930a20'
-                    }}>
-                    {planta.habitat}
-                  </span>
-                </div>
-
                 <div className="absolute bottom-6 left-6 right-6 text-white">
                   <p className="text-white/40 italic text-xs mb-1">{planta.cientifico}</p>
                   <h3 className={`${jakarta.className} text-2xl font-black mb-2`}>{planta.nome}</h3>
@@ -496,6 +547,14 @@ function SecFlora() {
             </Reveal>
           ))}
         </div>
+
+        <Reveal anim="up" delay={300} className="mt-16">
+          <div className="border-t border-slate-200 pt-12 max-w-3xl mx-auto text-center">
+            <p className="text-slate-500 text-sm leading-relaxed">
+              A vegetação da Serra das Andorinhas é um verdadeiro livro vivo da evolução botânica brasileira. As castanheiras centenárias, os ipês que florescem em diferentes épocas e as palmeiras de buriti formam um mosaico de cores e formas que se transforma a cada estação do ano.
+            </p>
+          </div>
+        </Reveal>
       </div>
     </section>
   );
@@ -590,6 +649,7 @@ export default function BiodiversidadePage() {
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -604,26 +664,34 @@ export default function BiodiversidadePage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
-  // ── NOVO MENU AGRUPADO ──
-  const menuGroups = [
-    { label: 'Conhecer', links: ['Atrativos', 'Roteiros', 'História', 'Biodiversidade', 'Galeria'] },
-    { label: 'Viver', links: ['Passeios', 'Eventos', 'Comunidades', 'Aldeias'] },
-    { label: 'Planejar', links: ['Hotéis', 'Gastronomia', 'Agências', 'Informações', 'Parceiros'] }
-  ];
-
   return (
     <main className={`${inter.className} min-h-screen flex flex-col bg-[#021a0d] text-white overflow-x-hidden`}>
       <div className="flex-1">
         
-        {/* ── HEADER PADRÃO COM DROPDOWN ── */}
+        {/* ── HEADER CORRIGIDO ── */}
         <header
-          className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${showHeader ? 'translate-y-0' : '-translate-y-full'} ${isScrolled ? 'bg-[#021a0d]/95 backdrop-blur-md shadow-sm border-b border-white/10' : 'bg-transparent'}`}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+          className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${showHeader ? 'translate-y-0' : '-translate-y-full'} ${
+            (isScrolled || isHovered || isMobileMenuOpen) 
+              ? 'bg-[#021a0d]/95 backdrop-blur-md shadow-sm border-b border-white/10' 
+              : 'bg-transparent border-b border-transparent'
+          }`}
         >
           <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4 relative">
             <div className="flex-1">
-              <Link href="/" className="inline-flex items-center gap-3">
+              <Link href="/" className="inline-flex items-center gap-3 transition-all duration-300">
                 <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
-                  <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain brightness-0 invert" />
+                  <Image 
+                    src="/logop.png" 
+                    alt="SagaTurismo" 
+                    fill 
+                    className={`object-contain transition-all duration-300 ${
+                      (!isScrolled && !isHovered && !isMobileMenuOpen) 
+                        ? 'brightness-0 invert' 
+                        : ''
+                    }`} 
+                  />
                 </div>
               </Link>
             </div>
@@ -631,14 +699,18 @@ export default function BiodiversidadePage() {
             <nav className="hidden lg:flex items-center justify-center gap-12">
               {menuGroups.map((group) => (
                 <div key={group.label} className="relative group py-2">
-                  <button className={`${jakarta.className} flex items-center gap-1.5 text-xs font-black uppercase tracking-[0.2em] text-white/60 group-hover:text-white transition-colors`}>
+                  <button className={`${jakarta.className} flex items-center gap-1.5 text-xs font-black uppercase tracking-[0.2em] transition-colors ${
+                    (isScrolled || isHovered || isMobileMenuOpen) 
+                      ? 'text-white/60 group-hover:text-[#F9C400]' 
+                      : 'text-white group-hover:text-[#F9C400] drop-shadow-md'
+                  }`}>
                     {group.label} <ChevronDown size={14} className="group-hover:rotate-180 transition-transform duration-300" />
                   </button>
                   <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max bg-[#021a0d]/95 backdrop-blur-xl border border-white/10 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.5)] rounded-2xl p-2 opacity-0 invisible translate-y-2 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 transition-all duration-300 z-50 flex flex-row items-center gap-1">
                     {group.links.map((link) => {
                       const path = `/${link.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`;
                       return (
-                        <Link key={link} href={path} className={`${jakarta.className} block px-5 py-3 text-sm font-bold text-white/60 hover:text-white hover:bg-white/5 rounded-xl transition-all whitespace-nowrap`}>
+                        <Link key={link} href={path} className={`${jakarta.className} block px-5 py-3 text-sm font-bold text-white/60 hover:text-[#F9C400] hover:bg-white/5 rounded-xl transition-all whitespace-nowrap`}>
                           {link}
                         </Link>
                       );
@@ -649,12 +721,21 @@ export default function BiodiversidadePage() {
             </nav>
 
             <div className="flex-1 flex justify-end items-center gap-4">
-              <Link href="/cadastro" className={`hidden lg:inline-flex ${jakarta.className} bg-[#F9C400] text-[#002f40] px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-sm`}>
+              <Link href="/cadastro"
+                className={`hidden lg:inline-flex ${jakarta.className} px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-sm ${
+                  (isScrolled || isHovered || isMobileMenuOpen) 
+                    ? 'bg-[#F9C400] text-[#002f40]' 
+                    : 'bg-white/20 backdrop-blur-md text-white border border-white/30 hover:bg-white/30'
+                }`}>
                 Residente
               </Link>
               <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="rounded-xl p-2 lg:hidden bg-white/10 text-white hover:bg-white/20 transition-colors">
-                {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+                className={`rounded-xl p-2 lg:hidden transition-all duration-300 ${
+                  (isScrolled || isHovered || isMobileMenuOpen) 
+                    ? 'text-white hover:bg-white/10' 
+                    : 'text-white hover:bg-white/20'
+                }`}>
+                {isMobileMenuOpen ? <X className="h-8 w-8" /> : <Menu className="h-8 w-8" />}
               </button>
             </div>
           </div>
@@ -686,7 +767,7 @@ export default function BiodiversidadePage() {
           )}
         </header>
 
-        {/* CONTEÚDO DAS SECÇÕES INTOCADO */}
+        {/* CONTEÚDO DAS SECÇÕES */}
         <HeroBiodiversidade />
         <SecParque />
         <SecBiomas />
@@ -696,31 +777,12 @@ export default function BiodiversidadePage() {
         <SecCTA />
       </div>
 
-      {/* ── FOOTER PADRÃO ATUALIZADO ── */}
-      <footer className="py-20 px-8 border-t border-white/10 bg-[#021a0d] text-left mt-auto">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
-          <div className="flex flex-col items-center md:items-start gap-4">
-            <div className="flex items-center gap-6">
-              <Image src="/logop.png" alt="SagaTurismo" width={160} height={50} className="object-contain brightness-0 invert" />
-              <div className="w-px h-12 bg-white/10 hidden md:block" />
-              <Image src="/prefeitura.png" alt="Prefeitura de São Geraldo do Araguaia" width={140} height={50} className="object-contain brightness-0 invert" />
-            </div>
-            <div className="text-left space-y-1">
-              <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">
-                © 2026 Secretaria Municipal de Turismo - SGA | Todos os direitos reservados
-              </p>
-              <p className="text-[10px] font-bold text-white/20">
-                CNPJ: 10.249.241/0001-22
-              </p>
-            </div>
-          </div>
-          <div className="flex gap-10">
-            <div className="text-left border-l-2 border-white/10 pl-9">
-              <p className="text-[10px] font-black text-[#F9C400] uppercase mb-1">Contato Oficial</p>
-              <p className="text-xs font-bold text-white/40 tracking-tight">setursaga@gmail.com</p>
-            </div>
-            <ShieldCheck size={40} className="text-[#009640] opacity-30" />
-          </div>
+      {/* ── FOOTER ── */}
+      <footer className="relative z-10 py-7 bg-[#021a0d] border-t border-white/10">
+        <div className="w-full max-w-[1400px] mx-auto px-8 md:px-14 flex flex-col md:flex-row justify-between items-center gap-4">
+          <p className={`${jakarta.className} text-[10px] font-bold text-white/20 uppercase tracking-widest`}>
+            © {new Date().getFullYear()} Prefeitura Municipal de São Geraldo do Araguaia — Todos os direitos reservados.
+          </p>
         </div>
       </footer>
     </main>

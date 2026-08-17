@@ -193,7 +193,7 @@ export default function ComoChegarPage() {
       <section className="relative h-[90vh] min-h-[500px] w-full flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           <Image 
-            src="https://images.pexels.com/photos/11049777/pexels-photo-11049777.jpeg?_gl=1*18e0izh*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3ODY5MjcwNjUkbzk5JGcxJHQxNzg2OTI5MzUxJGoyMSRsMCRoMA.." 
+            src="https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galerias/WhatsApp%20Image%202026-08-16%20at%2001.59.15.jpeg" 
             alt="Como chegar em São Geraldo do Araguaia" 
             fill 
             className="object-cover" 
@@ -337,6 +337,45 @@ export default function ComoChegarPage() {
             </AnimatedSection>
             
           </div>
+
+          {/* ── DISTÂNCIAS (QUADRO) ── */}
+          <AnimatedSection animation="fade-up" className="bg-[#002f40] rounded-[3rem] p-10 md:p-16 relative overflow-hidden">
+            {/* Brilhos decorativos no fundo */}
+            <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-[#00577C] rounded-full blur-3xl opacity-50 translate-x-1/3 -translate-y-1/3 pointer-events-none" />
+            
+            <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-12">
+              <div className="text-center lg:text-left flex-1">
+                <h3 className={`${jakarta.className} text-3xl md:text-4xl font-black text-white mb-4`}>
+                  Distâncias de Referência
+                </h3>
+                <p className="text-white/70 text-sm md:text-base mb-8 lg:mb-0 max-w-md mx-auto lg:mx-0">
+                  Verifique a distância rodoviária aproximada entre as principais capitais e a cidade de São Geraldo do Araguaia (SGA).
+                </p>
+              </div>
+
+              <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-3 gap-4">
+                
+                <div className="bg-white/10 backdrop-blur-md border border-white/20 p-6 rounded-2xl text-center flex flex-col items-center justify-center group hover:bg-white/20 transition-colors">
+                  <MapPin size={24} className="text-[#F9C400] mb-3" />
+                  <p className="text-white font-bold text-lg mb-1 group-hover:scale-110 transition-transform">~ 711 km</p>
+                  <p className="text-white/60 text-[10px] font-black uppercase tracking-widest">Até Belém (PA)</p>
+                </div>
+
+                <div className="bg-white/10 backdrop-blur-md border border-white/20 p-6 rounded-2xl text-center flex flex-col items-center justify-center group hover:bg-white/20 transition-colors">
+                  <MapPin size={24} className="text-[#009640] mb-3" />
+                  <p className="text-white font-bold text-lg mb-1 group-hover:scale-110 transition-transform">~ 450 km</p>
+                  <p className="text-white/60 text-[10px] font-black uppercase tracking-widest">Até Palmas (TO)</p>
+                </div>
+
+                <div className="bg-white/10 backdrop-blur-md border border-white/20 p-6 rounded-2xl text-center flex flex-col items-center justify-center group hover:bg-white/20 transition-colors">
+                  <Navigation size={24} className="text-[#00577C] mb-3" />
+                  <p className="text-white font-bold text-lg mb-1 group-hover:scale-110 transition-transform">~ 1.200 km</p>
+                  <p className="text-white/60 text-[10px] font-black uppercase tracking-widest">Até Brasília (DF)</p>
+                </div>
+
+              </div>
+            </div>
+          </AnimatedSection>
 
         </div>
       </section>
