@@ -312,96 +312,18 @@ def notificar_guia_passeio_aprovado(email_guia: str, nome_guia: str, nome_passei
 # ==========================================
 # 6. NEWSLETTER COMERCIAL DA PREFEITURA
 # ==========================================
-def enviar_newsletter_comercial(emails_destino: List[str], assunto: str, titulo_noticia: str, texto_html: str, imagem_url: str = None, link_botao: str = None, texto_botao: str = None) -> int:
+# ==========================================
+# 6. NEWSLETTER COMERCIAL DA PREFEITURA
+# ==========================================
+def enviar_newsletter_comercial(emails_destino: List[str], assunto: str, texto_html: str) -> int:
     """
     Envia a newsletter comercial em lote para os inscritos utilizando o motor Resend existente.
+    Agora aceita HTML livre (raw) colado diretamente do editor Drag & Drop.
     """
-    FONT_STACK = "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
-    
-    # Bloco opcional de imagem principal
-    bloco_imagem = ""
-    if imagem_url:
-        bloco_imagem = f"""
-        <tr>
-            <td style="padding:0 40px 24px 40px;">
-                <img src="{imagem_url}" alt="{titulo_noticia}" style="display:block; width:100%; max-width:520px; height:auto; border-radius:16px; object-fit:cover; margin:0 auto;">
-            </td>
-        </tr>
-        """
-
-    # Bloco opcional de botão de ação
-    bloco_botao = ""
-    if link_botao and texto_botao:
-        bloco_botao = f"""
-        <tr>
-            <td align="center" style="padding:24px 40px 32px 40px;">
-                <table role="presentation" cellspacing="0" cellpadding="0" border="0">
-                    <tr>
-                        <td align="center" style="background-color:#00577C; border-radius:12px;">
-                            <a href="{link_botao}" target="_blank" style="font-family:{FONT_STACK}; font-size:15px; font-weight:700; color:#FFFFFF; text-decoration:none; padding:14px 28px; border-radius:12px; display:inline-block; border:1px solid #00577C;">
-                                {texto_botao} &rarr;
-                            </a>
-                        </td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-        """
-
     sucessos = 0
     for email in emails_destino:
-        html = f"""
-        <div style="background-color:#F8FAFC; margin:0; padding:0; width:100%;">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F8FAFC; width:100%;">
-                <tr>
-                    <td align="center" style="padding:48px 16px;">
-                        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%; max-width:600px; background-color:#FFFFFF; border-radius:24px; overflow:hidden; box-shadow:0 4px 24px rgba(15,23,42,0.06);">
-                            
-                            <!-- Header Logo -->
-                            <tr>
-                                <td align="center" style="padding:40px 40px 24px 40px; background-color:#FFFFFF;">
-                                    <img src="{LOGO_URL}" width="140" alt="SagaTurismo" style="display:block; width:140px; height:auto; margin:0 auto; border:0;">
-                                </td>
-                            </tr>
-
-                            <!-- Título e Texto -->
-                            <tr>
-                                <td style="padding:0 40px 20px 40px;">
-                                    <p style="margin:0 0 12px 0; font-family:{FONT_STACK}; font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:#00577C;">
-                                        Informativo Oficial &bull; SagaTurismo
-                                    </p>
-                                    <h1 style="margin:0 0 16px 0; font-family:{FONT_STACK}; font-size:24px; line-height:1.3; font-weight:700; color:#0F172A;">
-                                        {titulo_noticia}
-                                    </h1>
-                                    <div style="font-family:{FONT_STACK}; font-size:15px; line-height:1.6; color:#475569;">
-                                        {texto_html}
-                                    </div>
-                                </td>
-                            </tr>
-
-                            {bloco_imagem}
-                            {bloco_botao}
-
-                        </table>
-
-                        <!-- Footer -->
-                        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%; max-width:600px;">
-                            <tr>
-                                <td align="center" style="padding:24px 24px 0 24px; font-family:{FONT_STACK}; font-size:12px; line-height:1.6; color:#94A3B8;">
-                                    Recebeu este e-mail porque se cadastrou no portal SagaTurismo.<br>
-                                    &copy; 2026 Prefeitura Municipal de São Geraldo do Araguaia - PA
-                                </td>
-                            </tr>
-                        </table>
-
-                    </td>
-                </tr>
-            </table>
-        </div>
-        """
-        
-        # Dispara utilizando a função segura que já existe no seu serviço[cite: 5]
-        if enviar_email(email, assunto, html):
+        # Usa diretamente o texto_html fornecido pelo frontend sem envolver em outro template
+        if enviar_email(email, assunto, texto_html):
             sucessos += 1
             
     return sucessos

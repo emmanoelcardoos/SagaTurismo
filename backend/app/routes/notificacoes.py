@@ -2,7 +2,8 @@ from fastapi import APIRouter, Request, HTTPException
 from pydantic import BaseModel
 import os
 from supabase import create_client, Client
-from app.services.email_service import enviar_email_boas_vindas
+from app.services.email_service import enviar_email_boas_vindas, enviar_newsletter_comercial
+from typing import List, Optional
 
 # Importação dos e-mails transacionais do service
 from app.services.email_service import notificar_admin_novo_passeio, notificar_guia_passeio_aprovado
@@ -22,6 +23,11 @@ class SchemaNotificacaoPasseio(BaseModel):
 
 class SchemaEmailBoasVindas(BaseModel):
     email: str
+
+class SchemaNewsletter(BaseModel):
+    emails: List[str]
+    assunto: str
+    texto_html: str
 
 # 1. ROTA DE NOTIFICAÇÃO INICIAL (CHAMADA PELO FRONTEND)
 @router.post("/api/v1/notificacoes/novo-passeio")
@@ -74,17 +80,6 @@ async def webhook_supabase_passeio_aprovado(request: Request):
 # ==========================================
 # 3. ROTA DE DISPARO DA NEWSLETTER COMERCIAL
 # ==========================================
-from app.services.email_service import enviar_newsletter_comercial
-from typing import List, Optional
-
-class SchemaNewsletter(BaseModel):
-    emails: List[str]
-    assunto: str
-    titulo_noticia: str
-    texto_html: str
-    imagem_url: Optional[str] = None
-    link_botao: Optional[str] = None
-    texto_botao: Optional[str] = None
 
 @router.post("/api/v1/newsletter/disparar")
 async def disparar_newsletter(payload: SchemaNewsletter):
@@ -92,11 +87,7 @@ async def disparar_newsletter(payload: SchemaNewsletter):
         sucessos = enviar_newsletter_comercial(
             emails_destino=payload.emails,
             assunto=payload.assunto,
-            titulo_noticia=payload.titulo_noticia,
-            texto_html=payload.texto_html,
-            imagem_url=payload.imagem_url,
-            link_botao=payload.link_botao,
-            texto_botao=payload.texto_botao
+            texto_html=payload.texto_html
         )
         
         return {
