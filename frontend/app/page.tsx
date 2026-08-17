@@ -582,7 +582,7 @@ function SeccaoPasseios() {
 }
 
 // ==========================================
-// COMPONENTE: NEWSLETTER HOME (VERSÃO CLEAN)
+// COMPONENTE: NEWSLETTER HOME (INTEGRADA)
 // ==========================================
 function NewsletterHome() {
   const [email, setEmail] = useState('');
@@ -622,44 +622,68 @@ function NewsletterHome() {
   }
 
   return (
-    <section className="py-24 bg-[#FDFCF7] border-t border-slate-100 overflow-hidden">
-      <div className="max-w-[900px] mx-auto px-6 text-center">
-        <AnimatedSection animation="fade-up">
+    <section className="py-24 bg-[#FDFCF7] overflow-hidden border-t border-slate-100">
+      <div className="max-w-[1400px] mx-auto px-6">
+        
+        <div className="grid md:grid-cols-2 gap-12 lg:gap-20 items-center">
           
-          <h2 className={`${jakarta.className} text-4xl md:text-6xl font-black text-slate-900 mb-6 tracking-tight leading-tight`}>
-            Receba as novidades de<br />
-            <span className="italic text-[#00577C]">São Geraldo do Araguaia</span>
-          </h2>
-          
-          <p className="text-slate-500 text-base md:text-lg mb-10 max-w-xl mx-auto font-medium">
-            Inscreva-se para receber roteiros exclusivos, avisos de eventos e descontos especiais diretamente no seu e-mail.
-          </p>
-
-          <form onSubmit={handleSubmeter} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="O seu melhor e-mail..."
-              className="flex-1 bg-white border border-slate-200 text-slate-800 placeholder:text-slate-400 text-sm rounded-2xl px-5 py-4 focus:outline-none focus:border-[#00577C] transition shadow-sm"
-              required
+          {/* LADO ESQUERDO: Imagem Inspiradora (Agora independente, com a sua própria moldura) */}
+          <AnimatedSection animation="fade-right" className="order-2 md:order-1 relative h-[400px] md:h-[550px] w-full rounded-[2.5rem] md:rounded-[3rem] overflow-hidden shadow-2xl border-[4px] border-white">
+            <Image 
+              src="https://images.pexels.com/photos/30908687/pexels-photo-30908687.jpeg?_gl=1*7war0e*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3ODY5Njc2MzIkbzEwMCRnMSR0MTc4Njk2ODAzNSRqNTkkbDAkaDA." 
+              alt="Natureza em São Geraldo do Araguaia" 
+              fill 
+              className="object-cover hover:scale-105 transition-transform duration-[2000ms]" 
             />
-            <button
-              type="submit"
-              disabled={loading}
-              className="bg-[#00577C] hover:bg-[#004a6b] text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-md transition-all flex items-center justify-center gap-2 shrink-0 disabled:opacity-50"
-            >
-              {loading ? <Loader2 size={16} className="animate-spin" /> : 'Inscrever'}
-            </button>
-          </form>
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent" />
+            
+            <div className="absolute bottom-8 left-8 right-8">
+              <p className={`${jakarta.className} text-white font-black text-3xl md:text-4xl leading-tight drop-shadow-md`}>
+                A sua próxima aventura<br/>começa aqui.
+              </p>
+            </div>
+          </AnimatedSection>
 
-          {mensagem && (
-            <p className={`mt-4 text-xs font-bold ${mensagem.tipo === 'sucesso' ? 'text-[#009640]' : 'text-red-500'}`}>
-              {mensagem.texto}
+          {/* LADO DIREITO: Textos e Formulário (Integrados no fundo da página) */}
+          <AnimatedSection animation="fade-left" className="order-1 md:order-2 flex flex-col justify-center relative z-10 py-8">
+            
+            <h2 className={`${jakarta.className} text-5xl md:text-6xl lg:text-7xl font-black text-slate-900 leading-[0.9] tracking-tight mb-8`}>
+              Newsletter de <br />
+              <span className="italic text-[#00577C]">São Geraldo do Araguaia</span>
+            </h2>
+            
+            <p className="text-slate-500 text-lg leading-relaxed mb-8 font-medium max-w-lg">
+              Inscreva-se para receber roteiros exclusivos, avisos sobre novos eventos culturais e descontos especiais diretamente no seu e-mail.
             </p>
-          )}
 
-        </AnimatedSection>
+            <form onSubmit={handleSubmeter} className="flex flex-col sm:flex-row gap-3 w-full max-w-xl">
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="O seu melhor e-mail..."
+                className="flex-1 bg-white border border-slate-200 text-slate-800 placeholder:text-slate-400 text-sm rounded-2xl px-6 py-4 focus:outline-none focus:border-[#00577C] focus:ring-2 focus:ring-[#00577C]/20 transition-all shadow-sm"
+                required
+              />
+              <button
+                type="submit"
+                disabled={loading}
+                className="bg-[#00577C] hover:bg-[#004a6b] hover:-translate-y-1 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg transition-all flex items-center justify-center gap-2 shrink-0 disabled:opacity-50 disabled:hover:translate-y-0"
+              >
+                {loading ? <Loader2 size={16} className="animate-spin" /> : 'Inscrever'}
+              </button>
+            </form>
+
+            {mensagem && (
+              <div className={`mt-6 inline-flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold w-fit ${mensagem.tipo === 'sucesso' ? 'bg-green-50 text-[#009640] border border-green-100' : 'bg-red-50 text-red-500 border border-red-100'}`}>
+                {mensagem.tipo === 'sucesso' ? <CheckCircle2 size={18} /> : <X size={18} />}
+                {mensagem.texto}
+              </div>
+            )}
+            
+          </AnimatedSection>
+        </div>
+
       </div>
     </section>
   );

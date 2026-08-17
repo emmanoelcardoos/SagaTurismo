@@ -272,28 +272,25 @@ export default function AgenciasPage() {
             {[...Array(6)].map((_, i) => <AgenciaCardSkeleton key={i} />)}
           </div>
         ) : agencias.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 px-6 text-center max-w-2xl mx-auto bg-white rounded-[3rem] border border-slate-100 shadow-2xl shadow-slate-200/50 my-10">
-            <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-8 border border-slate-100 shadow-inner">
-              <Briefcase className="text-[#00577C] w-10 h-10" />
-            </div>
-            <h3 className={`${jakarta.className} text-3xl md:text-4xl font-black text-slate-900 mb-4 tracking-tight`}>
-              Organizando os guias e agências
-            </h3>
-            <p className="text-slate-500 font-medium leading-relaxed mb-10 text-base md:text-lg">
-              A equipe da Prefeitura está cadastrando os guias, barqueiros e operadores turísticos locais. Nosso objetivo é conectar os visitantes aos profissionais de São Geraldo do Araguaia para passeios seguros e inesquecíveis.
-            </p>
-            <div className="w-full h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent mb-10" />
-            <h4 className={`${jakarta.className} text-xl font-black text-[#00577C] mb-3`}>
-              Você atua no turismo local?
-            </h4>
-            <p className="text-slate-500 text-sm font-medium mb-8 max-w-md">
-              O portal municipal é um espaço de todos. A inscrição é totalmente gratuita e aberta a qualquer prestador de serviços receptivos do município.
-            </p>
-            <Link href="/parceiros" className="inline-flex items-center justify-center gap-3 bg-[#F9C400] text-[#002f40] px-8 py-4 rounded-full font-black text-xs uppercase tracking-widest shadow-xl hover:bg-[#e5b500] hover:scale-105 transition-all">
-              Fazer Inscrição Gratuita <ArrowRight size={16} />
-            </Link>
+        <div className="flex flex-col items-center justify-center py-16 px-6 text-center max-w-2xl mx-auto bg-white rounded-[2rem] border border-slate-100 my-10">
+          <div className="w-16 h-16 bg-[#F9C400]/20 rounded-full flex items-center justify-center mb-6">
+            <Briefcase className="text-[#00577C] w-8 h-8" />
           </div>
-        ) : (
+          <h3 className={`${jakarta.className} text-2xl md:text-3xl font-black text-slate-900 mb-3`}>
+            Guias e agências em cadastro
+          </h3>
+          <p className="text-slate-500 text-base leading-relaxed mb-6 max-w-lg">
+            A Prefeitura está cadastrando os profissionais de turismo locais. Em breve você poderá encontrar todos os guias, barqueiros e operadores da região.
+          </p>
+          <div className="w-16 h-px bg-slate-200 mb-6" />
+          <p className="text-slate-700 font-semibold text-sm mb-4">
+            Trabalha com turismo em São Geraldo do Araguaia?
+          </p>
+          <Link href="/parceiros" className="inline-flex items-center gap-2 bg-[#F9C400] text-[#002f40] px-6 py-3 rounded-full font-bold text-sm shadow-lg hover:bg-[#e5b500] hover:scale-105 transition-all">
+            Fazer inscrição gratuita <ArrowRight size={14} />
+          </Link>
+        </div>
+      ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {agencias.map((agencia, index) => {
               // ── USA LOGO_URL COMO IMAGEM PRINCIPAL ──
