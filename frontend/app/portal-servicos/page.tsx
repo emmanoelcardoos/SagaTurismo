@@ -548,21 +548,19 @@ function TabBlog() {
 // NEWSLETTER COMERCIAL
 // ═══════════════════════════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// NEWSLETTER COMERCIAL (HTML LIVRE)
+// ═══════════════════════════════════════════════════════════════════════════════
+
 function TabNewsletter() {
   const [inscritos, setInscritos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [enviando, setEnviando] = useState(false);
   const [feedback, setFeedback] = useState("");
 
-  // Campos do Template Comercial
+  // Campos Simplificados
   const [assunto, setAssunto] = useState("");
-  const [tituloNoticia, setTituloNoticia] = useState("");
   const [textoHtml, setTextoHtml] = useState("");
-  const [imagemUrl, setImagemUrl] = useState("");
-  const [linkBotao, setLinkBotao] = useState("");
-  const [textoBotao, setTextoBotao] = useState("");
-  
-  const [imagemFile, setImagemFile] = useState<File | null>(null);
 
   useEffect(() => {
     fetchInscritos();
@@ -570,7 +568,6 @@ function TabNewsletter() {
 
   async function fetchInscritos() {
     setLoading(true);
-    // Tabela criada no Supabase sem a coluna 'nome'
     const { data, error } = await supabase.from("newsletter_inscritos").select("*").order("criado_em", { ascending: false });
     if (data) setInscritos(data);
     setLoading(false);
@@ -578,8 +575,8 @@ function TabNewsletter() {
 
   async function handleDisparar(e: React.FormEvent) {
     e.preventDefault();
-    if (!assunto || !tituloNoticia || !textoHtml) {
-      alert("Preencha o assunto, o título e o conteúdo da newsletter.");
+    if (!assunto || !textoHtml) {
+      alert("Preencha o assunto e cole o código HTML da newsletter.");
       return;
     }
 
@@ -593,44 +590,24 @@ function TabNewsletter() {
     }
 
     setEnviando(true);
-    setFeedback("A carregar imagens e a preparar disparos em lote...");
-
-    let finalImageUrl = imagemUrl;
-    
-    // Se o editor anexou um ficheiro do computador, faz upload para o Supabase Storage
-    if (imagemFile) {
-      const ext = imagemFile.name.split('.').pop();
-      const path = `newsletter/${Date.now()}.${ext}`;
-      const { error: uploadErr } = await supabase.storage.from('galeria').upload(path, imagemFile);
-      if (!uploadErr) {
-        const { data: pubUrl } = supabase.storage.from('galeria').getPublicUrl(path);
-        finalImageUrl = pubUrl.publicUrl;
-      }
-    }
+    setFeedback("A preparar disparos em lote...");
 
     const listaEmails = inscritos.map(i => i.email);
 
     try {
-      // Como a API do seu backend em Python (FastAPI/Next) gere o envio com o Resend, 
-      // pode disparar diretamente por fetch para a rota ou chamar a função se estiver no mesmo ambiente Next.js.
-      // Aqui simulamos a chamada via API interna do projeto:
       const response = await fetch('https://sagaturismo-production.up.railway.app/api/v1/newsletter/disparar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           emails: listaEmails,
           assunto,
-          titulo_noticia: tituloNoticia,
-          texto_html: textoHtml,
-          imagem_url: finalImageUrl,
-          link_botao: linkBotao,
-          texto_botao: textoBotao
+          texto_html: textoHtml
         })
       });
 
       if (response.ok) {
         setFeedback(`Sucesso! Newsletter disparada para ${inscritos.length} destinatários.`);
-        setAssunto(""); setTituloNoticia(""); setTextoHtml(""); setImagemUrl(""); setLinkBotao(""); setTextoBotao(""); setImagemFile(null);
+        setAssunto(""); setTextoHtml("");
       } else {
         setFeedback("Erro ao disparar e-mails pelo servidor.");
       }
@@ -652,39 +629,26 @@ function TabNewsletter() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* FORMULÁRIO DE CRIAÇÃO DO TEMPLATE COMERCIAL */}
+        {/* FORMULÁRIO DE DISPARO (CÓDIGO LIVRE) */}
         <div className="lg:col-span-2 bg-white rounded-[2rem] p-8 shadow-sm border border-slate-200">
           <h3 className={`${jakarta.className} text-lg font-black text-slate-800 mb-6 flex items-center gap-2`}>
-            <Bell size={18} className="text-[#F9C400]" /> Construtor de E-mail Comercial
+            <Bell size={18} className="text-[#F9C400]" /> Disparo de E-mail (Código Livre)
           </h3>
 
           <form onSubmit={handleDisparar} className="space-y-5">
             <FormField label="Assunto do E-mail (O que aparece na caixa de entrada) *">
-              <input value={assunto} onChange={e => setAssunto(e.target.value)} className={inputCls} placeholder="Ex: Descubra as novas cachoeiras de São Geraldo do Araguaia 🌿" required />
+              <input value={assunto} onChange={e => setAssunto(e.target.value)} className={inputCls} placeholder="Ex: Descubra as novas cachoeiras 🌿" required />
             </FormField>
 
-            <FormField label="Título Principal da Notícia no E-mail *">
-              <input value={tituloNoticia} onChange={e => setTituloNoticia(e.target.value)} className={inputCls} placeholder="Ex: Temporada de Ecoturismo Aberta!" required />
-            </FormField>
-
-            <FormField label="Texto / Corpo da Mensagem (Suporta HTML básico como <p>, <b>) *">
-              <textarea rows={6} value={textoHtml} onChange={e => setTextoHtml(e.target.value)} className={inputCls} placeholder="Escreva o texto comercial da agência aqui..." required />
-            </FormField>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField label="Link do Botão (Opcional)">
-                <input value={linkBotao} onChange={e => setLinkBotao(e.target.value)} className={inputCls} placeholder="https://sagaturismo.com.br/pacotes" />
-              </FormField>
-              <FormField label="Texto do Botão (Ex: Ver Pacotes)">
-                <input value={textoBotao} onChange={e => setTextoBotao(e.target.value)} className={inputCls} placeholder="Garantir Minha Vaga" />
-              </FormField>
-            </div>
-
-            <FormField label="Imagem de Destaque da Campanha">
-              <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 text-slate-500 p-4 rounded-xl cursor-pointer hover:border-[#00577C] transition-colors text-xs">
-                <input type="file" accept="image/*" className="hidden" onChange={(e) => setImagemFile(e.target.files?.[0] || null)} />
-                <ImageIcon size={18} /> {imagemFile ? imagemFile.name : "Anexar Imagem Comercial"}
-              </label>
+            <FormField label="Código HTML Completo (Cole aqui o código do seu editor) *">
+              <textarea 
+                rows={16} 
+                value={textoHtml} 
+                onChange={e => setTextoHtml(e.target.value)} 
+                className={`${inputCls} font-mono text-xs bg-slate-900 text-green-400 p-4`} 
+                placeholder="<!DOCTYPE html><html>..." 
+                required 
+              />
             </FormField>
 
             <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
