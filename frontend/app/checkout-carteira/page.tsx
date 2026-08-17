@@ -359,52 +359,68 @@ function CheckoutCarteiraContent() {
           </div>
 
           {/* ── COLUNA DIREITA (SIDECAR) PERFEITAMENTE FIXO ── */}
-          <aside className="w-full relative order-first lg:order-last h-fit lg:sticky lg:top-32">
-            <SectionCard>
-              <div className="h-2 w-full bg-gradient-to-r from-[#00577C] via-[#F9C400] to-[#009640]" />
-              <div className="p-6 md:p-8 border-b border-slate-100 text-left bg-slate-50">
-                <p className="text-[10px] font-black uppercase text-[#00577C] tracking-widest mb-2 flex items-center gap-2"><CheckCircle2 size={14}/> Resumo da Emissão</p>
-                <h3 className={`${jakarta.className} text-xl font-black text-slate-800 leading-tight`}>Cartão de Residente</h3>
-              </div>
+          <aside className="w-full relative order-first lg:order-last h-fit">
+          <SectionCard>
+            <div className="h-2 w-full bg-gradient-to-r from-[#00577C] via-[#F9C400] to-[#009640]" />
+            <div className="p-6 md:p-8 border-b border-slate-100 text-left bg-slate-50">
+              <p className="text-[10px] font-black uppercase text-[#00577C] tracking-widest mb-2 flex items-center gap-2">
+                <CheckCircle2 size={14}/> Resumo da Emissão
+              </p>
+              <h3 className={`${jakarta.className} text-xl font-black text-slate-800 leading-tight`}>Cartão de Residente</h3>
+            </div>
 
-              <div className="p-6 md:p-8 space-y-6 text-left">
-                 <div className="space-y-4 pb-6 border-b border-slate-100">
-                    <div>
-                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1"><User size={12}/> Titular da Conta Aprovado</p>
-                        <p className="font-bold text-slate-800 text-sm">{dadosCidadão?.nome || nomeTitular || 'Indisponível no momento'}</p>
-                    </div>
-                    {(dadosCidadão?.email || emailTitular) && (
-                      <div>
-                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1"><Mail size={12}/> Envio dos Vouchers</p>
-                         <p className="font-bold text-slate-800 text-sm">{dadosCidadão?.email || emailTitular}</p>
-                      </div>
-                    )}
-                 </div>
-
-                 <div className="flex justify-between items-center text-sm">
-                    <span className="font-bold text-slate-500 flex items-center gap-2"><Users size={16}/> Grupo Familiar Aprovado</span>
-                    <span className="font-black text-slate-800">{quantidade} {quantidade === 1 ? 'Pessoa' : 'Pessoas'}</span>
-                 </div>
-                 
-                 <div className="pt-4 border-t border-dashed border-slate-200 space-y-2 text-sm">
-                    <div className="flex justify-between text-slate-600">
-                       <span>Taxa Unitária de Emissão</span>
-                       <span className="font-bold">{formatarMoeda(PRECO_UNITARIO)}</span>
-                    </div>
-                 </div>
-
-                 <div className="pt-8 border-t-2 border-slate-100 flex flex-col gap-4">
-                    <div className="flex items-center justify-between">
-                       <p className="text-xs font-black uppercase text-slate-400 tracking-widest">Valor Total</p>
-                       <div className="bg-[#00577C]/10 px-3 py-1 rounded-full flex items-center gap-1.5 text-[#00577C] text-[10px] font-black uppercase">Tarifa Única</div>
-                    </div>
-                    <p className={`${jakarta.className} text-4xl md:text-5xl font-black text-[#00577C] tabular-nums leading-none`}>
-                      {formatarMoeda(valorTotalReserva)}
+            <div className="p-6 md:p-8 space-y-6 text-left">
+              <div className="space-y-4 pb-6 border-b border-slate-100">
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1">
+                      <User size={12}/> Titular da Conta Aprovado
                     </p>
-                 </div>
+                      <p className="font-bold text-slate-800 text-sm">
+                        {dadosCidadão?.nome || nomeTitular || 'Indisponível no momento'}
+                      </p>
+                  </div>
+                  {(dadosCidadão?.email || emailTitular) && (
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1">
+                        <Mail size={12}/> Envio dos Vouchers
+                      </p>
+                      <p className="font-bold text-slate-800 text-sm">
+                        {dadosCidadão?.email || emailTitular}
+                      </p>
+                    </div>
+                  )}
               </div>
-            </SectionCard>
-          </aside>
+
+              <div className="flex justify-between items-center text-sm">
+                  <span className="font-bold text-slate-500 flex items-center gap-2">
+                    <Users size={16}/> Grupo Familiar Aprovado
+                  </span>
+                  <span className="font-black text-slate-800">
+                    {quantidade} {quantidade === 1 ? 'Pessoa' : 'Pessoas'}
+                  </span>
+              </div>
+              
+              <div className="pt-4 border-t border-dashed border-slate-200 space-y-2 text-sm">
+                  <div className="flex justify-between text-slate-600">
+                    <span>Taxa Unitária de Emissão</span>
+                    <span className="font-bold">{formatarMoeda(PRECO_UNITARIO)}</span>
+                  </div>
+              </div>
+
+              <div className="pt-8 border-t-2 border-slate-100 flex flex-col gap-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-black uppercase text-slate-400 tracking-widest">Valor Total</p>
+                    <div className="bg-[#00577C]/10 px-3 py-1 rounded-full flex items-center gap-1.5 text-[#00577C] text-[10px] font-black uppercase">
+                      Tarifa Única
+                    </div>
+                  </div>
+                  <p className={`${jakarta.className} text-4xl md:text-5xl font-black text-[#00577C] tabular-nums leading-none`}>
+                    {formatarMoeda(valorTotalReserva)}
+                  </p>
+              </div>
+            </div>
+          </SectionCard>
+        </aside>
           
         </div>
       </div>

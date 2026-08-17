@@ -611,7 +611,14 @@ function NewsletterHome() {
           throw error;
         }
       } else {
-        setMensagem({ texto: 'Inscrição realizada com sucesso! Bem-vindo(a).', tipo: 'sucesso' });
+        // ▼ NOVA CHAMADA AO BACKEND PARA DISPARAR AS BOAS-VINDAS
+        await fetch('https://sagaturismo-production.up.railway.app/api/v1/newsletter/boas-vindas', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email })
+        });
+          
+        setMensagem({ texto: 'Inscrição realizada com sucesso! Verifique a sua caixa de entrada.', tipo: 'sucesso' });
         setEmail('');
       }
     } catch (err) {
