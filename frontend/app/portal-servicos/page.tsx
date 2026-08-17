@@ -9,11 +9,15 @@ import {
   Upload, Image as ImageIcon, Save, Loader2, FileSpreadsheet, Utensils, MapPin, Phone, Plus, Trash2,
   Building2, Briefcase, Compass, Newspaper
 } from 'lucide-react';
-// Cole isto junto aos outros imports no topo do ficheiro
 import dynamic from 'next/dynamic';
-import 'react-quill/dist/quill.snow.css'; // Estilos do editor
+import 'react-quill/dist/quill.snow.css';
+import katex from 'katex';
+import 'katex/dist/katex.min.css';
 
-// Como o Next.js usa SSR (Server Side Rendering), o Quill tem de ser importado dinamicamente
+if (typeof window !== "undefined") {
+  window.katex = katex;
+}
+
 const ReactQuill = dynamic(() => import('react-quill'), { 
   ssr: false,
   loading: () => <p className="text-sm text-slate-400 p-4">A carregar editor de texto...</p>
@@ -22,12 +26,13 @@ const ReactQuill = dynamic(() => import('react-quill'), {
 // Configuração da barra de ferramentas (Opções que o utilizador vai ter)
 const quillModules = {
   toolbar: [
-    [{ 'header': [1, 2, 3, 4, false] }], // Tamanhos de título
-    ['bold', 'italic', 'underline', 'strike'], // Formatações básicas
-    [{ 'color': [] }, { 'background': [] }], // Cores
-    [{ 'list': 'ordered'}, { 'list': 'bullet' }, { 'align': [] }], // Listas e alinhamento
-    ['link', 'image', 'video'], // Links e multimédia
-    ['clean'] // Limpar formatação
+    [{ 'header': [1, 2, 3, 4, false] }],
+    ['bold', 'italic', 'underline', 'strike'],
+    [{ 'script': 'sub'}, { 'script': 'super' }], // Importante para notações
+    [{ 'color': [] }, { 'background': [] }],
+    [{ 'list': 'ordered'}, { 'list': 'bullet' }, { 'align': [] }],
+    ['link', 'image', 'video', 'formula'], // ◄── 'formula' adicionado aqui
+    ['clean']
   ],
 };
 
@@ -171,6 +176,7 @@ function AdminDashboard({ role, onLogout }: { role: "geral" | "turismo" | "meio_
   const allowedTabs = [
     { id: "dashboard",   label: "Painel Geral", icon: <Activity size={18} /> },
     { id: "blog",        label: "Blog/Notícias",icon: <Newspaper size={18} /> },
+    { id: "newsletter",  label: "Newsletter",   icon: <Bell size={18} /> }, 
     { id: "eventos",     label: "Eventos",      icon: <CalendarIcon size={18} /> },
     { id: "atracoes",    label: "Atrações",     icon: <MapPin size={18} /> },
     { id: "hoteis",      label: "Hotéis",       icon: <Building2 size={18} /> },
@@ -214,6 +220,7 @@ function AdminDashboard({ role, onLogout }: { role: "geral" | "turismo" | "meio_
         {activeTab === "pedidos"     && <TabPedidos />}
         {activeTab === "hoteis"      && <TabHoteis />} 
         {activeTab === "agencias"    && <TabAgencias />}
+        {activeTab === "newsletter" && <TabNewsletter />}
       </main>
     </div>
   );
@@ -325,9 +332,10 @@ function TabBlog() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editando, setEditando] = useState<BlogPost | null>(null);
+  const [modoEditor, setModoEditor] = useState<'visual' | 'codigo'>('visual');
   
   const formVazio = { 
-    titulo: "", resumo: "", conteudo: "", 
+    titulo: "", resumo: "", conteudo: "", legenda_imagem_capa: "", // ◄── Novo
     data_publicacao: new Date().toISOString().split('T')[0], 
     autor: "Redação", categoria: "Turismo", 
     ativo: true, destaque: false 
@@ -416,18 +424,48 @@ function TabBlog() {
             <div className="lg:col-span-2 space-y-5">
               <FormField label="Título da Notícia/Artigo *"><input value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value })} className={inputCls} placeholder="Ex: Novo roteiro descoberto..." /></FormField>
               <FormField label="Resumo Breve"><textarea value={form.resumo || ""} onChange={(e) => setForm({ ...form, resumo: e.target.value })} rows={2} className={inputCls} placeholder="Uma breve frase sobre o artigo" /></FormField>
-              <FormField label="Conteúdo Completo (Editor Visual) *">
-                <div className="bg-white border border-slate-200 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-black text-slate-500 uppercase tracking-wider">
+                  Conteúdo Completo *
+                </label>
+                {/* Abas de troca de modo */}
+                <div className="flex bg-slate-100 p-1 rounded-lg">
+                  <button 
+                    type="button"
+                    onClick={() => setModoEditor('visual')}
+                    className={`text-[10px] font-black uppercase px-3 py-1.5 rounded-md transition-all ${modoEditor === 'visual' ? 'bg-white text-[#00577C] shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                  >
+                    Modo Visual
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => setModoEditor('codigo')}
+                    className={`text-[10px] font-black uppercase px-3 py-1.5 rounded-md transition-all ${modoEditor === 'codigo' ? 'bg-white text-[#00577C] shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                  >
+                    HTML / LaTeX Bruto
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
+                {modoEditor === 'visual' ? (
                   <ReactQuill 
                     theme="snow" 
                     value={form.conteudo || ""} 
                     onChange={(content) => setForm({ ...form, conteudo: content })} 
                     modules={quillModules}
-                    placeholder="Escreva a sua notícia ou roteiro aqui..."
-                    className="h-[300px] mb-12" 
+                    placeholder="Escreva a sua notícia, adicione fotos ou fórmulas (botão fx)..."
+                    className="h-[400px] mb-12" 
                   />
-                </div>
-              </FormField>
+                ) : (
+                  <textarea 
+                    value={form.conteudo || ""}
+                    onChange={(e) => setForm({ ...form, conteudo: e.target.value })}
+                    className="w-full h-[450px] p-4 bg-slate-900 text-green-400 font-mono text-sm focus:outline-none"
+                    placeholder="<p>Insira seu código HTML ou marcações LaTeX aqui...</p>"
+                  />
+                )}
+              </div>
             </div>
             
             <div className="space-y-5">
@@ -447,6 +485,15 @@ function TabBlog() {
                   <ImageIcon size={18} /> {imagemFile ? imagemFile.name : form.imagem_url ? "Trocar imagem atual" : "Anexar Imagem"}
                 </label>
                 {form.imagem_url && !imagemFile && <img src={form.imagem_url} alt="Capa atual" className="mt-3 h-24 w-full object-cover rounded-xl border border-slate-200" />}
+              </FormField>
+
+              <FormField label="Legenda / Créditos da Capa" className="mt-4">
+                <input 
+                  value={form.legenda_imagem_capa || ""} 
+                  onChange={(e) => setForm({ ...form, legenda_imagem_capa: e.target.value })} 
+                  className={inputCls} 
+                  placeholder="Ex: Foto por João Silva / Parque Nacional..." 
+                />
               </FormField>
             </div>
           </div>
@@ -493,6 +540,185 @@ function TabBlog() {
           </div>
         )
       )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// NEWSLETTER COMERCIAL
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function TabNewsletter() {
+  const [inscritos, setInscritos] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [enviando, setEnviando] = useState(false);
+  const [feedback, setFeedback] = useState("");
+
+  // Campos do Template Comercial
+  const [assunto, setAssunto] = useState("");
+  const [tituloNoticia, setTituloNoticia] = useState("");
+  const [textoHtml, setTextoHtml] = useState("");
+  const [imagemUrl, setImagemUrl] = useState("");
+  const [linkBotao, setLinkBotao] = useState("");
+  const [textoBotao, setTextoBotao] = useState("");
+  
+  const [imagemFile, setImagemFile] = useState<File | null>(null);
+
+  useEffect(() => {
+    fetchInscritos();
+  }, []);
+
+  async function fetchInscritos() {
+    setLoading(true);
+    // Tabela criada no Supabase sem a coluna 'nome'
+    const { data, error } = await supabase.from("newsletter_inscritos").select("*").order("criado_em", { ascending: false });
+    if (data) setInscritos(data);
+    setLoading(false);
+  }
+
+  async function handleDisparar(e: React.FormEvent) {
+    e.preventDefault();
+    if (!assunto || !tituloNoticia || !textoHtml) {
+      alert("Preencha o assunto, o título e o conteúdo da newsletter.");
+      return;
+    }
+
+    if (inscritos.length === 0) {
+      alert("Não existem e-mails cadastrados na base de dados para envio.");
+      return;
+    }
+
+    if (!confirm(`Tem a certeza que deseja disparar esta newsletter para ${inscritos.length} inscritos?`)) {
+      return;
+    }
+
+    setEnviando(true);
+    setFeedback("A carregar imagens e a preparar disparos em lote...");
+
+    let finalImageUrl = imagemUrl;
+    
+    // Se o editor anexou um ficheiro do computador, faz upload para o Supabase Storage
+    if (imagemFile) {
+      const ext = imagemFile.name.split('.').pop();
+      const path = `newsletter/${Date.now()}.${ext}`;
+      const { error: uploadErr } = await supabase.storage.from('galeria').upload(path, imagemFile);
+      if (!uploadErr) {
+        const { data: pubUrl } = supabase.storage.from('galeria').getPublicUrl(path);
+        finalImageUrl = pubUrl.publicUrl;
+      }
+    }
+
+    const listaEmails = inscritos.map(i => i.email);
+
+    try {
+      // Como a API do seu backend em Python (FastAPI/Next) gere o envio com o Resend, 
+      // pode disparar diretamente por fetch para a rota ou chamar a função se estiver no mesmo ambiente Next.js.
+      // Aqui simulamos a chamada via API interna do projeto:
+      const response = await fetch('/api/v1/newsletter/disparar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          emails: listaEmails,
+          assunto,
+          titulo_noticia: tituloNoticia,
+          texto_html: textoHtml,
+          imagem_url: finalImageUrl,
+          link_botao: linkBotao,
+          texto_botao: textoBotao
+        })
+      });
+
+      if (response.ok) {
+        setFeedback(`Sucesso! Newsletter disparada para ${inscritos.length} destinatários.`);
+        setAssunto(""); setTituloNoticia(""); setTextoHtml(""); setImagemUrl(""); setLinkBotao(""); setTextoBotao(""); setImagemFile(null);
+      } else {
+        setFeedback("Erro ao disparar e-mails pelo servidor.");
+      }
+    } catch (err) {
+      setFeedback("Erro de conexão com o servidor de disparo.");
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  return (
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className={`${jakarta.className} text-xl font-black text-[#00577C]`}>Campanhas de Newsletter</h2>
+          <p className="text-xs text-slate-500 mt-1">Total de {inscritos.length} utilizadores inscritos para receber novidades.</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* FORMULÁRIO DE CRIAÇÃO DO TEMPLATE COMERCIAL */}
+        <div className="lg:col-span-2 bg-white rounded-[2rem] p-8 shadow-sm border border-slate-200">
+          <h3 className={`${jakarta.className} text-lg font-black text-slate-800 mb-6 flex items-center gap-2`}>
+            <Bell size={18} className="text-[#F9C400]" /> Construtor de E-mail Comercial
+          </h3>
+
+          <form onSubmit={handleDisparar} className="space-y-5">
+            <FormField label="Assunto do E-mail (O que aparece na caixa de entrada) *">
+              <input value={assunto} onChange={e => setAssunto(e.target.value)} className={inputCls} placeholder="Ex: Descubra as novas cachoeiras de São Geraldo do Araguaia 🌿" required />
+            </FormField>
+
+            <FormField label="Título Principal da Notícia no E-mail *">
+              <input value={tituloNoticia} onChange={e => setTituloNoticia(e.target.value)} className={inputCls} placeholder="Ex: Temporada de Ecoturismo Aberta!" required />
+            </FormField>
+
+            <FormField label="Texto / Corpo da Mensagem (Suporta HTML básico como <p>, <b>) *">
+              <textarea rows={6} value={textoHtml} onChange={e => setTextoHtml(e.target.value)} className={inputCls} placeholder="Escreva o texto comercial da agência aqui..." required />
+            </FormField>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField label="Link do Botão (Opcional)">
+                <input value={linkBotao} onChange={e => setLinkBotao(e.target.value)} className={inputCls} placeholder="https://sagaturismo.com.br/pacotes" />
+              </FormField>
+              <FormField label="Texto do Botão (Ex: Ver Pacotes)">
+                <input value={textoBotao} onChange={e => setTextoBotao(e.target.value)} className={inputCls} placeholder="Garantir Minha Vaga" />
+              </FormField>
+            </div>
+
+            <FormField label="Imagem de Destaque da Campanha">
+              <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 text-slate-500 p-4 rounded-xl cursor-pointer hover:border-[#00577C] transition-colors text-xs">
+                <input type="file" accept="image/*" className="hidden" onChange={(e) => setImagemFile(e.target.files?.[0] || null)} />
+                <ImageIcon size={18} /> {imagemFile ? imagemFile.name : "Anexar Imagem Comercial"}
+              </label>
+            </FormField>
+
+            <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+              <span className="text-xs font-bold text-[#009640]">{feedback}</span>
+              <button type="submit" disabled={enviando} className="bg-[#00577C] hover:bg-[#004a6b] text-white px-8 py-3.5 rounded-xl font-black text-xs uppercase tracking-widest shadow-md flex items-center gap-2 disabled:opacity-50 transition-all">
+                {enviando ? <Loader2 size={16} className="animate-spin" /> : <Bell size={16} />} Disparar para {inscritos.length} Inscritos
+              </button>
+            </div>
+          </form>
+        </div>
+
+        {/* LISTAGEM RÁPIDA DOS INSCRITOS */}
+        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200 flex flex-col h-fit">
+          <h4 className={`${jakarta.className} text-sm font-black text-slate-800 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100`}>
+            Base de Leads Capturados
+          </h4>
+          
+          {loading ? (
+            <div className="py-8 flex justify-center"><Loader2 className="animate-spin text-[#00577C]" size={24} /></div>
+          ) : inscritos.length === 0 ? (
+            <p className="text-xs text-slate-400 py-6 text-center">Nenhum e-mail inscrito na newsletter até ao momento.</p>
+          ) : (
+            <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
+              {inscritos.map((item, idx) => (
+                <div key={item.id || idx} className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex flex-col">
+                  <span className="text-xs font-bold text-slate-700 truncate">{item.email}</span>
+                  <span className="text-[10px] text-slate-400 mt-0.5">Cadastrado em: {fmtData(item.criado_em?.split('T')[0])}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+      </div>
     </div>
   );
 }

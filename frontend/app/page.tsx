@@ -582,6 +582,90 @@ function SeccaoPasseios() {
 }
 
 // ==========================================
+// COMPONENTE: NEWSLETTER HOME (VERSÃO CLEAN)
+// ==========================================
+function NewsletterHome() {
+  const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [mensagem, setMensagem] = useState<{ texto: string; tipo: 'sucesso' | 'erro' } | null>(null);
+
+  async function handleSubmeter(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email || !email.includes('@')) {
+      setMensagem({ texto: 'Por favor, insira um e-mail válido.', tipo: 'erro' });
+      return;
+    }
+
+    setLoading(true);
+    setMensagem(null);
+
+    try {
+      const { error } = await supabase
+        .from('newsletter_inscritos')
+        .insert([{ email }]);
+
+      if (error) {
+        if (error.code === '23505') {
+          setMensagem({ texto: 'Este e-mail já se encontra cadastrado!', tipo: 'erro' });
+        } else {
+          throw error;
+        }
+      } else {
+        setMensagem({ texto: 'Inscrição realizada com sucesso! Bem-vindo(a).', tipo: 'sucesso' });
+        setEmail('');
+      }
+    } catch (err) {
+      setMensagem({ texto: 'Erro ao processar inscrição. Tente novamente.', tipo: 'erro' });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <section className="py-24 bg-[#FDFCF7] border-t border-slate-100 overflow-hidden">
+      <div className="max-w-[900px] mx-auto px-6 text-center">
+        <AnimatedSection animation="fade-up">
+          
+          <h2 className={`${jakarta.className} text-4xl md:text-6xl font-black text-slate-900 mb-6 tracking-tight leading-tight`}>
+            Receba as novidades de<br />
+            <span className="italic text-[#00577C]">São Geraldo do Araguaia</span>
+          </h2>
+          
+          <p className="text-slate-500 text-base md:text-lg mb-10 max-w-xl mx-auto font-medium">
+            Inscreva-se para receber roteiros exclusivos, avisos de eventos e descontos especiais diretamente no seu e-mail.
+          </p>
+
+          <form onSubmit={handleSubmeter} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="O seu melhor e-mail..."
+              className="flex-1 bg-white border border-slate-200 text-slate-800 placeholder:text-slate-400 text-sm rounded-2xl px-5 py-4 focus:outline-none focus:border-[#00577C] transition shadow-sm"
+              required
+            />
+            <button
+              type="submit"
+              disabled={loading}
+              className="bg-[#00577C] hover:bg-[#004a6b] text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-md transition-all flex items-center justify-center gap-2 shrink-0 disabled:opacity-50"
+            >
+              {loading ? <Loader2 size={16} className="animate-spin" /> : 'Inscrever'}
+            </button>
+          </form>
+
+          {mensagem && (
+            <p className={`mt-4 text-xs font-bold ${mensagem.tipo === 'sucesso' ? 'text-[#009640]' : 'text-red-500'}`}>
+              {mensagem.texto}
+            </p>
+          )}
+
+        </AnimatedSection>
+      </div>
+    </section>
+  );
+}
+
+// ==========================================
 // COMPONENTE PRINCIPAL: HOMEPAGE
 // ==========================================
 export default function HomePage() {
@@ -969,6 +1053,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* ── SECÇÃO NEWSLETTER ── */}
+      <NewsletterHome />
 
       {/* ── FOOTER ── */}
       {/* ── FOOTER ── */}
