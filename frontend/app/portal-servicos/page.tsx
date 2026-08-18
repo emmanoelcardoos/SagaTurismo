@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { 
   Calendar as CalendarIcon, Bell, CheckCircle2, Clock, Map, Package, Activity, AlertCircle,
   Upload, Image as ImageIcon, Save, Loader2, FileSpreadsheet, Utensils, MapPin, Phone, Plus, Trash2,
-  Building2, Briefcase, Compass, Newspaper
+  Building2, Briefcase, Compass, Newspaper, Smartphone
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import 'react-quill/dist/quill.snow.css';
@@ -177,6 +177,7 @@ function AdminDashboard({ role, onLogout }: { role: "geral" | "turismo" | "meio_
     { id: "dashboard",   label: "Painel Geral", icon: <Activity size={18} /> },
     { id: "blog",        label: "Blog/Notícias",icon: <Newspaper size={18} /> },
     { id: "newsletter",  label: "Newsletter",   icon: <Bell size={18} /> }, 
+    { id: "notificacoes",label: "App Notificações",icon: <Smartphone size={18} /> },
     { id: "eventos",     label: "Eventos",      icon: <CalendarIcon size={18} /> },
     { id: "atracoes",    label: "Atrações",     icon: <MapPin size={18} /> },
     { id: "hoteis",      label: "Hotéis",       icon: <Building2 size={18} /> },
@@ -221,6 +222,7 @@ function AdminDashboard({ role, onLogout }: { role: "geral" | "turismo" | "meio_
         {activeTab === "hoteis"      && <TabHoteis />} 
         {activeTab === "agencias"    && <TabAgencias />}
         {activeTab === "newsletter" && <TabNewsletter />}
+        {activeTab === "notificacoes" && <TabNotificacoes />}
       </main>
     </div>
   );
@@ -1959,6 +1961,148 @@ function TabAtracoes() {
           </div>
         )
       )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// NOTIFICAÇÕES PUSH (APP)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function TabNotificacoes() {
+  const [tokens, setTokens] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [enviando, setEnviando] = useState(false);
+  const [feedback, setFeedback] = useState("");
+
+  const [titulo, setTitulo] = useState("");
+  const [mensagem, setMensagem] = useState("");
+
+  useEffect(() => {
+    fetchTokens();
+  }, []);
+
+  async function fetchTokens() {
+    setLoading(true);
+    const { data } = await supabase.from("push_tokens").select("*").order("criado_em", { ascending: false });
+    if (data) setTokens(data);
+    setLoading(false);
+  }
+
+  async function handleDisparar(e: React.FormEvent) {
+    e.preventDefault();
+    if (!titulo || !mensagem) {
+      alert("Preencha o título e a mensagem da notificação.");
+      return;
+    }
+    if (tokens.length === 0) {
+      alert("Nenhum telemóvel registado na base de dados para receber notificações.");
+      return;
+    }
+    if (!confirm(`Deseja disparar esta notificação para ${tokens.length} telemóveis?`)) return;
+
+    setEnviando(true);
+    setFeedback("A comunicar com os servidores da Expo...");
+
+    // Cria as mensagens no formato exigido pela Expo
+    const mensagensPush = tokens.map((t) => ({
+      to: t.token,
+      sound: 'default',
+      title: titulo,
+      body: mensagem,
+      data: { portal: true }, // Dados extra (pode ser usado no futuro para abrir o blog ao clicar)
+    }));
+
+    // A Expo recomenda enviar em lotes de 100 no máximo. Vamos dividir!
+    const chunks = [];
+    for (let i = 0; i < mensagensPush.length; i += 100) {
+      chunks.push(mensagensPush.slice(i, i + 100));
+    }
+
+    try {
+      for (const chunk of chunks) {
+        await fetch('https://exp.host/--/api/v2/push/send', {
+          method: 'POST',
+          headers: {
+            Accept: 'application/json',
+            'Accept-encoding': 'gzip, deflate',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(chunk),
+        });
+      }
+      setFeedback(`Sucesso! Notificação enviada para ${tokens.length} dispositivos.`);
+      setTitulo(""); setMensagem("");
+    } catch (err) {
+      console.error(err);
+      setFeedback("Erro ao tentar contactar os servidores de envio.");
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  return (
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className={`${jakarta.className} text-xl font-black text-[#00577C]`}>Notificações Push (App)</h2>
+          <p className="text-xs text-slate-500 mt-1">Acorde os telemóveis dos turistas e moradores com alertas em tempo real.</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* FORMULÁRIO DE DISPARO */}
+        <div className="lg:col-span-2 bg-white rounded-[2rem] p-8 shadow-sm border border-slate-200">
+          <h3 className={`${jakarta.className} text-lg font-black text-slate-800 mb-6 flex items-center gap-2`}>
+            <Smartphone size={18} className="text-[#F9C400]" /> Nova Notificação
+          </h3>
+
+          <form onSubmit={handleDisparar} className="space-y-5">
+            <FormField label="Título do Alerta (Obrigatório) *">
+              <input value={titulo} onChange={e => setTitulo(e.target.value)} className={inputCls} placeholder="Ex: 🌿 Novo artigo no Blog!" required maxLength={50} />
+            </FormField>
+
+            <FormField label="Mensagem / Subtítulo (Obrigatório) *">
+              <textarea 
+                rows={3} 
+                value={mensagem} 
+                onChange={e => setMensagem(e.target.value)} 
+                className={inputCls} 
+                placeholder="Ex: Descubra as maravilhas arqueológicas da Serra das Andorinhas. Leia já." 
+                required 
+                maxLength={150}
+              />
+            </FormField>
+
+            <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+              <span className="text-xs font-bold text-[#009640]">{feedback}</span>
+              <button type="submit" disabled={enviando || tokens.length === 0} className="bg-[#00577C] hover:bg-[#004a6b] text-white px-8 py-3.5 rounded-xl font-black text-xs uppercase tracking-widest shadow-md flex items-center gap-2 disabled:opacity-50 transition-all">
+                {enviando ? <Loader2 size={16} className="animate-spin" /> : <Bell size={16} />} 
+                {tokens.length === 0 ? "Sem utilizadores" : `Disparar Alerta (${tokens.length})`}
+              </button>
+            </div>
+          </form>
+        </div>
+
+        {/* ESTATÍSTICAS DOS TOKENS */}
+        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200 flex flex-col h-fit">
+          <h4 className={`${jakarta.className} text-sm font-black text-slate-800 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100`}>
+            Instalações da App
+          </h4>
+          
+          {loading ? (
+            <div className="py-8 flex justify-center"><Loader2 className="animate-spin text-[#00577C]" size={24} /></div>
+          ) : (
+            <div className="text-center py-6">
+              <Smartphone size={48} className="mx-auto text-slate-200 mb-3" />
+              <span className={`${jakarta.className} text-4xl font-black text-slate-800`}>{tokens.length}</span>
+              <p className="text-xs text-slate-400 mt-2 font-medium">Telemóveis com permissão<br/>para receber notificações.</p>
+            </div>
+          )}
+        </div>
+
+      </div>
     </div>
   );
 }
