@@ -419,7 +419,7 @@ function SeccaoHoteis() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {hoteis[0] && (
                 <AnimatedSection animation="fade-right" className="md:col-span-2">
-                  <Link href={`/hoteis/${hoteis[0].id}`} className="group relative h-[420px] rounded-[2rem] overflow-hidden bg-slate-900 block">
+                  <Link href={`/hospedagens/${hoteis[0].id}`} className="group relative h-[420px] rounded-[2rem] overflow-hidden bg-slate-900 block">
                     {hoteis[0].imagem_url
                       ? <Image src={hoteis[0].imagem_url} alt={hoteis[0].nome} fill className="object-cover opacity-80 group-hover:scale-105 group-hover:opacity-100 transition-all duration-700" />
                       : <div className="w-full h-full bg-[#00577C] flex items-center justify-center"><Hotel className="w-16 h-16 text-white/30" /></div>}
@@ -442,7 +442,7 @@ function SeccaoHoteis() {
               <div className="flex flex-col gap-6">
                 {hoteis.slice(1).map((hotel, i) => (
                   <AnimatedSection key={hotel.id} animation="fade-left" delay={(i + 1) * 200}>
-                    <Link href={`/hoteis/${hotel.id}`} className="group relative h-[196px] rounded-[2rem] overflow-hidden bg-slate-900 block">
+                    <Link href={`/hospedagens/${hotel.id}`} className="group relative h-[196px] rounded-[2rem] overflow-hidden bg-slate-900 block">
                       {hotel.imagem_url
                         ? <Image src={hotel.imagem_url} alt={hotel.nome} fill className="object-cover opacity-80 group-hover:scale-105 group-hover:opacity-100 transition-all duration-700" />
                         : <div className="w-full h-full bg-[#009640] flex items-center justify-center"><Hotel className="w-12 h-12 text-white/30" /></div>}
@@ -461,7 +461,7 @@ function SeccaoHoteis() {
             </div>
 
             <AnimatedSection animation="fade-up" delay={200} className="mt-10">
-              <Link href="/hoteis" className="inline-flex items-center gap-2 font-black text-[10px] uppercase tracking-[0.2em] text-[#00577C] hover:gap-4 transition-all">
+              <Link href="/hospedagens" className="inline-flex items-center gap-2 font-black text-[10px] uppercase tracking-[0.2em] text-[#00577C] hover:gap-4 transition-all">
                 Ver todos os hotéis disponíveis <ArrowRight size={16} />
               </Link>
             </AnimatedSection>
@@ -967,7 +967,7 @@ export default function HomePage() {
 
       {/* 5. Comunidades (Linha de baixo) */}
       <AnimatedSection animation="fade-up" delay={400} className="md:col-span-2 lg:col-span-2">
-        <Link href="/hoteis" className="relative h-[240px] md:h-[260px] rounded-[2rem] overflow-hidden group block shadow-md hover:shadow-xl transition-all duration-500 border border-slate-100/10">
+        <Link href="/hospedagens" className="relative h-[240px] md:h-[260px] rounded-[2rem] overflow-hidden group block shadow-md hover:shadow-xl transition-all duration-500 border border-slate-100/10">
           <div className="absolute inset-0 bg-cover bg-center transition-transform duration-[2000ms] group-hover:scale-105" style={{ backgroundImage: "url('https://images.pexels.com/photos/14883357/pexels-photo-14883357.jpeg?_gl=1*19tl3ec*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3ODY4NDQzNTkkbzkyJGcxJHQxNzg2ODUxNDUwJGo0MCRsMCRoMA..')" }} />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/10 to-transparent" />
           <div className="absolute bottom-6 left-6 right-6 text-white flex flex-col items-start">
