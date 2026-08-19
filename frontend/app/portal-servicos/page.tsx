@@ -1900,7 +1900,7 @@ function TabNotificacoes() {
     if (!confirm(`Deseja disparar esta notificação para ${tokens.length} telemóveis?`)) return;
 
     setEnviando(true);
-    setFeedback("A comunicar com os servidores da Expo...");
+    setFeedback("A comunicar com o nosso servidor...");
 
     // Cria as mensagens no formato exigido pela Expo
     const mensagensPush = tokens.map((t) => ({
@@ -1908,27 +1908,19 @@ function TabNotificacoes() {
       sound: 'default',
       title: titulo,
       body: mensagem,
-      data: { portal: true }, // Dados extra (pode ser usado no futuro para abrir o blog ao clicar)
+      data: { portal: true }, // Dados extra
     }));
 
-    // A Expo recomenda enviar em lotes de 100 no máximo. Vamos dividir!
-    const chunks = [];
-    for (let i = 0; i < mensagensPush.length; i += 100) {
-      chunks.push(mensagensPush.slice(i, i + 100));
-    }
-
     try {
-      for (const chunk of chunks) {
-        await fetch('https://exp.host/--/api/v2/push/send', {
-          method: 'POST',
-          headers: {
-            Accept: 'application/json',
-            'Accept-encoding': 'gzip, deflate',
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(chunk),
-        });
-      }
+      // ◄── MUDANÇA AQUI: Chamamos a nossa API local em vez da Expo!
+      const response = await fetch('/api/push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mensagens: mensagensPush })
+      });
+
+      if (!response.ok) throw new Error("Falha na API local");
+
       setFeedback(`Sucesso! Notificação enviada para ${tokens.length} dispositivos.`);
       setTitulo(""); setMensagem("");
     } catch (err) {
