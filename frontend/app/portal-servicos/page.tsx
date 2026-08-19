@@ -1097,7 +1097,7 @@ function TabPedidos() {
 
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// HOTÉIS & POUSADAS
+// HOTÉIS & POUSADAS (VITRINE SIMPLIFICADA)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function TabHoteis() {
@@ -1113,79 +1113,36 @@ function TabHoteis() {
   
   const [imagemFile, setImagemFile] = useState<File | null>(null);
   const [galeriaFiles, setGaleriaFiles] = useState<File[]>([]);
-  const [comodidadesTexto, setComodidadesTexto] = useState("");
-  
-  const [quartos, setQuartos] = useState<any[]>([{ id: null, nome: "", preco: "", desc: "", file: null, imagem_url: "" }]);
 
   useEffect(() => { fetchHoteis(); }, []);
 
   async function fetchHoteis() {
     setLoading(true);
-    
-    // 1. Vai buscar os hotéis
-    const { data: hoteisData, error: hoteisError } = await supabase.from('hoteis').select('*').order('nome');
-    
-    // 2. Vai buscar TODOS os quartos à tabela correta no SINGULAR
-    const { data: quartosData, error: quartosError } = await supabase.from('tipos_quarto').select('*');
-
-    if (hoteisData) {
-      // 3. Junta os quartos ao hotel correspondente
-      const hoteisComQuartos = hoteisData.map(hotel => {
-        const quartosDoHotel = (quartosData || []).filter((q: any) => q.hotel_id === hotel.id);
-        return { ...hotel, tipos_quarto: quartosDoHotel };
-      });
-      setHoteis(hoteisComQuartos);
-    } else {
-      setHoteis([]);
-    }
-    
+    const { data, error } = await supabase.from('hoteis').select('*').order('nome');
+    setHoteis(data || []);
     setLoading(false);
   }
 
   function abrirNovo() {
-    setEditando(null); setForm(formVazio); setImagemFile(null); setGaleriaFiles([]); 
-    setComodidadesTexto(""); setQuartos([{ id: null, nome: "", preco: "", desc: "", file: null, imagem_url: "" }]);
+    setEditando(null); 
+    setForm(formVazio); 
+    setImagemFile(null); 
+    setGaleriaFiles([]); 
     setShowForm(true);
   }
 
   function abrirEditar(hotel: any) {
     setEditando(hotel);
-    setForm({ nome: hotel.nome, tipo: hotel.tipo, descricao: hotel.descricao, estrelas: hotel.estrelas || 3, whatsapp: hotel.whatsapp || "", endereco: hotel.endereco || "", instagram: hotel.instagram || "", ativo: hotel.ativo ?? true });
-    setImagemFile(null); setGaleriaFiles([]);
-    setComodidadesTexto(hotel.comodidades ? hotel.comodidades.join(", ") : "");
-    
-    // Mapeia os quartos que foram injetados no fetchHoteis
-    let quartosParsed = [];
-    if (hotel.tipos_quarto && Array.isArray(hotel.tipos_quarto)) {
-      quartosParsed = hotel.tipos_quarto.map((q: any) => ({
-        id: q.id,
-        nome: q.nome_quarto || q.nome || "", 
-        preco: q.preco_quarto || q.preco_base || "",
-        desc: q.descricao || "",
-        imagem_url: q.imagem_url || "",
-        file: null
-      }));
-    }
-    
-    setQuartos(quartosParsed.length > 0 ? quartosParsed : [{ id: null, nome: "", preco: "", desc: "", file: null, imagem_url: "" }]);
+    setForm({ 
+      nome: hotel.nome, tipo: hotel.tipo, descricao: hotel.descricao || "", 
+      estrelas: hotel.estrelas || 3, whatsapp: hotel.whatsapp || "", 
+      endereco: hotel.endereco || "", instagram: hotel.instagram || "", 
+      ativo: hotel.ativo ?? true 
+    });
+    setImagemFile(null); 
+    setGaleriaFiles([]);
     setShowForm(true);
   }
-
-  const addQuarto = () => setQuartos([...quartos, { id: null, nome: "", preco: "", desc: "", file: null, imagem_url: "" }]);
-  
-  const removeQuarto = async (index: number) => {
-    const quarto = quartos[index];
-    if (quarto.id) {
-      if (!confirm("Tem a certeza que deseja remover este quarto permanentemente da base de dados?")) return;
-      // Apaga o quarto da tabela no SINGULAR
-      await supabase.from('tipos_quarto').delete().eq('id', quarto.id);
-    }
-    setQuartos(quartos.filter((_, i) => i !== index));
-  };
-
-  const handleQuartoChange = (index: number, field: string, value: any) => {
-    const novos = [...quartos]; novos[index] = { ...novos[index], [field]: value }; setQuartos(novos);
-  };
 
   async function uploadImagem(file: File, pasta: string): Promise<string | null> {
     const ext = file.name.split('.').pop();
@@ -1198,7 +1155,7 @@ function TabHoteis() {
 
   async function handleSalvar() {
     if (!form.nome) { alert("Nome do estabelecimento é obrigatório."); return; }
-    setSaving(true); setFeedback("A guardar ficheiros e alojamento...");
+    setSaving(true); setFeedback("A guardar alojamento...");
 
     try {
       let imagem_url = editando?.imagem_url || null;
@@ -1211,53 +1168,16 @@ function TabHoteis() {
         galeriaFinal = [...galeriaFinal, ...novasUrls];
       }
 
-      const comodidadesArray = comodidadesTexto.split(',').map(c => c.trim()).filter(c => c);
-
-      // 1. Gravar o Hotel
       const payloadHotel = { 
         ...form, 
         imagem_url, 
-        galeria: galeriaFinal.length > 0 ? galeriaFinal : null,
-        comodidades: comodidadesArray.length > 0 ? comodidadesArray : null
+        galeria: galeriaFinal.length > 0 ? galeriaFinal : null
       };
 
-      let hotelId = editando?.id;
-
       if (editando) {
-        await supabase.from('hoteis').update(payloadHotel).eq('id', hotelId);
+        await supabase.from('hoteis').update(payloadHotel).eq('id', editando.id);
       } else {
-        const { data: novoHotel, error: insertError } = await supabase.from('hoteis').insert([payloadHotel]).select('id').single();
-        if (insertError) throw insertError;
-        hotelId = novoHotel.id;
-      }
-
-      // 2. Gravar os Quartos na Tabela 'tipos_quarto'
-      for (const q of quartos) {
-        if (!q.nome.trim()) continue; 
-
-        let qUrl = q.imagem_url;
-        if (q.file) {
-          const uploadedUrl = await uploadImagem(q.file, 'quartos');
-          if (uploadedUrl) qUrl = uploadedUrl;
-        }
-
-        const payloadQuarto = {
-          hotel_id: hotelId,
-          nome_quarto: q.nome,
-          preco_quarto: parseFloat(q.preco) || 0,
-          descricao: q.desc,
-          imagem_url: qUrl,
-          capacidade: 2, 
-          estoque_total: 1 
-        };
-
-        if (q.id) {
-          // Grava no SINGULAR
-          await supabase.from('tipos_quarto').update(payloadQuarto).eq('id', q.id);
-        } else {
-          // Grava no SINGULAR
-          await supabase.from('tipos_quarto').insert([payloadQuarto]);
-        }
+        await supabase.from('hoteis').insert([payloadHotel]);
       }
 
       setFeedback(editando ? "Hotel atualizado!" : "Hotel publicado!");
@@ -1266,8 +1186,9 @@ function TabHoteis() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Remover permanentemente? Os quartos associados também serão apagados.")) return;
-    await supabase.from('hoteis').delete().eq('id', id); fetchHoteis();
+    if (!confirm("Remover permanentemente este alojamento?")) return;
+    await supabase.from('hoteis').delete().eq('id', id); 
+    fetchHoteis();
   }
 
   async function toggleAtivo(id: string, estadoAtual: boolean) {
@@ -1295,7 +1216,6 @@ function TabHoteis() {
                 {form.tipo === 'Hotel' && <FormField label="Estrelas"><input type="number" min="1" max="5" value={form.estrelas} onChange={e => setForm({...form, estrelas: parseInt(e.target.value)})} className={inputCls} /></FormField>}
               </div>
               <FormField label="Descrição"><textarea rows={4} value={form.descricao} onChange={e => setForm({...form, descricao: e.target.value})} className={inputCls} /></FormField>
-              <FormField label="Comodidades (Separadas por vírgula)"><input type="text" placeholder="Ex: Piscina, Wi-Fi..." value={comodidadesTexto} onChange={e => setComodidadesTexto(e.target.value)} className={inputCls} /></FormField>
             </div>
             
             <div className="space-y-5">
@@ -1312,35 +1232,13 @@ function TabHoteis() {
                   <ImageIcon size={18} /> {imagemFile ? imagemFile.name : (editando?.imagem_url ? 'Substituir Imagem' : 'Anexar Imagem')}
                 </label>
               </FormField>
-              <FormField label="Adicionar Fotos à Galeria">
+              <FormField label="Adicionar Fotos à Galeria (Opcional)">
                 <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 p-4 rounded-xl cursor-pointer hover:border-[#00577C] text-slate-500">
                   <input type="file" accept="image/*" multiple className="hidden" onChange={e => { if (e.target.files) setGaleriaFiles(Array.from(e.target.files)); }} />
-                  <ImageIcon size={18} /> {galeriaFiles.length > 0 ? `${galeriaFiles.length} ficheiros novos` : 'Anexar Fotos'}
+                  <ImageIcon size={18} /> {galeriaFiles.length > 0 ? `${galeriaFiles.length} ficheiros novos` : 'Anexar Fotos extras'}
                 </label>
               </FormField>
               <FormField label="Visibilidade"><select value={String(form.ativo)} onChange={e => setForm({...form, ativo: e.target.value === 'true'})} className={inputCls}><option value="true">Público (Ativo)</option><option value="false">Oculto</option></select></FormField>
-            </div>
-          </div>
-
-          <div className="mt-12 space-y-4">
-            <div className="flex items-center justify-between border-b pb-2"><h4 className="font-black text-[#00577C]">Quartos Disponíveis</h4><button onClick={addQuarto} className="text-xs font-bold text-[#009640] flex items-center gap-1"><Plus size={14}/> Adicionar Quarto</button></div>
-            <div className="space-y-4">
-              {quartos.map((item, index) => (
-                <div key={index} className="flex flex-col gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                  <div className="flex flex-col md:flex-row gap-3">
-                    <div className="flex-1 w-full"><input type="text" value={item.nome} onChange={e => handleQuartoChange(index, 'nome', e.target.value)} placeholder="Ex: Suíte Casal" className={inputCls} /></div>
-                    <div className="flex-[2] w-full"><input type="text" value={item.desc} onChange={e => handleQuartoChange(index, 'desc', e.target.value)} placeholder="Breve descrição ou itens" className={inputCls} /></div>
-                    <div className="w-full md:w-40"><input type="text" value={item.preco} onChange={e => handleQuartoChange(index, 'preco', e.target.value)} placeholder="R$ / diária" className={inputCls} /></div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <label className="flex-1 flex items-center justify-center gap-2 border border-slate-200 bg-white text-slate-500 py-2 rounded-lg cursor-pointer text-xs font-bold hover:border-[#00577C] transition-colors">
-                      <input type="file" accept="image/*" className="hidden" onChange={e => handleQuartoChange(index, 'file', e.target.files?.[0] || null)} />
-                      <Upload size={14}/> {item.file ? "Foto pronta ✓" : (item.imagem_url ? "Tem foto ✓" : "Anexar Foto do Quarto")}
-                    </label>
-                    <button onClick={() => removeQuarto(index)} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 border border-red-200"><Trash2 size={16} /></button>
-                  </div>
-                </div>
-              ))}
             </div>
           </div>
 
