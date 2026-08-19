@@ -179,7 +179,7 @@ function AdminDashboard({ role, onLogout }: { role: "geral" | "turismo" | "meio_
     { id: "newsletter",  label: "Newsletter",   icon: <Bell size={18} /> }, 
     { id: "notificacoes",label: "App Notificações",icon: <Smartphone size={18} /> },
     { id: "eventos",     label: "Eventos",      icon: <CalendarIcon size={18} /> },
-    { id: "atracoes",    label: "Atrações",     icon: <MapPin size={18} /> },
+    { id: "atracoes",    label: "Atrativos",     icon: <MapPin size={18} /> },
     { id: "hoteis",      label: "Hotéis",       icon: <Building2 size={18} /> },
     { id: "gastronomia", label: "Gastronomia",  icon: <Utensils size={18} /> },
     { id: "agencias",    label: "Agências",     icon: <Briefcase size={18} /> },
@@ -270,7 +270,7 @@ function TabDashboard() {
         <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col items-center text-center">
           <div className="w-12 h-12 bg-blue-50 text-[#00577C] rounded-2xl flex items-center justify-center mb-3"><MapPin size={24}/></div>
           <span className={`${jakarta.className} text-3xl font-black text-slate-800`}>{stats.atracoes}</span>
-          <span className="text-xs font-black text-slate-400 uppercase tracking-widest mt-1">Atrações</span>
+          <span className="text-xs font-black text-slate-400 uppercase tracking-widest mt-1">Atrativos</span>
         </div>
         <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col items-center text-center">
           <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mb-3"><Building2 size={24}/></div>

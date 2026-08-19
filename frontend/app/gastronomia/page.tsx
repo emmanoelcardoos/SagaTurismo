@@ -53,7 +53,7 @@ function GastronomiaPageContent() {
   const [isHovered, setIsHovered] = useState(false);
 
   const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1562967914-70f9865b4c2f?q=80&w=1746&auto=format&fit=crop";
-  const HERO_IMAGE = "https://images.pexels.com/photos/38920606/pexels-photo-38920606.jpeg?_gl=1*1og7wn6*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3ODY5MDg2ODMkbzk3JGcxJHQxNzg2OTEwMDMwJGo1OSRsMCRoMA..";
+  const HERO_IMAGE = "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/herosections/herogastronomia.jpg";
 
   useEffect(() => {
     async function fetchRestaurantes() {

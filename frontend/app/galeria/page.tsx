@@ -291,7 +291,7 @@ export default function GaleriaPage() {
         <section className="relative h-[90vh] min-h-[500px] w-full flex items-center justify-center overflow-hidden">
           <div className="absolute inset-0 z-0">
             <Image
-              src="https://images.pexels.com/photos/35859443/pexels-photo-35859443.jpeg?_gl=1*vji3f6*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3ODY4NDQzNTkkbzkyJGcxJHQxNzg2ODU1MDU1JGo0MyRsMCRoMA.."
+              src="https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/herosections/herogaleria.jpg"
               alt="Galeria de São Geraldo do Araguaia"
               fill
               className="object-cover"

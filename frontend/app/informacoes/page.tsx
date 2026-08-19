@@ -193,7 +193,7 @@ export default function ComoChegarPage() {
       <section className="relative h-[90vh] min-h-[500px] w-full flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           <Image 
-            src="https://images.pexels.com/photos/11049777/pexels-photo-11049777.jpeg?_gl=1*18e0izh*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3ODY5MjcwNjUkbzk5JGcxJHQxNzg2OTI5MzUxJGoyMSRsMCRoMA.." 
+            src="https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/herosections/heroinformacoes.jpg" 
             alt="Como chegar em São Geraldo do Araguaia" 
             fill 
             className="object-cover" 

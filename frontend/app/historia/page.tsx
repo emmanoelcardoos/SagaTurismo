@@ -244,7 +244,7 @@ export default function HistoriaPage() {
       <section className="relative h-[90vh] min-h-[500px] w-full flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           <Image
-            src="https://images.pexels.com/photos/16241890/pexels-photo-16241890.jpeg?_gl=1*pmuncb*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3ODY4NDQzNTkkbzkyJGcxJHQxNzg2ODU1NDQ0JGo1OSRsMCRoMA.."
+            src="https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/herosections/herohistoria.jpg"
             alt="História de São Geraldo do Araguaia"
             fill
             priority

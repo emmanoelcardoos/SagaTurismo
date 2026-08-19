@@ -242,7 +242,7 @@ export default function ComunidadesPage() {
       <section className="relative h-[90vh] min-h-[500px] w-full flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           <Image 
-            src="https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/imagens-passeios/comunidade2.jpg" 
+            src="https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/herosections/herocomunidades.jpg" 
             alt="Comunidades de São Geraldo do Araguaia" 
             fill 
             className="object-cover" // ← SEM animação, SEM escala

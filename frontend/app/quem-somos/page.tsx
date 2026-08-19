@@ -155,7 +155,7 @@ export default function QuemSomosPage() {
       <section className="relative h-[90vh] min-h-[500px] w-full flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           <Image
-            src="https://images.pexels.com/photos/4763942/pexels-photo-4763942.jpeg?_gl=1*1auq9hd*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3ODY5MDg2ODMkbzk3JGcxJHQxNzg2OTE1MTk0JGoxMSRsMCRoMA.."
+            src="https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/herosections/heroquemsomos.jpg"
             alt="Turismo em São Geraldo do Araguaia"
             fill
             className="object-cover"

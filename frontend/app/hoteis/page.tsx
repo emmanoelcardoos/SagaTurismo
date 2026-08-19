@@ -78,7 +78,7 @@ function HoteisPageContent() {
   const [isHovered, setIsHovered] = useState(false);
 
   const FALLBACK_IMAGE = "https://images.pexels.com/photos/10781952/pexels-photo-10781952.jpeg?_gl=1*1b95bnp*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3ODY4MjEyNjMkbzg4JGcxJHQxNzg2ODIxMjg1JGozOCRsMCRoMA..";
-  const HERO_IMAGE = "https://images.pexels.com/photos/15195270/pexels-photo-15195270.jpeg?_gl=1*pp04c4*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3ODY4NDE1ODUkbzkxJGcxJHQxNzg2ODQxNjUxJGo1OSRsMCRoMA.."
+  const HERO_IMAGE = "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/herosections/herohoteis.jpg"
 
   useEffect(() => {
     async function fetchHoteis() {

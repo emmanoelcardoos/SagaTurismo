@@ -94,7 +94,7 @@ export default function ContatoPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
-  const HERO_IMAGE = "https://images.pexels.com/photos/19649397/pexels-photo-19649397.jpeg?_gl=1*14ontx4*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3ODY4NDQzNTkkbzkyJGcxJHQxNzg2ODQ1MzcxJGoxNyRsMCRoMA..";
+  const HERO_IMAGE = "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/herosections/herocontatos.jpg";
 
   useEffect(() => {
     async function fetchInformacoes() {

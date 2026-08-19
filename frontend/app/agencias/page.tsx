@@ -228,7 +228,7 @@ export default function AgenciasPage() {
       <section className="relative h-[90vh] min-h-[500px] w-full flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           <Image
-            src="https://images.pexels.com/photos/30952861/pexels-photo-30952861.jpeg?_gl=1*1mb3yzl*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3ODY4NDQzNTkkbzkyJGcxJHQxNzg2ODU0MDM3JGo2JGwwJGgw"
+            src="https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/herosections/heroagencias.jpg"
             alt="Agências em São Geraldo do Araguaia"
             fill
             className="object-cover"
