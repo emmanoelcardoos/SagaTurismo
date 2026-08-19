@@ -984,7 +984,6 @@ export default function HomePage() {
       <AgendaCultural />
 
       {/* ── DESTAQUES VERÃO ── */}
-      <DestaquesVerao />
 
       {/* ── ÚLTIMAS DO BLOG ── */}
       <UltimosArtigosBlog />
