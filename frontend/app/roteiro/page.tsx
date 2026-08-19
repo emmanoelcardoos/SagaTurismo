@@ -188,11 +188,10 @@ export default function RotasPage() {
 
   // ── MENU DO HEADER (com "Roteiros" em vez de "Rotas") ──
   const menuGroups = [
-    { label: 'Conhecer', links: ['Atrativos', 'Roteiros', 'História', 'Biodiversidade', 'Galeria'] },
-    { label: 'Viver', links: [ 'Eventos', 'Comunidades'] },
-    { label: 'Planejar', links: ['Hotéis', 'Gastronomia', 'Agências', 'Informações', 'Parceiros'] }
+    { label: 'Conhecer', links: ['Atrativos', 'História', 'Biodiversidade', 'Galeria'] },
+    { label: 'Viver', links: ['Eventos', 'Comunidades'] },
+    { label: 'Planejar', links: ['Hospedagens', 'Gastronomia', 'Agências', 'Informações', 'Parceiros'] }
   ];
-
   return (
     <main className={`${inter.className} text-slate-900 overflow-x-hidden min-h-screen bg-[#FDFCF7]`}>
 

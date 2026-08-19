@@ -129,7 +129,7 @@ export default function ComunidadesPage() {
   const menuGroups = [
     { label: 'Conhecer', links: ['Atrativos', 'História', 'Biodiversidade', 'Galeria'] },
     { label: 'Viver', links: ['Eventos', 'Comunidades'] },
-    { label: 'Planejar', links: ['Hotéis', 'Gastronomia', 'Agências', 'Informações', 'Parceiros'] }
+    { label: 'Planejar', links: ['Hospedagens', 'Gastronomia', 'Agências', 'Informações', 'Parceiros'] }
   ];
 
   const genericImage = 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09';

@@ -120,7 +120,7 @@ export default function HistoriaPage() {
   const menuGroups = [
     { label: 'Conhecer', links: ['Atrativos', 'História', 'Biodiversidade', 'Galeria'] },
     { label: 'Viver', links: ['Eventos', 'Comunidades'] },
-    { label: 'Planejar', links: ['Hotéis', 'Gastronomia', 'Agências', 'Informações', 'Parceiros'] }
+    { label: 'Planejar', links: ['Hospedagens', 'Gastronomia', 'Agências', 'Informações', 'Parceiros'] }
   ];
 
   const fotosOrigens = fotos.filter(f => f.seccao === 'origens');

@@ -136,7 +136,7 @@ export default function ContatoPage() {
   const menuGroups = [
     { label: 'Conhecer', links: ['Atrativos', 'História', 'Biodiversidade', 'Galeria'] },
     { label: 'Viver', links: ['Eventos', 'Comunidades'] },
-    { label: 'Planejar', links: ['Hotéis', 'Gastronomia', 'Agências', 'Informações', 'Parceiros'] }
+    { label: 'Planejar', links: ['Hospedagens', 'Gastronomia', 'Agências', 'Informações', 'Parceiros'] }
   ];
 
   const filtered = activeFilter === 'all' ? contatos : contatos.filter(c => c.categoria === activeFilter);

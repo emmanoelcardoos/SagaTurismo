@@ -32,7 +32,7 @@ const menuGroups = [
   },
   { 
     label: 'Planejar', 
-    links: ['Hotéis', 'Gastronomia', 'Agências', 'Informações', 'Parceiros'] 
+    links: ['Hospedagens', 'Gastronomia', 'Agências', 'Informações', 'Parceiros'] 
   }
 ];
 

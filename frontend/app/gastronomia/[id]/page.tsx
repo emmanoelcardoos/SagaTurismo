@@ -192,7 +192,7 @@ export default function RestaurantePage() {
   const menuGroups = [
     { label: 'Conhecer', links: ['Atrativos', 'Rotas', 'História', 'Biodiversidade', 'Galeria'] },
     { label: 'Viver', links: ['Eventos', 'Comunidades'] },
-    { label: 'Planejar', links: ['Hotéis', 'Gastronomia', 'Agências', 'Informações', 'Parceiros'] }
+    { label: 'Planejar', links: ['Hospedagens', 'Gastronomia', 'Agências', 'Informações', 'Parceiros'] }
   ];
 
   if (loading) {
