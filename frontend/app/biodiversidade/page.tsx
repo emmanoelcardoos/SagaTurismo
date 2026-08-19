@@ -125,7 +125,7 @@ const cachoeiras = [
     altura: "",
     dificuldade: "Não classificada",
     destaque: true,
-    imagem: "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/217474f1-5f64-4320-a672-3449cb669dce.JPG"
+    imagem: "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galerias/cachoeiradavisagem.jpeg"
   },
   {
     nome: "Cachoeira do Espelho",
@@ -226,7 +226,6 @@ function SecParque() {
               <Image src="https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/Serra_Das_Andorinhas_02.JPG" alt="Floresta da Serra" fill className="object-cover opacity-60 group-hover:scale-105 group-hover:opacity-80 transition-all duration-1000" />
               <div className="absolute inset-0 bg-gradient-to-t from-[#021a0d]/90 via-transparent to-transparent" />
               <div className="absolute bottom-8 left-8 right-8 text-white">
-                <Mountain size={24} className="text-[#F9C400] mb-3" />
                 <h3 className={`${jakarta.className} text-3xl font-black mb-2`}>1.100m de altitude</h3>
                 <p className="text-white/60 text-sm">Ponto mais alto do parque, com vista para o Rio Araguaia e a planície amazônica.</p>
               </div>
@@ -236,10 +235,9 @@ function SecParque() {
           <div className="md:col-span-5 flex flex-col gap-5">
             <Reveal anim="left" delay={100}>
               <div className="group relative h-[220px] rounded-[2rem] overflow-hidden bg-[#00577C]">
-                <Image src="https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galeria/ponte-99.jfif.jpeg" alt="Rio Araguaia" fill className="object-cover opacity-50 group-hover:opacity-70 transition-all duration-700" />
+                <Image src="https://images.pexels.com/photos/33153434/pexels-photo-33153434.jpeg?_gl=1*1k3jmi3*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3ODcxNDgzMTMkbzEwMyRnMSR0MTc4NzE0ODMyOCRqNDUkbDAkaDA." alt="Rio Araguaia" fill className="object-cover opacity-50 group-hover:opacity-70 transition-all duration-700" />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#00577C]/90 to-transparent" />
                 <div className="absolute bottom-6 left-6 right-6 text-white">
-                  <Waves size={20} className="text-[#F9C400] mb-2" />
                   <h3 className={`${jakarta.className} text-xl font-black`}>Rio Araguaia</h3>
                   <p className="text-white/50 text-xs mt-1">Fronteira natural do parque a Oeste</p>
                 </div>
@@ -251,7 +249,6 @@ function SecParque() {
                 <Image src="https://images.pexels.com/photos/18064280/pexels-photo-18064280.jpeg?_gl=1*1642x6g*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3ODA3NTAwOTQkbzY5JGcxJHQxNzgwNzUwMzAxJGo5OSRsMCRoMA.." alt="Floresta densa" fill className="object-cover opacity-50 group-hover:opacity-70 transition-all duration-700" />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#1a4a2a]/90 to-transparent" />
                 <div className="absolute bottom-6 left-6 right-6 text-white">
-                  <Leaf size={20} className="text-[#F9C400] mb-2" />
                   <h3 className={`${jakarta.className} text-xl font-black`}>+12.000 animais protegidos</h3>
                   <p className="text-white/50 text-xs mt-1">Área total da unidade de conservação</p>
                 </div>
@@ -369,7 +366,6 @@ function SecCachoeiras() {
                 <div className="absolute inset-0 bg-gradient-to-t from-[#003d5c]/95 via-[#003d5c]/20 to-transparent" />
                 <div className="absolute bottom-8 left-8 right-8 text-white">
                   <div className="flex items-center gap-2 mb-2">
-                    <Droplets size={14} className="text-[#F9C400]" />
                     <span className="text-[#F9C400] font-black text-xs">{c.altura}</span>
                   </div>
                   <h3 className={`${jakarta.className} text-2xl font-black mb-2`}>{c.nome}</h3>
@@ -774,7 +770,6 @@ export default function BiodiversidadePage() {
         <SecCachoeiras />
         <SecFauna />
         <SecFlora />
-        <SecCTA />
       </div>
 
       {/* ── FOOTER ── */}

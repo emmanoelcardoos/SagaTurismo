@@ -191,7 +191,7 @@ export default function ParceirosPage() {
       <section className="relative h-[90vh] min-h-[500px] w-full flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           <Image 
-            src="https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/herosections/heroresidentes.jpg" 
+            src="https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/herosections/heroparceiros.jpg" 
             alt="Parceiros do Turismo em São Geraldo do Araguaia" 
             fill 
             className="object-cover" // ← SEM animação, SEM escala

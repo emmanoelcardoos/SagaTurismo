@@ -1153,10 +1153,11 @@ export default function HomePage() {
               <p className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-[#00577C] mb-4`}>Institucional</p>
               <ul className="space-y-2.5 text-sm">
                 <li><Link href="/quem-somos" className="text-slate-600 hover:text-[#00577C] transition-colors">Quem Somos</Link></li>
+                
                 <li><Link href="/parceiros" className="text-slate-600 hover:text-[#00577C] transition-colors">Parceiros</Link></li>
                 <li><Link href="/termos" className="text-slate-600 hover:text-[#00577C] transition-colors">Termos de Uso</Link></li>
                 <li><Link href="/privacidade" className="text-slate-600 hover:text-[#00577C] transition-colors">Política de Privacidade</Link></li>
-                <li><Link href="https://saogeraldodoaraguaia.pa.gov.br" className="text-slate-600 hover:text-[#00577C] transition-colors">O Governo</Link></li>
+                <li><Link href="/semtur" className="text-slate-600 hover:text-[#00577C] transition-colors">SEMTUR</Link></li>
               </ul>
             </div>
           </div>

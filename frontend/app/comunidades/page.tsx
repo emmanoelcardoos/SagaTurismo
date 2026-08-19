@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState, useRef, ReactNode } from 'react';
-import { Menu, X, ArrowRight, Loader2, Users, ShieldCheck, MapPin, ChevronDown } from 'lucide-react';
+import { Menu, X, ArrowRight, Loader2, Users, ChevronDown } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
 
@@ -106,10 +106,8 @@ export default function ComunidadesPage() {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
       
-      // Define se o header deve ficar sólido (bg branco)
       setIsHeaderSolid(currentScrollY > 80);
 
-      // Lógica de mostrar/esconder ao rolar
       if (currentScrollY < 80) {
         setShowHeader(true);
       } else if (currentScrollY > lastScrollY) {
@@ -125,7 +123,7 @@ export default function ComunidadesPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
-  // ── MENU AGRUPADO (PADRÃO VINCI) ──
+  // ── MENU AGRUPADO ──
   const menuGroups = [
     { label: 'Conhecer', links: ['Atrativos', 'História', 'Biodiversidade', 'Galeria'] },
     { label: 'Viver', links: ['Eventos', 'Comunidades'] },
@@ -156,9 +154,7 @@ export default function ComunidadesPage() {
                   alt="SagaTurismo" 
                   fill 
                   className={`object-contain transition-all duration-300 ${
-                    (!isHeaderSolid && !isHovered && !isMobileMenuOpen) 
-                      ? 'brightness-0 invert' 
-                      : ''
+                    (!isHeaderSolid && !isHovered && !isMobileMenuOpen) ? 'brightness-0 invert' : ''
                   }`} 
                 />
               </div>
@@ -237,7 +233,7 @@ export default function ComunidadesPage() {
       </header>
 
       {/* ══════════════════════════════════════
-          HERO EDITORIAL (COLORIDO - SEM ANIMAÇÃO)
+          HERO EDITORIAL 
       ══════════════════════════════════════ */}
       <section className="relative h-[90vh] min-h-[500px] w-full flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
@@ -245,10 +241,9 @@ export default function ComunidadesPage() {
             src="https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/herosections/herocomunidades.jpg" 
             alt="Comunidades de São Geraldo do Araguaia" 
             fill 
-            className="object-cover" // ← SEM animação, SEM escala
+            className="object-cover" 
             priority 
           />
-          {/* Gradiente MÍNIMO - apenas para legibilidade do texto */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
         </div>
 
@@ -269,68 +264,66 @@ export default function ComunidadesPage() {
         </div>
       </section>
 
-      {/* ── LISTAGEM COMUNIDADES LADO-A-LADO ── */}
-      <section className="py-24 md:py-32 relative z-20 max-w-[1400px] mx-auto px-6 w-full -mt-10 bg-transparent">
+      {/* ── LISTAGEM COMUNIDADES EM SEÇÕES INTEGRADAS ── */}
+      <section className="py-24 md:py-32 relative z-20 w-full max-w-[1400px] mx-auto px-6 bg-transparent">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 bg-white rounded-[2.5rem] shadow-sm border border-slate-100">
-            <Loader2 className="animate-spin text-[#00577C] w-12 h-12 mb-4" />
+          <div className="flex flex-col items-center justify-center py-20">
+            <Loader2 className="animate-spin text-[#00577C] w-12 h-12 mb-4"/>
             <p className="text-xs font-black uppercase tracking-widest text-slate-400">
               Viajando até as comunidades...
             </p>
           </div>
         ) : comunidades.length === 0 ? (
-          <div className="text-center py-20 bg-white rounded-[2.5rem] shadow-sm border border-slate-100">
-            <Users className="mx-auto w-16 h-16 text-slate-300 mb-4" />
+          <div className="text-center py-20">
+            <Users className="mx-auto w-16 h-16 text-slate-300 mb-4"/>
             <h3 className={`${jakarta.className} text-2xl font-bold text-slate-500`}>
               Nenhuma comunidade cadastrada.
             </h3>
           </div>
         ) : (
-          <div className="space-y-16 md:space-y-24">
+          <div className="space-y-32 md:space-y-48">
             {comunidades.map((comunidade, index) => {
               const isPar = index % 2 === 0;
 
               return (
-                <div key={comunidade.id} className="relative">
-                  <AnimatedSection animation="fade-up">
-                    <div className={`bg-white rounded-[3rem] border border-slate-100 shadow-lg shadow-slate-200/40 hover:shadow-2xl transition-all duration-500 p-4 md:p-6 flex flex-col ${isPar ? 'lg:flex-row' : 'lg:flex-row-reverse'} gap-8 lg:gap-12 overflow-hidden group`}>
-                      
-                      {/* BLOCO DA IMAGEM */}
-                      <div className="relative w-full h-[350px] lg:h-[450px] lg:w-1/2 rounded-[2.5rem] overflow-hidden bg-slate-100 shrink-0">
-                        <Image
-                          src={comunidade.imagem_url || genericImage}
-                          alt={comunidade.titulo}
-                          fill
-                          className="object-cover transition-transform duration-[2000ms] ease-out group-hover:scale-105"
-                          sizes="(max-width: 1024px) 100vw, 50vw"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/30 via-transparent to-transparent opacity-60 group-hover:opacity-30 transition-opacity duration-700" />
-                      </div>
-
-                      {/* BLOCO DE TEXTO */}
-                      <div className="flex-1 py-4 lg:py-12 px-4 lg:px-8 flex flex-col justify-center">
-                        <h2 className={`${jakarta.className} text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 leading-[1.05] tracking-tight mb-6`}>
-                          {comunidade.titulo}
-                        </h2>
-
-                        <p className="text-slate-500 text-base md:text-lg leading-relaxed mb-8 font-medium">
-                          {comunidade.descricao_curta}
-                        </p>
-
-                        <div className="mt-auto pt-8 border-t border-slate-100 flex">
-                          <Link
-                            href={`/comunidades/${comunidade.id}`}
-                            className="group/btn inline-flex items-center gap-3 px-8 py-4 rounded-full font-black text-xs uppercase tracking-widest shadow-xl shadow-[#00577C]/20 bg-[#00577C] text-white hover:bg-[#004a6b] transition-all duration-300 hover:-translate-y-1"
-                          >
-                            Conhecer a comunidade
-                            <ArrowRight size={16} className="group-hover/btn:translate-x-1 transition-transform" />
-                          </Link>
-                        </div>
-                      </div>
-
+                <AnimatedSection animation="fade-up" className="relative group" key={comunidade.id}>
+                  <div className={`flex flex-col ${isPar ? 'lg:flex-row' : 'lg:flex-row-reverse'} gap-12 lg:gap-20 items-center`}>
+                    
+                    {/* BLOCO DA IMAGEM EM SEÇÃO */}
+                    <div className="relative w-full h-[400px] lg:h-[550px] lg:w-1/2 rounded-[2rem] overflow-hidden bg-slate-100 shrink-0 shadow-2xl shadow-slate-300/40">
+                      <Image 
+                        src={comunidade.imagem_url || genericImage}
+                        alt={comunidade.titulo} 
+                        className="object-cover transition-transform duration-[2000ms] ease-out group-hover:scale-105" 
+                        fill 
+                        sizes="(max-width: 1024px) 100vw, 50vw" 
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 via-transparent to-transparent opacity-60 transition-opacity duration-700" />
                     </div>
-                  </AnimatedSection>
-                </div>
+
+                    {/* BLOCO DE TEXTO DA SEÇÃO */}
+                    <div className="flex-1 flex flex-col justify-center">
+                      <h2 className={`${jakarta.className} text-5xl md:text-6xl lg:text-7xl font-black text-slate-900 leading-[1.05] tracking-tight mb-8`}>
+                        {comunidade.titulo}
+                      </h2>
+
+                      <p className="text-slate-600 text-lg md:text-xl leading-relaxed mb-10 font-medium max-w-2xl">
+                        {comunidade.descricao_curta}
+                      </p>
+
+                      <div className="pt-2">
+                        <Link 
+                          href={`/comunidades/${comunidade.id}`}
+                          className="group/btn inline-flex items-center gap-3 px-8 py-4 rounded-full font-black text-xs uppercase tracking-widest bg-transparent border-2 border-[#00577C] text-[#00577C] hover:bg-[#00577C] hover:text-white transition-all duration-300" 
+                        >
+                          Explorar a comunidade
+                          <ArrowRight className="group-hover/btn:translate-x-1 transition-transform" size={16}/>
+                        </Link>
+                      </div>
+                    </div>
+
+                  </div>
+                </AnimatedSection>
               );
             })}
           </div>
@@ -342,9 +335,9 @@ export default function ComunidadesPage() {
         <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
           <div className="flex flex-col items-center md:items-start gap-4">
             <div className="flex items-center gap-6">
-              <Image src="/logop.png" alt="SagaTurismo" width={160} height={50} className="object-contain" />
+              <Image src="/logop.png" alt="SagaTurismo" className="object-contain" height={50} width={160}/>
               <div className="w-px h-12 bg-slate-200 hidden md:block" />
-              <Image src="/prefeitura.png" alt="Prefeitura de SGA" width={140} height={50} className="object-contain" />
+              <Image src="/prefeitura.png" alt="Prefeitura de SGA" className="object-contain" height={50} width={140}/>
             </div>
             <div className="text-left space-y-1 text-center md:text-left">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">

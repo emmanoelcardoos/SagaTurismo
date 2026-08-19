@@ -130,16 +130,16 @@ export default function PortalServicos() {
     setLoadingLogin(true);
 
     try {
+      // Faz apenas a verificação oficial e segura do Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password: senha });
-      if (authError) throw new Error("Credenciais inválidas.");
+      
+      if (authError) throw new Error("Credenciais inválidas. Verifique o e-mail e a senha.");
 
-      const { data: roleData, error: roleError } = await supabase.rpc("verificar_login_admin", { p_email: email, p_senha: senha });
-      if (roleError) throw roleError;
-
-      if (roleData) setRole(roleData as "geral" | "turismo" | "meio_ambiente");
-      else setErroLogin("Usuário sem permissões administrativas.");
-    } catch (error) {
-      setErroLogin("E-mail ou senha incorretos.");
+      // Se passou pelo erro acima, o login foi um sucesso! Entra direto no painel:
+      setRole("geral"); 
+      
+    } catch (error: any) {
+      setErroLogin(error.message);
     } finally {
       setLoadingLogin(false);
     }

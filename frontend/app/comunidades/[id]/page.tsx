@@ -83,9 +83,10 @@ export default function ComunidadeDetailPage() {
   const [pontos, setPontos] = useState<PontoComunidade[]>([]);
   const [loading, setLoading] = useState(true);
   
-  const [scrollY, setScrollY] = useState(0);
+  // ── CONTROLE DO HEADER ──
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const [isHeaderSolid, setIsHeaderSolid] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
@@ -110,30 +111,36 @@ export default function ComunidadeDetailPage() {
 
   useEffect(() => {
     const handleScroll = () => {
-      const y = window.scrollY;
-      setScrollY(y);
-      if (y < 80) setShowHeader(true);
-      else if (y > lastScrollY) setShowHeader(false);
-      else setShowHeader(true);
-      setLastScrollY(y);
+      const currentScrollY = window.scrollY;
+      
+      setIsHeaderSolid(currentScrollY > 80);
+
+      if (currentScrollY < 80) {
+        setShowHeader(true);
+      } else if (currentScrollY > lastScrollY) {
+        setShowHeader(false);
+      } else {
+        setShowHeader(true);
+      }
+      
+      setLastScrollY(currentScrollY);
     };
+
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
-  const isHeaderSolid = scrollY > 50 || isHovered || isMobileMenuOpen;
-
   // ── MENU AGRUPADO ──
   const menuGroups = [
-    { label: 'Conhecer', links: ['Atrativos',  'História', 'Biodiversidade', 'Galeria'] },
+    { label: 'Conhecer', links: ['Atrativos', 'História', 'Biodiversidade', 'Galeria'] },
     { label: 'Viver', links: ['Eventos', 'Comunidades'] },
-    { label: 'Planejar', links: ['Hospedagens', 'Gastronomia', 'Agências', 'Informações', 'Parceiros'] }
+    { label: 'Planejar', links: ['Hotéis', 'Gastronomia', 'Agências', 'Informações', 'Parceiros'] }
   ];
 
   if (loading) return (
     <div className={`${inter.className} min-h-screen bg-[#FDFCF7] flex flex-col items-center justify-center gap-4`}>
       <Loader2 className="animate-spin text-[#00577C] w-12 h-12" />
-      <p className="text-slate-400 font-black text-[10px] uppercase tracking-widest">A carregar comunidade...</p>
+      <p className="text-slate-400 font-black text-[10px] uppercase tracking-widest">Carregando comunidade...</p>
     </div>
   );
 
@@ -157,13 +164,26 @@ export default function ComunidadeDetailPage() {
       <header
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${showHeader ? 'translate-y-0' : '-translate-y-full'} ${isHeaderSolid ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100' : 'bg-transparent border-b border-transparent'}`}
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${showHeader ? 'translate-y-0' : '-translate-y-full'} ${
+          (isHeaderSolid || isHovered || isMobileMenuOpen) 
+            ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100' 
+            : 'bg-transparent border-b border-transparent'
+        }`}
       >
         <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4 relative">
           <div className="flex-1">
             <Link href="/" className="inline-flex items-center gap-3 transition-all duration-300">
               <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
-                <Image src="/logop.png" alt="SagaTurismo" fill className={`object-contain transition-all duration-300 ${!isHeaderSolid ? 'brightness-0 invert' : ''}`} />
+                <Image 
+                  src="/logop.png" 
+                  alt="SagaTurismo" 
+                  fill 
+                  className={`object-contain transition-all duration-300 ${
+                    (!isHeaderSolid && !isHovered && !isMobileMenuOpen) 
+                      ? 'brightness-0 invert' 
+                      : ''
+                  }`} 
+                />
               </div>
             </Link>
           </div>
@@ -171,15 +191,22 @@ export default function ComunidadeDetailPage() {
           <nav className="hidden lg:flex items-center justify-center gap-12">
             {menuGroups.map((group) => (
               <div key={group.label} className="relative group py-2">
-                <button className={`${jakarta.className} flex items-center gap-1.5 text-xs font-black uppercase tracking-[0.2em] transition-colors ${isHeaderSolid ? 'text-slate-600 group-hover:text-[#00577C]' : 'text-white group-hover:text-[#F9C400] drop-shadow-md'}`}>
+                <button className={`${jakarta.className} flex items-center gap-1.5 text-xs font-black uppercase tracking-[0.2em] transition-colors ${
+                  (isHeaderSolid || isHovered || isMobileMenuOpen) 
+                    ? 'text-slate-600 group-hover:text-[#00577C]' 
+                    : 'text-white group-hover:text-[#F9C400] drop-shadow-md'
+                }`}>
                   {group.label} <ChevronDown size={14} className="group-hover:rotate-180 transition-transform duration-300" />
                 </button>
                 <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max bg-white/95 backdrop-blur-xl border border-slate-100 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] rounded-2xl p-2 opacity-0 invisible translate-y-2 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 transition-all duration-300 z-50 flex flex-row items-center gap-1">
-                  {group.links.map((link) => (
-                    <Link key={link} href={`/${link.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`} className={`${jakarta.className} block px-5 py-3 text-sm font-bold text-slate-600 hover:text-[#00577C] hover:bg-slate-50 rounded-xl transition-all whitespace-nowrap`}>
-                      {link}
-                    </Link>
-                  ))}
+                  {group.links.map((link) => {
+                    const path = `/${link.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`;
+                    return (
+                      <Link key={link} href={path} className={`${jakarta.className} block px-5 py-3 text-sm font-bold text-slate-600 hover:text-[#00577C] hover:bg-slate-50 rounded-xl transition-all whitespace-nowrap`}>
+                        {link}
+                      </Link>
+                    );
+                  })}
                 </div>
               </div>
             ))}
@@ -187,11 +214,19 @@ export default function ComunidadeDetailPage() {
 
           <div className="flex-1 flex justify-end items-center gap-4">
             <Link href="/cadastro"
-              className={`hidden lg:inline-flex ${jakarta.className} px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-sm ${isHeaderSolid ? 'bg-[#F9C400] text-[#002f40]' : 'bg-white/20 backdrop-blur-md text-white border border-white/30 hover:bg-white/30'}`}>
+              className={`hidden lg:inline-flex ${jakarta.className} px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-sm ${
+                (isHeaderSolid || isHovered || isMobileMenuOpen) 
+                  ? 'bg-[#F9C400] text-[#002f40]' 
+                  : 'bg-white/20 backdrop-blur-md text-white border border-white/30 hover:bg-white/30'
+              }`}>
               Residente
             </Link>
             <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className={`rounded-xl p-2 lg:hidden transition-all duration-300 ${isHeaderSolid ? 'text-[#00577C] hover:bg-slate-100' : 'text-white hover:bg-white/20'}`}>
+              className={`rounded-xl p-2 lg:hidden transition-all duration-300 ${
+                (isHeaderSolid || isHovered || isMobileMenuOpen) 
+                  ? 'text-[#00577C] hover:bg-slate-100' 
+                  : 'text-white hover:bg-white/20'
+              }`}>
               {isMobileMenuOpen ? <X className="h-8 w-8" /> : <Menu className="h-8 w-8" />}
             </button>
           </div>
@@ -203,11 +238,14 @@ export default function ComunidadeDetailPage() {
               <div key={group.label} className="flex flex-col gap-3">
                 <p className={`${jakarta.className} text-[10px] font-black uppercase tracking-[0.2em] text-[#00577C] border-b border-slate-100 pb-2`}>{group.label}</p>
                 <div className="flex flex-wrap gap-2">
-                  {group.links.map((link) => (
-                    <Link key={link} href={`/${link.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`} onClick={() => setIsMobileMenuOpen(false)} className={`${jakarta.className} font-bold text-slate-700 text-sm bg-slate-50 px-4 py-2 rounded-lg border border-slate-100 hover:text-[#00577C] hover:bg-slate-100 transition-colors`}>
-                      {link}
-                    </Link>
-                  ))}
+                  {group.links.map((link) => {
+                    const path = `/${link.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`;
+                    return (
+                      <Link key={link} href={path} onClick={() => setIsMobileMenuOpen(false)} className={`${jakarta.className} font-bold text-slate-700 text-sm bg-slate-50 px-4 py-2 rounded-lg border border-slate-100 hover:text-[#00577C] hover:bg-slate-100 transition-colors`}>
+                        {link}
+                      </Link>
+                    );
+                  })}
                 </div>
               </div>
             ))}
@@ -221,7 +259,7 @@ export default function ComunidadeDetailPage() {
       </header>
 
       {/* ══════════════════════════════════════
-          HERO — PADRÃO OFICIAL
+          HERO — CORRIGIDO (SEM ESBRANQUIÇAMENTO)
       ══════════════════════════════════════ */}
       <section className="relative h-[90vh] min-h-[500px] w-full flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
@@ -229,10 +267,11 @@ export default function ComunidadeDetailPage() {
             src={comunidade.imagem_url || 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09'}
             alt={`Capa de ${comunidade.titulo}`}
             fill
-            className="object-cover scale-105 animate-[pulse_20s_ease-in-out_infinite]"
+            className="object-cover" // ← REMOVIDO: scale-105 e animate-[pulse]
             priority
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-slate-900/60 via-slate-900/40 to-slate-900/80" />
+          {/* Gradiente apenas na parte inferior para legibilidade do texto */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
         </div>
 
         <div className="relative z-10 flex flex-col items-center text-center px-6 mt-16 max-w-5xl mx-auto">
@@ -277,7 +316,6 @@ export default function ComunidadeDetailPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {pontos.map((ponto, i) => (
                 <Reveal key={ponto.id} delay={i * 100}>
-                  {/* Bloco visual (Sem link para fora) */}
                   <div className="relative h-[300px] md:h-[380px] rounded-[2.5rem] overflow-hidden group shadow-md border border-slate-100 block bg-slate-100">
                     <Image 
                       src={ponto.imagem_url || comunidade.imagem_url || 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09'} 
@@ -332,7 +370,7 @@ export default function ComunidadeDetailPage() {
             </div>
             <div className="text-left space-y-1 text-center md:text-left">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                © 2026 Prefeitura Munícipal de São Geraldo do Araguaia - PA
+                © 2026 Prefeitura Municipal de São Geraldo do Araguaia - PA
               </p>
               <p className="text-[10px] font-bold text-slate-400/80">
                 CNPJ: 10.249.241/0001-22
