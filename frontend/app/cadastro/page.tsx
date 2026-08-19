@@ -507,7 +507,7 @@ export default function CadastroPage() {
       <section className="relative h-[90vh] min-h-[500px] w-full flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           <Image 
-            src="https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/herosections/heroresidentes.jpg" 
+            src="https://images.pexels.com/photos/38049813/pexels-photo-38049813.jpeg?_gl=1*1ysrytv*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3ODcxNjc5NjYkbzEwNCRnMSR0MTc4NzE2OTEwOCRqNTkkbDAkaDA." 
             alt="Cartão Residente São Geraldo do Araguaia" 
             fill 
             className="object-cover"
@@ -521,7 +521,7 @@ export default function CadastroPage() {
             Residente
           </h1>
           <p className="text-white/95 text-sm md:text-lg font-medium mt-6 drop-shadow-lg max-w-2xl">
-            Garanta o seu benefício de 50% de desconto no Parque. Preencha os seus dados, envie a documentação e aproveite o turismo da nossa terra.
+            Garanta o seu benefício de 50% de desconto na Cachoeira Tês Quedas.
           </p>
         </div>
 

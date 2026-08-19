@@ -242,7 +242,7 @@ export default function EventosPage() {
         <section className="relative h-[90vh] min-h-[500px] w-full flex items-center justify-center overflow-hidden">
           <div className="absolute inset-0 z-0">
             <Image 
-              src="https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/herosections/heroeventos.jpg" 
+              src="https://images.pexels.com/photos/37834641/pexels-photo-37834641.jpeg?_gl=1*1effz5v*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3ODcxNjc5NjYkbzEwNCRnMSR0MTc4NzE3MDEzOSRqMzkkbDAkaDA." 
               alt="Agenda Cultural de São Geraldo do Araguaia" 
               fill 
               className="object-cover" // ← SEM animação, SEM escala
