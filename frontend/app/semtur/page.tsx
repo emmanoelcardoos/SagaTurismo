@@ -181,7 +181,7 @@ export default function SemturPage() {
               {/* Foto principal */}
               <div className="relative w-[260px] h-[260px] md:w-[320px] md:h-[320px] rounded-full overflow-hidden z-10 shadow-sm border-[6px] border-[#FDFCF7]">
                 <Image 
-                  src="h" // Substitua pela foto oficial da Secretária
+                  src="https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/herosections/SEMTUR.jpeg" // Substitua pela foto oficial da Secretária
                   alt="Secretária de Turismo"
                   fill
                   className="object-cover"
@@ -199,14 +199,14 @@ export default function SemturPage() {
 
               {/* Informações de Contato Isoladas */}
               <div className="pt-8 text-slate-700 font-medium space-y-1 border-t border-slate-200 mt-8">
-                <p>Av. Beira Rio, S/N - Orla</p>
-                <p>Centro - São Geraldo do Araguaia-PA</p>
+                <p>Av. Antônio Pedrosa</p>
+                <p>Vila Administrativa, Alto BEC - São Geraldo do Araguaia-PA</p>
                 <p className="font-bold text-slate-900 mt-3 mb-1">
-                  Tel. (94) 3422-0000 | (94) 99000-0000
+                  Tel. (94) 98420-5736
                 </p>
                 <p>
                   <a href="mailto:turismo@saogeraldo.pa.gov.br" className="text-[#00577C] hover:underline">
-                    turismo@saogeraldo.pa.gov.br
+                    turismo@saogeraldodoaraguaia.pa.gov.br
                   </a>
                 </p>
               </div>
