@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { 
   Calendar as CalendarIcon, Bell, CheckCircle2, Clock, Map, Package, Activity, AlertCircle,
   Upload, Image as ImageIcon, Save, Loader2, FileSpreadsheet, Utensils, MapPin, Phone, Plus, Trash2,
-  Building2, Briefcase, Compass, Newspaper, Smartphone
+  Building2, Briefcase, Compass, Newspaper, Smartphone, FileText
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import 'react-quill/dist/quill.snow.css';
@@ -177,7 +177,7 @@ function AdminDashboard({ role, onLogout }: { role: "geral" | "turismo" | "meio_
     { id: "dashboard",   label: "Painel Geral", icon: <Activity size={18} /> },
     { id: "blog",        label: "Blog/Notícias",icon: <Newspaper size={18} /> },
     { id: "newsletter",  label: "Newsletter",   icon: <Bell size={18} /> }, 
-    { id: "notificacoes",label: "App Notificações",icon: <Smartphone size={18} /> },
+    { id: "aplicativo",  label: "Aplicativo",      icon: <Smartphone size={18} /> },
     { id: "eventos",     label: "Eventos",      icon: <CalendarIcon size={18} /> },
     { id: "atracoes",    label: "Atrativos",     icon: <MapPin size={18} /> },
     { id: "hoteis",      label: "Hotéis",       icon: <Building2 size={18} /> },
@@ -222,7 +222,7 @@ function AdminDashboard({ role, onLogout }: { role: "geral" | "turismo" | "meio_
         {activeTab === "hoteis"      && <TabHoteis />} 
         {activeTab === "agencias"    && <TabAgencias />}
         {activeTab === "newsletter" && <TabNewsletter />}
-        {activeTab === "notificacoes" && <TabNotificacoes />}
+        {activeTab === "aplicativo" && <TabAplicativo />}
       </main>
     </div>
   );
@@ -1867,24 +1867,31 @@ function TabAtracoes() {
 // NOTIFICAÇÕES PUSH (APP)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function TabNotificacoes() {
+function TabAplicativo() {
+  // Estados para as Notificações Push
   const [tokens, setTokens] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingTokens, setLoadingTokens] = useState(true);
   const [enviando, setEnviando] = useState(false);
-  const [feedback, setFeedback] = useState("");
-
+  const [feedbackPush, setFeedbackPush] = useState("");
   const [titulo, setTitulo] = useState("");
   const [mensagem, setMensagem] = useState("");
+
+  // Estados para o Upload de Materiais
+  const [tituloPdf, setTituloPdf] = useState("");
+  const [descricaoPdf, setDescricaoPdf] = useState("");
+  const [arquivo, setArquivo] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [feedbackPdf, setFeedbackPdf] = useState("");
 
   useEffect(() => {
     fetchTokens();
   }, []);
 
   async function fetchTokens() {
-    setLoading(true);
+    setLoadingTokens(true);
     const { data } = await supabase.from("push_tokens").select("*").order("criado_em", { ascending: false });
     if (data) setTokens(data);
-    setLoading(false);
+    setLoadingTokens(false);
   }
 
   async function handleDisparar(e: React.FormEvent) {
@@ -1894,105 +1901,158 @@ function TabNotificacoes() {
       return;
     }
     if (tokens.length === 0) {
-      alert("Nenhum telemóvel registado na base de dados para receber notificações.");
+      alert("Nenhum telemóvel registado na base de dados.");
       return;
     }
     if (!confirm(`Deseja disparar esta notificação para ${tokens.length} telemóveis?`)) return;
 
     setEnviando(true);
-    setFeedback("A comunicar com o nosso servidor...");
+    setFeedbackPush("A comunicar com os servidores...");
 
-    // Cria as mensagens no formato exigido pela Expo
     const mensagensPush = tokens.map((t) => ({
       to: t.token,
       sound: 'default',
       title: titulo,
       body: mensagem,
-      data: { portal: true }, // Dados extra
+      data: { portal: true },
     }));
 
     try {
-      // ◄── MUDANÇA AQUI: Chamamos a nossa API local em vez da Expo!
       const response = await fetch('/api/push', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mensagens: mensagensPush })
       });
 
-      if (!response.ok) throw new Error("Falha na API local");
+      if (!response.ok) throw new Error("Falha na API");
 
-      setFeedback(`Sucesso! Notificação enviada para ${tokens.length} dispositivos.`);
+      setFeedbackPush(`Sucesso! Enviado para ${tokens.length} dispositivos.`);
       setTitulo(""); setMensagem("");
     } catch (err) {
       console.error(err);
-      setFeedback("Erro ao tentar contactar os servidores de envio.");
+      setFeedbackPush("Erro ao enviar notificação.");
     } finally {
       setEnviando(false);
     }
   }
 
+  async function handleUploadPdf(e: React.FormEvent) {
+    e.preventDefault();
+    if (!tituloPdf || !arquivo) {
+      alert("Título e ficheiro PDF são obrigatórios!");
+      return;
+    }
+
+    setUploading(true);
+    setFeedbackPdf("A carregar ficheiro...");
+
+    try {
+      const fileExt = arquivo.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `pdf/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('guias')
+        .upload(filePath, arquivo);
+
+      if (uploadError) throw uploadError;
+
+      const { data: publicUrlData } = supabase.storage
+        .from('guias')
+        .getPublicUrl(filePath);
+
+      const { error: dbError } = await supabase
+        .from('guias_turisticos')
+        .insert([{
+          titulo: tituloPdf,
+          descricao: descricaoPdf,
+          arquivo_url: publicUrlData.publicUrl,
+          categoria: 'Guia Digital'
+        }]);
+
+      if (dbError) throw dbError;
+
+      setFeedbackPdf("✅ PDF publicado com sucesso!");
+      setTituloPdf(""); setDescricaoPdf(""); setArquivo(null);
+    } catch (err) {
+      console.error(err);
+      setFeedbackPdf("❌ Erro ao enviar o PDF.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className={`${jakarta.className} text-xl font-black text-[#00577C]`}>Notificações Push (App)</h2>
-          <p className="text-xs text-slate-500 mt-1">Acorde os telemóveis dos turistas e moradores com alertas em tempo real.</p>
-        </div>
+    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 pb-12">
+      <div>
+        <h2 className="text-xl font-black text-[#00577C]">Gestão do Aplicativo</h2>
+        <p className="text-xs text-slate-500 mt-1">Envie alertas em tempo real e disponibilize guias digitais para os utilizadores.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* FORMULÁRIO DE DISPARO */}
-        <div className="lg:col-span-2 bg-white rounded-[2rem] p-8 shadow-sm border border-slate-200">
-          <h3 className={`${jakarta.className} text-lg font-black text-slate-800 mb-6 flex items-center gap-2`}>
-            <Smartphone size={18} className="text-[#F9C400]" /> Nova Notificação
+      {/* SECÇÃO 1: NOTIFICAÇÕES PUSH */}
+      <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-200">
+        <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+          <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
+            <Bell size={18} className="text-[#F9C400]" /> Notificações Push
           </h3>
-
-          <form onSubmit={handleDisparar} className="space-y-5">
-            <FormField label="Título do Alerta (Obrigatório) *">
-              <input value={titulo} onChange={e => setTitulo(e.target.value)} className={inputCls} placeholder="Ex: 🌿 Novo artigo no Blog!" required maxLength={50} />
-            </FormField>
-
-            <FormField label="Mensagem / Subtítulo (Obrigatório) *">
-              <textarea 
-                rows={3} 
-                value={mensagem} 
-                onChange={e => setMensagem(e.target.value)} 
-                className={inputCls} 
-                placeholder="Ex: Descubra as maravilhas arqueológicas da Serra das Andorinhas. Leia já." 
-                required 
-                maxLength={150}
-              />
-            </FormField>
-
-            <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
-              <span className="text-xs font-bold text-[#009640]">{feedback}</span>
-              <button type="submit" disabled={enviando || tokens.length === 0} className="bg-[#00577C] hover:bg-[#004a6b] text-white px-8 py-3.5 rounded-xl font-black text-xs uppercase tracking-widest shadow-md flex items-center gap-2 disabled:opacity-50 transition-all">
-                {enviando ? <Loader2 size={16} className="animate-spin" /> : <Bell size={16} />} 
-                {tokens.length === 0 ? "Sem utilizadores" : `Disparar Alerta (${tokens.length})`}
-              </button>
-            </div>
-          </form>
+          <span className="text-xs font-bold bg-slate-100 px-3 py-1 rounded-full text-slate-600">
+            {tokens.length} dispositivos registados
+          </span>
         </div>
 
-        {/* ESTATÍSTICAS DOS TOKENS */}
-        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200 flex flex-col h-fit">
-          <h4 className={`${jakarta.className} text-sm font-black text-slate-800 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100`}>
-            Instalações da App
-          </h4>
-          
-          {loading ? (
-            <div className="py-8 flex justify-center"><Loader2 className="animate-spin text-[#00577C]" size={24} /></div>
-          ) : (
-            <div className="text-center py-6">
-              <Smartphone size={48} className="mx-auto text-slate-200 mb-3" />
-              <span className={`${jakarta.className} text-4xl font-black text-slate-800`}>{tokens.length}</span>
-              <p className="text-xs text-slate-400 mt-2 font-medium">Telemóveis com permissão<br/>para receber notificações.</p>
-            </div>
-          )}
-        </div>
+        <form onSubmit={handleDisparar} className="space-y-5">
+          <div>
+            <label className="text-xs font-bold text-slate-700 mb-2 block">Título do Alerta *</label>
+            <input value={titulo} onChange={e => setTitulo(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm" placeholder="Ex: 🌿 Novo artigo no Blog!" required maxLength={50} />
+          </div>
 
+          <div>
+            <label className="text-xs font-bold text-slate-700 mb-2 block">Mensagem *</label>
+            <textarea rows={3} value={mensagem} onChange={e => setMensagem(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm" placeholder="Ex: Descubra as novidades..." required maxLength={150} />
+          </div>
+
+          <div className="pt-2 flex items-center justify-between">
+            <span className="text-xs font-bold text-[#009640]">{feedbackPush}</span>
+            <button type="submit" disabled={enviando || tokens.length === 0} className="bg-[#00577C] text-white px-6 py-3 rounded-xl font-black text-xs uppercase disabled:opacity-50">
+              {enviando ? "A enviar..." : "Disparar Alerta"}
+            </button>
+          </div>
+        </form>
       </div>
+
+      {/* SECÇÃO 2: MATERIAIS E GUIAS DIGITAIS (PDFs) */}
+      <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-200">
+        <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+          <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
+            <FileText size={18} className="text-[#00577C]" /> Disponibilizar Guias e Panfletos (PDF)
+          </h3>
+        </div>
+
+        <form onSubmit={handleUploadPdf} className="space-y-5">
+          <div>
+            <label className="text-xs font-bold text-slate-700 mb-2 block">Título do Material *</label>
+            <input value={tituloPdf} onChange={e => setTituloPdf(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm" placeholder="Ex: Guia Turístico Oficial 2026" required />
+          </div>
+
+          <div>
+            <label className="text-xs font-bold text-slate-700 mb-2 block">Breve Descrição</label>
+            <textarea rows={2} value={descricaoPdf} onChange={e => setDescricaoPdf(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm" placeholder="Ex: Mapa completo com trilhas e pontos de apoio..." />
+          </div>
+
+          <div>
+            <label className="text-xs font-bold text-slate-700 mb-2 block">Ficheiro PDF *</label>
+            <input type="file" accept=".pdf" onChange={e => setArquivo(e.target.files?.[0] || null)} className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-[#F0F9FF] file:text-[#00577C]" required />
+          </div>
+
+          <div className="pt-2 flex items-center justify-between">
+            <span className="text-xs font-bold text-[#009640]">{feedbackPdf}</span>
+            <button type="submit" disabled={uploading} className="bg-[#00577C] text-white px-6 py-3 rounded-xl font-black text-xs uppercase disabled:opacity-50">
+              {uploading ? "A enviar..." : "Publicar PDF"}
+            </button>
+          </div>
+        </form>
+      </div>
+
     </div>
   );
 }
