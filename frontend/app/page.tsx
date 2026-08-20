@@ -853,7 +853,7 @@ export default function HomePage() {
             playsInline
             preload="auto"
             className="object-cover w-full h-full"  // ← sem scale-105
-            src="/hero.mp4"
+            src="/turismo.mp4"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-slate-900/40 via-slate-900/20 to-slate-900/60" />
         </div>
