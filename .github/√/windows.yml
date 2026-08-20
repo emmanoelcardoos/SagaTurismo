@@ -1,0 +1,40 @@
+name: Gerar App Windows
+
+on:
+  workflow_dispatch: # Isto cria um botão no GitHub para você clicar quando quiser gerar o .exe
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    
+    # O "mapa" que diz ao robô onde está a pasta do Tauri
+    defaults:
+      run:
+        working-directory: ./frontend/app/portal-servicos
+    
+    steps:
+      - name: Baixar o código do GitHub
+        uses: actions/checkout@v4
+
+      - name: Instalar Node.js no robô
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Instalar Rust (Motor do Tauri) no robô
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Instalar dependências
+        run: npm install
+
+      - name: Compilar o Aplicativo para Windows (.exe)
+        run: npx tauri build
+
+      - name: Guardar o ficheiro .exe para você baixar
+        uses: actions/upload-artifact@v4
+        with:
+          name: Instalador-Prefeitura-Windows
+          # O caminho onde o robô vai buscar o ficheiro final
+          path: |
+            frontend/app/portal-servicos/src-tauri/target/release/bundle/nsis/*.exe
+            frontend/app/portal-servicos/src-tauri/target/release/bundle/msi/*.msi
