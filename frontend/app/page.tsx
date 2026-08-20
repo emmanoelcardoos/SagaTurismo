@@ -718,7 +718,7 @@ export default function HomePage() {
   useEffect(() => {
     if (videoRef.current) {
       // Reduz a velocidade para 0.25x (2s → 8s)
-      videoRef.current.playbackRate = 0.25;
+      videoRef.current.playbackRate = 1.00;
     }
   }, []);
 
@@ -846,16 +846,15 @@ export default function HomePage() {
         {/* Imagem de Fundo a cobrir 100% do ecrã */}
         <div className="absolute inset-0 z-0">
           <video
-            ref={videoRef}   // ← REF ADICIONADA
+            ref={videoRef}
             autoPlay
             loop
             muted
             playsInline
             preload="auto"
-            className="object-cover w-full h-full scale-105"
-            src="/video_cortado.mp4"
+            className="object-cover w-full h-full"  // ← sem scale-105
+            src="/hero.mp4"
           />
-          {/* Overlay escuro para garantir que o texto branco tem contraste */}
           <div className="absolute inset-0 bg-gradient-to-b from-slate-900/40 via-slate-900/20 to-slate-900/60" />
         </div>
 

@@ -1847,7 +1847,7 @@ function TabAtracoes() {
                 </div>
                 <div className="px-2 pb-2 flex-1 flex flex-col">
                   <h3 className={`${jakarta.className} text-xl font-black text-slate-800 mb-1`}>{a.nome}</h3>
-                  <p className="text-xs font-bold text-[#009640] mb-3">R$ {a.preco_entrada.toFixed(2)}</p>
+                  <p className="text-xs font-bold text-[#009640] mb-3">R$ {(Number(a.preco_entrada) || 0).toFixed(2)}</p>
                   
                   <div className="mt-auto flex items-center justify-between pt-4 border-t border-slate-100">
                     <button onClick={() => abrirFormEditar(a)} className="text-xs font-bold text-[#00577C] hover:underline">Editar Atração</button>
