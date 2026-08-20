@@ -1864,7 +1864,7 @@ function TabAtracoes() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// NOTIFICAÇÕES PUSH (APP)
+// APLICATIVO
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function TabAplicativo() {
@@ -1983,76 +1983,129 @@ function TabAplicativo() {
   }
 
   return (
-    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 pb-12">
-      <div>
-        <h2 className="text-xl font-black text-[#00577C]">Gestão do Aplicativo</h2>
-        <p className="text-xs text-slate-500 mt-1">Envie alertas em tempo real e disponibilize guias digitais para os utilizadores.</p>
+    <div className="space-y-6">
+      {/* HEADER - mesmo padrão da TabAtracoes */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className={`${jakarta.className} text-xl font-black text-[#00577C]`}>Gestão do Aplicativo</h2>
+          <p className="text-xs text-slate-500 mt-1">Envie alertas em tempo real e disponibilize guias digitais para os utilizadores.</p>
+        </div>
+        <span className="text-xs font-bold bg-slate-100 px-3 py-1 rounded-full text-slate-600">
+          {tokens.length} dispositivos registados
+        </span>
       </div>
 
-      {/* SECÇÃO 1: NOTIFICAÇÕES PUSH */}
-      <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-200">
-        <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
-          <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
-            <Bell size={18} className="text-[#F9C400]" /> Notificações Push
+      {/* SECÇÃO 1: NOTIFICAÇÕES PUSH - mesma estrutura da TabAtracoes */}
+      <div className="bg-white rounded-[2rem] p-8 shadow-lg border border-slate-100">
+        <div className="flex items-center justify-between mb-8 border-b border-slate-100 pb-4">
+          <h3 className={`${jakarta.className} text-2xl font-black text-slate-800 flex items-center gap-2`}>
+            <Bell size={22} className="text-[#F9C400]" /> Notificações Push
           </h3>
-          <span className="text-xs font-bold bg-slate-100 px-3 py-1 rounded-full text-slate-600">
-            {tokens.length} dispositivos registados
-          </span>
         </div>
 
         <form onSubmit={handleDisparar} className="space-y-5">
-          <div>
-            <label className="text-xs font-bold text-slate-700 mb-2 block">Título do Alerta *</label>
-            <input value={titulo} onChange={e => setTitulo(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm" placeholder="Ex: 🌿 Novo artigo no Blog!" required maxLength={50} />
-          </div>
+          <FormField label="Título do Alerta *">
+            <input 
+              value={titulo} 
+              onChange={e => setTitulo(e.target.value)} 
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm" 
+              placeholder="Ex: 🌿 Novo artigo no Blog!" 
+              required 
+              maxLength={50} 
+            />
+          </FormField>
 
-          <div>
-            <label className="text-xs font-bold text-slate-700 mb-2 block">Mensagem *</label>
-            <textarea rows={3} value={mensagem} onChange={e => setMensagem(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm" placeholder="Ex: Descubra as novidades..." required maxLength={150} />
-          </div>
+          <FormField label="Mensagem *">
+            <textarea 
+              rows={4} 
+              value={mensagem} 
+              onChange={e => setMensagem(e.target.value)} 
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm" 
+              placeholder="Ex: Descubra as novidades..." 
+              required 
+              maxLength={150} 
+            />
+          </FormField>
 
-          <div className="pt-2 flex items-center justify-between">
-            <span className="text-xs font-bold text-[#009640]">{feedbackPush}</span>
-            <button type="submit" disabled={enviando || tokens.length === 0} className="bg-[#00577C] text-white px-6 py-3 rounded-xl font-black text-xs uppercase disabled:opacity-50">
-              {enviando ? "A enviar..." : "Disparar Alerta"}
+          <div className="pt-6 border-t border-slate-100 flex items-center justify-between">
+            <span className="text-sm font-bold text-[#009640]">{feedbackPush}</span>
+            <button 
+              type="submit" 
+              disabled={enviando || tokens.length === 0} 
+              className="bg-[#00577C] hover:bg-[#004a6b] text-white px-8 py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg flex items-center gap-2 transition-all disabled:opacity-50"
+            >
+              {enviando ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" /> A enviar...
+                </>
+              ) : (
+                "Disparar Alerta"
+              )}
             </button>
           </div>
         </form>
       </div>
 
-      {/* SECÇÃO 2: MATERIAIS E GUIAS DIGITAIS (PDFs) */}
-      <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-200">
-        <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
-          <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
-            <FileText size={18} className="text-[#00577C]" /> Disponibilizar Guias e Panfletos (PDF)
+      {/* SECÇÃO 2: MATERIAIS E GUIAS DIGITAIS - mesmo padrão */}
+      <div className="bg-white rounded-[2rem] p-8 shadow-lg border border-slate-100">
+        <div className="flex items-center justify-between mb-8 border-b border-slate-100 pb-4">
+          <h3 className={`${jakarta.className} text-2xl font-black text-slate-800 flex items-center gap-2`}>
+            <FileText size={22} className="text-[#00577C]" /> Disponibilizar Guias e Panfletos (PDF)
           </h3>
         </div>
 
         <form onSubmit={handleUploadPdf} className="space-y-5">
-          <div>
-            <label className="text-xs font-bold text-slate-700 mb-2 block">Título do Material *</label>
-            <input value={tituloPdf} onChange={e => setTituloPdf(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm" placeholder="Ex: Guia Turístico Oficial 2026" required />
-          </div>
+          <FormField label="Título do Material *">
+            <input 
+              value={tituloPdf} 
+              onChange={e => setTituloPdf(e.target.value)} 
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm" 
+              placeholder="Ex: Guia Turístico Oficial 2026" 
+              required 
+            />
+          </FormField>
 
-          <div>
-            <label className="text-xs font-bold text-slate-700 mb-2 block">Breve Descrição</label>
-            <textarea rows={2} value={descricaoPdf} onChange={e => setDescricaoPdf(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm" placeholder="Ex: Mapa completo com trilhas e pontos de apoio..." />
-          </div>
+          <FormField label="Breve Descrição">
+            <textarea 
+              rows={3} 
+              value={descricaoPdf} 
+              onChange={e => setDescricaoPdf(e.target.value)} 
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm" 
+              placeholder="Ex: Mapa completo com trilhas e pontos de apoio..." 
+            />
+          </FormField>
 
-          <div>
-            <label className="text-xs font-bold text-slate-700 mb-2 block">Ficheiro PDF *</label>
-            <input type="file" accept=".pdf" onChange={e => setArquivo(e.target.files?.[0] || null)} className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-[#F0F9FF] file:text-[#00577C]" required />
-          </div>
+          <FormField label="Ficheiro PDF *">
+            <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 text-slate-500 p-6 rounded-xl cursor-pointer hover:border-[#00577C] transition-colors">
+              <input 
+                type="file" 
+                accept=".pdf" 
+                className="hidden" 
+                onChange={e => setArquivo(e.target.files?.[0] || null)} 
+                required 
+              />
+              <FileText size={18} /> {arquivo ? arquivo.name : "Clique para anexar o PDF"}
+            </label>
+          </FormField>
 
-          <div className="pt-2 flex items-center justify-between">
-            <span className="text-xs font-bold text-[#009640]">{feedbackPdf}</span>
-            <button type="submit" disabled={uploading} className="bg-[#00577C] text-white px-6 py-3 rounded-xl font-black text-xs uppercase disabled:opacity-50">
-              {uploading ? "A enviar..." : "Publicar PDF"}
+          <div className="pt-6 border-t border-slate-100 flex items-center justify-between">
+            <span className="text-sm font-bold text-[#009640]">{feedbackPdf}</span>
+            <button 
+              type="submit" 
+              disabled={uploading} 
+              className="bg-[#009640] hover:bg-green-700 text-white px-8 py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg flex items-center gap-2 transition-all disabled:opacity-50"
+            >
+              {uploading ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" /> A enviar...
+                </>
+              ) : (
+                "Publicar PDF"
+              )}
             </button>
           </div>
         </form>
       </div>
-
     </div>
   );
 }
