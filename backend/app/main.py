@@ -12,7 +12,8 @@ origens_permitidas = [
     "http://localhost:3000",             # Para continuares a testar localmente no teu PC
     "https://saga-turismo.vercel.app",   # O teu link antigo da Vercel
     "https://sagatur.com.br",            # O TEU NOVO DOMÍNIO OFICIAL
-    "https://www.sagatur.com.br"         # O TEU NOVO DOMÍNIO OFICIAL COM WWW
+    "https://www.sagatur.com.br",
+    "https://turismo.saogeraldodoaraguaia.pa.gov.br"     
 ]
 
 app.add_middleware(
