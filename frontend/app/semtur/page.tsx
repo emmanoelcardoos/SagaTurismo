@@ -181,7 +181,7 @@ export default function SemturPage() {
               {/* Foto principal */}
               <div className="relative w-[260px] h-[260px] md:w-[320px] md:h-[320px] rounded-full overflow-hidden z-10 shadow-sm border-[6px] border-[#FDFCF7]">
                 <Image 
-                  src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=800" // Substitua pela foto oficial da Secretária
+                  src="h" // Substitua pela foto oficial da Secretária
                   alt="Secretária de Turismo"
                   fill
                   className="object-cover"
@@ -196,16 +196,6 @@ export default function SemturPage() {
               <h2 className={`${jakarta.className} text-3xl font-black text-slate-900`}>
                 Sobre a secretária
               </h2>
-              
-              <div className="space-y-6 text-slate-700 leading-relaxed font-medium mt-6">
-                <p>
-                  <strong className="text-slate-900 font-bold">Maria Silva</strong> - Secretária Municipal de Turismo de São Geraldo do Araguaia, turismóloga formada pela Universidade Estadual, Pós-Graduada em Gestão Ambiental e mestre em Recursos Naturais.
-                </p>
-                
-                <p>
-                  Possui vasta experiência na área de ecoturismo e conservação e atua na linha da frente para o desenvolvimento sustentável da Serra das Andorinhas e promoção do município como destino turístico de referência na Amazônia.
-                </p>
-              </div>
 
               {/* Informações de Contato Isoladas */}
               <div className="pt-8 text-slate-700 font-medium space-y-1 border-t border-slate-200 mt-8">
