@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { 
   Calendar as CalendarIcon, Bell, CheckCircle2, Clock, Map, Package, Activity, AlertCircle,
   Upload, Image as ImageIcon, Save, Loader2, FileSpreadsheet, Utensils, MapPin, Phone, Plus, Trash2,
-  Building2, Briefcase, Compass, Newspaper, Smartphone, FileText
+  Building2, Briefcase, Compass, Newspaper, Smartphone, FileText, Users
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import 'react-quill/dist/quill.snow.css';
