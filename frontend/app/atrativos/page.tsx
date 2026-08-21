@@ -78,6 +78,15 @@ function AtracaoCard({ atracao, index }: { atracao: Atracao; index: number }) {
             className="object-cover transition-transform duration-500 group-hover:scale-105"
           />
           
+          {/* ◄── NOVA TAG DE CATEGORIA FLUTUANTE ──► */}
+          {atracao.tipo && (
+            <div className="absolute top-4 left-4 z-10 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm">
+              <span className="text-[10px] font-black uppercase tracking-widest text-[#00577C]">
+                {atracao.tipo}
+              </span>
+            </div>
+          )}
+          
         </div>
 
         {/* Conteúdo */}
