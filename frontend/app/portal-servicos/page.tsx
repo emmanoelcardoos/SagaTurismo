@@ -52,6 +52,7 @@ interface Atracao {
   id: string; nome: string; tipo: string; descricao: string; imagem_url: string;
   preco_entrada: number; asaas_wallet_id: string | null; whatsapp: string | null;
   link_google_maps: string | null; link_hospedagem: string | null; galeria: string[] | null;
+  ordem: number | null; ativo: boolean;
 }
 
 interface Hotel {
@@ -177,13 +178,14 @@ function AdminDashboard({ role, onLogout }: { role: "geral" | "turismo" | "meio_
     { id: "dashboard",   label: "Painel Geral", icon: <Activity size={18} /> },
     { id: "blog",        label: "Blog/Notícias",icon: <Newspaper size={18} /> },
     { id: "newsletter",  label: "Newsletter",   icon: <Bell size={18} /> }, 
-    { id: "aplicativo",  label: "Aplicativo",      icon: <Smartphone size={18} /> },
+    { id: "aplicativo",  label: "Aplicativo",   icon: <Smartphone size={18} /> },
     { id: "eventos",     label: "Eventos",      icon: <CalendarIcon size={18} /> },
-    { id: "atracoes",    label: "Atrativos",     icon: <MapPin size={18} /> },
+    { id: "atracoes",    label: "Atrativos",    icon: <MapPin size={18} /> },
+    { id: "comunidades", label: "Comunidades",  icon: <Compass size={18} /> },
     { id: "hoteis",      label: "Hotéis",       icon: <Building2 size={18} /> },
     { id: "gastronomia", label: "Gastronomia",  icon: <Utensils size={18} /> },
     { id: "agencias",    label: "Agências",     icon: <Briefcase size={18} /> },
-    { id: "pedidos",     label: "Pedidos",      icon: <CheckCircle2 size={18} /> },
+    { id: "reunioes",    label: "Reuniões COMTUR", icon: <FileText size={18} /> },
   ];
 
   const [activeTab, setActiveTab] = useState<string>("dashboard");
@@ -217,12 +219,13 @@ function AdminDashboard({ role, onLogout }: { role: "geral" | "turismo" | "meio_
         {activeTab === "blog"        && <TabBlog />}
         {activeTab === "eventos"     && <TabEventos />}
         {activeTab === "atracoes"    && <TabAtracoes />}
+        {activeTab === "comunidades" && <TabComunidades />}
         {activeTab === "gastronomia" && <TabGastronomia />}
-        {activeTab === "pedidos"     && <TabPedidos />}
         {activeTab === "hoteis"      && <TabHoteis />} 
         {activeTab === "agencias"    && <TabAgencias />}
-        {activeTab === "newsletter" && <TabNewsletter />}
-        {activeTab === "aplicativo" && <TabAplicativo />}
+        {activeTab === "reunioes"    && <TabReunioesComtur />}
+        {activeTab === "newsletter"  && <TabNewsletter />}
+        {activeTab === "aplicativo"  && <TabAplicativo />}
       </main>
     </div>
   );
@@ -1038,64 +1041,6 @@ function TabEventos() {
   );
 }
 
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// PEDIDOS
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function TabPedidos() {
-  const [pedidos, setPedidos] = useState<Pedido[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [filtroStatus, setFiltroStatus] = useState<string>("todos");
-  const [filtroTipo, setFiltroTipo] = useState<string>("todos");
-
-  useEffect(() => { fetchPedidos(); }, []);
-
-  async function fetchPedidos() {
-    setLoading(true);
-    const { data } = await supabase.from("pedidos").select("*").order("criado_em", { ascending: false });
-    setPedidos(data || []);
-    setLoading(false);
-  }
-
-  const filtered = pedidos.filter(p => (filtroStatus === "todos" || p.status_pagamento === filtroStatus) && (filtroTipo === "todos" || p.tipo_item === filtroTipo));
-  const statusCores: Record<string, string> = { pago: "bg-[#009640]/10 text-[#009640]", aguardando: "bg-amber-100 text-amber-700", cancelado: "bg-red-100 text-red-600" };
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div><h2 className={`${jakarta.className} text-lg font-black text-[#00577C]`}>Pedidos</h2><p className="text-xs text-slate-500">Total: {pedidos.length} pedidos</p></div>
-        <div className="flex gap-2">
-          <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)} className="text-xs border border-slate-200 rounded-lg px-2 py-1"><option value="todos">Todos os status</option><option value="pago">Pago</option><option value="aguardando">Aguardando</option><option value="cancelado">Cancelado</option></select>
-          <select value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value)} className="text-xs border border-slate-200 rounded-lg px-2 py-1"><option value="todos">Todos os tipos</option><option value="hotel">Hotel</option><option value="passeio">Passeio</option><option value="pacote">Pacote</option><option value="carteira">Carteira</option></select>
-        </div>
-      </div>
-
-      {loading ? <Skeleton rows={6} /> : (
-        <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm overflow-x-auto">
-          <table className="w-full text-sm min-w-[800px]">
-            <thead><tr className="border-b border-slate-200 bg-slate-50"><Th>Código</Th><Th>Cliente</Th><Th>Tipo</Th><Th>Item</Th><Th>Valor</Th><Th>Status</Th><Th>Data</Th></tr></thead>
-            <tbody>
-              {filtered.map((p) => (
-                <tr key={p.id} className="border-b border-slate-100 hover:bg-slate-50">
-                  <td className="px-4 py-3 font-mono text-xs">{p.codigo_pedido}</td>
-                  <td className="px-4 py-3"><div>{p.nome_cliente}</div><div className="text-xs text-slate-400">{p.email_cliente}</div></td>
-                  <td className="px-4 py-3 capitalize">{p.tipo_item}</td>
-                  <td className="px-4 py-3">{p.nome_item || "—"}</td>
-                  <td className="px-4 py-3 font-semibold">R$ {p.valor_total.toFixed(2)}</td>
-                  <td className="px-4 py-3"><span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusCores[p.status_pagamento] || "bg-slate-100"}`}>{p.status_pagamento}</span></td>
-                  <td className="px-4 py-3 text-xs whitespace-nowrap">{fmtDatetime(p.criado_em)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  );
-}
-
-
 // ═══════════════════════════════════════════════════════════════════════════════
 // HOTÉIS & POUSADAS (VITRINE SIMPLIFICADA)
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1716,154 +1661,6 @@ function TabAgencias() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// ATRAÇÕES
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function TabAtracoes() {
-  const [atracoes, setAtracoes] = useState<Atracao[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [editando, setEditando] = useState<Atracao | null>(null);
-  const [form, setForm] = useState<any>({});
-  const [imagemFile, setImagemFile] = useState<File | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [feedback, setFeedback] = useState("");
-
-  useEffect(() => { fetchAtracoes(); }, []);
-
-  async function fetchAtracoes() {
-    setLoading(true);
-    const { data } = await supabase.from("atracoes").select("*").order("nome");
-    setAtracoes(data || []);
-    setLoading(false);
-  }
-
-  function abrirFormNovo() {
-    setEditando(null); 
-    setForm({ nome: "", tipo: "", descricao: "", imagem_url: "", preco_entrada: 0, whatsapp: "", link_google_maps: "" });
-    setImagemFile(null); 
-    setShowForm(true);
-  }
-
-  function abrirFormEditar(a: Atracao) {
-    setEditando(a); 
-    setForm({ ...a }); 
-    setImagemFile(null); 
-    setShowForm(true);
-  }
-
-  async function handleSave() {
-    if (!form.nome) { setFeedback("Nome obrigatório."); return; }
-    setSaving(true);
-    let imagem_url = form.imagem_url;
-    
-    if (imagemFile) {
-      const ext = imagemFile.name.split(".").pop();
-      const path = `atracoes/${Date.now()}.${ext}`;
-      const { error } = await supabase.storage.from("galeria").upload(path, imagemFile, { upsert: true });
-      if (!error) {
-        const { data: pub } = supabase.storage.from("galeria").getPublicUrl(path);
-        imagem_url = pub.publicUrl;
-      }
-    }
-    
-    const payload = { ...form, imagem_url };
-    if (editando) await supabase.from("atracoes").update(payload).eq("id", editando.id);
-    else await supabase.from("atracoes").insert(payload);
-    
-    setFeedback(editando ? "Atração atualizada!" : "Atração publicada com sucesso!");
-    setTimeout(() => { setShowForm(false); setSaving(false); fetchAtracoes(); setFeedback(""); }, 2000);
-  }
-
-  async function handleDelete(id: string) {
-    if (!confirm("Remover esta atração da vitrine?")) return;
-    await supabase.from("atracoes").delete().eq("id", id); 
-    fetchAtracoes();
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className={`${jakarta.className} text-xl font-black text-[#00577C]`}>Vitrine de Atrações</h2>
-          <p className="text-xs text-slate-500 mt-1">{atracoes.length} pontos turísticos em exibição</p>
-        </div>
-        <button onClick={abrirFormNovo} className="bg-[#00577C] hover:bg-[#004a6b] text-white font-black text-sm px-5 py-2.5 rounded-xl transition shadow-md flex items-center gap-2">
-          <Plus size={16} /> Nova Atração
-        </button>
-      </div>
-
-      {showForm ? (
-        <div className="bg-white rounded-[2rem] p-8 shadow-lg border border-slate-100 animate-in fade-in slide-in-from-bottom-4">
-          <div className="flex items-center justify-between mb-8 border-b border-slate-100 pb-4">
-            <h3 className={`${jakarta.className} text-2xl font-black text-slate-800 flex items-center gap-2`}>
-              <MapPin className="text-[#F9C400]" /> {editando ? "Editar Atração" : "Construtor de Página da Atração"}
-            </h3>
-            <button onClick={() => setShowForm(false)} className="text-sm font-bold text-slate-400 hover:text-slate-800">Cancelar</button>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-8">
-            <div className="space-y-5">
-              <h4 className="font-black text-[#00577C] border-b pb-2">Informações Principais</h4>
-              <FormField label="Nome da Atração *"><input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} className={inputCls} placeholder="Ex: Mirante da Serra" /></FormField>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField label="Tipo"><input value={form.tipo} onChange={(e) => setForm({ ...form, tipo: e.target.value })} className={inputCls} placeholder="Ex: Natureza, Museu..." /></FormField>
-                <FormField label="Preço de entrada (R$)"><input type="number" step="0.01" value={form.preco_entrada} onChange={(e) => setForm({ ...form, preco_entrada: parseFloat(e.target.value) })} className={inputCls} /></FormField>
-              </div>
-              <FormField label="Descrição Detalhada"><textarea value={form.descricao || ""} onChange={(e) => setForm({ ...form, descricao: e.target.value })} rows={5} className={inputCls} placeholder="Descreva os encantos desta atração..." /></FormField>
-            </div>
-            
-            <div className="space-y-5">
-              <h4 className="font-black text-[#00577C] border-b pb-2">Localização e Mídia</h4>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField label="WhatsApp de Contato"><div className="relative"><Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" /><input value={form.whatsapp || ""} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })} className={`${inputCls} pl-10`} placeholder="94 90000-0000" /></div></FormField>
-                <FormField label="Link Google Maps"><div className="relative"><MapPin size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" /><input value={form.link_google_maps || ""} onChange={(e) => setForm({ ...form, link_google_maps: e.target.value })} className={`${inputCls} pl-10`} placeholder="https://maps..." /></div></FormField>
-              </div>
-              <FormField label="Fotografia de Capa">
-                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 text-slate-500 p-6 rounded-xl cursor-pointer hover:border-[#00577C] transition-colors">
-                  <input type="file" accept="image/*" className="hidden" onChange={(e) => setImagemFile(e.target.files?.[0] || null)} />
-                  <ImageIcon size={18} /> {imagemFile ? imagemFile.name : form.imagem_url ? "Trocar imagem atual" : "Clique para anexar Capa da Atração"}
-                </label>
-                {form.imagem_url && !imagemFile && <img src={form.imagem_url} alt="Capa atual" className="mt-3 h-24 w-full object-cover rounded-xl border border-slate-200" />}
-              </FormField>
-            </div>
-          </div>
-
-          <div className="mt-10 flex items-center justify-between pt-6 border-t border-slate-100">
-            <span className="text-sm font-bold text-[#009640]">{feedback}</span>
-            <button onClick={handleSave} disabled={saving} className="bg-[#009640] hover:bg-green-700 text-white px-10 py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg flex items-center gap-2 transition-all">
-              {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Publicar Atração
-            </button>
-          </div>
-        </div>
-      ) : (
-        loading ? <div className="py-12 flex justify-center"><Loader2 size={32} className="text-[#00577C] animate-spin" /></div> : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {atracoes.map((a) => (
-              <div key={a.id} className="bg-white rounded-[2rem] border border-slate-200 p-4 flex flex-col hover:shadow-xl transition-shadow">
-                <div className="relative w-full h-48 rounded-2xl overflow-hidden bg-slate-100 mb-4">
-                  <img src={a.imagem_url || "/placeholder.png"} alt={a.nome} className="object-cover w-full h-full" />
-                  <div className="absolute top-3 right-3 bg-white/90 backdrop-blur px-2 py-1 rounded text-[10px] font-black text-[#00577C] shadow-sm uppercase">{a.tipo}</div>
-                </div>
-                <div className="px-2 pb-2 flex-1 flex flex-col">
-                  <h3 className={`${jakarta.className} text-xl font-black text-slate-800 mb-1`}>{a.nome}</h3>
-                  <p className="text-xs font-bold text-[#009640] mb-3">R$ {(Number(a.preco_entrada) || 0).toFixed(2)}</p>
-                  
-                  <div className="mt-auto flex items-center justify-between pt-4 border-t border-slate-100">
-                    <button onClick={() => abrirFormEditar(a)} className="text-xs font-bold text-[#00577C] hover:underline">Editar Atração</button>
-                    <button onClick={() => handleDelete(a.id)} className="text-xs font-bold text-red-500 hover:underline">Remover</button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )
-      )}
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
 // APLICATIVO
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -2106,6 +1903,580 @@ function TabAplicativo() {
           </div>
         </form>
       </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ATRAÇÕES (Atualizado com Ordem e Galeria)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function TabAtracoes() {
+  const [atracoes, setAtracoes] = useState<Atracao[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editando, setEditando] = useState<Atracao | null>(null);
+  const [form, setForm] = useState<any>({});
+  
+  const [imagemFile, setImagemFile] = useState<File | null>(null);
+  const [galeriaFiles, setGaleriaFiles] = useState<File[]>([]);
+
+  const [saving, setSaving] = useState(false);
+  const [feedback, setFeedback] = useState("");
+
+  useEffect(() => { fetchAtracoes(); }, []);
+
+  async function fetchAtracoes() {
+    setLoading(true);
+    const { data } = await supabase.from("atracoes").select("*").order("ordem", { ascending: true, nullsFirst: false });
+    setAtracoes(data || []);
+    setLoading(false);
+  }
+
+  function abrirFormNovo() {
+    setEditando(null); 
+    setForm({ nome: "", tipo: "", descricao: "", imagem_url: "", preco_entrada: 0, whatsapp: "", link_google_maps: "", ordem: 0, ativo: true });
+    setImagemFile(null); 
+    setGaleriaFiles([]);
+    setShowForm(true);
+  }
+
+  function abrirFormEditar(a: Atracao) {
+    setEditando(a); 
+    setForm({ ...a, ordem: a.ordem || 0 }); 
+    setImagemFile(null); 
+    setGaleriaFiles([]);
+    setShowForm(true);
+  }
+
+  async function handleSave() {
+    if (!form.nome) { setFeedback("Nome obrigatório."); return; }
+    setSaving(true);
+    
+    let imagem_url = form.imagem_url;
+    
+    if (imagemFile) {
+      const ext = imagemFile.name.split(".").pop();
+      const path = `atracoes/${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("galeria").upload(path, imagemFile, { upsert: true });
+      if (!error) {
+        const { data: pub } = supabase.storage.from("galeria").getPublicUrl(path);
+        imagem_url = pub.publicUrl;
+      }
+    }
+
+    let galeriaFinal = editando?.galeria || [];
+    if (galeriaFiles.length > 0) {
+      const novasUrls = [];
+      for (const file of galeriaFiles) {
+        const ext = file.name.split(".").pop();
+        const path = `atracoes/galeria_${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+        const { error } = await supabase.storage.from("galeria").upload(path, file);
+        if (!error) {
+          const { data: pub } = supabase.storage.from("galeria").getPublicUrl(path);
+          novasUrls.push(pub.publicUrl);
+        }
+      }
+      galeriaFinal = [...galeriaFinal, ...novasUrls];
+    }
+    
+    const payload = { ...form, imagem_url, galeria: galeriaFinal.length > 0 ? galeriaFinal : null };
+    if (editando) await supabase.from("atracoes").update(payload).eq("id", editando.id);
+    else await supabase.from("atracoes").insert(payload);
+    
+    setFeedback(editando ? "Atração atualizada!" : "Atração publicada com sucesso!");
+    setTimeout(() => { setShowForm(false); setSaving(false); fetchAtracoes(); setFeedback(""); }, 2000);
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm("Remover esta atração da vitrine?")) return;
+    await supabase.from("atracoes").delete().eq("id", id); 
+    fetchAtracoes();
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className={`${jakarta.className} text-xl font-black text-[#00577C]`}>Vitrine de Atrações</h2>
+          <p className="text-xs text-slate-500 mt-1">{atracoes.length} pontos turísticos em exibição</p>
+        </div>
+        <button onClick={abrirFormNovo} className="bg-[#00577C] hover:bg-[#004a6b] text-white font-black text-sm px-5 py-2.5 rounded-xl transition shadow-md flex items-center gap-2">
+          <Plus size={16} /> Nova Atração
+        </button>
+      </div>
+
+      {showForm ? (
+        <div className="bg-white rounded-[2rem] p-8 shadow-lg border border-slate-100 animate-in fade-in slide-in-from-bottom-4">
+          <div className="flex items-center justify-between mb-8 border-b border-slate-100 pb-4">
+            <h3 className={`${jakarta.className} text-2xl font-black text-slate-800 flex items-center gap-2`}>
+              <MapPin className="text-[#F9C400]" /> {editando ? "Editar Atração" : "Construtor de Página da Atração"}
+            </h3>
+            <button onClick={() => setShowForm(false)} className="text-sm font-bold text-slate-400 hover:text-slate-800">Cancelar</button>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-8">
+            <div className="space-y-5">
+              <h4 className="font-black text-[#00577C] border-b pb-2">Informações Principais</h4>
+              <FormField label="Nome da Atração *"><input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} className={inputCls} placeholder="Ex: Mirante da Serra" /></FormField>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField label="Tipo"><input value={form.tipo} onChange={(e) => setForm({ ...form, tipo: e.target.value })} className={inputCls} placeholder="Ex: Natureza, Museu..." /></FormField>
+                <FormField label="Preço de entrada (R$)"><input type="number" step="0.01" value={form.preco_entrada} onChange={(e) => setForm({ ...form, preco_entrada: parseFloat(e.target.value) })} className={inputCls} /></FormField>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField label="Ordem de Exibição">
+                  <input type="number" value={form.ordem} onChange={(e) => setForm({ ...form, ordem: parseInt(e.target.value) })} className={inputCls} placeholder="Ex: 1, 2, 3..." />
+                </FormField>
+                <FormField label="Visibilidade">
+                  <select value={String(form.ativo)} onChange={(e) => setForm({ ...form, ativo: e.target.value === 'true' })} className={inputCls}>
+                    <option value="true">Ativo / Público</option>
+                    <option value="false">Oculto</option>
+                  </select>
+                </FormField>
+              </div>
+              <FormField label="Descrição Detalhada"><textarea value={form.descricao || ""} onChange={(e) => setForm({ ...form, descricao: e.target.value })} rows={5} className={inputCls} placeholder="Descreva os encantos desta atração..." /></FormField>
+            </div>
+            
+            <div className="space-y-5">
+              <h4 className="font-black text-[#00577C] border-b pb-2">Localização e Mídia</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField label="WhatsApp de Contato"><div className="relative"><Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" /><input value={form.whatsapp || ""} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })} className={`${inputCls} pl-10`} placeholder="94 90000-0000" /></div></FormField>
+                <FormField label="Link Google Maps"><div className="relative"><MapPin size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" /><input value={form.link_google_maps || ""} onChange={(e) => setForm({ ...form, link_google_maps: e.target.value })} className={`${inputCls} pl-10`} placeholder="https://maps..." /></div></FormField>
+              </div>
+              <FormField label="Fotografia de Capa (Principal)">
+                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 text-slate-500 p-4 rounded-xl cursor-pointer hover:border-[#00577C] transition-colors">
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => setImagemFile(e.target.files?.[0] || null)} />
+                  <ImageIcon size={18} /> {imagemFile ? imagemFile.name : form.imagem_url ? "Trocar Capa Atual" : "Anexar Capa"}
+                </label>
+                {form.imagem_url && !imagemFile && <img src={form.imagem_url} alt="Capa atual" className="mt-3 h-24 w-full object-cover rounded-xl border border-slate-200" />}
+              </FormField>
+              <FormField label="Adicionar Imagens à Galeria">
+                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 text-slate-500 p-4 rounded-xl cursor-pointer hover:border-[#00577C] transition-colors">
+                  <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => { if(e.target.files) setGaleriaFiles(Array.from(e.target.files)); }} />
+                  <ImageIcon size={18} /> {galeriaFiles.length > 0 ? `${galeriaFiles.length} ficheiros novos` : "Selecionar Múltiplas Fotos"}
+                </label>
+              </FormField>
+            </div>
+          </div>
+
+          <div className="mt-10 flex items-center justify-between pt-6 border-t border-slate-100">
+            <span className="text-sm font-bold text-[#009640]">{feedback}</span>
+            <button onClick={handleSave} disabled={saving} className="bg-[#009640] hover:bg-green-700 text-white px-10 py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg flex items-center gap-2 transition-all">
+              {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Publicar Atração
+            </button>
+          </div>
+        </div>
+      ) : (
+        loading ? <div className="py-12 flex justify-center"><Loader2 size={32} className="text-[#00577C] animate-spin" /></div> : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {atracoes.map((a) => (
+              <div key={a.id} className="bg-white rounded-[2rem] border border-slate-200 p-4 flex flex-col hover:shadow-xl transition-shadow relative">
+                <div className="absolute -top-3 -left-3 bg-[#00577C] text-white w-8 h-8 flex items-center justify-center rounded-full font-black text-xs z-10 shadow-sm border-2 border-white">
+                  {a.ordem || 0}
+                </div>
+                <div className="relative w-full h-48 rounded-2xl overflow-hidden bg-slate-100 mb-4">
+                  <img src={a.imagem_url || "/placeholder.png"} alt={a.nome} className="object-cover w-full h-full" />
+                  <div className="absolute top-3 right-3 bg-white/90 backdrop-blur px-2 py-1 rounded text-[10px] font-black text-[#00577C] shadow-sm uppercase">{a.tipo}</div>
+                </div>
+                <div className="px-2 pb-2 flex-1 flex flex-col">
+                  <h3 className={`${jakarta.className} text-xl font-black text-slate-800 mb-1`}>{a.nome}</h3>
+                  <p className="text-xs font-bold text-[#009640] mb-3">R$ {(Number(a.preco_entrada) || 0).toFixed(2)}</p>
+                  
+                  <div className="mt-auto flex items-center justify-between pt-4 border-t border-slate-100">
+                    <button onClick={() => abrirFormEditar(a)} className="text-xs font-bold text-[#00577C] hover:underline">Editar Atração</button>
+                    <button onClick={() => handleDelete(a.id)} className="text-xs font-bold text-red-500 hover:underline">Remover</button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// COMUNIDADES (NOVO - Uni as tabelas comunidades e comunidade_pontos)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function TabComunidades() {
+  const [comunidades, setComunidades] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editando, setEditando] = useState<any | null>(null);
+  const [form, setForm] = useState<any>({});
+  
+  const [imagemFile, setImagemFile] = useState<File | null>(null);
+  const [galeriaFiles, setGaleriaFiles] = useState<File[]>([]); 
+  const [pontos, setPontos] = useState<any[]>([]); 
+
+  const [saving, setSaving] = useState(false);
+  const [feedback, setFeedback] = useState("");
+
+  useEffect(() => { fetchComunidades(); }, []);
+
+  async function fetchComunidades() {
+    setLoading(true);
+    const { data } = await supabase.from("comunidades").select("*").order("ordem", { ascending: true, nullsFirst: false });
+    setComunidades(data || []);
+    setLoading(false);
+  }
+
+  function abrirFormNovo() {
+    setEditando(null); 
+    setForm({ titulo: "", descricao_curta: "", historia_texto: "", cultura_texto: "", ordem: 0, ativo: true });
+    setImagemFile(null); 
+    setGaleriaFiles([]);
+    setPontos([]);
+    setShowForm(true);
+  }
+
+  async function abrirFormEditar(c: any) {
+    setEditando(c); 
+    setForm({ ...c }); 
+    setImagemFile(null); 
+    setGaleriaFiles([]);
+    
+    const { data: ptData } = await supabase.from("comunidade_pontos").select("*").eq("comunidade_id", c.id).order("titulo");
+    setPontos(ptData || []);
+    setShowForm(true);
+  }
+
+  const addPonto = () => setPontos([...pontos, { id: null, titulo: "", tipo: "atração", link_destino: "", whatsapp: "", imagem_url: "", file: null }]);
+  const removePonto = (index: number) => {
+    const novos = [...pontos];
+    if (novos[index].id) { novos[index]._deleted = true; } 
+    else { novos.splice(index, 1); }
+    setPontos(novos);
+  };
+  const handlePontoChange = (index: number, field: string, value: any) => {
+    const novos = [...pontos]; novos[index] = { ...novos[index], [field]: value }; setPontos(novos);
+  };
+
+  async function handleSave() {
+    if (!form.titulo) { setFeedback("Título obrigatório."); return; }
+    setSaving(true); setFeedback("A processar...");
+    
+    let imagem_url = form.imagem_url;
+    
+    if (imagemFile) {
+      const ext = imagemFile.name.split(".").pop();
+      const path = `galeria/${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("galeria").upload(path, imagemFile);
+      if (!error) {
+        const { data: pub } = supabase.storage.from("galeria").getPublicUrl(path);
+        imagem_url = pub.publicUrl;
+      }
+    }
+
+    let galeriaFinal = editando?.galeria || [];
+    if (galeriaFiles.length > 0) {
+      const novasUrls = [];
+      for (const file of galeriaFiles) {
+        const ext = file.name.split(".").pop();
+        const path = `galeria/com_gal_${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+        const { error } = await supabase.storage.from("galeria").upload(path, file);
+        if (!error) {
+          const { data: pub } = supabase.storage.from("galeria").getPublicUrl(path);
+          novasUrls.push(pub.publicUrl);
+        }
+      }
+      galeriaFinal = [...galeriaFinal, ...novasUrls];
+    }
+    
+    const payload = { 
+      titulo: form.titulo, descricao_curta: form.descricao_curta, 
+      historia_texto: form.historia_texto, cultura_texto: form.cultura_texto,
+      ordem: form.ordem, ativo: form.ativo, imagem_url,
+      galeria: galeriaFinal.length > 0 ? galeriaFinal : null 
+    };
+
+    let comunidadeId = editando?.id;
+
+    if (editando) {
+      await supabase.from("comunidades").update(payload).eq("id", comunidadeId);
+    } else {
+      const { data, error } = await supabase.from("comunidades").insert(payload).select().single();
+      if (!error && data) comunidadeId = data.id;
+    }
+
+    if (comunidadeId) {
+      for (const pt of pontos) {
+        if (pt._deleted) {
+          await supabase.from("comunidade_pontos").delete().eq("id", pt.id);
+          continue;
+        }
+        if (!pt.titulo) continue; 
+        
+        let ptImgUrl = pt.imagem_url;
+        if (pt.file) {
+          const ext = pt.file.name.split(".").pop();
+          const path = `galeria/pt_${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+          const { error } = await supabase.storage.from("galeria").upload(path, pt.file);
+          if (!error) {
+            const { data: pub } = supabase.storage.from("galeria").getPublicUrl(path);
+            ptImgUrl = pub.publicUrl;
+          }
+        }
+
+        const ptPayload = {
+          comunidade_id: comunidadeId, titulo: pt.titulo, tipo: pt.tipo, 
+          link_destino: pt.link_destino, whatsapp: pt.whatsapp, imagem_url: ptImgUrl
+        };
+
+        if (pt.id) await supabase.from("comunidade_pontos").update(ptPayload).eq("id", pt.id);
+        else await supabase.from("comunidade_pontos").insert(ptPayload);
+      }
+    }
+    
+    setFeedback("Comunidade salva com sucesso!");
+    setTimeout(() => { setShowForm(false); setSaving(false); fetchComunidades(); setFeedback(""); }, 2000);
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm("Remover esta comunidade? Todos os pontos associados também serão apagados.")) return;
+    await supabase.from("comunidade_pontos").delete().eq("comunidade_id", id);
+    await supabase.from("comunidades").delete().eq("id", id); 
+    fetchComunidades();
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className={`${jakarta.className} text-xl font-black text-[#00577C]`}>Gestão de Comunidades</h2>
+          <p className="text-xs text-slate-500 mt-1">{comunidades.length} comunidades no portal</p>
+        </div>
+        <button onClick={abrirFormNovo} className="bg-[#00577C] hover:bg-[#004a6b] text-white font-black text-sm px-5 py-2.5 rounded-xl transition shadow-md flex items-center gap-2">
+          <Plus size={16} /> Nova Comunidade
+        </button>
+      </div>
+
+      {showForm ? (
+        <div className="bg-white rounded-[2rem] p-8 shadow-lg border border-slate-100 animate-in fade-in slide-in-from-bottom-4">
+          <div className="flex items-center justify-between mb-8 border-b border-slate-100 pb-4">
+            <h3 className={`${jakarta.className} text-2xl font-black text-slate-800 flex items-center gap-2`}><Compass className="text-[#F9C400]" /> {editando ? "Editar Comunidade" : "Nova Comunidade"}</h3>
+            <button onClick={() => setShowForm(false)} className="text-sm font-bold text-slate-400 hover:text-slate-800">Cancelar</button>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-8">
+            <div className="space-y-5">
+              <h4 className="font-black text-[#00577C] border-b pb-2">Identificação</h4>
+              <FormField label="Nome da Comunidade *"><input value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value })} className={inputCls} placeholder="Ex: Santa Cruz" /></FormField>
+              <FormField label="Descrição Curta (Resumo)"><textarea value={form.descricao_curta || ""} onChange={(e) => setForm({ ...form, descricao_curta: e.target.value })} rows={3} className={inputCls} /></FormField>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <FormField label="Ordem de Exibição"><input type="number" value={form.ordem} onChange={(e) => setForm({ ...form, ordem: parseInt(e.target.value) })} className={inputCls} /></FormField>
+                <FormField label="Status"><select value={String(form.ativo)} onChange={(e) => setForm({ ...form, ativo: e.target.value === 'true' })} className={inputCls}><option value="true">Público</option><option value="false">Oculto</option></select></FormField>
+              </div>
+
+              <FormField label="História da Comunidade"><textarea value={form.historia_texto || ""} onChange={(e) => setForm({ ...form, historia_texto: e.target.value })} rows={5} className={inputCls} /></FormField>
+              <FormField label="Cultura / Curiosidades"><textarea value={form.cultura_texto || ""} onChange={(e) => setForm({ ...form, cultura_texto: e.target.value })} rows={3} className={inputCls} /></FormField>
+            </div>
+            
+            <div className="space-y-5">
+              <h4 className="font-black text-[#00577C] border-b pb-2">Mídia Oficial</h4>
+              <FormField label="Fotografia de Capa (Principal)">
+                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 text-slate-500 p-4 rounded-xl cursor-pointer hover:border-[#00577C] transition-colors">
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => setImagemFile(e.target.files?.[0] || null)} />
+                  <ImageIcon size={18} /> {imagemFile ? imagemFile.name : form.imagem_url ? "Trocar Capa Atual" : "Anexar Capa"}
+                </label>
+              </FormField>
+              <FormField label="Adicionar Imagens à Galeria">
+                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 text-slate-500 p-4 rounded-xl cursor-pointer hover:border-[#00577C] transition-colors">
+                  <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => { if(e.target.files) setGaleriaFiles(Array.from(e.target.files)); }} />
+                  <ImageIcon size={18} /> {galeriaFiles.length > 0 ? `${galeriaFiles.length} ficheiros novos` : "Selecionar Fotos"}
+                </label>
+              </FormField>
+            </div>
+          </div>
+
+          <div className="mt-12 space-y-4">
+            <div className="flex items-center justify-between border-b pb-2">
+              <h4 className="font-black text-[#00577C]">Pontos da Comunidade (Atrações, Pousadas, etc.)</h4>
+              <button onClick={addPonto} className="text-xs font-bold text-[#009640] flex items-center gap-1"><Plus size={14}/> Adicionar Ponto</button>
+            </div>
+            <div className="space-y-3">
+              {pontos.filter(p => !p._deleted).map((item, index) => (
+                <div key={index} className="flex flex-col md:flex-row gap-3 items-center bg-slate-50 p-4 rounded-xl border border-slate-200">
+                  <div className="w-full md:w-[25%]"><input type="text" value={item.titulo} onChange={e => handlePontoChange(index, 'titulo', e.target.value)} placeholder="Nome do Ponto" className={inputCls} /></div>
+                  <div className="w-full md:w-[15%]">
+                    <select value={item.tipo} onChange={e => handlePontoChange(index, 'tipo', e.target.value)} className={inputCls}>
+                      <option value="atração">Atração</option><option value="hospedagem">Hospedagem</option><option value="gastronomia">Gastronomia</option><option value="artesanato">Artesanato</option>
+                    </select>
+                  </div>
+                  <div className="w-full md:w-[20%]"><input type="text" value={item.whatsapp} onChange={e => handlePontoChange(index, 'whatsapp', e.target.value)} placeholder="WhatsApp" className={inputCls} /></div>
+                  <div className="w-full md:w-[20%]"><input type="text" value={item.link_destino} onChange={e => handlePontoChange(index, 'link_destino', e.target.value)} placeholder="Link / URL" className={inputCls} /></div>
+                  <div className="w-full md:w-[20%] flex items-center gap-2">
+                    <label className="flex-1 flex items-center justify-center gap-2 border border-slate-200 bg-white text-slate-500 py-2 rounded-lg cursor-pointer text-xs font-bold">
+                      <input type="file" accept="image/*" className="hidden" onChange={e => handlePontoChange(index, 'file', e.target.files?.[0] || null)} />
+                      <Upload size={14}/> {item.file ? "Pronto ✓" : (item.imagem_url ? "Tem foto ✓" : "Foto")}
+                    </label>
+                    <button onClick={() => removePonto(index)} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 border border-red-200"><Trash2 size={16} /></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-10 flex items-center justify-between pt-6 border-t border-slate-100">
+            <span className="text-sm font-bold text-[#009640]">{feedback}</span>
+            <button onClick={handleSave} disabled={saving} className="bg-[#009640] hover:bg-green-700 text-white px-10 py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg flex items-center gap-2 transition-all">
+              {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Guardar Comunidade
+            </button>
+          </div>
+        </div>
+      ) : (
+        loading ? <div className="py-12 flex justify-center"><Loader2 size={32} className="text-[#00577C] animate-spin" /></div> : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {comunidades.map((c) => (
+              <div key={c.id} className="bg-white rounded-[2rem] border border-slate-200 p-4 flex flex-col hover:shadow-xl transition-shadow relative">
+                <div className="absolute -top-3 -left-3 bg-[#00577C] text-white w-8 h-8 flex items-center justify-center rounded-full font-black text-xs z-10 shadow-sm border-2 border-white">
+                  {c.ordem || 0}
+                </div>
+                <div className="relative w-full h-48 rounded-2xl overflow-hidden bg-slate-100 mb-4">
+                  <img src={c.imagem_url || "/placeholder.png"} alt={c.titulo} className="object-cover w-full h-full" />
+                </div>
+                <div className="px-2 pb-2 flex-1 flex flex-col">
+                  <h3 className={`${jakarta.className} text-xl font-black text-slate-800 mb-1`}>{c.titulo}</h3>
+                  <p className="text-xs text-slate-500 line-clamp-2">{c.descricao_curta}</p>
+                  
+                  <div className="mt-auto flex items-center justify-between pt-4 border-t border-slate-100">
+                    <button onClick={() => abrirFormEditar(c)} className="text-xs font-bold text-[#00577C] hover:underline">Editar Completo</button>
+                    <button onClick={() => handleDelete(c.id)} className="text-xs font-bold text-red-500 hover:underline">Remover</button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// REUNIÕES COMTUR (NOVO)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function TabReunioesComtur() {
+  const [reunioes, setReunioes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editando, setEditando] = useState<any | null>(null);
+  const [form, setForm] = useState<any>({});
+  
+  const [saving, setSaving] = useState(false);
+  const [feedback, setFeedback] = useState("");
+
+  useEffect(() => { fetchReunioes(); }, []);
+
+  async function fetchReunioes() {
+    setLoading(true);
+    const { data } = await supabase.from("reunioes_comtur").select("*").order("criado_em", { ascending: false });
+    setReunioes(data || []);
+    setLoading(false);
+  }
+
+  function abrirFormNovo() {
+    setEditando(null); 
+    setForm({ mes_ano: "", ordem_reuniao: "", data_reuniao: "", status: "Agendada" });
+    setShowForm(true);
+  }
+
+  function abrirFormEditar(r: any) {
+    setEditando(r); 
+    setForm({ ...r }); 
+    setShowForm(true);
+  }
+
+  async function handleSave() {
+    if (!form.mes_ano || !form.ordem_reuniao) { setFeedback("Mês/Ano e Ordem são obrigatórios."); return; }
+    setSaving(true);
+    
+    if (editando) await supabase.from("reunioes_comtur").update(form).eq("id", editando.id);
+    else await supabase.from("reunioes_comtur").insert(form);
+    
+    setFeedback("Reunião salva com sucesso!");
+    setTimeout(() => { setShowForm(false); setSaving(false); fetchReunioes(); setFeedback(""); }, 2000);
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm("Remover este registo da Reunião?")) return;
+    await supabase.from("reunioes_comtur").delete().eq("id", id); 
+    fetchReunioes();
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className={`${jakarta.className} text-xl font-black text-[#00577C]`}>Reuniões COMTUR</h2>
+          <p className="text-xs text-slate-500 mt-1">Gestão de transparência e pautas do Conselho Municipal de Turismo</p>
+        </div>
+        <button onClick={abrirFormNovo} className="bg-[#00577C] hover:bg-[#004a6b] text-white font-black text-sm px-5 py-2.5 rounded-xl transition shadow-md flex items-center gap-2">
+          <Plus size={16} /> Registar Reunião
+        </button>
+      </div>
+
+      {showForm ? (
+        <div className="bg-white rounded-[2rem] p-8 shadow-lg border border-slate-100 max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-4">
+          <div className="flex items-center justify-between mb-8 border-b border-slate-100 pb-4">
+            <h3 className={`${jakarta.className} text-xl font-black text-slate-800 flex items-center gap-2`}><Users className="text-[#F9C400]" /> {editando ? "Editar Reunião" : "Nova Reunião"}</h3>
+            <button onClick={() => setShowForm(false)} className="text-sm font-bold text-slate-400 hover:text-slate-800">Cancelar</button>
+          </div>
+
+          <div className="space-y-5">
+            <FormField label="Mês / Ano da Referência *"><input value={form.mes_ano || ""} onChange={(e) => setForm({ ...form, mes_ano: e.target.value })} className={inputCls} placeholder="Ex: Janeiro 2026" /></FormField>
+            <FormField label="Ordem da Reunião *"><input value={form.ordem_reuniao || ""} onChange={(e) => setForm({ ...form, ordem_reuniao: e.target.value })} className={inputCls} placeholder="Ex: 1ª Reunião Ordinária" /></FormField>
+            <div className="grid grid-cols-2 gap-4">
+              <FormField label="Data da Reunião"><input type="date" value={form.data_reuniao || ""} onChange={(e) => setForm({ ...form, data_reuniao: e.target.value })} className={inputCls} /></FormField>
+              <FormField label="Status Atual">
+                <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} className={inputCls}>
+                  <option value="Agendada">Agendada</option><option value="Realizada">Realizada</option><option value="Cancelada">Cancelada</option>
+                </select>
+              </FormField>
+            </div>
+          </div>
+
+          <div className="mt-10 flex items-center justify-between pt-6 border-t border-slate-100">
+            <span className="text-sm font-bold text-[#009640]">{feedback}</span>
+            <button onClick={handleSave} disabled={saving} className="bg-[#009640] hover:bg-green-700 text-white px-8 py-3 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg flex items-center gap-2 transition-all">
+              {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Salvar Registo
+            </button>
+          </div>
+        </div>
+      ) : (
+        loading ? <div className="py-12 flex justify-center"><Loader2 size={32} className="text-[#00577C] animate-spin" /></div> : (
+          <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm overflow-x-auto">
+            <table className="w-full text-sm min-w-[600px]">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50">
+                  <Th>Mês / Ano</Th><Th>Ordem da Reunião</Th><Th>Data</Th><Th>Status</Th><Th className="text-right">Ações</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {reunioes.map((r) => (
+                  <tr key={r.id} className="border-b border-slate-100 hover:bg-slate-50 transition">
+                    <td className="px-4 py-3 font-bold text-slate-800">{r.mes_ano}</td>
+                    <td className="px-4 py-3 text-slate-600">{r.ordem_reuniao}</td>
+                    <td className="px-4 py-3 text-slate-600">{fmtData(r.data_reuniao)}</td>
+                    <td className="px-4 py-3"><span className={`px-2 py-1 rounded text-xs font-bold ${r.status === 'Realizada' ? 'bg-green-100 text-green-700' : r.status === 'Agendada' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>{r.status}</span></td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex justify-end gap-3">
+                         <button onClick={() => abrirFormEditar(r)} className="text-xs font-bold text-[#00577C] hover:underline">Editar</button>
+                         <button onClick={() => handleDelete(r.id)} className="text-xs font-bold text-red-500 hover:underline">Apagar</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {reunioes.length === 0 && (<tr><td colSpan={5} className="px-4 py-10 text-center text-slate-400">Nenhum registo do COMTUR.</td></tr>)}
+              </tbody>
+            </table>
+          </div>
+        )
+      )}
     </div>
   );
 }

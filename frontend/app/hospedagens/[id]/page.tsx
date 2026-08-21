@@ -152,10 +152,11 @@ function HotelDetalheContent() {
 
   // ── MENU GROUPS ──
   const menuGroups = [
-    { label: 'Conhecer', links: ['Atrativos', 'Rotas', 'História', 'Biodiversidade', 'Galeria'] },
-    { label: 'Viver', links: ['Eventos', 'Comunidades'] },
-    { label: 'Planejar', links: ['Hospedagens', 'Gastronomia', 'Agências', 'Informações', 'Parceiros'] }
-  ];
+  { label: 'Descobrir', links: ['Atrativos', 'História', 'Biodiversidade', 'Galeria'] },
+  { label: 'Viver Cultural', links: ['Comunidades'] },
+  { label: 'Planejar', links: ['Hospedagens', 'Gastronomia', 'Agências', 'Informações', 'CAT'] },
+  { label: 'Institucional', links: ['SEMTUR', 'COMTUR', 'Parceiros'] },
+];
 
   if (!mounted || loading) return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#FDFCF7] text-[#00577C]">

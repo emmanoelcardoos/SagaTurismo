@@ -737,11 +737,13 @@ export default function HomePage() {
   }, [lastScrollY]);
 
   // ── MENU AGRUPADO (COM PARCEIROS NO PLANEJAR) ──
-  const menuGroups = [
-    { label: 'Conhecer', links: ['Atrativos', 'História', 'Biodiversidade', 'Galeria'] },
-    { label: 'Viver', links: ['Eventos', 'Comunidades'] },
-    { label: 'Planejar', links: ['Hospedagens', 'Gastronomia', 'Agências', 'Informações', 'Parceiros'] }
-  ];
+  // ── MENU AGRUPADO (COM PARCEIROS NO PLANEJAR) ──
+const menuGroups = [
+  { label: 'Descobrir', links: ['Atrativos', 'História', 'Biodiversidade', 'Galeria'] },
+  { label: 'Viver Cultural', links: ['Comunidades'] },
+  { label: 'Planejar', links: ['Hospedagens', 'Gastronomia', 'Agências', 'Informações', 'CAT'] },
+  { label: 'Institucional', links: ['SEMTUR', 'COMTUR', 'Parceiros'] },
+];
 
   return (
     <main className={`${inter.className} bg-[#FDFCF7] text-slate-900 overflow-x-hidden`}>
@@ -754,22 +756,31 @@ export default function HomePage() {
         onMouseLeave={() => setIsHovered(false)}
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${showHeader ? 'translate-y-0' : '-translate-y-full'} ${isHeaderSolid ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100' : 'bg-transparent border-b border-transparent'}`}
       >
-        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4 relative">
+        {/* Removi o justify-between daqui, pois os flex-1 vão tratar do espaçamento */}
+        <div className="mx-auto flex max-w-[1400px] items-center px-6 py-4 relative">
           
-          {/* LADO ESQUERDO: Logo Totalmente Transparente */}
-          <div className="flex-1">
-            <Link href="/" className="inline-flex items-center gap-3 transition-all duration-300">
-              <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
-                <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain" />
+          {/* ◄── LADO ESQUERDO: Devolvemos o flex-1 ──► */}
+          <div className="flex flex-1 items-center gap-4 md:gap-6 z-20">
+            
+            {/* Primeira Logo */}
+            <Link href="/" className="inline-flex items-center transition-all duration-300">
+              <div className="relative h-10 w-28 md:h-12 md:w-32 shrink-0">
+                <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain object-left" />
               </div>
             </Link>
+
+            {/* Segunda Logo (Secretaria) */}
+
           </div>
 
-          {/* CENTRO: Navegação Desktop */}
-          <nav className="hidden lg:flex items-center justify-center gap-12">
+          {/* ◄── CENTRO EXATO: Removido o 'absolute', adicionado 'flex-none' ──► */}
+          {/* Reduzi o gap para caber o novo menu "Institucional" com folga */}
+          <nav className="hidden lg:flex flex-none items-center justify-center gap-6 xl:gap-8 z-10">
+            
+            {/* Grupos com Dropdown */}
             {menuGroups.map((group) => (
               <div key={group.label} className="relative group py-2">
-                <button className={`${jakarta.className} flex items-center gap-1.5 text-xs font-black uppercase tracking-[0.2em] transition-colors ${isHeaderSolid ? 'text-slate-600 group-hover:text-[#00577C]' : 'text-white group-hover:text-[#F9C400] drop-shadow-md'}`}>
+                <button className={`${jakarta.className} flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.2em] transition-colors ${isHeaderSolid ? 'text-slate-600 group-hover:text-[#00577C]' : 'text-white group-hover:text-[#F9C400] drop-shadow-md'}`}>
                   {group.label} <ChevronDown size={14} className="group-hover:rotate-180 transition-transform duration-300" />
                 </button>
                 <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max bg-white/95 backdrop-blur-xl border border-slate-100 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] rounded-2xl p-2 opacity-0 invisible translate-y-2 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 transition-all duration-300 z-50 flex flex-row items-center gap-1">
@@ -788,16 +799,27 @@ export default function HomePage() {
                 </div>
               </div>
             ))}
+
+            {/* Link Direto: Eventos */}
+            <Link 
+              href="/eventos" 
+              className={`${jakarta.className} flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.2em] transition-colors py-2 ${isHeaderSolid ? 'text-slate-600 hover:text-[#00577C]' : 'text-white hover:text-[#F9C400] drop-shadow-md'}`}
+            >
+              Eventos
+            </Link>
+
           </nav>
 
-          {/* LADO DIREITO: Botões */}
-          <div className="flex-1 flex justify-end items-center gap-4">
+          {/* ◄── LADO DIREITO: Devolvemos o flex-1 ──► */}
+          <div className="flex flex-1 justify-end items-center gap-4 z-20">
+            
+            {/* Botão Amarelo Residente */}
             <Link href="/cadastro"
               className={`hidden lg:inline-flex ${jakarta.className} px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-sm ${isHeaderSolid ? 'bg-[#F9C400] text-[#002f40]' : 'bg-white/20 backdrop-blur-md text-white border border-white/30 hover:bg-white/30'}`}>
               Residente
             </Link>
             
-            {/* Botão Mobile Totalmente Transparente */}
+            {/* Botão Mobile */}
             <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className={`rounded-xl p-2 lg:hidden transition-all duration-300 ${isHeaderSolid ? 'text-[#00577C] hover:bg-slate-100' : 'text-white hover:bg-white/20'}`}>
               {isMobileMenuOpen ? <X className="h-8 w-8" /> : <Menu className="h-8 w-8" />}
@@ -805,10 +827,11 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Menu Mobile (Grelha Organizada) */}
+        {/* ◄── Menu Mobile ──► */}
         {isMobileMenuOpen && (
           <div className="absolute top-full left-0 w-full bg-white border-b border-slate-200 p-6 flex flex-col gap-6 shadow-2xl lg:hidden z-50 max-h-[85vh] overflow-y-auto">
             
+            {/* Grupos Dropdown no Mobile */}
             {menuGroups.map((group) => (
               <div key={group.label} className="flex flex-col gap-3">
                 <p className={`${jakarta.className} text-[10px] font-black uppercase tracking-[0.2em] text-[#00577C] border-b border-slate-100 pb-2`}>
@@ -828,6 +851,20 @@ export default function HomePage() {
                 </div>
               </div>
             ))}
+
+            {/* Seção Eventos no Mobile */}
+            <div className="flex flex-col gap-3">
+              <p className={`${jakarta.className} text-[10px] font-black uppercase tracking-[0.2em] text-[#00577C] border-b border-slate-100 pb-2`}>
+                Agenda
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Link href="/eventos"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`${jakarta.className} font-bold text-slate-700 text-sm bg-slate-50 px-4 py-2 rounded-lg border border-slate-100 hover:text-[#00577C] hover:bg-slate-100 transition-colors`}>
+                  Todos os Eventos
+                </Link>
+              </div>
+            </div>
 
             <div className="border-t border-slate-100 pt-4 mt-2 flex flex-col gap-3">
               <Link href="/cadastro"

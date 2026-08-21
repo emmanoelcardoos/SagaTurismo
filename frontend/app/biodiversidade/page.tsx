@@ -16,24 +16,13 @@ const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] }
 const playfair = Playfair_Display({ subsets: ['latin'], weight: ['400', '700', '900'], style: ['normal', 'italic'] });
 
 // ==========================================
-// MENU GROUPS - HEADER DO SITE
-// ==========================================
-// ==========================================
-// MENU GROUPS - HEADER DO SITE
+// MENU GROUPS - HEADER DO SITE (ATUALIZADO)
 // ==========================================
 const menuGroups = [
-  { 
-    label: 'Conhecer', 
-    links: ['Atrativos', 'História', 'Biodiversidade', 'Galeria'] 
-  },
-  { 
-    label: 'Viver', 
-    links: ['Eventos', 'Comunidades'] 
-  },
-  { 
-    label: 'Planejar', 
-    links: ['Hospedagens', 'Gastronomia', 'Agências', 'Informações', 'Parceiros'] 
-  }
+  { label: 'Descobrir', links: ['Atrativos', 'História', 'Biodiversidade', 'Galeria'] },
+  { label: 'Viver Cultural', links: ['Comunidades'] },
+  { label: 'Planejar', links: ['Hospedagens', 'Gastronomia', 'Agências', 'Informações', 'CAT'] },
+  { label: 'Institucional', links: ['SEMTUR', 'COMTUR', 'Parceiros'] },
 ];
 
 // ==========================================
@@ -150,7 +139,7 @@ const dificuldadeCor: Record<string, string> = {
 };
 
 // ==========================================
-// COMPONENTE: HERO CINEMATOGRÁFICO
+// COMPONENTE: HERO CINEMATOGRÁFICO (TEXTO À ESQUERDA CORRIGIDO)
 // ==========================================
 function HeroBiodiversidade() {
   const [scrollY, setScrollY] = useState(0);
@@ -161,36 +150,50 @@ function HeroBiodiversidade() {
   }, []);
 
   return (
-    <section className="relative h-[80vh] flex flex-col items-start justify-end pb-24 px-6 md:px-12 overflow-hidden bg-[#021a0d]">
+    <section className="relative h-[85vh] min-h-[600px] flex flex-col items-start justify-end pb-20 px-6 md:px-12 overflow-hidden bg-[#021a0d]">
+      
+      {/* ── FOTOGRAFIA DE FUNDO ── */}
       <div className="absolute inset-0 z-0" style={{ transform: `translateY(${scrollY * 0.3}px)` }}>
         <Image
           src="https://images.pexels.com/photos/18064280/pexels-photo-18064280.jpeg?_gl=1*1at0h8g*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzk1MDQ0MjUkbzUyJGcxJHQxNzc5NTA0ODIxJGo1OSRsMCRoMA.."
-          alt="Serra das Andorinhas - Floresta"
-          fill className="object-cover opacity-90" priority
+          alt="Serra das Andorinhas - Fauna"
+          fill className="object-cover" priority
         />
       </div>
 
-      <div className="absolute inset-0 bg-gradient-to-t from-[#021a0d] via-[#021a0d]/30 to-transparent z-0" />
-      <div className="absolute inset-0 bg-gradient-to-r from-[#021a0d]/60 to-transparent z-0" />
+      {/* ── GRADIENTES INTELIGENTES ── */}
+      <div className="absolute inset-0 bg-gradient-to-t from-[#021a0d] via-[#021a0d]/40 to-transparent z-0" />
+      <div className="absolute inset-0 bg-gradient-to-r from-[#021a0d]/90 via-[#021a0d]/20 to-transparent z-0" />
 
+      {/* ── TEXTO (ALINHADO À ESQUERDA) ── */}
       <div className="relative z-10 max-w-[1400px] w-full mx-auto">
-        <div className="flex flex-col items-start">
-          <h1 className={`${jakarta.className} text-[clamp(3.5rem,8vw,9rem)] font-black text-white leading-[0.88] mb-6`}>
-            Parque<br />
-            <span className="text-[#009640] italic">Serra das Andorinhas</span>
-          </h1>
-        </div>
+        <Reveal anim="up">
+          <div className="flex flex-col items-start drop-shadow-2xl max-w-5xl">
+            {/* Primeira linha */}
+            <span className="text-[#F9C400] text-sm md:text-xl font-black uppercase tracking-[0.3em] mb-2">
+              Parque Estadual
+            </span>
+            {/* Segunda linha (Nome completo) */}
+            <h1 className={`${jakarta.className} text-[2.5rem] sm:text-[3.5rem] md:text-[4.5rem] lg:text-[5.5rem] font-black text-white leading-[1] tracking-tighter uppercase drop-shadow-lg flex flex-wrap items-center gap-x-3 md:gap-x-4`}>
+              Serra dos Martírios -
+              <span className="text-[#4ADE80] italic drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)]">
+                Andorinhas
+              </span>
+            </h1>
+          </div>
+        </Reveal>
       </div>
 
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 hidden md:flex gap-8">
+      {/* ── ESTATÍSTICAS (ALINHADAS À DIREITA) ── */}
+      <div className="absolute bottom-10 right-8 md:right-12 z-10 hidden md:flex gap-8 md:gap-12">
         {[
           { n: "+50", label: "Cachoeiras" },
           { n: "2", label: "Biomas" },
           { n: "+300", label: "Espécies" },
         ].map(stat => (
           <div key={stat.label} className="text-center">
-            <p className={`${jakarta.className} text-3xl font-black text-[#F9C400]`}>{stat.n}</p>
-            <p className="text-white/40 text-[9px] font-black uppercase tracking-widest">{stat.label}</p>
+            <p className={`${jakarta.className} text-3xl md:text-4xl font-black text-[#F9C400] drop-shadow-md`}>{stat.n}</p>
+            <p className="text-white text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] mt-1 drop-shadow-sm">{stat.label}</p>
           </div>
         ))}
       </div>
@@ -262,7 +265,7 @@ function SecParque() {
             <div>
               <h4 className={`${jakarta.className} text-[#F9C400] text-sm font-black uppercase tracking-widest mb-3`}>Importância Ecológica</h4>
               <p className="text-white/50 text-sm leading-relaxed">
-                A Serra das Andorinhas funciona como um corredor ecológico vital, conectando a Floresta Amazônica ao Cerrado. Esta transição única abriga espécies de ambos os biomas, tornando a região um hotspot de biodiversidade com alto grau de endemismo.
+                A Serra das Andorinhas funciona como um corredor ecológico vital, connecting a Floresta Amazônica ao Cerrado. Esta transição única abriga espécies de ambos os biomas, tornando a região um hotspot de biodiversidade com alto grau de endemismo.
               </p>
             </div>
             <div>
@@ -660,43 +663,44 @@ export default function BiodiversidadePage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
+  const isHeaderSolid = isScrolled || isHovered || isMobileMenuOpen;
+
   return (
     <main className={`${inter.className} min-h-screen flex flex-col bg-[#021a0d] text-white overflow-x-hidden`}>
       <div className="flex-1">
         
-        {/* ── HEADER CORRIGIDO ── */}
+        {/* ── HEADER ATUALIZADO ── */}
         <header
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
           className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${showHeader ? 'translate-y-0' : '-translate-y-full'} ${
-            (isScrolled || isHovered || isMobileMenuOpen) 
+            isHeaderSolid 
               ? 'bg-[#021a0d]/95 backdrop-blur-md shadow-sm border-b border-white/10' 
               : 'bg-transparent border-b border-transparent'
           }`}
         >
-          <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4 relative">
-            <div className="flex-1">
-              <Link href="/" className="inline-flex items-center gap-3 transition-all duration-300">
-                <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
+          <div className="mx-auto flex max-w-[1400px] items-center px-6 py-4 relative">
+            
+            {/* LADO ESQUERDO: Duas Logos */}
+            <div className="flex flex-1 items-center gap-4 md:gap-6 z-20">
+              <Link href="/" className="inline-flex items-center transition-all duration-300">
+                <div className="relative h-10 w-28 md:h-12 md:w-32 shrink-0">
                   <Image 
                     src="/logop.png" 
                     alt="SagaTurismo" 
                     fill 
-                    className={`object-contain transition-all duration-300 ${
-                      (!isScrolled && !isHovered && !isMobileMenuOpen) 
-                        ? 'brightness-0 invert' 
-                        : ''
-                    }`} 
+                    className={`object-contain object-left transition-all duration-300 ${!isHeaderSolid ? 'brightness-0 invert' : ''}`} 
                   />
                 </div>
               </Link>
             </div>
 
-            <nav className="hidden lg:flex items-center justify-center gap-12">
+            {/* CENTRO: Menu */}
+            <nav className="hidden lg:flex flex-none items-center justify-center gap-6 xl:gap-8 z-10">
               {menuGroups.map((group) => (
                 <div key={group.label} className="relative group py-2">
-                  <button className={`${jakarta.className} flex items-center gap-1.5 text-xs font-black uppercase tracking-[0.2em] transition-colors ${
-                    (isScrolled || isHovered || isMobileMenuOpen) 
+                  <button className={`${jakarta.className} flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.2em] transition-colors ${
+                    isHeaderSolid 
                       ? 'text-white/60 group-hover:text-[#F9C400]' 
                       : 'text-white group-hover:text-[#F9C400] drop-shadow-md'
                   }`}>
@@ -714,12 +718,16 @@ export default function BiodiversidadePage() {
                   </div>
                 </div>
               ))}
+              <Link href="/eventos" className={`${jakarta.className} flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.2em] transition-colors py-2 ${isHeaderSolid ? 'text-white/60 hover:text-[#F9C400]' : 'text-white hover:text-[#F9C400] drop-shadow-md'}`}>
+                Eventos
+              </Link>
             </nav>
 
-            <div className="flex-1 flex justify-end items-center gap-4">
+            {/* LADO DIREITO: Botões */}
+            <div className="flex flex-1 justify-end items-center gap-4 z-20">
               <Link href="/cadastro"
                 className={`hidden lg:inline-flex ${jakarta.className} px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-sm ${
-                  (isScrolled || isHovered || isMobileMenuOpen) 
+                  isHeaderSolid 
                     ? 'bg-[#F9C400] text-[#002f40]' 
                     : 'bg-white/20 backdrop-blur-md text-white border border-white/30 hover:bg-white/30'
                 }`}>
@@ -727,7 +735,7 @@ export default function BiodiversidadePage() {
               </Link>
               <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 className={`rounded-xl p-2 lg:hidden transition-all duration-300 ${
-                  (isScrolled || isHovered || isMobileMenuOpen) 
+                  isHeaderSolid 
                     ? 'text-white hover:bg-white/10' 
                     : 'text-white hover:bg-white/20'
                 }`}>
@@ -754,6 +762,14 @@ export default function BiodiversidadePage() {
                   </div>
                 </div>
               ))}
+              <div className="flex flex-col gap-3">
+                <p className={`${jakarta.className} text-[10px] font-black uppercase tracking-[0.2em] text-[#F9C400] border-b border-white/10 pb-2`}>Agenda</p>
+                <div className="flex flex-wrap gap-2">
+                  <Link href="/eventos" onClick={() => setIsMobileMenuOpen(false)} className={`${jakarta.className} font-bold text-white/60 hover:text-white text-sm bg-white/5 px-4 py-2 rounded-lg border border-white/10 hover:bg-white/10 transition-colors`}>
+                    Todos os Eventos
+                  </Link>
+                </div>
+              </div>
               <div className="border-t border-white/10 pt-4 mt-2 flex flex-col gap-3">
                 <Link href="/cadastro" onClick={() => setIsMobileMenuOpen(false)} className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md`}>
                   Cartão Residente

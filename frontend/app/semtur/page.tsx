@@ -66,10 +66,11 @@ function Header() {
   }, [lastScrollY]);
 
   const menuGroups = [
-    { label: 'Conhecer', links: ['Atrativos', 'História', 'Biodiversidade', 'Galeria'] },
-    { label: 'Viver', links: ['Eventos', 'Comunidades'] },
-    { label: 'Planejar', links: ['Hospedagens', 'Gastronomia', 'Agências', 'Informações', 'Parceiros'] }
-  ];
+  { label: 'Descobrir', links: ['Atrativos', 'História', 'Biodiversidade', 'Galeria'] },
+  { label: 'Viver Cultural', links: ['Comunidades'] },
+  { label: 'Planejar', links: ['Hospedagens', 'Gastronomia', 'Agências', 'Informações', 'CAT'] },
+  { label: 'Institucional', links: ['SEMTUR', 'COMTUR', 'Parceiros'] },
+];
 
   return (
     <header
