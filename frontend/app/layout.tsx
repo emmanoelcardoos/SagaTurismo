@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import Script from "next/script"; // ◄── 1. NOVA IMPORTAÇÃO AQUI
+import Script from "next/script";
 import "./globals.css";
 
 const geistSans = localFont({
@@ -14,7 +14,6 @@ const geistMono = localFont({
   weight: "100 900",
 });
 
-// ◄── AQUI ESTÁ A CORREÇÃO DO TÍTULO E DESCRIÇÃO
 export const metadata: Metadata = {
   title: " Visite São Geraldo do Araguaia",
   description: "Plataforma oficial de turismo e emissão da Carteira de Residente de São Geraldo do Araguaia - PA.",
@@ -26,12 +25,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    // ◄── IDIOMA CORRIGIDO PARA pt-BR
     <html lang="pt-BR">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {/* ◄── 2. MICROSOFT CLARITY AQUI ──► */}
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        
+        {/* ◄── 1. COOKIEYES (LGPD) ──► */}
+        <Script 
+          id="cookieyes" 
+          type="text/javascript" 
+          src="https://cdn-cookieyes.com/client_data/ed210793799b866fb3b7f66db441506c/script.js" 
+          strategy="beforeInteractive" 
+        />
+
+        {/* ◄── 2. MICROSOFT CLARITY ──► */}
         <Script id="microsoft-clarity" strategy="afterInteractive">
           {`
             (function(c,l,a,r,i,t,y){
