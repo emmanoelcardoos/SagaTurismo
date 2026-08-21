@@ -739,10 +739,18 @@ export default function HomePage() {
   // ── MENU AGRUPADO (COM PARCEIROS NO PLANEJAR) ──
   // ── MENU AGRUPADO (COM PARCEIROS NO PLANEJAR) ──
 const menuGroups = [
-  { label: 'Descobrir', links: ['Atrativos', 'História', 'Biodiversidade', 'Galeria'] },
-  { label: 'Viver Cultural', links: ['Comunidades'] },
-  { label: 'Planejar', links: ['Hospedagens', 'Gastronomia', 'Agências', 'Informações', 'CAT'] },
-  { label: 'Institucional', links: ['SEMTUR', 'COMTUR', 'Parceiros'] },
+  { 
+    label: 'Descobrir', 
+    links: ['Atrativos', 'História', 'Biodiversidade', 'Comunidades', 'Galeria', 'Eventos'] 
+  },
+  { 
+    label: 'Planejar', 
+    links: ['Hospedagens', 'Gastronomia', 'Agências', 'Informações', 'CAT'] 
+  },
+  { 
+    label: 'Institucional', 
+    links: ['SEMTUR', 'COMTUR', 'Parceiros'] 
+  },
 ];
 
   return (
@@ -800,14 +808,6 @@ const menuGroups = [
               </div>
             ))}
 
-            {/* Link Direto: Eventos */}
-            <Link 
-              href="/eventos" 
-              className={`${jakarta.className} flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.2em] transition-colors py-2 ${isHeaderSolid ? 'text-slate-600 hover:text-[#00577C]' : 'text-white hover:text-[#F9C400] drop-shadow-md'}`}
-            >
-              Eventos
-            </Link>
-
           </nav>
 
           {/* ◄── LADO DIREITO: Devolvemos o flex-1 ──► */}
@@ -851,20 +851,6 @@ const menuGroups = [
                 </div>
               </div>
             ))}
-
-            {/* Seção Eventos no Mobile */}
-            <div className="flex flex-col gap-3">
-              <p className={`${jakarta.className} text-[10px] font-black uppercase tracking-[0.2em] text-[#00577C] border-b border-slate-100 pb-2`}>
-                Agenda
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <Link href="/eventos"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className={`${jakarta.className} font-bold text-slate-700 text-sm bg-slate-50 px-4 py-2 rounded-lg border border-slate-100 hover:text-[#00577C] hover:bg-slate-100 transition-colors`}>
-                  Todos os Eventos
-                </Link>
-              </div>
-            </div>
 
             <div className="border-t border-slate-100 pt-4 mt-2 flex flex-col gap-3">
               <Link href="/cadastro"

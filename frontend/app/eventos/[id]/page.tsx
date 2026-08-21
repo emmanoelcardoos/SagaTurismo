@@ -183,10 +183,19 @@ export default function EventoDetalhePage({ params }: { params: { id: string } }
 
   // ── MENU GROUPS ──
   const menuGroups = [
-    { label: 'Conhecer', links: ['Atrativos', 'História', 'Biodiversidade', 'Galeria'] },
-    { label: 'Viver', links: ['Eventos', 'Comunidades'] },
-    { label: 'Planejar', links: ['Hospedagens', 'Gastronomia', 'Agências', 'Informações', 'Parceiros'] }
-  ];
+  { 
+    label: 'Descobrir', 
+    links: ['Atrativos', 'História', 'Biodiversidade', 'Comunidades', 'Galeria', 'Eventos'] 
+  },
+  { 
+    label: 'Planejar', 
+    links: ['Hospedagens', 'Gastronomia', 'Agências', 'Informações', 'CAT'] 
+  },
+  { 
+    label: 'Institucional', 
+    links: ['SEMTUR', 'COMTUR', 'Parceiros'] 
+  },
+];
 
   return (
     <main className={`${inter.className} min-h-screen bg-[#FDFCF7] text-slate-900 overflow-x-hidden flex flex-col`}>

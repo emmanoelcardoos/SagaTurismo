@@ -163,10 +163,18 @@ export default function AtracoesPage() {
 
   // ── MENU DO HEADER ──
   const menuGroups = [
-  { label: 'Descobrir', links: ['Atrativos', 'História', 'Biodiversidade', 'Galeria'] },
-  { label: 'Viver Cultural', links: ['Comunidades'] },
-  { label: 'Planejar', links: ['Hospedagens', 'Gastronomia', 'Agências', 'Informações', 'CAT'] },
-  { label: 'Institucional', links: ['SEMTUR', 'COMTUR', 'Parceiros'] },
+  { 
+    label: 'Descobrir', 
+    links: ['Atrativos', 'História', 'Biodiversidade', 'Comunidades', 'Galeria', 'Eventos'] 
+  },
+  { 
+    label: 'Planejar', 
+    links: ['Hospedagens', 'Gastronomia', 'Agências', 'Informações', 'CAT'] 
+  },
+  { 
+    label: 'Institucional', 
+    links: ['SEMTUR', 'COMTUR', 'Parceiros'] 
+  },
 ];
 
   return (

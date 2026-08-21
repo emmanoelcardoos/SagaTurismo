@@ -118,10 +118,18 @@ export default function HistoriaPage() {
 
   // ── MENU AGRUPADO ──
   const menuGroups = [
-  { label: 'Descobrir', links: ['Atrativos', 'História', 'Biodiversidade', 'Galeria'] },
-  { label: 'Viver Cultural', links: ['Comunidades'] },
-  { label: 'Planejar', links: ['Hospedagens', 'Gastronomia', 'Agências', 'Informações', 'CAT'] },
-  { label: 'Institucional', links: ['SEMTUR', 'COMTUR', 'Parceiros'] },
+  { 
+    label: 'Descobrir', 
+    links: ['Atrativos', 'História', 'Biodiversidade', 'Comunidades', 'Galeria', 'Eventos'] 
+  },
+  { 
+    label: 'Planejar', 
+    links: ['Hospedagens', 'Gastronomia', 'Agências', 'Informações', 'CAT'] 
+  },
+  { 
+    label: 'Institucional', 
+    links: ['SEMTUR', 'COMTUR', 'Parceiros'] 
+  },
 ];
 
   const fotosOrigens = fotos.filter(f => f.seccao === 'origens');

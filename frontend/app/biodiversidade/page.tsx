@@ -19,10 +19,18 @@ const playfair = Playfair_Display({ subsets: ['latin'], weight: ['400', '700', '
 // MENU GROUPS - HEADER DO SITE (ATUALIZADO)
 // ==========================================
 const menuGroups = [
-  { label: 'Descobrir', links: ['Atrativos', 'História', 'Biodiversidade', 'Galeria'] },
-  { label: 'Viver Cultural', links: ['Comunidades'] },
-  { label: 'Planejar', links: ['Hospedagens', 'Gastronomia', 'Agências', 'Informações', 'CAT'] },
-  { label: 'Institucional', links: ['SEMTUR', 'COMTUR', 'Parceiros'] },
+  { 
+    label: 'Descobrir', 
+    links: ['Atrativos', 'História', 'Biodiversidade', 'Comunidades', 'Galeria', 'Eventos'] 
+  },
+  { 
+    label: 'Planejar', 
+    links: ['Hospedagens', 'Gastronomia', 'Agências', 'Informações', 'CAT'] 
+  },
+  { 
+    label: 'Institucional', 
+    links: ['SEMTUR', 'COMTUR', 'Parceiros'] 
+  },
 ];
 
 // ==========================================

@@ -120,10 +120,18 @@ export default function AgenciasPage() {
   const FALLBACK_IMAGE = "https://live.staticflickr.com/65535/54594015350_8cd6612923_4k.jpg"
 
   const menuGroups = [
-  { label: 'Descobrir', links: ['Atrativos', 'História', 'Biodiversidade', 'Galeria'] },
-  { label: 'Viver Cultural', links: ['Comunidades'] },
-  { label: 'Planejar', links: ['Hospedagens', 'Gastronomia', 'Agências', 'Informações', 'CAT'] },
-  { label: 'Institucional', links: ['SEMTUR', 'COMTUR', 'Parceiros'] },
+  { 
+    label: 'Descobrir', 
+    links: ['Atrativos', 'História', 'Biodiversidade', 'Comunidades', 'Galeria', 'Eventos'] 
+  },
+  { 
+    label: 'Planejar', 
+    links: ['Hospedagens', 'Gastronomia', 'Agências', 'Informações', 'CAT'] 
+  },
+  { 
+    label: 'Institucional', 
+    links: ['SEMTUR', 'COMTUR', 'Parceiros'] 
+  },
 ];
 
   return (
