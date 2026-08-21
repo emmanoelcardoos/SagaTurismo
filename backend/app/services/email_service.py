@@ -4,7 +4,7 @@ import requests
 from typing import List, Dict, Any, Optional
 
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
-EMAIL_FROM = "SagaTurismo Oficial <nao-responda@sagatur.com.br>" # Domínio verificado no Resend
+EMAIL_FROM = "Turismo São Geraldo do Araguaia <nao-responda@sagatur.com.br>" # Domínio verificado no Resend
 
 LOGO_URL = "https://sagaturismo-production.up.railway.app/public/logop.png" 
 
@@ -173,7 +173,7 @@ def enviar_carteiras_por_email(email_destino: str, nome_titular: str, caminhos_p
                     <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%; max-width:600px;">
                         <tr>
                             <td align="center" style="padding:28px 24px 0 24px; font-family:{FONT_STACK}; font-size:12px; line-height:1.6; color:#94A3B8;">
-                                &copy; 2026 SagaTurismo &bull; Prefeitura Municipal de São Geraldo do Araguaia
+                                &copy; 2026 Portal Oficial de Turismo &bull; Prefeitura Municipal de São Geraldo do Araguaia
                             </td>
                         </tr>
                     </table>
