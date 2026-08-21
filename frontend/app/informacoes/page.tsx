@@ -307,7 +307,7 @@ export default function ComoChegarPage() {
               <ul className="space-y-4">
                 <li className="flex items-start gap-3 text-sm text-slate-700">
                   <span className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center font-bold text-[#00577C] text-xs shrink-0">1</span>
-                  <span><strong>Vindo do Norte (Belém/Marabá):</strong> Acesso pelas rodovias BR-155 e PA-153. Rota predominantemente pavimentada.</span>
+                  <span><strong>Vindo do Norte (Belém/Marabá):</strong> Acesso pelas rodovias BR-155 e BR-153. Rota totalmente pavimentada.</span>
                 </li>
                 <li className="flex items-start gap-3 text-sm text-slate-700">
                   <span className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center font-bold text-[#00577C] text-xs shrink-0">2</span>

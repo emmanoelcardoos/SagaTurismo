@@ -521,7 +521,7 @@ export default function CadastroPage() {
             Residente
           </h1>
           <p className="text-white/95 text-sm md:text-lg font-medium mt-6 drop-shadow-lg max-w-2xl">
-            Garanta o seu benefício de 50% de desconto na Cachoeira Tês Quedas.
+            Garanta o seu benefício de 50% de desconto na Cachoeira Três Quedas.
           </p>
         </div>
 
