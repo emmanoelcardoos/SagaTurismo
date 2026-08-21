@@ -13,6 +13,7 @@ import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
 import MinhaReservaModal from '@/components/MinhaReservaModal';
 
+
 // ── FONTES ──
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['600', '700', '800'] });
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'] });
@@ -1089,87 +1090,104 @@ export default function HomePage() {
       {/* ── FOOTER ── */}
       {/* ── FOOTER ── */}
       <footer className="border-t border-slate-200 bg-[#FDFCF7] py-16 px-6">
-        <div className="max-w-[1200px] mx-auto">
-          {/* Primeira linha: logos */}
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6 pb-8 border-b border-slate-200">
-            <div className="flex items-center gap-6">
-              <Image src="/logop.png" alt="SagaTurismo" width={160} height={50} className="object-contain" />
-              <div className="w-px h-12 bg-slate-200 hidden md:block" />
-              <Image src="/prefeitura.png" alt="Prefeitura de SGA" width={140} height={50} className="object-contain" />
-            </div>
-          </div>
-
-          {/* Segunda linha: colunas de links */}
-          <div className="grid grid-cols-1 md:grid-cols-[1.3fr_1fr_1fr_1fr] gap-10 pt-10">
-            {/* Coluna 1: Contato */}
-            <div>
-              <p className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-[#00577C] mb-4`}>Contato</p>
-              <div className="space-y-2.5 text-sm text-slate-600">
-                <p className="flex items-start gap-2.5">
-                  <MapPin size={16} className="text-[#00577C] mt-0.5 shrink-0" />
-                  R. Antônio Nonato Pedrosa, 324 - Vila Administrativa, São Geraldo do Araguaia - PA, 68570-000
-                </p>
-                <p className="flex items-center gap-2.5">
-                  <Phone size={16} className="text-[#00577C] shrink-0" />
-                  (94) 98420-5736
-                </p>
-                <p className="flex items-center gap-2.5">
-                  <Mail size={16} className="text-[#00577C] shrink-0" />
-                  contato@saogeraldodoaraguaia.pa.gov.br
-                </p>
-                <p className="flex items-center gap-2.5">
-                  <Clock size={16} className="text-[#00577C] shrink-0" />
-                  Seg-Sex das 8h às 17h
-                </p>
-              </div>
-            </div>
-
-            {/* Coluna 2: Descubra */}
-            <div>
-              <p className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-[#00577C] mb-4`}>Descubra</p>
-              <ul className="space-y-2.5 text-sm">
-                <li><Link href="/atrativos" className="text-slate-600 hover:text-[#00577C] transition-colors">Atrativos</Link></li>
-                <li><Link href="/hoteis" className="text-slate-600 hover:text-[#00577C] transition-colors">Hospedagens</Link></li>
-                <li><Link href="/gastronomia" className="text-slate-600 hover:text-[#00577C] transition-colors">Gastronomia</Link></li>
-                <li><Link href="/comunidades" className="text-slate-600 hover:text-[#00577C] transition-colors">Comunidades</Link></li>
-                <li><Link href="/historia" className="text-slate-600 hover:text-[#00577C] transition-colors">História</Link></li>
-              </ul>
-            </div>
-
-            {/* Coluna 3: Planeje sua viagem */}
-            <div>
-              <p className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-[#00577C] mb-4`}>Planeje sua viagem</p>
-              <ul className="space-y-2.5 text-sm">
-                <li><Link href="/informacoes" className="text-slate-600 hover:text-[#00577C] transition-colors">Como Chegar</Link></li>
-                <li><Link href="/eventos" className="text-slate-600 hover:text-[#00577C] transition-colors">Agenda de Eventos</Link></li>
-                <li><Link href="/blog" className="text-slate-600 hover:text-[#00577C] transition-colors">Blog</Link></li>
-                <li><Link href="/contato" className="text-slate-600 hover:text-[#00577C] transition-colors">Contatos Úteis</Link></li>
-              </ul>
-            </div>
-
-            {/* Coluna 4: Institucional */}
-            <div>
-              <p className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-[#00577C] mb-4`}>Institucional</p>
-              <ul className="space-y-2.5 text-sm">
-                <li><Link href="/quem-somos" className="text-slate-600 hover:text-[#00577C] transition-colors">Quem Somos</Link></li>
-                
-                <li><Link href="/parceiros" className="text-slate-600 hover:text-[#00577C] transition-colors">Parceiros</Link></li>
-                <li><Link href="/termos" className="text-slate-600 hover:text-[#00577C] transition-colors">Termos de Uso</Link></li>
-                <li><Link href="/privacidade" className="text-slate-600 hover:text-[#00577C] transition-colors">Política de Privacidade</Link></li>
-                <li><Link href="/semtur" className="text-slate-600 hover:text-[#00577C] transition-colors">SEMTUR</Link></li>
-              </ul>
-            </div>
-          </div>
-
-          {/* Rodapé inferior com copyright */}
-          <div className="border-t border-slate-200 mt-10 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-[11px] text-slate-400 font-medium text-center md:text-left">
-              © 2026 Prefeitura Municipal de São Geraldo do Araguaia. Todos os direitos reservados. · CNPJ: 10.249.241/0001-22
-            </p>
-            <Image src="/prefeitura.png" alt="Prefeitura de São Geraldo do Araguaia" width={100} height={30} className="object-contain opacity-70" />
+      <div className="max-w-[1200px] mx-auto">
+        {/* Primeira linha: logos */}
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6 pb-8 border-b border-slate-200">
+          <div className="flex items-center gap-6">
+            <Image src="/logop.png" alt="SagaTurismo" width={160} height={50} className="object-contain" />
+            <div className="w-px h-12 bg-slate-200 hidden md:block" />
+            <Image src="/prefeitura.png" alt="Prefeitura de SGA" width={140} height={50} className="object-contain" />
           </div>
         </div>
-      </footer>
+
+        {/* Segunda linha: colunas de links */}
+        <div className="grid grid-cols-1 md:grid-cols-[1.3fr_1fr_1fr_1fr] gap-10 pt-10">
+          {/* Coluna 1: Contato */}
+          <div>
+            <p className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-[#00577C] mb-4`}>Contato</p>
+            <div className="space-y-2.5 text-sm text-slate-600">
+              <p className="flex items-start gap-2.5">
+                <MapPin size={16} className="text-[#00577C] mt-0.5 shrink-0" />
+                R. Antônio Nonato Pedrosa, 324 - Vila Administrativa, São Geraldo do Araguaia - PA, 68570-000
+              </p>
+              <p className="flex items-center gap-2.5">
+                <Phone size={16} className="text-[#00577C] shrink-0" />
+                (94) 98420-5736
+              </p>
+              <p className="flex items-center gap-2.5">
+                <Mail size={16} className="text-[#00577C] shrink-0" />
+                contato@saogeraldodoaraguaia.pa.gov.br
+              </p>
+              <p className="flex items-center gap-2.5">
+                <Clock size={16} className="text-[#00577C] shrink-0" />
+                Seg-Sex das 8h às 17h
+              </p>
+            </div>
+          </div>
+
+          {/* Coluna 2: Descubra */}
+          <div>
+            <p className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-[#00577C] mb-4`}>Descubra</p>
+            <ul className="space-y-2.5 text-sm">
+              <li><Link href="/atrativos" className="text-slate-600 hover:text-[#00577C] transition-colors">Atrativos</Link></li>
+              <li><Link href="/hoteis" className="text-slate-600 hover:text-[#00577C] transition-colors">Hospedagens</Link></li>
+              <li><Link href="/gastronomia" className="text-slate-600 hover:text-[#00577C] transition-colors">Gastronomia</Link></li>
+              <li><Link href="/comunidades" className="text-slate-600 hover:text-[#00577C] transition-colors">Comunidades</Link></li>
+              <li><Link href="/historia" className="text-slate-600 hover:text-[#00577C] transition-colors">História</Link></li>
+            </ul>
+          </div>
+
+          {/* Coluna 3: Planeje sua viagem */}
+          <div>
+            <p className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-[#00577C] mb-4`}>Planeje sua viagem</p>
+            <ul className="space-y-2.5 text-sm">
+              <li><Link href="/informacoes" className="text-slate-600 hover:text-[#00577C] transition-colors">Como Chegar</Link></li>
+              <li><Link href="/eventos" className="text-slate-600 hover:text-[#00577C] transition-colors">Agenda de Eventos</Link></li>
+              <li><Link href="/blog" className="text-slate-600 hover:text-[#00577C] transition-colors">Blog</Link></li>
+              <li><Link href="/contato" className="text-slate-600 hover:text-[#00577C] transition-colors">Contatos Úteis</Link></li>
+            </ul>
+          </div>
+
+          {/* Coluna 4: Institucional */}
+          <div>
+            <p className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-[#00577C] mb-4`}>Institucional</p>
+            <ul className="space-y-2.5 text-sm">
+              <li><Link href="/quem-somos" className="text-slate-600 hover:text-[#00577C] transition-colors">Quem Somos</Link></li>
+              <li><Link href="/parceiros" className="text-slate-600 hover:text-[#00577C] transition-colors">Parceiros</Link></li>
+              <li><Link href="/termos" className="text-slate-600 hover:text-[#00577C] transition-colors">Termos de Uso</Link></li>
+              <li><Link href="/privacidade" className="text-slate-600 hover:text-[#00577C] transition-colors">Política de Privacidade</Link></li>
+              <li><Link href="/semtur" className="text-slate-600 hover:text-[#00577C] transition-colors">SEMTUR</Link></li>
+            </ul>
+          </div>
+        </div>
+
+        {/* Rodapé inferior com copyright */}
+        <div className="border-t border-slate-200 mt-10 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
+          <p className="text-[11px] text-slate-400 font-medium text-center md:text-left">
+            © 2026 Prefeitura Municipal de São Geraldo do Araguaia. Todos os direitos reservados. · CNPJ: 10.249.241/0001-22
+          </p>
+          <Image src="/prefeitura.png" alt="Prefeitura de São Geraldo do Araguaia" width={100} height={30} className="object-contain opacity-70" />
+        </div>
+
+        {/* ◄── ASSINATURA DO DESENVOLVEDOR (MEI) ──► */}
+        <div className="mt-8 flex justify-center md:justify-end">
+          <p className="text-[10px] text-slate-400 tracking-widest uppercase flex items-center gap-2">
+            Desenvolvido por{" "}
+            <a 
+              href="https://www.linkedin.com/in/emmanoel-cardoso-432668358/" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="text-slate-600 hover:text-[#00577C] transition-colors normal-case"
+              style={{ fontFamily: '"Brush Script MT", "Lucida Handwriting", cursive', fontSize: '18px' }}
+            >
+              Emmanoel Cardoso
+            </a>
+          </p>
+        </div>
+
+      </div>
+    </footer>
+      
 
       {/* ◄── MODAL INVISÍVEL ──► */}
       <MinhaReservaModal 
