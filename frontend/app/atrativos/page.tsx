@@ -267,7 +267,7 @@ export default function AtracoesPage() {
       <section className="relative h-[90vh] min-h-[500px] w-full flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           <Image
-            src="https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/herosections/heroatrativos.jpg"
+            src="https://res.cloudinary.com/uu8kd8vs/image/upload/f_auto,q_auto/heroatrativos"
             alt="Atrativos em São Geraldo do Araguaia"
             fill
             className="object-cover"
