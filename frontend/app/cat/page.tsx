@@ -51,7 +51,7 @@ export default function CatPage() {
   const isHeaderSolid = isScrolled || isHovered || isMobileMenuOpen;
   
   // URL de imagem de exemplo para o CAT (pode trocar depois por uma foto real do balcão/prédio)
-  const HERO_IMAGE = "https://images.pexels.com/photos/5597768/pexels-photo-5597768.jpeg?_gl=1*3q3hcf*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3ODczMjQ2MTUkbzEwNiRnMSR0MTc4NzMyNjg0NiRqNTkkbDAkaDA.";
+  const HERO_IMAGE = "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/herosections/herocat.HEIC";
 
   return (
     <main className={`${inter.className} bg-[#FDFCF7] min-h-screen text-slate-900 overflow-x-hidden`}>
