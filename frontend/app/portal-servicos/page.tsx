@@ -2510,24 +2510,28 @@ function TabEmissaoManual() {
     setFeedback("A enviar fotografia...");
 
     try {
-      // 1. Upload da Foto no bucket 'comprovantes' (pasta fotos_perfil)
+      // 1. Mudamos para o bucket 'galeria' e usamos upsert:true (Permitido no teu painel)
       const ext = foto.name.split('.').pop();
-      const nomeArquivo = `foto_${form.cpf.replace(/\D/g, '')}_${Date.now()}.${ext}`;
-      const path = `fotos_perfil/${nomeArquivo}`;
+      const nomeArquivo = `carteira_manual_${form.cpf.replace(/\D/g, '')}_${Date.now()}.${ext}`;
+      const path = `residentes/${nomeArquivo}`;
       
-      const { error: uploadError } = await supabase.storage.from('comprovantes').upload(path, foto);
-      if (uploadError) throw new Error("Erro no upload da foto.");
+      const { error: uploadError } = await supabase.storage.from('galeria').upload(path, foto, { upsert: true });
+      if (uploadError) throw new Error(uploadError.message);
+      
+      // Pegamos o link HTTP completo público
+      const { data: pubUrl } = supabase.storage.from('galeria').getPublicUrl(path);
+      const fotoUrlCompleta = pubUrl.publicUrl;
       
       setFeedback("A registar cidadão na base de dados...");
 
-      // 2. Inserir na tabela rd_residentes
+      // 2. Inserir na tabela rd_residentes com a URL completa
       const qrcode_token = crypto.randomUUID(); 
       const payload = {
         nome_completo: form.nome,
         cpf: form.cpf,
         email: form.email,
         data_nascimento: form.data_nascimento,
-        foto_url: path, 
+        foto_url: fotoUrlCompleta, // ◄── Agora guarda o link completo que o Python consegue ler
         status: "ativo", 
         qrcode_token: qrcode_token,
         url_comprovante: "isento_admin" 
@@ -2546,7 +2550,7 @@ function TabEmissaoManual() {
         cpf_cliente: form.cpf,
         email_cliente: form.email,
         telefone_cliente: "00000000000", 
-        foto_url: path,
+        foto_url: fotoUrlCompleta, // ◄── Passa a URL completa para o gerador de PDF
         data_nascimento: form.data_nascimento,
         token_id: residenteId,
         quantidade: 1
