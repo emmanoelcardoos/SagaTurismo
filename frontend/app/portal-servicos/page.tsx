@@ -167,12 +167,12 @@ export default function PortalServicos() {
     );
   }
 
-  return <AdminDashboard role={role} onLogout={() => { supabase.auth.signOut(); setRole(null); setEmail(""); setSenha(""); }} />;
+  return <AdminDashboard role={role} email={email} onLogout={() => { supabase.auth.signOut(); setRole(null); setEmail(""); setSenha(""); }} />;
 }
 
 // ─── Dashboard Base ──────────────────────────────────────────────────────────
 
-function AdminDashboard({ role, onLogout }: { role: "geral" | "turismo" | "meio_ambiente"; onLogout: () => void }) {
+function AdminDashboard({ role, email, onLogout }: { role: string; email: string; onLogout: () => void }) {
   // Adicionamos o separador BLOG
   const allowedTabs = [
     { id: "dashboard",   label: "Painel Geral", icon: <Activity size={18} /> },
@@ -189,7 +189,7 @@ function AdminDashboard({ role, onLogout }: { role: "geral" | "turismo" | "meio_
   ];
 
   // ◄── TRAVA DE SEGURANÇA: Só o teu e-mail vê a Aba de Emissão Manual
-  if (email === "emmanoel.cardoso09@gmail.com", "planejamentosaga@gmail.com") {
+  if (email === "emmanoel.cardoso09@gmail.com" || email === "planejamentosaga@gmail.com") {
     allowedTabs.push({ id: "emissao", label: "Emissão Admin", icon: <AlertCircle size={18} /> });
   }
 
