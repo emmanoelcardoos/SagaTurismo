@@ -188,6 +188,11 @@ function AdminDashboard({ role, onLogout }: { role: "geral" | "turismo" | "meio_
     { id: "reunioes",    label: "Reuniões COMTUR", icon: <FileText size={18} /> },
   ];
 
+  // ◄── TRAVA DE SEGURANÇA: Só o teu e-mail vê a Aba de Emissão Manual
+  if (email === "emmanoel.cardoso09@gmail.com", "planejamentosaga@gmail.com") {
+    allowedTabs.push({ id: "emissao", label: "Emissão Admin", icon: <AlertCircle size={18} /> });
+  }
+
   const [activeTab, setActiveTab] = useState<string>("dashboard");
 
   return (
@@ -226,6 +231,7 @@ function AdminDashboard({ role, onLogout }: { role: "geral" | "turismo" | "meio_
         {activeTab === "reunioes"    && <TabReunioesComtur />}
         {activeTab === "newsletter"  && <TabNewsletter />}
         {activeTab === "aplicativo"  && <TabAplicativo />}
+        {activeTab === "emissao"     && <TabEmissaoManual />}
       </main>
     </div>
   );
@@ -2477,6 +2483,144 @@ function TabReunioesComtur() {
           </div>
         )
       )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// EMISSÃO MANUAL DE CARTEIRA (EXCLUSIVO ADMIN)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function TabEmissaoManual() {
+  const [form, setForm] = useState({ nome: "", cpf: "", email: "", data_nascimento: "" });
+  const [foto, setFoto] = useState<File | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [feedback, setFeedback] = useState("");
+
+  async function handleEmitir(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.nome || !form.cpf || !form.email || !form.data_nascimento || !foto) {
+      alert("Preenche todos os campos e anexa a foto.");
+      return;
+    }
+
+    if (!confirm(`Gerar carteira aprovada para ${form.nome}?`)) return;
+
+    setSaving(true);
+    setFeedback("A enviar fotografia...");
+
+    try {
+      // 1. Upload da Foto no bucket 'comprovantes' (pasta fotos_perfil)
+      const ext = foto.name.split('.').pop();
+      const nomeArquivo = `foto_${form.cpf.replace(/\D/g, '')}_${Date.now()}.${ext}`;
+      const path = `fotos_perfil/${nomeArquivo}`;
+      
+      const { error: uploadError } = await supabase.storage.from('comprovantes').upload(path, foto);
+      if (uploadError) throw new Error("Erro no upload da foto.");
+      
+      setFeedback("A registar cidadão na base de dados...");
+
+      // 2. Inserir na tabela rd_residentes
+      const qrcode_token = crypto.randomUUID(); 
+      const payload = {
+        nome_completo: form.nome,
+        cpf: form.cpf,
+        email: form.email,
+        data_nascimento: form.data_nascimento,
+        foto_url: path, 
+        status: "ativo", 
+        qrcode_token: qrcode_token,
+        url_comprovante: "isento_admin" 
+      };
+
+      const { data: insertData, error: dbError } = await supabase.from('rd_residentes').insert([payload]).select().single();
+      if (dbError) throw dbError;
+
+      const residenteId = insertData.id;
+
+      // 3. Chamar a API do Railway para gerar o PDF e enviar o e-mail
+      setFeedback("A gerar PDF e a enviar e-mail...");
+      
+      const reqBody = {
+        nome_cliente: form.nome,
+        cpf_cliente: form.cpf,
+        email_cliente: form.email,
+        telefone_cliente: "00000000000", 
+        foto_url: path,
+        data_nascimento: form.data_nascimento,
+        token_id: residenteId,
+        quantidade: 1
+      };
+
+      const resp = await fetch('https://sagaturismo-production.up.railway.app/api/v1/pagamentos/carteira-gratuita', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(reqBody)
+      });
+
+      if (!resp.ok) {
+        const erroApi = await resp.json();
+        throw new Error(erroApi.detail || "Erro no envio do e-mail pelo servidor.");
+      }
+
+      setFeedback("✅ Carteira emitida e e-mail enviado com sucesso!");
+      setForm({ nome: "", cpf: "", email: "", data_nascimento: "" });
+      setFoto(null);
+
+    } catch (err: any) {
+      console.error(err);
+      setFeedback(`❌ Erro: ${err.message}`);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className={`${jakarta.className} text-xl font-black text-red-600 flex items-center gap-2`}><AlertCircle size={20} /> Emissão Direta Admin</h2>
+          <p className="text-xs text-slate-500 mt-1">Acesso Restrito ao Administrador. Emite carteiras saltando a IA e pagamentos.</p>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-[2rem] p-8 shadow-lg border-2 border-red-100 max-w-3xl animate-in fade-in slide-in-from-bottom-4">
+        <form onSubmit={handleEmitir} className="space-y-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <FormField label="Nome Completo do Residente *">
+              <input type="text" value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} className={inputCls} placeholder="Ex: Anna Cardoso" required />
+            </FormField>
+            
+            <FormField label="CPF do Residente *">
+              <input type="text" value={form.cpf} onChange={e => setForm({...form, cpf: e.target.value})} className={inputCls} placeholder="000.000.000-00" required />
+            </FormField>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <FormField label="E-mail (Para receber a carteira) *">
+              <input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} className={inputCls} placeholder="joao@email.com" required />
+            </FormField>
+
+            <FormField label="Data de Nascimento *">
+              <input type="date" value={form.data_nascimento} onChange={e => setForm({...form, data_nascimento: e.target.value})} className={inputCls} required />
+            </FormField>
+          </div>
+
+          <FormField label="Foto do Rosto (Estilo 3x4) *">
+            <label className="flex items-center justify-center gap-2 border-2 border-dashed border-red-200 bg-red-50 text-red-600 p-4 rounded-xl cursor-pointer hover:border-red-400 text-sm font-bold transition-colors">
+              <input type="file" accept="image/*" className="hidden" onChange={e => setFoto(e.target.files?.[0] || null)} required />
+              <Upload size={16} /> {foto ? foto.name : "Anexar Fotografia"}
+            </label>
+          </FormField>
+
+          <div className="pt-8 border-t border-slate-100 flex items-center justify-between">
+            <span className="text-sm font-bold text-red-600">{feedback}</span>
+            <button type="submit" disabled={saving} className="bg-red-600 hover:bg-red-700 text-white px-8 py-3.5 rounded-xl font-black text-sm uppercase tracking-widest shadow-md flex items-center gap-2 transition-all disabled:opacity-50">
+              {saving ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle2 size={18} />} Gerar Carteira Oficial
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
