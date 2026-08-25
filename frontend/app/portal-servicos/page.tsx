@@ -2627,16 +2627,18 @@ function TabEmissaoManual() {
   const [savingManual, setSavingManual] = useState(false);
 
   // ─── 1. FUNÇÃO DE BUSCA ───
+  // ─── 1. FUNÇÃO DE BUSCA (AGORA DIRETA E INSTANTÂNEA) ───
   async function handleBuscar(e: React.FormEvent) {
     e.preventDefault();
     if (!busca.trim()) return;
     
-    setLoadingBusca(true);
-    setPixGerado(null);
-    setFeedbackAcao("");
+    setLoadingBusca(true); 
+    setPixGerado(null); 
+    setFeedbackAcao(""); 
+    setReemissaoId(null);
     
     try {
-      // Procura por CPF (exato/parecido) ou por Nome
+      // Como desbloqueamos o SELECT no SQL, o painel pesquisa diretamente em milissegundos!
       const { data, error } = await supabase
         .from('rd_residentes')
         .select('*')
@@ -2645,9 +2647,14 @@ function TabEmissaoManual() {
         .limit(10);
         
       if (error) throw error;
+      
       setResultados(data || []);
-    } catch (err) {
+      if (!data || data.length === 0) {
+        setFeedbackAcao("Nenhum cidadão encontrado com esse Nome ou CPF.");
+      }
+    } catch (err: any) {
       console.error(err);
+      setFeedbackAcao(`❌ Erro na busca: ${err.message}`);
     } finally {
       setLoadingBusca(false);
     }
