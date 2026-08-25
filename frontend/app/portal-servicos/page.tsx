@@ -1823,10 +1823,10 @@ function TabAplicativo() {
       return;
     }
     if (tokens.length === 0) {
-      alert("Nenhum telemóvel registado na base de dados.");
+      alert("Nenhum telefone registrado na base de dados.");
       return;
     }
-    if (!confirm(`Deseja disparar esta notificação para ${tokens.length} telemóveis?`)) return;
+    if (!confirm(`Deseja disparar esta notificação para ${tokens.length} telefones?`)) return;
 
     setEnviando(true);
     setFeedbackPush("A comunicar com os servidores...");
