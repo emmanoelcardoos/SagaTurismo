@@ -1,22 +1,23 @@
 {
   "$schema": "../../../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Portal SagaTurismo",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "identifier": "br.com.sagatur.portal",
   "build": {
-    "frontendDist": "https://www.sagatur.com.br/portal-servicos",
-    "devUrl": "https://www.sagatur.com.br/portal-servicos",
+    "frontendDist": "https://turismo.saogeraldodoaraguaia.pa.gov.br/portal-servicos",
+    "devUrl": "https://turismo.saogeraldodoaraguaia.pa.gov.br/portal-servicos",
     "beforeDevCommand": "",
     "beforeBuildCommand": ""
   },
   "app": {
     "windows": [
       {
-        "title": "Portal de Serviços",
-        "width": 800,
-        "height": 600,
+        "title": "Portal de Serviços - SagaTurismo",
+        "width": 1280,
+        "height": 800,
         "resizable": true,
-        "fullscreen": false
+        "fullscreen": false,
+        "center": true
       }
     ],
     "security": {
