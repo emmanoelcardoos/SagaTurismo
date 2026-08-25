@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { 
   Calendar as CalendarIcon, Bell, CheckCircle2, Clock, Map, Package, Activity, AlertCircle,
   Upload, Image as ImageIcon, Save, Loader2, FileSpreadsheet, Utensils, MapPin, Phone, Plus, Trash2,
-  Building2, Briefcase, Compass, Newspaper, Smartphone, FileText, Users
+  Building2, Briefcase, Compass, Newspaper, Smartphone, FileText, Users, ChevronDown
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import 'react-quill/dist/quill.snow.css';
@@ -173,31 +173,51 @@ export default function PortalServicos() {
 // ─── Dashboard Base ──────────────────────────────────────────────────────────
 
 function AdminDashboard({ role, email, onLogout }: { role: string; email: string; onLogout: () => void }) {
-  // Adicionamos o separador BLOG
-  const allowedTabs = [
-    { id: "dashboard",   label: "Painel Geral", icon: <Activity size={18} /> },
-    { id: "blog",        label: "Blog/Notícias",icon: <Newspaper size={18} /> },
-    { id: "newsletter",  label: "Newsletter",   icon: <Bell size={18} /> }, 
-    { id: "aplicativo",  label: "Aplicativo",   icon: <Smartphone size={18} /> },
-    { id: "eventos",     label: "Eventos",      icon: <CalendarIcon size={18} /> },
-    { id: "atracoes",    label: "Atrativos",    icon: <MapPin size={18} /> },
-    { id: "comunidades", label: "Comunidades",  icon: <Compass size={18} /> },
-    { id: "hoteis",      label: "Hotéis",       icon: <Building2 size={18} /> },
-    { id: "gastronomia", label: "Gastronomia",  icon: <Utensils size={18} /> },
-    { id: "agencias",    label: "Agências",     icon: <Briefcase size={18} /> },
-    { id: "reunioes",    label: "Reuniões COMTUR", icon: <FileText size={18} /> },
+  const [activeTab, setActiveTab] = useState<string>("dashboard");
+
+  // ◄── OS MENUS AGORA SÃO ORGANIZADOS POR GRUPOS ──►
+  const menuGroups = [
+    {
+      label: "Painel & Conteúdo",
+      items: [
+        { id: "dashboard",   label: "Painel Geral", icon: <Activity size={16} /> },
+        { id: "blog",        label: "Blog/Notícias",icon: <Newspaper size={16} /> },
+        { id: "eventos",     label: "Eventos",      icon: <CalendarIcon size={16} /> },
+      ]
+    },
+    {
+      label: "Turismo & Trade",
+      items: [
+        { id: "atracoes",    label: "Atrativos",    icon: <MapPin size={16} /> },
+        { id: "comunidades", label: "Comunidades",  icon: <Compass size={16} /> },
+        { id: "hoteis",      label: "Hotéis",       icon: <Building2 size={16} /> },
+        { id: "gastronomia", label: "Gastronomia",  icon: <Utensils size={16} /> },
+        { id: "agencias",    label: "Agências",     icon: <Briefcase size={16} /> },
+      ]
+    },
+    {
+      label: "Cidadão & Serviços",
+      items: [
+        { id: "aplicativo",  label: "Aplicativo",   icon: <Smartphone size={16} /> },
+        { id: "newsletter",  label: "Newsletter",   icon: <Bell size={16} /> }, 
+        { id: "reunioes",    label: "Reuniões COMTUR", icon: <FileText size={16} /> },
+      ]
+    }
   ];
 
-  // ◄── TRAVA DE SEGURANÇA: Só o teu e-mail vê a Aba de Emissão Manual
+  // ◄── TRAVA DE SEGURANÇA: Só o teu e-mail vê a Aba Restrita ──►
   if (email === "emmanoel.cardoso09@gmail.com" || email === "planejamentosaga@gmail.com") {
-    allowedTabs.push({ id: "emissao", label: "Emissão Admin", icon: <AlertCircle size={18} /> });
+    menuGroups.push({
+      label: "Admin Restrito",
+      items: [
+        { id: "emissao", label: "Emissão de Carteira", icon: <AlertCircle size={16} /> }
+      ]
+    });
   }
-
-  const [activeTab, setActiveTab] = useState<string>("dashboard");
 
   return (
     <div className={`${inter.className} min-h-screen bg-[#FDFCF7] text-slate-800`}>
-      <header className="border-b border-slate-200 bg-white sticky top-0 z-10 shadow-sm">
+      <header className="border-b border-slate-200 bg-white sticky top-0 z-20 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="relative w-28 h-8"><Image src="/logop.png" alt="Logo" fill className="object-contain object-left" priority /></div>
@@ -205,20 +225,41 @@ function AdminDashboard({ role, email, onLogout }: { role: string; email: string
           </div>
           <button onClick={onLogout} className="text-xs text-slate-500 hover:text-[#00577C] transition flex items-center gap-1.5 font-bold uppercase tracking-widest">Sair</button>
         </div>
-      </header>
-
-      <div className="bg-white border-b border-slate-200 overflow-x-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex gap-2 min-w-max py-2">
-            {allowedTabs.map((tab) => (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex items-center gap-2 px-4 py-2 text-sm font-black rounded-xl transition ${activeTab === tab.id ? "bg-[#00577C] text-white shadow-sm" : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"}`}>
-                {tab.icon} {tab.label}
-              </button>
-            ))}
+        
+        {/* SUB-HEADER: BARRA DE NAVEGAÇÃO AGRUPADA COM DROPDOWNS */}
+        <div className="bg-slate-50 border-t border-slate-200 px-4 sm:px-6 relative z-10">
+          <div className="max-w-7xl mx-auto flex flex-wrap gap-2 py-2">
+            {menuGroups.map((grupo, idx) => {
+              // Verifica se a tab ativa está dentro deste grupo para destacar o botão pai
+              const isActiveGroup = grupo.items.some(item => item.id === activeTab);
+              return (
+                <div key={idx} className="relative group">
+                  <button className={`flex items-center gap-2 px-4 py-2 text-sm font-black rounded-xl transition-colors ${isActiveGroup ? 'bg-[#00577C]/10 text-[#00577C]' : 'text-slate-600 hover:bg-slate-200 hover:text-slate-800'}`}>
+                    {grupo.label} <ChevronDown size={14} className={`transition-transform group-hover:rotate-180 ${isActiveGroup ? 'text-[#00577C]' : 'text-slate-400'}`} />
+                  </button>
+                  
+                  {/* Caixa do Dropdown */}
+                  <div className="absolute left-0 top-full pt-2 hidden group-hover:flex flex-col w-56">
+                    <div className="bg-white border border-slate-100 shadow-xl rounded-2xl p-2 flex flex-col gap-1">
+                      {grupo.items.map(tab => (
+                        <button 
+                          key={tab.id} 
+                          onClick={() => setActiveTab(tab.id)} 
+                          className={`flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold rounded-xl w-full text-left transition-colors ${activeTab === tab.id ? 'bg-[#00577C] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50 hover:text-[#00577C]'}`}
+                        >
+                          {tab.icon} {tab.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
-      </div>
+      </header>
 
+      {/* RENDERIZAÇÃO DAS ABAS */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         {activeTab === "dashboard"   && <TabDashboard />}
         {activeTab === "blog"        && <TabBlog />}
@@ -699,7 +740,7 @@ function TabNewsletter() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// EVENTOS - GESTÃO COMPLETA (EM LOTE E MANUAL)
+// EVENTOS - GESTÃO COMPLETA (EM LOTE E MANUAL/EDIÇÃO)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function TabEventos() {
@@ -712,7 +753,8 @@ function TabEventos() {
   const [imagensMap, setImagensMap] = useState<{ [key: number]: File }>({});
   const [feedback, setFeedback] = useState("");
 
-  // ── ESTADOS DO MANUAL ──
+  // ── ESTADOS DO MANUAL & EDIÇÃO ──
+  const [editando, setEditando] = useState<Evento | null>(null); // ◄── Novo estado para Edição
   const [formManual, setFormManual] = useState<any>({ destaque: false, categoria: 'Cultura' });
   const [imagemManual, setImagemManual] = useState<File | null>(null);
   const [savingManual, setSavingManual] = useState(false);
@@ -723,12 +765,8 @@ function TabEventos() {
 
   async function fetchEventos() {
     setLoadingList(true);
-    
-    // 1. Pega a data de hoje e formata para 'YYYY-MM-DD' (ex: 2026-08-07)
     const hoje = new Date().toISOString().split('T')[0];
 
-    // 2. Busca apenas eventos de hoje em diante (.gte = greater than or equal)
-    // E muda a ordem para 'ascending: true' (para mostrar o evento mais próximo primeiro)
     const { data } = await supabase
       .from('eventos')
       .select('*')
@@ -786,7 +824,7 @@ function TabEventos() {
   // ── 2. ENVIO EM LOTE (CSV) ──
   const handleSalvarTudo = async () => {
     setFase('salvando');
-    setFeedback("A iniciar a sincronização com o banco de dados...");
+    setFeedback("A iniciar a sincronização com a base de dados...");
     let sucessos = 0;
 
     for (let i = 0; i < eventosPreview.length; i++) {
@@ -820,10 +858,35 @@ function TabEventos() {
     setFase('sucesso');
   };
 
-  // ── 3. ENVIO MANUAL ──
+  // ── 3. ENVIO MANUAL & EDIÇÃO ──
   const abrirFormManual = () => {
+    setEditando(null);
     setFormManual({ destaque: false, categoria: 'Cultura' });
     setImagemManual(null);
+    setFeedback("");
+    setFase('manual');
+  };
+
+  // ◄── Nova Função: Carrega os dados do evento antigo para o formulário
+  const abrirFormEditar = (ev: Evento) => {
+    setEditando(ev);
+    setFormManual({
+      titulo: ev.titulo || "",
+      subtitulo: ev.subtitulo || "",
+      descricao: ev.descricao || "",
+      data: ev.data || "",
+      horario: ev.horario || "",
+      duracao: ev.duracao || "",
+      local: ev.local || "",
+      categoria: ev.categoria || "Cultura",
+      preco: ev.preco || "",
+      classificacao: ev.classificacao || "",
+      link_bilheteira: ev.link_bilheteira || "",
+      destaque: ev.destaque || false,
+      imagem_url: ev.imagem_url || "" 
+    });
+    setImagemManual(null);
+    setFeedback("");
     setFase('manual');
   };
 
@@ -833,47 +896,70 @@ function TabEventos() {
       return;
     }
     setSavingManual(true);
-    setFeedback("A publicar evento...");
+    setFeedback("A guardar evento...");
 
-    let imagem_url = "";
-    if (imagemManual) {
-      const ext = imagemManual.name.split('.').pop();
-      const nomeFicheiro = `evento_manual_${Date.now()}.${ext}`;
-      const { error: uploadErr } = await supabase.storage.from('eventos').upload(nomeFicheiro, imagemManual);
-      if (!uploadErr) {
-        const { data: pubUrl } = supabase.storage.from('eventos').getPublicUrl(nomeFicheiro);
-        imagem_url = pubUrl.publicUrl;
+    try {
+      let imagem_url = formManual.imagem_url; // Mantém a imagem antiga se existir
+      
+      if (imagemManual) {
+        const ext = imagemManual.name.split('.').pop();
+        const nomeFicheiro = `evento_manual_${Date.now()}.${ext}`;
+        const { error: uploadErr } = await supabase.storage.from('eventos').upload(nomeFicheiro, imagemManual);
+        if (!uploadErr) {
+          const { data: pubUrl } = supabase.storage.from('eventos').getPublicUrl(nomeFicheiro);
+          imagem_url = pubUrl.publicUrl;
+        } else {
+          throw new Error("Erro ao fazer upload do cartaz.");
+        }
       }
-    }
 
-    const { error: dbError } = await supabase.from('eventos').insert([{
-      titulo: formManual.titulo,
-      subtitulo: formManual.subtitulo || null,
-      descricao: formManual.descricao || null,
-      data: formManual.data,
-      horario: formManual.horario || null,
-      duracao: formManual.duracao || null,
-      local: formManual.local,
-      categoria: formManual.categoria,
-      preco: formManual.preco || null,
-      classificacao: formManual.classificacao || null,
-      link_bilheteira: formManual.link_bilheteira || null,
-      imagem_url: imagem_url || null,
-      destaque: String(formManual.destaque) === 'true'
-    }]);
+      const payload = {
+        titulo: formManual.titulo,
+        subtitulo: formManual.subtitulo || null,
+        descricao: formManual.descricao || null,
+        data: formManual.data,
+        horario: formManual.horario || null,
+        duracao: formManual.duracao || null,
+        local: formManual.local,
+        categoria: formManual.categoria,
+        preco: formManual.preco || null,
+        classificacao: formManual.classificacao || null,
+        link_bilheteira: formManual.link_bilheteira || null,
+        imagem_url: imagem_url || null,
+        destaque: String(formManual.destaque) === 'true'
+      };
 
-    if (dbError) {
-      alert("Erro ao salvar: " + dbError.message);
+      let erroBd;
+
+      // ◄── Lógica Inteligente (Insert vs Update) com bloqueio de Erro
+      if (editando) {
+        const { error } = await supabase.from('eventos').update(payload).eq('id', editando.id);
+        erroBd = error;
+      } else {
+        const { error } = await supabase.from('eventos').insert([payload]);
+        erroBd = error;
+      }
+
+      if (erroBd) throw new Error(erroBd.message);
+
+      setFeedback(editando ? "✅ Evento atualizado com sucesso!" : "✅ Evento publicado com sucesso!");
+      setFase('sucesso');
+      
+    } catch (err: any) {
+      setFeedback(`❌ Erro: ${err.message}`);
+    } finally {
       setSavingManual(false);
-      return;
     }
-
-    setFeedback("Evento manual publicado com sucesso!");
-    setFase('sucesso');
-    setSavingManual(false);
   };
 
-  const resetar = () => { setFase('inicio'); setEventosPreview([]); setImagensMap({}); setFeedback(""); fetchEventos(); };
+  const resetar = () => { 
+    setFase('inicio'); 
+    setEventosPreview([]); 
+    setImagensMap({}); 
+    setFeedback(""); 
+    setEditando(null); 
+    fetchEventos(); 
+  };
 
   return (
     <div className="space-y-6">
@@ -927,7 +1013,9 @@ function TabEventos() {
                         <td className="px-4 py-3 text-slate-600 whitespace-nowrap">{fmtData(ev.data)}</td>
                         <td className="px-4 py-3 text-slate-600">{ev.local}</td>
                         <td className="px-4 py-3 text-slate-600">{ev.categoria}</td>
-                        <td className="px-4 py-3 text-right">
+                        <td className="px-4 py-3 text-right space-x-3">
+                          {/* ◄── Botão Editar Novo ──► */}
+                          <button onClick={() => abrirFormEditar(ev)} className="text-xs font-bold text-[#00577C] hover:underline">Editar</button>
                           <button onClick={() => handleDeleteEvento(ev.id)} className="text-xs text-red-500 hover:text-red-600 border border-red-200 bg-red-50 px-2.5 py-1 rounded-md transition">Remover</button>
                         </td>
                       </tr>
@@ -941,11 +1029,14 @@ function TabEventos() {
         </div>
       )}
 
-      {/* TELA 2: FORMULÁRIO MANUAL */}
+      {/* TELA 2: FORMULÁRIO MANUAL & EDIÇÃO */}
       {fase === 'manual' && (
         <div className="bg-white rounded-[2rem] p-8 shadow-lg border border-slate-100 animate-in fade-in slide-in-from-bottom-4">
           <div className="flex items-center justify-between mb-8 border-b border-slate-100 pb-4">
-            <h3 className={`${jakarta.className} text-2xl font-black text-slate-800 flex items-center gap-2`}><CalendarIcon className="text-[#F9C400]" /> Construtor de Evento</h3>
+            <h3 className={`${jakarta.className} text-2xl font-black text-slate-800 flex items-center gap-2`}>
+              <CalendarIcon className="text-[#F9C400]" /> 
+              {editando ? "Editar Evento" : "Construtor de Evento"}
+            </h3>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-6">
@@ -984,16 +1075,21 @@ function TabEventos() {
               <FormField label="Cartaz Oficial (Imagem)">
                 <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 text-slate-500 p-4 rounded-xl cursor-pointer hover:border-[#00577C] transition-colors mt-1">
                   <input type="file" accept="image/*" className="hidden" onChange={(e) => setImagemManual(e.target.files?.[0] || null)} />
-                  <ImageIcon size={18} /> {imagemManual ? imagemManual.name : "Clique para anexar Cartaz"}
+                  <ImageIcon size={18} /> {imagemManual ? imagemManual.name : formManual.imagem_url ? "Substituir Cartaz Atual" : "Clique para anexar Cartaz"}
                 </label>
+                {/* ◄── Mostra a miniatura do cartaz antigo em caso de edição */}
+                {formManual.imagem_url && !imagemManual && (
+                  <img src={formManual.imagem_url} alt="Cartaz Atual" className="mt-3 h-24 w-auto object-cover rounded-xl border border-slate-200 shadow-sm" />
+                )}
               </FormField>
             </div>
           </div>
 
           <div className="mt-8 flex items-center justify-between pt-6 border-t border-slate-100">
-            <span className="text-sm font-bold text-[#009640]">{feedback}</span>
+            {/* O Feedback agora vai ficar vermelho em caso de erro! */}
+            <span className={`text-sm font-bold ${feedback.includes('❌') ? 'text-red-500' : 'text-[#009640]'}`}>{feedback}</span>
             <button onClick={handleSalvarManual} disabled={savingManual} className="bg-[#009640] hover:bg-green-700 text-white px-10 py-3.5 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg flex items-center gap-2 transition-all">
-              {savingManual ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Publicar Evento
+              {savingManual ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} {editando ? "Guardar Edição" : "Publicar Evento"}
             </button>
           </div>
         </div>
@@ -1086,7 +1182,8 @@ function TabHoteis() {
     setEditando(hotel);
     setForm({ 
       nome: hotel.nome, tipo: hotel.tipo, descricao: hotel.descricao || "", 
-      estrelas: hotel.estrelas || 3, whatsapp: hotel.whatsapp || "", 
+      estrelas: hotel.estrelas || 3, 
+      whatsapp: hotel.whatsapp || "", // ◄── Agora lê diretamente da coluna 'whatsapp'
       endereco: hotel.endereco || "", instagram: hotel.instagram || "", 
       ativo: hotel.ativo ?? true 
     });
@@ -1119,21 +1216,42 @@ function TabHoteis() {
         galeriaFinal = [...galeriaFinal, ...novasUrls];
       }
 
+      // ◄── Payload limpo: mapeado para a coluna 'whatsapp' no banco
       const payloadHotel = { 
-        ...form, 
+        nome: form.nome,
+        tipo: form.tipo,
+        descricao: form.descricao,
+        estrelas: form.estrelas,
+        whatsapp: form.whatsapp, 
+        endereco: form.endereco,
+        instagram: form.instagram,
+        ativo: form.ativo,
         imagem_url, 
         galeria: galeriaFinal.length > 0 ? galeriaFinal : null
       };
 
+      let erroBd;
+
+      // ◄── TRAVA DE ERROS ATIVADA: Agora o código apanha qualquer rejeição da Base de Dados
       if (editando) {
-        await supabase.from('hoteis').update(payloadHotel).eq('id', editando.id);
+        const { error } = await supabase.from('hoteis').update(payloadHotel).eq('id', editando.id);
+        erroBd = error;
       } else {
-        await supabase.from('hoteis').insert([payloadHotel]);
+        const { error } = await supabase.from('hoteis').insert([payloadHotel]);
+        erroBd = error;
       }
 
-      setFeedback(editando ? "Hotel atualizado!" : "Hotel publicado!");
+      // Se a base de dados rejeitar, lança o erro real para o ecrã
+      if (erroBd) throw new Error(erroBd.message);
+
+      setFeedback(editando ? "✅ Hotel atualizado com sucesso!" : "✅ Hotel publicado com sucesso!");
       setTimeout(() => { setShowForm(false); setFeedback(""); fetchHoteis(); }, 2000);
-    } catch (err: any) { alert("Erro ao salvar: " + err.message); setFeedback(""); } finally { setSaving(false); }
+
+    } catch (err: any) { 
+      setFeedback(`❌ Erro: ${err.message}`); 
+    } finally { 
+      setSaving(false); 
+    }
   }
 
   async function handleDelete(id: string) {
@@ -1194,7 +1312,8 @@ function TabHoteis() {
           </div>
 
           <div className="mt-10 flex items-center justify-between pt-6 border-t border-slate-100">
-            <span className="text-sm font-bold text-[#009640]">{feedback}</span>
+            {/* ◄── Feedback dinâmico: Fica vermelho em caso de erro ──► */}
+            <span className={`text-sm font-bold ${feedback.includes('❌') ? 'text-red-500' : 'text-[#009640]'}`}>{feedback}</span>
             <button onClick={handleSalvar} disabled={saving} className="bg-[#009640] text-white px-10 py-4 rounded-xl font-black text-sm shadow-lg flex items-center gap-2">{saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Guardar Hotel</button>
           </div>
         </div>
