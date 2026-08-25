@@ -120,7 +120,8 @@ class PedidoCarteiraGratuita(BaseModel):
     foto_url: Optional[str] = None
     data_nascimento: Optional[str] = None
     token_id: Optional[str] = None
-    quantidade: Optional[int] = 1 # <-- ADICIONADO AQUI PARA RECEBER A QUANTIDADE DO FRONTEND
+    quantidade: Optional[int] = 1 
+    is_reemissao: Optional[bool] = False
 
 
 # ==========================================
@@ -922,7 +923,9 @@ async def processar_carteira_bb(pedido: PedidoCarteiraGratuita):
         # --- CÁLCULO DO VALOR ---
         # Como queres testar com 1 cêntimo por pessoa, preco_unitario = 0.01
         # (Quando fores para produção real, muda apenas este 0.01 para 20.00)
-        preco_unitario = 20.00
+        # --- CÁLCULO DO VALOR ---
+        # Se for reemissão (2ª Via), cobra R$ 5.00. Se for emissão nova, cobra R$ 20.00
+        preco_unitario = 5.00 if pedido.is_reemissao else 20.00
         valor_carteira = preco_unitario * (pedido.quantidade or 1)
         
         tax_id_limpo = pedido.cpf_cliente.replace(".", "").replace("-", "")
@@ -969,7 +972,7 @@ async def processar_carteira_bb(pedido: PedidoCarteiraGratuita):
                 },
                 "valor": { "original": f"{valor_carteira:.2f}" },
                 "chave": BB_PIX_KEY,
-                "solicitacaoPagador": f"Taxa Carteira Digital SGA ({pedido.quantidade or 1}x)"
+                "solicitacaoPagador": f"Taxa 2a Via Carteira SGA" if pedido.is_reemissao else f"Taxa Carteira Digital SGA ({pedido.quantidade or 1}x)"
             }
 
             # 4. Cria a cobrança usando a variável global
@@ -1000,6 +1003,7 @@ async def processar_carteira_bb(pedido: PedidoCarteiraGratuita):
             qr_data_uri = f"data:image/png;base64,{img_base64}"
 
             # 6. Registo na Base de Dados Supabase
+            # 6. Registo na Base de Dados Supabase
             pedido_db = {
                 "codigo_pedido": txid,
                 "tipo_item": "carteira",
@@ -1011,7 +1015,7 @@ async def processar_carteira_bb(pedido: PedidoCarteiraGratuita):
                 "status_pagamento": "aguardando",
                 "metodo_pagamento": "pix",
                 "quantidade": pedido.quantidade or 1,
-                "nome_item": f"Taxa de Emissão - Carteira Digital ({pedido.quantidade or 1}x)",
+                "nome_item": f"Taxa de Emissão - 2ª Via" if pedido.is_reemissao else f"Taxa de Emissão - Carteira Digital ({pedido.quantidade or 1}x)",
                 "item_id": pedido.token_id,
                 "foto_url": pedido.foto_url,
                 "data_nascimento": pedido.data_nascimento

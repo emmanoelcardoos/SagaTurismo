@@ -5,6 +5,7 @@ from typing import List
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from supabase import create_client, Client
 from dotenv import load_dotenv
+from pydantic import BaseModel
 
 # Importação dos serviços customizados
 from app.services.ai_service import validar_endereco_com_ia
@@ -126,4 +127,52 @@ async def cadastrar_residente(
 
     except Exception as e:
         print(f"[ERRO CRÍTICO] {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+class EmissaoManualPayload(BaseModel):
+    nome: str
+    cpf: str
+    email: str
+    data_nascimento: str
+    foto_url: str
+    status: str = "ativo"  # ◄── 1. ADICIONADO AQUI PARA RECEBER O STATUS DO FRONTEND
+
+@router.post("/residentes/emissao-manual")
+async def emissao_manual_admin(payload: EmissaoManualPayload):
+    try:
+        qrcode_token = str(uuid.uuid4())
+        novo_residente = {
+            "nome_completo": payload.nome,
+            "cpf": payload.cpf,
+            "email": payload.email,
+            "data_nascimento": payload.data_nascimento,
+            "foto_url": payload.foto_url,
+            "status": payload.status, # ◄── 2. ALTERADO AQUI PARA USAR O PAYLOAD
+            "qrcode_token": qrcode_token,
+            "url_comprovante": "isento_admin"
+        }
+        
+        # O backend usa a chave mestra, logo o RLS não bloqueia isto!
+        resposta = supabase.table("rd_residentes").insert(novo_residente).execute()
+        
+        if not resposta.data:
+            raise Exception("Falha ao inserir na base de dados.")
+            
+        return {"sucesso": True, "residente_id": resposta.data[0]["id"]}
+        
+    except Exception as e:
+        print(f"[ERRO EMISSÃO MANUAL] {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ◄── 3. NOVA ROTA DE BUSCA ADICIONADA AQUI (ESSENCIAL PARA O CRM FUNCIONAR) ──►
+@router.get("/residentes/buscar")
+async def buscar_residentes(q: str):
+    """Buscador Admin: Ignora RLS para encontrar cidadãos pelo Nome ou CPF"""
+    try:
+        # A chave mestra do Supabase faz bypass ao bloqueio de segurança RLS
+        resposta = supabase.table("rd_residentes").select("*").or_(f"cpf.ilike.%{q}%,nome_completo.ilike.%{q}%").order("criado_at", desc=True).limit(10).execute()
+        
+        return {"sucesso": True, "dados": resposta.data}
+    except Exception as e:
+        print(f"[ERRO BUSCA] {e}")
         raise HTTPException(status_code=500, detail=str(e))
