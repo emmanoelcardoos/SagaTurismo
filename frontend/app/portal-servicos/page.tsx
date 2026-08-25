@@ -175,7 +175,6 @@ export default function PortalServicos() {
 function AdminDashboard({ role, email, onLogout }: { role: string; email: string; onLogout: () => void }) {
   const [activeTab, setActiveTab] = useState<string>("dashboard");
 
-  // ◄── OS MENUS AGORA SÃO ORGANIZADOS POR GRUPOS ──►
   const menuGroups = [
     {
       label: "Painel & Conteúdo",
@@ -205,12 +204,13 @@ function AdminDashboard({ role, email, onLogout }: { role: string; email: string
     }
   ];
 
-  // ◄── TRAVA DE SEGURANÇA: Só o teu e-mail vê a Aba Restrita ──►
+  // ◄── TRAVA DE SEGURANÇA: Aba Restrita agora com Base de Residentes ──►
   if (email === "emmanoel.cardoso09@gmail.com" || email === "planejamentosaga@gmail.com") {
     menuGroups.push({
       label: "Admin Restrito",
       items: [
-        { id: "emissao", label: "Emissão de Carteira", icon: <AlertCircle size={16} /> }
+        { id: "emissao", label: "Emissão de Carteira", icon: <AlertCircle size={16} /> },
+        { id: "residentes", label: "Base de Residentes", icon: <Users size={16} /> } // ◄── Nova Aba Adicionada
       ]
     });
   }
@@ -230,7 +230,6 @@ function AdminDashboard({ role, email, onLogout }: { role: string; email: string
         <div className="bg-slate-50 border-t border-slate-200 px-4 sm:px-6 relative z-10">
           <div className="max-w-7xl mx-auto flex flex-wrap gap-2 py-2">
             {menuGroups.map((grupo, idx) => {
-              // Verifica se a tab ativa está dentro deste grupo para destacar o botão pai
               const isActiveGroup = grupo.items.some(item => item.id === activeTab);
               return (
                 <div key={idx} className="relative group">
@@ -273,6 +272,7 @@ function AdminDashboard({ role, email, onLogout }: { role: string; email: string
         {activeTab === "newsletter"  && <TabNewsletter />}
         {activeTab === "aplicativo"  && <TabAplicativo />}
         {activeTab === "emissao"     && <TabEmissaoManual />}
+        {activeTab === "residentes"  && <TabResidentes />} 
       </main>
     </div>
   );
@@ -2607,49 +2607,55 @@ function TabReunioesComtur() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// CENTRAL DE ADMINISTRAÇÃO DA CARTEIRA (BUSCA, REEMISSÃO E MANUAL)
+// CENTRAL DE ADMINISTRAÇÃO DA CARTEIRA (CRM, REEMISSÃO E MANUAL)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function TabEmissaoManual() {
-  // Estados do Buscador
+  // ── Estados do Buscador
   const [busca, setBusca] = useState("");
   const [resultados, setResultados] = useState<any[]>([]);
   const [loadingBusca, setLoadingBusca] = useState(false);
   
-  // Estados de Acões (Reemissão)
+  // ── Estados de Acões (Reemissão 2ª Via)
+  const [reemissaoId, setReemissaoId] = useState<string | null>(null);
+  const [novoEmail, setNovoEmail] = useState("");
+  const [metodoReemissao, setMetodoReemissao] = useState("dinheiro");
+  
   const [loadingAcao, setLoadingAcao] = useState(false);
   const [feedbackAcao, setFeedbackAcao] = useState("");
-  const [pixGerado, setPixGerado] = useState<{ qr: string, copiaCola: string } | null>(null);
+  const [pixGerado, setPixGerado] = useState<{ qr: string, copiaCola: string, msg: string } | null>(null);
 
-  // Estados da Emissão Manual (Do zero)
+  // ── Estados da Emissão Manual (Do zero)
   const [form, setForm] = useState({ nome: "", cpf: "", email: "", data_nascimento: "" });
   const [foto, setFoto] = useState<File | null>(null);
+  const [metodoNovaEmissao, setMetodoNovaEmissao] = useState("dinheiro");
   const [savingManual, setSavingManual] = useState(false);
 
+  // ── Máscara Automática de CPF
+  const mascaraCPF = (valor: string) => {
+    return valor
+      .replace(/\D/g, '') // Remove tudo o que não é dígito
+      .replace(/(\d{3})(\d)/, '$1.$2') // Coloca ponto após os primeiros 3 dígitos
+      .replace(/(\d{3})(\d)/, '$1.$2') // Coloca ponto após os segundos 3 dígitos
+      .replace(/(\d{3})(\d{1,2})/, '$1-$2') // Coloca traço
+      .replace(/(-\d{2})\d+?$/, '$1'); // Limita a 11 dígitos
+  };
+
   // ─── 1. FUNÇÃO DE BUSCA ───
-  // ─── 1. FUNÇÃO DE BUSCA (AGORA DIRETA E INSTANTÂNEA) ───
   async function handleBuscar(e: React.FormEvent) {
     e.preventDefault();
     if (!busca.trim()) return;
     
-    setLoadingBusca(true); 
-    setPixGerado(null); 
-    setFeedbackAcao(""); 
-    setReemissaoId(null);
+    setLoadingBusca(true); setPixGerado(null); setFeedbackAcao(""); setReemissaoId(null);
     
     try {
-      // Como desbloqueamos o SELECT no SQL, o painel pesquisa diretamente em milissegundos!
-      const { data, error } = await supabase
-        .from('rd_residentes')
-        .select('*')
-        .or(`cpf.ilike.%${busca}%,nome_completo.ilike.%${busca}%`)
-        .order('criado_at', { ascending: false })
-        .limit(10);
-        
-      if (error) throw error;
+      const resp = await fetch(`https://sagaturismo-production.up.railway.app/api/v1/residentes/buscar?q=${encodeURIComponent(busca)}`);
+      if (!resp.ok) throw new Error("Falha na comunicação com o servidor.");
       
-      setResultados(data || []);
-      if (!data || data.length === 0) {
+      const json = await resp.json();
+      setResultados(json.dados || []);
+      
+      if (!json.dados || json.dados.length === 0) {
         setFeedbackAcao("Nenhum cidadão encontrado com esse Nome ou CPF.");
       }
     } catch (err: any) {
@@ -2660,35 +2666,48 @@ function TabEmissaoManual() {
     }
   }
 
-  // ─── 2. REEMISSÃO GRATUITA (REENVIO) ───
-  async function handleReenviarGratis(residente: any) {
-    if (!confirm(`Reenviar e-mail com a carteira para ${residente.email}?`)) return;
-    
-    setLoadingAcao(true);
-    setFeedbackAcao("A processar envio gratuito...");
-    setPixGerado(null);
+  // ─── 2. CONFIRMAR REEMISSÃO (2ª VIA - R$ 5,00) ───
+  async function handleConfirmarReemissao(residente: any) {
+    if (!novoEmail) { alert("Insira o novo e-mail para envio."); return; }
+    if (!confirm(`Confirmar emissão de 2ª via para ${residente.nome_completo}?`)) return;
+
+    setLoadingAcao(true); setFeedbackAcao("A processar a 2ª Via..."); setPixGerado(null);
 
     try {
+      // Atualiza a Base de Dados com o Novo Email
+      const { error } = await supabase.from('rd_residentes').update({ email: novoEmail }).eq('id', residente.id);
+      if (error) throw error;
+
       const reqBody = {
         nome_cliente: residente.nome_completo,
         cpf_cliente: residente.cpf,
-        email_cliente: residente.email,
+        email_cliente: novoEmail,
         telefone_cliente: residente.telefone || "00000000000",
         foto_url: residente.foto_url,
         data_nascimento: residente.data_nascimento,
         token_id: residente.id,
-        quantidade: 1
+        quantidade: 1,
+        is_reemissao: true // ◄── Diz ao backend que é 2ª Via (Custa R$ 5)
       };
 
-      const resp = await fetch('https://sagaturismo-production.up.railway.app/api/v1/pagamentos/carteira-gratuita', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(reqBody)
-      });
-
-      if (!resp.ok) throw new Error("Erro na API de reenvio.");
-      
-      setFeedbackAcao(`✅ E-mail enviado com sucesso para ${residente.email}!`);
+      if (metodoReemissao === "dinheiro") {
+        // Dinheiro: Dispara logo o PDF
+        const resp = await fetch('https://sagaturismo-production.up.railway.app/api/v1/pagamentos/carteira-gratuita', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(reqBody)
+        });
+        if (!resp.ok) throw new Error("Erro ao disparar o e-mail.");
+        setFeedbackAcao("✅ Pagamento em Dinheiro confirmado! A 2ª Via foi enviada por e-mail.");
+      } else {
+        // PIX: Gera Cobrança de R$ 5
+        const resp = await fetch('https://sagaturismo-production.up.railway.app/api/v1/pagamentos/carteira-bb', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(reqBody)
+        });
+        const data = await resp.json();
+        if (!resp.ok || !data.sucesso) throw new Error("Falha ao gerar PIX.");
+        setPixGerado({ qr: data.pix_qrcode_img, copiaCola: data.pix_copia_cola, msg: "PIX de R$ 5,00 gerado! O e-mail com a carteira será enviado automaticamente pelo banco." });
+        setFeedbackAcao("");
+      }
+      setReemissaoId(null);
     } catch (err: any) {
       setFeedbackAcao(`❌ Erro: ${err.message}`);
     } finally {
@@ -2696,65 +2715,19 @@ function TabEmissaoManual() {
     }
   }
 
-  // ─── 3. GERAR PIX PARA REEMISSÃO PAGA ───
-  async function handleGerarPix(residente: any) {
-    if (!confirm(`Gerar cobrança PIX para emissão de 2ª Via de ${residente.nome_completo}?`)) return;
-
-    setLoadingAcao(true);
-    setFeedbackAcao("A contactar o Banco do Brasil...");
-    setPixGerado(null);
-
-    try {
-      const reqBody = {
-        nome_cliente: residente.nome_completo,
-        cpf_cliente: residente.cpf,
-        email_cliente: residente.email,
-        telefone_cliente: residente.telefone || "00000000000",
-        foto_url: residente.foto_url,
-        data_nascimento: residente.data_nascimento,
-        token_id: residente.id,
-        quantidade: 1
-      };
-
-      const resp = await fetch('https://sagaturismo-production.up.railway.app/api/v1/pagamentos/carteira-bb', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(reqBody)
-      });
-
-      const data = await resp.json();
-      if (!resp.ok || !data.sucesso) throw new Error(data.detail || data.erro || "Falha ao gerar PIX.");
-      
-      setPixGerado({
-        qr: data.pix_qrcode_img,
-        copiaCola: data.pix_copia_cola
-      });
-      setFeedbackAcao("✅ PIX Gerado com sucesso! Aguardando pagamento...");
-      
-    } catch (err: any) {
-      setFeedbackAcao(`❌ Erro: ${err.message}`);
-    } finally {
-      setLoadingAcao(false);
-    }
-  }
-
-  // ─── 4. EMISSÃO DO ZERO (SALTAR IA) ───
+  // ─── 3. EMISSÃO MANUAL DO ZERO (R$ 20,00) ───
   async function handleEmitirManual(e: React.FormEvent) {
     e.preventDefault();
     if (!form.nome || !form.cpf || !form.email || !form.data_nascimento || !foto) {
-      alert("Preenche todos os campos e anexa a foto.");
-      return;
+      alert("Preenche todos os campos e anexa a foto."); return;
     }
-    if (!confirm(`Forçar criação de cidadão e gerar carteira aprovada para ${form.nome}?`)) return;
+    if (!confirm(`Forçar criação de cidadão e gerar nova carteira para ${form.nome}?`)) return;
 
-    setSavingManual(true);
-    setFeedbackAcao("A enviar fotografia para a galeria...");
-    setPixGerado(null);
+    setSavingManual(true); setFeedbackAcao("A enviar fotografia para a galeria..."); setPixGerado(null);
 
     try {
       const ext = foto.name.split('.').pop();
-      const nomeArquivo = `carteira_manual_${form.cpf.replace(/\D/g, '')}_${Date.now()}.${ext}`;
-      const path = `residentes/${nomeArquivo}`;
+      const path = `residentes/carteira_manual_${form.cpf.replace(/\D/g, '')}_${Date.now()}.${ext}`;
       
       const { error: uploadError } = await supabase.storage.from('galeria').upload(path, foto, { upsert: true });
       if (uploadError) throw new Error(uploadError.message);
@@ -2762,40 +2735,46 @@ function TabEmissaoManual() {
       const { data: pubUrl } = supabase.storage.from('galeria').getPublicUrl(path);
       const fotoUrlCompleta = pubUrl.publicUrl;
       
-      setFeedbackAcao("A pedir ao servidor para registar cidadão (Bypass RLS)...");
+      setFeedbackAcao("A registar cidadão no sistema...");
 
-      // Rota nova do Python (Certifica-te que já fizeste o deploy dela!)
+      const statusFinal = metodoNovaEmissao === "dinheiro" ? "ativo" : "aguardando_pagamento";
+
       const respResidente = await fetch('https://sagaturismo-production.up.railway.app/api/v1/residentes/emissao-manual', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           nome: form.nome, cpf: form.cpf, email: form.email, 
-          data_nascimento: form.data_nascimento, foto_url: fotoUrlCompleta
+          data_nascimento: form.data_nascimento, foto_url: fotoUrlCompleta,
+          status: statusFinal
         })
       });
 
-      if (!respResidente.ok) throw new Error("Erro ao registar cidadão pelo servidor (Verifique se a rota emissao-manual já está online no Railway).");
-      
+      if (!respResidente.ok) throw new Error("Erro ao registar cidadão no servidor.");
       const dadosResidente = await respResidente.json();
       const residenteId = dadosResidente.residente_id;
 
-      setFeedbackAcao("A gerar PDF e a enviar e-mail...");
-      
       const reqBody = {
         nome_cliente: form.nome, cpf_cliente: form.cpf, email_cliente: form.email,
         telefone_cliente: "00000000000", foto_url: fotoUrlCompleta, 
-        data_nascimento: form.data_nascimento, token_id: residenteId, quantidade: 1
+        data_nascimento: form.data_nascimento, token_id: residenteId, quantidade: 1,
+        is_reemissao: false // ◄── Diz ao backend que é emissão nova (Custa R$ 20)
       };
 
-      const respCarteira = await fetch('https://sagaturismo-production.up.railway.app/api/v1/pagamentos/carteira-gratuita', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(reqBody)
-      });
+      if (metodoNovaEmissao === "dinheiro") {
+        const respCarteira = await fetch('https://sagaturismo-production.up.railway.app/api/v1/pagamentos/carteira-gratuita', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(reqBody)
+        });
+        if (!respCarteira.ok) throw new Error("Erro no envio do e-mail.");
+        setFeedbackAcao("✅ Cidadão criado e carteira enviada (Pagamento em Dinheiro).");
+      } else {
+        const respCarteira = await fetch('https://sagaturismo-production.up.railway.app/api/v1/pagamentos/carteira-bb', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(reqBody)
+        });
+        const data = await respCarteira.json();
+        if (!respCarteira.ok) throw new Error("Falha ao gerar PIX.");
+        setPixGerado({ qr: data.pix_qrcode_img, copiaCola: data.pix_copia_cola, msg: "PIX de R$ 20,00 gerado! A carteira será enviada automaticamente após o pagamento." });
+        setFeedbackAcao("");
+      }
 
-      if (!respCarteira.ok) throw new Error("Erro no envio do e-mail pelo servidor.");
-
-      setFeedbackAcao("✅ Cidadão criado, carteira emitida e e-mail enviado com sucesso!");
       setForm({ nome: "", cpf: "", email: "", data_nascimento: "" });
       setFoto(null);
 
@@ -2811,20 +2790,34 @@ function TabEmissaoManual() {
     <div className="space-y-10">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className={`${jakarta.className} text-xl font-black text-red-600 flex items-center gap-2`}><AlertCircle size={20} /> Central de Gestão & Emissão</h2>
-          <p className="text-xs text-slate-500 mt-1">Ferramenta restrita de apoio ao cliente (CRM). Pesquisa cidadãos ou emite do zero.</p>
+          <h2 className={`${jakarta.className} text-xl font-black text-[#00577C] flex items-center gap-2`}><AlertCircle size={20} /> Central de Gestão & Emissão</h2>
+          <p className="text-xs text-slate-500 mt-1">Pesquise residentes para 2ª Via (R$ 5) ou emita novas carteiras do zero (R$ 20).</p>
         </div>
       </div>
 
-      {/* ─── SECÇÃO 1: BUSCADOR ─── */}
+      {/* ─── MODAL PIX GLOBAL ─── */}
+      {pixGerado && (
+        <div className="mb-6 p-6 border-2 border-green-400 bg-green-50 rounded-2xl flex flex-col items-center animate-in fade-in">
+          <h4 className="font-black text-green-800 mb-2">Cobrança PIX Gerada (Banco do Brasil)</h4>
+          <p className="text-xs text-green-700 mb-4 text-center font-medium">{pixGerado.msg}</p>
+          <img src={pixGerado.qr} alt="QR Code PIX" className="w-48 h-48 rounded-xl border-4 border-white shadow-sm mb-4" />
+          <div className="w-full max-w-md bg-white border border-green-200 rounded-lg p-3 flex gap-2">
+            <input type="text" value={pixGerado.copiaCola} readOnly className="flex-1 text-xs text-slate-500 bg-transparent outline-none truncate" />
+            <button onClick={() => { navigator.clipboard.writeText(pixGerado.copiaCola); alert("Copiado!"); }} className="text-xs font-bold text-green-700 hover:text-green-800">Copiar</button>
+          </div>
+          <button onClick={() => setPixGerado(null)} className="mt-4 text-xs font-bold text-slate-400 hover:text-slate-600 underline">Fechar Janela PIX</button>
+        </div>
+      )}
+
+      {/* ─── SECÇÃO 1: BUSCADOR CRM ─── */}
       <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-200">
-        <h3 className={`${jakarta.className} text-lg font-black text-slate-800 mb-4`}>🔍 Localizar Cidadão</h3>
+        <h3 className={`${jakarta.className} text-lg font-black text-slate-800 mb-4`}>🔍 Localizar Cidadão (Para 2ª Via)</h3>
         <form onSubmit={handleBuscar} className="flex gap-4 mb-6">
           <input 
             type="text" 
             value={busca} 
-            onChange={(e) => setBusca(e.target.value)} 
-            placeholder="Digite o Nome ou CPF do residente..." 
+            onChange={(e) => setBusca(mascaraCPF(e.target.value))} // ◄── Máscara automática aplicada aqui!
+            placeholder="Digite o Nome ou CPF (000.000.000-00)..." 
             className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#00577C]" 
           />
           <button type="submit" disabled={loadingBusca} className="bg-[#00577C] text-white px-8 rounded-xl font-black text-sm transition-all hover:bg-[#004a6b] disabled:opacity-50">
@@ -2832,64 +2825,68 @@ function TabEmissaoManual() {
           </button>
         </form>
 
-        {/* FEEDBACK DE ACÃO DA TABELA */}
         {feedbackAcao && !savingManual && (
           <div className={`mb-6 p-4 rounded-xl text-sm font-bold text-center border ${feedbackAcao.includes('❌') ? 'bg-red-50 text-red-600 border-red-200' : 'bg-green-50 text-[#009640] border-green-200'}`}>
             {feedbackAcao}
           </div>
         )}
 
-        {/* MODAL PIX INLINE */}
-        {pixGerado && (
-          <div className="mb-6 p-6 border-2 border-green-400 bg-green-50 rounded-2xl flex flex-col items-center animate-in fade-in">
-            <h4 className="font-black text-green-800 mb-2">QR Code Gerado (Banco do Brasil)</h4>
-            <p className="text-xs text-green-700 mb-4 text-center">Mostre este QR Code ao residente ou envie o código Copia e Cola pelo WhatsApp.</p>
-            <img src={pixGerado.qr} alt="QR Code PIX" className="w-48 h-48 rounded-xl border-4 border-white shadow-sm mb-4" />
-            <div className="w-full max-w-md bg-white border border-green-200 rounded-lg p-3 flex gap-2">
-              <input type="text" value={pixGerado.copiaCola} readOnly className="flex-1 text-xs text-slate-500 bg-transparent outline-none truncate" />
-              <button onClick={() => { navigator.clipboard.writeText(pixGerado.copiaCola); alert("Copiado!"); }} className="text-xs font-bold text-green-700 hover:text-green-800">Copiar</button>
-            </div>
-            <p className="text-[10px] font-bold text-slate-400 mt-4 uppercase">A carteira será gerada e enviada automaticamente assim que o pagamento for detetado.</p>
-          </div>
-        )}
-
         {resultados.length > 0 && (
-          <div className="border border-slate-200 rounded-xl overflow-x-auto">
+          <div className="border border-slate-200 rounded-xl overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-black text-xs uppercase">
-                <tr><th className="p-4 text-left">Foto</th><th className="p-4 text-left">Dados do Cidadão</th><th className="p-4 text-left">Status</th><th className="p-4 text-right">Ações (Reemissão)</th></tr>
+                <tr><th className="p-4 text-left">Foto</th><th className="p-4 text-left">Dados do Cidadão</th><th className="p-4 text-left">Status</th><th className="p-4 text-right">Ação</th></tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {resultados.map((res) => (
-                  <tr key={res.id} className="hover:bg-slate-50">
-                    <td className="p-4">
-                      {/* O sistema tenta carregar a foto. Se falhar (por não ser URL pública antiga), mostra um ícone. Mas as novas terão. */}
-                      <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-200 border border-slate-300">
-                        {res.foto_url && res.foto_url.includes('http') ? (
-                          <img src={res.foto_url} alt="Foto" className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">Sem Link</div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <p className="font-bold text-slate-800">{res.nome_completo}</p>
-                      <p className="text-xs text-slate-500">{res.cpf} • {res.email}</p>
-                    </td>
-                    <td className="p-4">
-                      <span className={`px-2 py-1 rounded text-xs font-bold ${res.status === 'ativo' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                        {res.status.toUpperCase()}
-                      </span>
-                    </td>
-                    <td className="p-4 text-right space-x-2">
-                      <button onClick={() => handleReenviarGratis(res)} disabled={loadingAcao} className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-2 rounded-lg transition-colors">
-                        Reenviar Grátis
-                      </button>
-                      <button onClick={() => handleGerarPix(res)} disabled={loadingAcao} className="text-xs bg-[#009640] hover:bg-green-700 text-white font-bold px-3 py-2 rounded-lg transition-colors shadow-sm">
-                        Gerar PIX (R$ 20)
-                      </button>
-                    </td>
-                  </tr>
+                  <React.Fragment key={res.id}>
+                    <tr className="hover:bg-slate-50">
+                      <td className="p-4">
+                        <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-200 border border-slate-300">
+                          {res.foto_url && res.foto_url.includes('http') ? (
+                            <img src={res.foto_url} alt="Foto" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">Sem Link</div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        <p className="font-bold text-slate-800">{res.nome_completo}</p>
+                        <p className="text-xs text-slate-500">{res.cpf} • {res.email}</p>
+                      </td>
+                      <td className="p-4">
+                        <span className={`px-2 py-1 rounded text-[10px] uppercase font-black tracking-wider ${res.status === 'ativo' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>{res.status}</span>
+                      </td>
+                      <td className="p-4 text-right">
+                        {/* ◄── Botão Único e Limpo para abrir as opções */}
+                        <button onClick={() => { setReemissaoId(reemissaoId === res.id ? null : res.id); setNovoEmail(res.email); }} className="text-xs bg-[#00577C] hover:bg-[#004a6b] text-white font-black px-4 py-2 rounded-lg transition-colors uppercase shadow-sm">
+                          {reemissaoId === res.id ? "Cancelar" : "Opções de 2ª Via"}
+                        </button>
+                      </td>
+                    </tr>
+                    
+                    {/* ◄── BLOCO EXPANSÍVEL DE REEMISSÃO (DINHEIRO/PIX) ──► */}
+                    {reemissaoId === res.id && (
+                      <tr className="bg-slate-50">
+                        <td colSpan={4} className="p-6 border-b border-slate-200">
+                          <div className="flex flex-col md:flex-row gap-4 items-end bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                            <FormField label="E-mail de Destino (Novo ou Atual)" className="flex-1">
+                              <input type="email" value={novoEmail} onChange={e => setNovoEmail(e.target.value)} className={inputCls} />
+                            </FormField>
+                            <FormField label="Recebimento da Taxa (R$ 5,00)" className="flex-1">
+                              <select value={metodoReemissao} onChange={e => setMetodoReemissao(e.target.value)} className={inputCls}>
+                                <option value="dinheiro">Em Dinheiro (Envia E-mail na hora)</option>
+                                <option value="pix">Pagamento via PIX (Gera QR Code)</option>
+                              </select>
+                            </FormField>
+                            <button onClick={() => handleConfirmarReemissao(res)} disabled={loadingAcao} className="bg-[#009640] hover:bg-green-700 text-white px-6 py-2 rounded-lg font-black text-xs uppercase tracking-widest shadow-md transition-all h-[38px] w-full md:w-auto">
+                              Confirmar & Enviar 2ª Via
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>
@@ -2898,51 +2895,144 @@ function TabEmissaoManual() {
       </div>
 
       <div className="flex items-center gap-4 text-slate-300">
-        <div className="flex-1 h-px bg-slate-200"></div>
-        <span className="text-xs font-black uppercase tracking-widest">OU</span>
-        <div className="flex-1 h-px bg-slate-200"></div>
+        <div className="flex-1 h-px bg-slate-200"></div><span className="text-xs font-black uppercase tracking-widest">OU</span><div className="flex-1 h-px bg-slate-200"></div>
       </div>
 
-      {/* ─── SECÇÃO 2: EMISSÃO DO ZERO (BYPASS IA E BD) ─── */}
-      <div className="bg-white rounded-[2rem] p-8 shadow-sm border-2 border-red-100 max-w-3xl">
+      {/* ─── SECÇÃO 2: EMISSÃO MANUAL (DO ZERO) ─── */}
+      <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-200 max-w-3xl">
         <div className="mb-6 border-b border-slate-100 pb-4">
-          <h3 className={`${jakarta.className} text-lg font-black text-red-600`}>Criar Novo Cidadão Manualmente</h3>
-          <p className="text-xs text-slate-500 mt-1">Apenas se o cidadão não existir na busca acima.</p>
+          <h3 className={`${jakarta.className} text-lg font-black text-[#00577C]`}>Emissão de Nova Carteira (Do Zero)</h3>
+          <p className="text-xs text-slate-500 mt-1">Apenas para cidadãos sem registo ou acesso tecnológico.</p>
         </div>
 
         <form onSubmit={handleEmitirManual} className="space-y-5">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <FormField label="Nome Completo *">
-              <input type="text" value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} className={inputCls} placeholder="Ex: Anna Cardoso" required />
-            </FormField>
+            <FormField label="Nome Completo *"><input type="text" value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} className={inputCls} required /></FormField>
             <FormField label="CPF *">
-              <input type="text" value={form.cpf} onChange={e => setForm({...form, cpf: e.target.value})} className={inputCls} placeholder="000.000.000-00" required />
+              {/* ◄── Máscara automática aplicada aqui também! */}
+              <input type="text" value={form.cpf} onChange={e => setForm({...form, cpf: mascaraCPF(e.target.value)})} className={inputCls} placeholder="000.000.000-00" required />
             </FormField>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <FormField label="E-mail *">
-              <input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} className={inputCls} placeholder="joao@email.com" required />
+            <FormField label="E-mail (Para onde vai o PDF) *"><input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} className={inputCls} required /></FormField>
+            <FormField label="Data de Nascimento *"><input type="date" value={form.data_nascimento} onChange={e => setForm({...form, data_nascimento: e.target.value})} className={inputCls} required /></FormField>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <FormField label="Foto do Cidadão (3x4) *">
+              <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 text-slate-600 p-2.5 rounded-xl cursor-pointer hover:border-[#00577C] text-sm font-bold transition-colors">
+                <input type="file" accept="image/*" className="hidden" onChange={e => setFoto(e.target.files?.[0] || null)} required />
+                <Upload size={16} /> {foto ? "Foto Carregada ✓" : "Anexar Fotografia"}
+              </label>
             </FormField>
-            <FormField label="Data de Nascimento *">
-              <input type="date" value={form.data_nascimento} onChange={e => setForm({...form, data_nascimento: e.target.value})} className={inputCls} required />
+            <FormField label="Recebimento da Taxa (R$ 20,00)">
+              <select value={metodoNovaEmissao} onChange={e => setMetodoNovaEmissao(e.target.value)} className={inputCls}>
+                <option value="dinheiro">Em Dinheiro (Emissão Imediata)</option>
+                <option value="pix">Pagamento via PIX (Gera QR Code)</option>
+              </select>
             </FormField>
           </div>
 
-          <FormField label="Foto do Rosto (Estilo 3x4) *">
-            <label className="flex items-center justify-center gap-2 border-2 border-dashed border-red-200 bg-red-50 text-red-600 p-4 rounded-xl cursor-pointer hover:border-red-400 text-sm font-bold transition-colors">
-              <input type="file" accept="image/*" className="hidden" onChange={e => setFoto(e.target.files?.[0] || null)} required />
-              <Upload size={16} /> {foto ? foto.name : "Anexar Fotografia"}
-            </label>
-          </FormField>
-
           <div className="pt-8 border-t border-slate-100 flex items-center justify-between">
-            <span className="text-sm font-bold text-red-600">{savingManual ? "A processar..." : feedbackAcao}</span>
-            <button type="submit" disabled={savingManual || loadingAcao} className="bg-red-600 hover:bg-red-700 text-white px-8 py-3.5 rounded-xl font-black text-sm uppercase tracking-widest shadow-md flex items-center gap-2 transition-all disabled:opacity-50">
-              {savingManual ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle2 size={18} />} Forçar Emissão Nova
+            <span className="text-sm font-bold text-[#009640]">{savingManual ? "A processar..." : feedbackAcao}</span>
+            <button type="submit" disabled={savingManual || loadingAcao} className="bg-[#00577C] hover:bg-[#004a6b] text-white px-8 py-3.5 rounded-xl font-black text-sm uppercase tracking-widest shadow-md flex items-center gap-2 transition-all disabled:opacity-50">
+              {savingManual ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle2 size={18} />} 
+              {metodoNovaEmissao === "dinheiro" ? "Registar & Emitir (Dinheiro)" : "Registar & Gerar PIX (R$ 20)"}
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// BASE DE RESIDENTES (LISTAGEM RESTRITA ADMIN)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function TabResidentes() {
+  const [residentes, setResidentes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchResidentes();
+  }, []);
+
+  async function fetchResidentes() {
+    setLoading(true);
+    // Busca apenas os campos necessários, ordenando pelos mais recentes
+    const { data, error } = await supabase
+      .from('rd_residentes')
+      .select('id, nome_completo, cpf, email, status')
+      .order('criado_at', { ascending: false });
+      
+    if (!error && data) {
+      setResidentes(data);
+    } else if (error) {
+      console.error("Erro ao carregar residentes:", error.message);
+    }
+    setLoading(false);
+  }
+
+  return (
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className={`${jakarta.className} text-xl font-black text-red-600 flex items-center gap-2`}>
+            <Users size={20} /> Base de Residentes
+          </h2>
+          <p className="text-xs text-slate-500 mt-1">Listagem completa dos cidadãos registados na base de dados.</p>
+        </div>
+        <span className="text-xs font-black uppercase tracking-wider bg-red-50 text-red-600 px-4 py-2 rounded-xl border border-red-100">
+          Total: {residentes.length} registos
+        </span>
+      </div>
+
+      <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
+        {loading ? (
+          <div className="py-16 flex justify-center">
+            <Loader2 size={32} className="text-red-500 animate-spin" />
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-black text-xs uppercase">
+                <tr>
+                  <th className="p-5 text-left">Nome Completo</th>
+                  <th className="p-5 text-left">CPF</th>
+                  <th className="p-5 text-left">E-mail</th>
+                  <th className="p-5 text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {residentes.map((res) => (
+                  <tr key={res.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="p-5 font-bold text-slate-800">{res.nome_completo}</td>
+                    <td className="p-5 text-slate-600 font-medium">{res.cpf}</td>
+                    <td className="p-5 text-slate-500">{res.email}</td>
+                    <td className="p-5 text-center">
+                      <span className={`px-3 py-1.5 rounded-lg text-[10px] uppercase font-black tracking-wider ${
+                        res.status === 'ativo' ? 'bg-green-100 text-green-700' : 
+                        res.status === 'aguardando_pagamento' ? 'bg-amber-100 text-amber-700' : 
+                        'bg-slate-100 text-slate-700'
+                      }`}>
+                        {res.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+                {residentes.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="p-10 text-center text-slate-400 font-medium">
+                      Nenhum residente encontrado na base de dados.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );
