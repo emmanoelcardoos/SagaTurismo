@@ -1447,6 +1447,8 @@ function TabGastronomia() {
       }
 
       setFeedback("A guardar restaurante...");
+      
+      // ◄── PAYLOAD A ENVIAR PARA O SUPABASE
       const payload = { 
         ...form, 
         imagem_url, 
@@ -1455,12 +1457,28 @@ function TabGastronomia() {
         especialidades: espLimpos.length > 0 ? espLimpos : null 
       };
 
-      if (editando) await supabase.from('gastronomia').update(payload).eq('id', editando.id);
-      else await supabase.from('gastronomia').insert([{ ...payload, ordem: restaurantes.length + 1 }]);
+      let erroBd;
 
-      setFeedback("Salvo com sucesso!");
+      // ◄── TRAVA DE ERROS ATIVADA AQUI ──►
+      if (editando) {
+        const { error } = await supabase.from('gastronomia').update(payload).eq('id', editando.id);
+        erroBd = error;
+      } else {
+        const { error } = await supabase.from('gastronomia').insert([{ ...payload, ordem: restaurantes.length + 1 }]);
+        erroBd = error;
+      }
+
+      // Se a base de dados rejeitar (ex: nome de coluna errado), avisa!
+      if (erroBd) throw new Error(erroBd.message);
+
+      setFeedback("✅ Salvo com sucesso!");
       setTimeout(() => { setShowForm(false); setFeedback(""); fetchRestaurantes(); }, 2000);
-    } catch (err: any) { alert("Erro ao salvar: " + err.message); setFeedback(""); } finally { setSaving(false); }
+
+    } catch (err: any) { 
+      setFeedback(`❌ Erro: ${err.message}`); // Mostra o erro a vermelho
+    } finally { 
+      setSaving(false); 
+    }
   }
 
   async function handleDelete(id: string) {
@@ -1485,7 +1503,7 @@ function TabGastronomia() {
               <FormField label="Descrição Curta"><textarea rows={3} value={form.descricao_curta} onChange={e => setForm({...form, descricao_curta: e.target.value})} className={inputCls} /></FormField>
               <div className="grid grid-cols-2 gap-4">
                 <FormField label="WhatsApp"><div className="relative"><Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" /><input type="text" value={form.whatsapp} onChange={e => setForm({...form, whatsapp: e.target.value})} className={`${inputCls} pl-10`} /></div></FormField>
-                <FormField label="Endereço"><div className="relative"><MapPin size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" /><input type="text" value={form.link_google_maps} onChange={e => setForm({...form, link_google_maps: e.target.value})} className={`${inputCls} pl-10`} /></div></FormField>
+                <FormField label="Endereço (Link Google Maps)"><div className="relative"><MapPin size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" /><input type="text" value={form.link_google_maps} onChange={e => setForm({...form, link_google_maps: e.target.value})} className={`${inputCls} pl-10`} /></div></FormField>
               </div>
               <FormField label="Visibilidade"><select value={String(form.ativo)} onChange={e => setForm({...form, ativo: e.target.value === 'true'})} className={inputCls}><option value="true">Público (Ativo)</option><option value="false">Oculto</option></select></FormField>
             </div>
@@ -1529,7 +1547,8 @@ function TabGastronomia() {
             </div>
           </div>
           <div className="mt-10 flex items-center justify-between pt-6 border-t border-slate-100">
-            <span className="text-sm font-bold text-[#009640]">{feedback}</span>
+            {/* O Feedback agora vai ficar vermelho em caso de erro! */}
+            <span className={`text-sm font-bold ${feedback.includes('❌') ? 'text-red-500' : 'text-[#009640]'}`}>{feedback}</span>
             <button onClick={handleSalvar} disabled={saving} className="bg-[#009640] text-white px-10 py-4 rounded-xl font-black text-sm shadow-lg flex items-center gap-2">{saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Guardar Restaurante</button>
           </div>
         </div>

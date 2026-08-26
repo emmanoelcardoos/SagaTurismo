@@ -26,7 +26,7 @@ type Hotel = {
   ativo?: boolean;
   zona?: string;
   endereco?: string;  
-  contato?: string; 
+  whatsapp?: string; // ◄── CORREÇÃO: Alterado de 'contato' para 'whatsapp'
   instagram?: string;
 };
 
@@ -245,7 +245,7 @@ function HoteisPageContent() {
             src={HERO_IMAGE} 
             alt="Hospedagem em São Geraldo do Araguaia" 
             fill 
-            className="object-cover" // ← REMOVIDO: scale-105 e animate-[pulse]
+            className="object-cover"
             priority 
           />
           {/* Gradiente apenas na parte inferior para legibilidade do texto */}
@@ -356,10 +356,10 @@ function HoteisPageContent() {
                              </p>
                            )}
 
-                           {/* Número de Telefone clicável (abre o discador do celular) */}
-                           {hotel.contato && (
+                           {/* ◄── CORREÇÃO AQUI: Alterado de hotel.contato para hotel.whatsapp ──► */}
+                           {hotel.whatsapp && (
                              <p>
-                               Tel: <a href={`tel:${hotel.contato.replace(/\D/g, '')}`} className="hover:text-[#F9C400] transition-colors">{hotel.contato}</a>
+                               Tel: <a href={`tel:${hotel.whatsapp.replace(/\D/g, '')}`} className="hover:text-[#F9C400] transition-colors">{hotel.whatsapp}</a>
                              </p>
                            )}
 
