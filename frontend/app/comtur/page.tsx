@@ -120,9 +120,6 @@ export default function ComturPage() {
                 </div>
               </div>
             ))}
-            <Link href="/eventos" className={`${jakarta.className} flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.2em] transition-colors py-2 ${isHeaderSolid ? 'text-slate-600 hover:text-[#00577C]' : 'text-white hover:text-[#F9C400] drop-shadow-md'}`}>
-              Eventos
-            </Link>
           </nav>
 
           <div className="flex flex-1 justify-end items-center gap-4 z-20">
@@ -154,11 +151,6 @@ export default function ComturPage() {
             ))}
             <div className="flex flex-col gap-3">
               <p className={`${jakarta.className} text-[10px] font-black uppercase tracking-[0.2em] text-[#00577C] border-b border-slate-100 pb-2`}>Agenda</p>
-              <div className="flex flex-wrap gap-2">
-                <Link href="/eventos" onClick={() => setIsMobileMenuOpen(false)} className={`${jakarta.className} font-bold text-slate-700 text-sm bg-slate-50 px-4 py-2 rounded-lg border border-slate-100 hover:text-[#00577C] hover:bg-slate-100 transition-colors`}>
-                  Todos os Eventos
-                </Link>
-              </div>
             </div>
             <div className="border-t border-slate-100 pt-4 mt-2 flex flex-col gap-3">
               <Link href="/cadastro" onClick={() => setIsMobileMenuOpen(false)} className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md`}>
