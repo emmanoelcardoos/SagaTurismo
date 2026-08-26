@@ -26,7 +26,7 @@ type Hotel = {
   ativo?: boolean;
   zona?: string;
   endereco?: string;  
-  whatsapp?: string; // ◄── CORREÇÃO: Alterado de 'contato' para 'whatsapp'
+  whatsapp?: string; 
   instagram?: string;
 };
 
@@ -238,7 +238,7 @@ function HoteisPageContent() {
         )}
       </header>
 
-      {/* ── HERO EDITORIAL (CORRIGIDO - SEM ESBRANQUIÇAMENTO) ── */}
+      {/* ── HERO EDITORIAL ── */}
       <section className="relative h-[90vh] min-h-[500px] w-full flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           <Image 
@@ -331,16 +331,15 @@ function HoteisPageContent() {
                         </div>
                      </div>
 
-                     {/* Corpo do Cartão: Formato "Cartão de Visita" (Texto Simples) */}
+                     {/* Corpo do Cartão */}
                      <div className="p-6 md:p-8 flex-1 flex flex-col">
                         <h3 className={`${jakarta.className} text-2xl font-black text-slate-900 mb-6 leading-tight`}>
                           {hotel.nome}
                         </h3>
                         
-                        {/* ── SEÇÃO DE CONTACTOS (ESTILO BONITO) ── */}
                         <div className="mt-auto flex flex-col gap-3 text-sm text-slate-600 font-medium">
                            
-                           {/* Endereço clicável que abre direto no Google Maps */}
+                           {/* Endereço - com ícone MapPin idêntico ao da Gastronomia */}
                            {(hotel.endereco || hotel.zona) && (
                              <p className="leading-relaxed">
                                <a 
@@ -348,18 +347,26 @@ function HoteisPageContent() {
                                  target="_blank" 
                                  rel="noopener noreferrer"
                                  title="Ver no Google Maps"
-                                 className="hover:text-[#F9C400] transition-colors"
+                                 className="flex items-start gap-2 hover:text-[#F9C400] transition-colors"
                                >
-                                 {hotel.endereco && <>{hotel.endereco}<br /></>}
-                                 {hotel.zona || 'São Geraldo do Araguaia - PA'}
+                                 <MapPin size={16} className="text-[#00577C] shrink-0 mt-0.5" />
+                                 <span>
+                                   {hotel.endereco && <>{hotel.endereco}<br /></>}
+                                   {hotel.zona || 'São Geraldo do Araguaia - PA'}
+                                 </span>
                                </a>
                              </p>
                            )}
 
-                           {/* ◄── CORREÇÃO AQUI: Alterado de hotel.contato para hotel.whatsapp ──► */}
+                           {/* WhatsApp - com o ícone oficial verde e link direto para abrir a app */}
                            {hotel.whatsapp && (
-                             <p>
-                               Tel: <a href={`tel:${hotel.whatsapp.replace(/\D/g, '')}`} className="hover:text-[#F9C400] transition-colors">{hotel.whatsapp}</a>
+                             <p className="flex items-center gap-2">
+                               <span className="w-4 h-4 flex items-center justify-center bg-[#25D366]/10 rounded-full shrink-0">
+                                 <svg className="w-3 h-3 text-[#25D366]" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 0C5.383 0 0 5.383 0 12.031c0 2.124.553 4.195 1.604 6.012L.15 24l6.103-1.601a11.964 11.964 0 005.778 1.488h.004c6.648 0 12.031-5.383 12.031-12.031S18.679 0 12.031 0zM12.035 21.84c-1.784 0-3.535-.481-5.07-1.388l-.363-.214-3.766.986.999-3.666-.235-.374a9.986 9.986 0 01-1.528-5.353c0-5.522 4.492-10.015 10.015-10.015 5.523 0 10.016 4.493 10.016 10.015 0 5.523-4.493 10.016-10.016 10.016zm5.503-7.514c-.302-.151-1.785-.882-2.062-.983-.277-.101-.479-.151-.681.151-.201.302-.78 1.007-.957 1.209-.176.201-.353.226-.655.075-1.344-.672-2.52-1.464-3.486-3.155-.176-.302.176-.277.453-.83.101-.201.05-.377-.025-.528-.075-.151-.681-1.637-.932-2.241-.243-.585-.49-.504-.681-.513-.176-.008-.377-.008-.579-.008-.201 0-.528.075-.805.377-.277.302-1.056 1.032-1.056 2.516 0 1.484 1.082 2.918 1.233 3.119.151.201 2.138 3.273 5.183 4.582 1.344.579 2.113.629 2.918.528.882-.101 2.214-.906 2.516-1.785.302-.882.302-1.637.201-1.785-.101-.176-.377-.277-.679-.428z"/></svg>
+                               </span>
+                               <a href={`https://wa.me/55${hotel.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="hover:text-[#F9C400] transition-colors">
+                                 {hotel.whatsapp}
+                               </a>
                              </p>
                            )}
 
