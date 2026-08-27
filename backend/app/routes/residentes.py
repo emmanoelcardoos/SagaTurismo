@@ -34,6 +34,31 @@ async def cadastrar_residente(
         # Validação de segurança
         if len(membros) != len(fotos):
             return {"status": "erro", "mensagem": "O número de dados e de fotos não coincide."}
+
+        # 1.5 VERIFICAÇÃO PREVENTIVA DE CPF (ABANDONO DE CARRINHO)
+        cpf_titular = membros[0]["cpf"]
+        busca_cpf = supabase.table("rd_residentes").select("id, status").eq("cpf", cpf_titular).execute()
+        
+        if busca_cpf.data and len(busca_cpf.data) > 0:
+            residente_existente = busca_cpf.data[0]
+            
+            # Cenário A: Já tem a carteira ativa
+            if residente_existente["status"] == "ativo":
+                return {
+                    "status": "erro", 
+                    "mensagem": "Este CPF já possui uma carteira ativa. Para gerar uma nova, solicite a 2ª via."
+                }
+                
+            # Cenário B: Abandono de carrinho (Pula a IA e vai para o PIX!)
+            if residente_existente["status"] == "aguardando_pagamento":
+                return {
+                    "status": "sucesso", 
+                    "mensagem": "Documentação já validada anteriormente! A redirecionar para o pagamento...", 
+                    "valido_ia": True,
+                    "token": str(residente_existente["id"]),
+                    "titular_id": residente_existente["id"], 
+                    "quantidade": len(membros)
+                }
             
         # ◄── NOVA VALIDAÇÃO DE SEGURANÇA NO BACKEND (BLOQUEIA HACKERS E ERROS)
         formatos_imagem = ["image/jpeg", "image/png", "image/jpg"]
