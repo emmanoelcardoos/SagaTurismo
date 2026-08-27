@@ -207,7 +207,7 @@ export default function ComturPage() {
           {/* Informações de Contacto (Em Branco) */}
           <div className="space-y-8">
             <h2 className={`${jakarta.className} text-2xl font-black text-[#00577C] border-b border-slate-200 pb-4`}>
-              Informações de Contacto
+              Informações de Contato
             </h2>
             
             <div className="space-y-6">

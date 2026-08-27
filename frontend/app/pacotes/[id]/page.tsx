@@ -366,7 +366,7 @@ function PacoteDetalheContent() {
                   </div>
                 </div>
               ) : (
-                <p className="text-slate-500 italic">As informações da acomodação serão fornecidas pela agência no momento do contacto.</p>
+                <p className="text-slate-500 italic">As informações da acomodação serão fornecidas pela agência no momento do contato.</p>
               )}
             </section>
 

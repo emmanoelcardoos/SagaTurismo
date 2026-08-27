@@ -263,7 +263,7 @@ export default function DashboardGuiaPage() {
                 <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 flex items-center justify-center shadow-sm shrink-0"><ClipboardList className="text-[#009640]" size={20} /></div>
                 <div>
                    <h2 className={`${jakarta.className} text-xl font-black text-slate-900`}>Manifesto de Passageiros & Grupos</h2>
-                   <p className="text-xs font-bold text-slate-400 mt-1">Lista unificada de clientes com repasses e contacto direto.</p>
+                   <p className="text-xs font-bold text-slate-400 mt-1">Lista unificada de clientes com repasses e contato direto.</p>
                 </div>
              </div>
              <div className="relative w-full sm:w-80 shrink-0"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} /><input type="text" placeholder="Procurar turista..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-[#009640] shadow-sm" /></div>

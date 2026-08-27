@@ -1709,7 +1709,7 @@ function TabAgencias() {
             <div className="space-y-5">
               <h4 className="font-black text-[#00577C] border-b pb-2">Informações da Empresa</h4>
               <FormField label="Nome da Agência *"><input type="text" value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} className={inputCls} /></FormField>
-              <FormField label="Cadastur (Registo)"><input type="text" value={form.cadastur} onChange={e => setForm({...form, cadastur: e.target.value})} className={inputCls} placeholder="XX.XXXXXX.XX-X" /></FormField>
+              <FormField label="Cadastur (Registro)"><input type="text" value={form.cadastur} onChange={e => setForm({...form, cadastur: e.target.value})} className={inputCls} placeholder="XX.XXXXXX.XX-X" /></FormField>
               <FormField label="Resumo (Aparece no Cartão)"><textarea rows={2} value={form.descricao_curta} onChange={e => setForm({...form, descricao_curta: e.target.value})} className={inputCls} /></FormField>
               <FormField label="História / Sobre a Agência"><textarea rows={5} value={form.sobre} onChange={e => setForm({...form, sobre: e.target.value})} className={inputCls} /></FormField>
             </div>
@@ -2547,7 +2547,7 @@ function TabReunioesComtur() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Remover este registo da Reunião?")) return;
+    if (!confirm("Remover este registro da Reunião?")) return;
     await supabase.from("reunioes_comtur").delete().eq("id", id); 
     fetchReunioes();
   }
@@ -2587,7 +2587,7 @@ function TabReunioesComtur() {
           <div className="mt-10 flex items-center justify-between pt-6 border-t border-slate-100">
             <span className="text-sm font-bold text-[#009640]">{feedback}</span>
             <button onClick={handleSave} disabled={saving} className="bg-[#009640] hover:bg-green-700 text-white px-8 py-3 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg flex items-center gap-2 transition-all">
-              {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Salvar Registo
+              {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Salvar Registro
             </button>
           </div>
         </div>
@@ -2615,7 +2615,7 @@ function TabReunioesComtur() {
                     </td>
                   </tr>
                 ))}
-                {reunioes.length === 0 && (<tr><td colSpan={5} className="px-4 py-10 text-center text-slate-400">Nenhum registo do COMTUR.</td></tr>)}
+                {reunioes.length === 0 && (<tr><td colSpan={5} className="px-4 py-10 text-center text-slate-400">Nenhum  do COMTUR.</td></tr>)}
               </tbody>
             </table>
           </div>
@@ -2921,7 +2921,7 @@ function TabEmissaoManual() {
       <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-200 max-w-3xl">
         <div className="mb-6 border-b border-slate-100 pb-4">
           <h3 className={`${jakarta.className} text-lg font-black text-[#00577C]`}>Emissão de Nova Carteira (Do Zero)</h3>
-          <p className="text-xs text-slate-500 mt-1">Apenas para cidadãos sem registo ou acesso tecnológico.</p>
+          <p className="text-xs text-slate-500 mt-1">Apenas para cidadãos sem registro ou acesso tecnológico.</p>
         </div>
 
         <form onSubmit={handleEmitirManual} className="space-y-5">
@@ -3004,7 +3004,7 @@ function TabResidentes() {
           <p className="text-xs text-slate-500 mt-1">Listagem completa dos cidadãos registados na base de dados.</p>
         </div>
         <span className="text-xs font-black uppercase tracking-wider bg-red-50 text-red-600 px-4 py-2 rounded-xl border border-red-100">
-          Total: {residentes.length} registos
+          Total: {residentes.length} registros
         </span>
       </div>
 

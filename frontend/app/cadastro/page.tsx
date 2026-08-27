@@ -353,7 +353,7 @@ export default function CadastroPage() {
            router.push(`/checkout-carteira?token=${tokenFinal}`);
         } else {
            setSucessoSemToken({
-             mensagem: res?.mensagem || "O seu registo foi aprovado, mas o servidor não nos enviou o link para o pagamento."
+             mensagem: res?.mensagem || "O seu registro foi aprovado, mas o servidor não nos enviou o link para o pagamento."
            });
         }
       } else {

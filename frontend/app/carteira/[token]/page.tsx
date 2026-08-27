@@ -98,7 +98,7 @@ export default function CarteiraDigitalPage({ params }: { params: { token: strin
         </div>
         <h2 className="text-2xl font-black text-slate-900 mb-2">Solicitação Recusada</h2>
         <p className="text-sm font-medium text-slate-500 mb-8 leading-relaxed">
-          {data?.mensagem || "Não foi possível localizar este documento. Verifique se concluiu o registo corretamente."}
+          {data?.mensagem || "Não foi possível localizar este documento. Verifique se concluiu o registro corretamente."}
         </p>
         <Link href="/cadastro" className="block w-full bg-slate-900 text-white text-center py-4 rounded-2xl font-bold hover:bg-black transition-all">
           Tentar Novamente

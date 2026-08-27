@@ -158,7 +158,7 @@ export default function GaleriaPage() {
   }, [lastScrollY]);
 
   const fotosAgrupadas = fotos.reduce((acc, foto) => {
-    const cat = foto.categoria || 'Outros Registos';
+    const cat = foto.categoria || 'Outros Registros';
     if (!acc[cat]) acc[cat] = [];
     acc[cat].push(foto);
     return acc;
