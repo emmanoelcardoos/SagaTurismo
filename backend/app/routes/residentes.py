@@ -6,6 +6,7 @@ from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from supabase import create_client, Client
 from dotenv import load_dotenv
 from pydantic import BaseModel
+from datetime import datetime, timedelta
 
 # Importação dos serviços customizados
 from app.services.ai_service import validar_endereco_com_ia
@@ -101,6 +102,7 @@ async def cadastrar_residente(
 
         # 4. Processar e Salvar cada pessoa no Supabase
         titular_id = None
+        data_expiracao_calculada = (datetime.now() + timedelta(days=365)).strftime("%Y-%m-%d")
 
         for index, membro in enumerate(membros):
             # Ler e fazer Upload da foto desta pessoa específica
@@ -124,7 +126,8 @@ async def cadastrar_residente(
                 "url_comprovante": url_comprovante,
                 "foto_url": url_foto,
                 "status": "aguardando_pagamento", # ◄── SEGURANÇA: Alterado de 'ativo' para aguardar o Webhook
-                "qrcode_token": qrcode_token
+                "qrcode_token": qrcode_token,
+                "data_expiracao": data_expiracao_calculada
             }
 
             # Se não for o titular (index > 0), adicionamos a ligação à coluna titular_id
@@ -166,6 +169,9 @@ class EmissaoManualPayload(BaseModel):
 async def emissao_manual_admin(payload: EmissaoManualPayload):
     try:
         qrcode_token = str(uuid.uuid4())
+
+        data_expiracao_calculada = (datetime.now() + timedelta(days=365)).strftime("%Y-%m-%d")
+
         novo_residente = {
             "nome_completo": payload.nome,
             "cpf": payload.cpf,
@@ -174,7 +180,8 @@ async def emissao_manual_admin(payload: EmissaoManualPayload):
             "foto_url": payload.foto_url,
             "status": payload.status, # ◄── 2. ALTERADO AQUI PARA USAR O PAYLOAD
             "qrcode_token": qrcode_token,
-            "url_comprovante": "isento_admin"
+            "url_comprovante": "isento_admin",
+            "data_expiracao": data_expiracao_calculada
         }
         
         # O backend usa a chave mestra, logo o RLS não bloqueia isto!
