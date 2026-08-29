@@ -1031,9 +1031,18 @@ async def processar_carteira_bb(pedido: PedidoCarteiraGratuita):
                 "pix_qrcode_img": qr_data_uri 
             }
 
+    except HTTPException as http_ex:
+        # Se for um erro do próprio banco (ex: dados inválidos), mostra o erro real
+        print(f"[ERRO BB HTTP] {repr(http_ex)}")
+        raise http_ex
     except Exception as e:
-        print(f"ERRO BB COBRANÇA: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        # Se for falha de internet, timeout ou erro fatal, capturamos com repr() para os logs
+        print(f"[ERRO BB COBRANÇA FATAL] {repr(e)}")
+        # Trocamos o Erro 500 por um Erro 400 com mensagem amigável para o ecrã do cidadão não crashar
+        raise HTTPException(
+            status_code=400, 
+            detail="O serviço do Banco do Brasil encontra-se temporariamente indisponível. Por favor, aguarde alguns instantes e tente gerar o PIX novamente."
+        )
     finally:
         if pub_path and os.path.exists(pub_path): os.remove(pub_path)
         if priv_path and os.path.exists(priv_path): os.remove(priv_path)

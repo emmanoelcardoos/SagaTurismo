@@ -44,6 +44,8 @@ def executar_validacao(token: str):
     except Exception as e:
         print(f"[VALIDAÇÃO] Erro ao buscar dependentes: {e}")
 
+    print(f"[FISCALIZAÇÃO - PARQUE] Leitura aprovada para: {residente.get('nome_completo', 'Nome Desconhecido')} | Status: {status_db.upper()} | Pessoas: {qtd_pessoas}")
+
     # 4. Retornar a estrutura EXATA que o frontend espera
     return {
         "sucesso": True,
@@ -59,6 +61,7 @@ def executar_validacao(token: str):
     }
 
 # ── ROTA 1 PÚBLICA: Para quando o Frontend usa /publico/validar?token=XYZ ──
+@router.get("/api/v1/validar")
 @router.get("/publico/validar")
 async def validar_carteira_query(token: str = Query(None)):
     try:
@@ -68,6 +71,7 @@ async def validar_carteira_query(token: str = Query(None)):
         raise HTTPException(status_code=500, detail="Erro interno ao validar o documento.")
 
 # ── ROTA 2 PÚBLICA: Para quando o Frontend usa /publico/validar/{token} ──
+@router.get("/api/v1/validar/{token}")
 @router.get("/publico/validar/{token}")
 async def validar_carteira_path(token: str):
     try:

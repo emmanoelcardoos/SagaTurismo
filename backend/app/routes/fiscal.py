@@ -57,6 +57,8 @@ async def validar_token_fiscal(token: str, x_fiscal_key: str = Header(None)):
                     print(f"Erro ao assinar URL da foto: {e}")
                     foto_assinada = None
 
+        print(f"[FISCALIZAÇÃO - PARQUE] Acesso lido pelo Fiscal para: {residente.get('nome_completo', 'Nome Desconhecido')} | Status atual: {str(residente.get('status')).upper()}")
+        
         # 4. Retorna os dados completos APENAS para o Fiscal
         return {
             "sucesso": True,
