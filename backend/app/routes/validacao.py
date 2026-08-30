@@ -44,7 +44,8 @@ def executar_validacao(token: str):
     except Exception as e:
         print(f"[VALIDAÇÃO] Erro ao buscar dependentes: {e}")
 
-    print(f"[FISCALIZAÇÃO - PARQUE] Leitura aprovada para: {residente.get('nome_completo', 'Nome Desconhecido')} | Status: {status_db.upper()} | Pessoas: {qtd_pessoas}")
+    # NO FICHEIRO VALIDACAO.PY - Altera o print para ficar assim:
+    print(f"[SITE] Utente a consultar a própria carteira: {residente.get('nome_completo', 'Cidadão')} | Status: {status_db.upper()}")
 
     # 4. Retornar a estrutura EXATA que o frontend espera
     return {
