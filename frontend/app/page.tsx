@@ -1148,7 +1148,7 @@ const menuGroups = [
             </div>
           </div>
 
-          {/* Coluna 2: Descubra */}
+          {/* Coluna 1: Descubra */}
           <div>
             <p className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-[#00577C] mb-4`}>Descubra</p>
             <ul className="space-y-2.5 text-sm">
@@ -1159,6 +1159,14 @@ const menuGroups = [
               <li><Link href="/historia" className="text-slate-600 hover:text-[#00577C] transition-colors">História</Link></li>
             </ul>
           </div>
+         {/* Coluna 2: Planeje sua viagem */}
+          <div>
+            <p className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-[#00577C] mb-4`}>Contatos e Suporte</p>
+            <ul className="space-y-2.5 text-sm">
+              <li><Link href="/contato" className="text-slate-600 hover:text-[#00577C] transition-colors">Contatos Úteis</Link></li>
+              <li><Link href="/suporte" className="text-slate-600 hover:text-[#00577C] transition-colors">Suporte</Link></li>
+            </ul>
+          </div>
 
           {/* Coluna 3: Planeje sua viagem */}
           <div>
@@ -1166,22 +1174,9 @@ const menuGroups = [
             <ul className="space-y-2.5 text-sm">
               <li><Link href="/informacoes" className="text-slate-600 hover:text-[#00577C] transition-colors">Como Chegar</Link></li>
               <li><Link href="/eventos" className="text-slate-600 hover:text-[#00577C] transition-colors">Agenda de Eventos</Link></li>
-              <li><Link href="/blog" className="text-slate-600 hover:text-[#00577C] transition-colors">Blog</Link></li>
-              <li><Link href="/contato" className="text-slate-600 hover:text-[#00577C] transition-colors">Contatos Úteis</Link></li>
             </ul>
           </div>
 
-          {/* Coluna 4: Institucional */}
-          <div>
-            <p className={`${jakarta.className} text-[11px] font-black uppercase tracking-[0.2em] text-[#00577C] mb-4`}>Institucional</p>
-            <ul className="space-y-2.5 text-sm">
-              <li><Link href="/quem-somos" className="text-slate-600 hover:text-[#00577C] transition-colors">Quem Somos</Link></li>
-              <li><Link href="/parceiros" className="text-slate-600 hover:text-[#00577C] transition-colors">Parceiros</Link></li>
-              <li><Link href="/termos" className="text-slate-600 hover:text-[#00577C] transition-colors">Termos de Uso</Link></li>
-              <li><Link href="/privacidade" className="text-slate-600 hover:text-[#00577C] transition-colors">Política de Privacidade</Link></li>
-              <li><Link href="/semtur" className="text-slate-600 hover:text-[#00577C] transition-colors">SEMTUR</Link></li>
-            </ul>
-          </div>
         </div>
 
         {/* Rodapé inferior com copyright */}

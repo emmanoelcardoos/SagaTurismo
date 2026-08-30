@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { 
   Calendar as CalendarIcon, Bell, CheckCircle2, Clock, Map, Package, Activity, AlertCircle,
   Upload, Image as ImageIcon, Save, Loader2, FileSpreadsheet, Utensils, MapPin, Phone, Plus, Trash2,
-  Building2, Briefcase, Compass, Newspaper, Smartphone, FileText, Users, ChevronDown
+  Building2, Briefcase, Compass, Newspaper, Smartphone, FileText, Users, ChevronDown, Headset, MessageSquare,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import 'react-quill/dist/quill.snow.css';
@@ -210,6 +210,7 @@ function AdminDashboard({ role, email, onLogout }: { role: string; email: string
       label: "Admin Restrito",
       items: [
         { id: "emissao", label: "Emissão de Carteira", icon: <AlertCircle size={16} /> },
+        { id: "suporte", label: "Central de Suporte", icon: <Headset size={16} /> },
         { id: "residentes", label: "Base de Residentes", icon: <Users size={16} /> } // ◄── Nova Aba Adicionada
       ]
     });
@@ -273,6 +274,7 @@ function AdminDashboard({ role, email, onLogout }: { role: string; email: string
         {activeTab === "aplicativo"  && <TabAplicativo />}
         {activeTab === "emissao"     && <TabEmissaoManual />}
         {activeTab === "residentes"  && <TabResidentes />} 
+        {activeTab === "suporte" && <TabSuporte />}
       </main>
     </div>
   );
@@ -2962,6 +2964,214 @@ function TabEmissaoManual() {
           </div>
         </form>
       </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CENTRAL DE SUPORTE (NOVO)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function TabSuporte() {
+  const [chamados, setChamados] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  // Controle do Chamado Aberto
+  const [chamadoAberto, setChamadoAberto] = useState<any | null>(null);
+  const [resposta, setResposta] = useState("");
+  const [arquivoAdmin, setArquivoAdmin] = useState<File | null>(null);
+  const [statusAtual, setStatusAtual] = useState("");
+  
+  const [saving, setSaving] = useState(false);
+  const [feedback, setFeedback] = useState("");
+
+  useEffect(() => { fetchChamados(); }, []);
+
+  async function fetchChamados() {
+    setLoading(true);
+    const { data } = await supabase.from('suporte').select('*').order('criado_em', { ascending: false });
+    setChamados(data || []);
+    setLoading(false);
+  }
+
+  function abrirChamado(c: any) {
+    setChamadoAberto(c);
+    setStatusAtual(c.status);
+    setResposta("");
+    setArquivoAdmin(null);
+    setFeedback("");
+  }
+
+  async function handleResponder() {
+    if (!resposta && statusAtual === chamadoAberto.status) {
+      setFeedback("Escreva uma resposta ou mude o status para salvar.");
+      return;
+    }
+    
+    setSaving(true);
+    setFeedback("A enviar resposta...");
+
+    try {
+      let linkAnexoAdmin = null;
+
+      // Se o admin quiser enviar um anexo de volta
+      if (arquivoAdmin) {
+        const ext = arquivoAdmin.name.split('.').pop();
+        const path = `respostas_suporte/${chamadoAberto.protocolo}_${Date.now()}.${ext}`;
+        const { error } = await supabase.storage.from('galeria').upload(path, arquivoAdmin);
+        if (!error) {
+          const { data: pubUrl } = supabase.storage.from('galeria').getPublicUrl(path);
+          linkAnexoAdmin = pubUrl.publicUrl;
+        }
+      }
+
+      // 1. Atualizar Base de Dados
+      const { error: dbError } = await supabase.from('suporte').update({
+        status: statusAtual,
+        resposta_admin: resposta || chamadoAberto.resposta_admin
+      }).eq('id', chamadoAberto.id);
+
+      if (dbError) throw dbError;
+
+      // 2. Se houver texto, enviar e-mail via API
+      if (resposta) {
+        const resp = await fetch('https://sagaturismo-production.up.railway.app/api/v1/suporte/responder', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: chamadoAberto.email,
+            nome: chamadoAberto.nome,
+            protocolo: chamadoAberto.protocolo,
+            resposta: resposta,
+            link_anexo: linkAnexoAdmin
+          })
+        });
+        if (!resp.ok) throw new Error("Falha ao disparar o e-mail.");
+      }
+
+      setFeedback("✅ Resposta enviada e status atualizado!");
+      setTimeout(() => { setChamadoAberto(null); fetchChamados(); }, 2000);
+
+    } catch (err: any) {
+      setFeedback(`❌ Erro: ${err.message}`);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className={`${jakarta.className} text-xl font-black text-[#00577C] flex items-center gap-2`}><Headset size={20}/> Central de Suporte</h2>
+          <p className="text-xs text-slate-500 mt-1">Gira as queixas e dúvidas dos cidadãos.</p>
+        </div>
+        <span className="text-xs font-black uppercase tracking-wider bg-blue-50 text-[#00577C] px-4 py-2 rounded-xl border border-blue-100">
+          Total: {chamados.length} chamados
+        </span>
+      </div>
+
+      {!chamadoAberto ? (
+        <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
+          {loading ? (
+            <div className="py-16 flex justify-center"><Loader2 size={32} className="text-[#00577C] animate-spin" /></div>
+          ) : (
+            <table className="w-full text-sm text-left">
+              <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-black text-xs uppercase">
+                <tr><th className="p-5">Protocolo</th><th className="p-5">Cidadão</th><th className="p-5">Assunto</th><th className="p-5">Data</th><th className="p-5 text-center">Status</th></tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {chamados.map((c) => (
+                  <tr key={c.id} onClick={() => abrirChamado(c)} className="hover:bg-blue-50/50 cursor-pointer transition-colors group">
+                    <td className="p-5 font-bold text-slate-800 group-hover:text-[#00577C]">{c.protocolo}</td>
+                    <td className="p-5"><p className="font-bold text-slate-700">{c.nome}</p><p className="text-xs text-slate-500">{c.cpf} • {c.whatsapp || "Sem Tel"}</p></td>
+                    <td className="p-5 text-slate-600 line-clamp-1">{c.assunto}</td>
+                    <td className="p-5 text-slate-500">{fmtDatetime(c.criado_em)}</td>
+                    <td className="p-5 text-center">
+                      <span className={`px-3 py-1.5 rounded-lg text-[10px] uppercase font-black tracking-wider ${
+                        c.status === 'Concluído' ? 'bg-green-100 text-green-700' : 
+                        c.status === 'Em andamento' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'
+                      }`}>{c.status}</span>
+                    </td>
+                  </tr>
+                ))}
+                {chamados.length === 0 && (<tr><td colSpan={5} className="p-10 text-center text-slate-400 font-medium">Nenhum chamado recebido.</td></tr>)}
+              </tbody>
+            </table>
+          )}
+        </div>
+      ) : (
+        /* PAINEL DE DETALHE DO CHAMADO */
+        <div className="bg-white rounded-[2rem] p-8 shadow-lg border border-slate-100">
+          <div className="flex items-center justify-between mb-6 border-b border-slate-100 pb-4">
+            <h3 className={`${jakarta.className} text-xl font-black text-slate-800 flex items-center gap-2`}><MessageSquare className="text-[#00577C]" /> Protocolo: {chamadoAberto.protocolo}</h3>
+            <button onClick={() => setChamadoAberto(null)} className="text-sm font-bold text-slate-400 hover:text-slate-800">Voltar à Lista</button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+            <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200">
+              <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Dados do Cidadão</h4>
+              <p className="font-bold text-slate-800">{chamadoAberto.nome}</p>
+              <p className="text-sm text-slate-600 mt-1">E-mail: {chamadoAberto.email}</p>
+              <p className="text-sm text-slate-600 mt-1">CPF: {chamadoAberto.cpf}</p>
+              <p className="text-sm text-slate-600 mt-1">WhatsApp: {chamadoAberto.whatsapp || "Não fornecido"}</p>
+              <p className="text-xs text-slate-400 mt-4">Enviado em: {fmtDatetime(chamadoAberto.criado_em)}</p>
+            </div>
+            <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200">
+              <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Mensagem Original</h4>
+              <p className="font-bold text-slate-800 text-sm mb-2">Assunto: {chamadoAberto.assunto}</p>
+              <p className="text-sm text-slate-600 whitespace-pre-wrap">{chamadoAberto.mensagem}</p>
+              {chamadoAberto.arquivo_url && (
+                <a href={chamadoAberto.arquivo_url} target="_blank" className="inline-flex items-center gap-2 mt-4 text-xs font-bold text-[#00577C] bg-blue-100 px-4 py-2 rounded-lg hover:bg-blue-200 transition-colors">
+                  <FileText size={14} /> Ver Anexo do Cidadão
+                </a>
+              )}
+            </div>
+          </div>
+
+          <div className="border-t border-slate-100 pt-6 space-y-5">
+            <h4 className="text-lg font-black text-[#00577C]">Responder e Atualizar</h4>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              <div className="md:col-span-2">
+                <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Escrever Resposta (Vai por E-mail)</label>
+                <textarea rows={4} value={resposta} onChange={e => setResposta(e.target.value)} className={inputCls} placeholder="Escreva a resposta ao utente..."></textarea>
+              </div>
+              <div className="space-y-5">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Mudar Status</label>
+                  <select value={statusAtual} onChange={e => setStatusAtual(e.target.value)} className={inputCls}>
+                    <option value="Aberto">🔴 Aberto</option>
+                    <option value="Em andamento">🟡 Em andamento</option>
+                    <option value="Concluído">🟢 Concluído</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Enviar PDF/Anexo</label>
+                  <label className="flex items-center justify-center gap-2 border border-slate-200 bg-white text-slate-600 p-2 rounded-lg cursor-pointer hover:border-[#00577C] text-xs font-bold">
+                    <input type="file" className="hidden" onChange={e => setArquivoAdmin(e.target.files?.[0] || null)} />
+                    <UploadCloud size={14} /> {arquivoAdmin ? "Anexo Pronto ✓" : "Anexar Ficheiro"}
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-4 flex items-center justify-between">
+              <span className={`text-sm font-bold ${feedback.includes('❌') ? 'text-red-500' : 'text-[#009640]'}`}>{feedback}</span>
+              <button onClick={handleResponder} disabled={saving} className="bg-[#00577C] hover:bg-[#004a6b] text-white px-8 py-3.5 rounded-xl font-black text-xs uppercase tracking-widest shadow-md flex items-center gap-2 disabled:opacity-50 transition-all">
+                {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} Salvar & Enviar
+              </button>
+            </div>
+
+            {chamadoAberto.resposta_admin && (
+              <div className="mt-6 bg-green-50 border border-green-200 p-4 rounded-xl">
+                <p className="text-xs font-bold text-green-800 uppercase tracking-widest mb-1">Última Resposta do Admin:</p>
+                <p className="text-sm text-green-900 whitespace-pre-wrap">{chamadoAberto.resposta_admin}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
