@@ -36,30 +36,41 @@ async def cadastrar_residente(
         if len(membros) != len(fotos):
             return {"status": "erro", "mensagem": "O número de dados e de fotos não coincide."}
 
-        # 1.5 VERIFICAÇÃO PREVENTIVA DE CPF (ABANDONO DE CARRINHO)
-        cpf_titular = membros[0]["cpf"]
-        busca_cpf = supabase.table("rd_residentes").select("id, status").eq("cpf", cpf_titular).execute()
+        # 1.5 VERIFICAÇÃO PREVENTIVA DE TODOS OS CPFs
+        # Extrair todos os CPFs submetidos no formulário (Titular + Dependentes)
+        cpfs_submetidos = [m["cpf"] for m in membros]
         
-        if busca_cpf.data and len(busca_cpf.data) > 0:
-            residente_existente = busca_cpf.data[0]
-            
-            # Cenário A: Já tem a carteira ativa
-            if residente_existente["status"] == "ativo":
-                return {
-                    "status": "erro", 
-                    "mensagem": "Este CPF já possui uma carteira ativa. Para gerar uma nova, solicite a 2ª via."
-                }
+        # Consultar o Supabase à procura de QUALQUER um destes CPFs
+        busca_cpfs = supabase.table("rd_residentes").select("id, cpf, status").in_("cpf", cpfs_submetidos).execute()
+        
+        if busca_cpfs.data and len(busca_cpfs.data) > 0:
+            for residente_existente in busca_cpfs.data:
                 
-            # Cenário B: Abandono de carrinho (Pula a IA e vai para o PIX!)
-            if residente_existente["status"] == "aguardando_pagamento":
-                return {
-                    "status": "sucesso", 
-                    "mensagem": "Documentação já validada anteriormente! A redirecionar para o pagamento...", 
-                    "valido_ia": True,
-                    "token": str(residente_existente["id"]),
-                    "titular_id": residente_existente["id"], 
-                    "quantidade": len(membros)
-                }
+                # Se alguém no grupo já tem a carteira ativa, bloqueamos logo com mensagem clara
+                if residente_existente["status"] == "ativo":
+                    return {
+                        "status": "erro", 
+                        "mensagem": f"O CPF {residente_existente['cpf']} já possui uma carteira ativa. Para gerar uma nova via, solicite no menu principal."
+                    }
+                    
+                # Se alguém (ou o titular) estiver na fila de pagamento (Abandono de Carrinho)
+                if residente_existente["status"] == "aguardando_pagamento":
+                    # Atenção: Se o titular foi quem abandonou, usamos o ID dele para o PIX
+                    if residente_existente["cpf"] == membros[0]["cpf"]:
+                        return {
+                            "status": "sucesso", 
+                            "mensagem": "Documentação já validada anteriormente! A redirecionar para o pagamento...", 
+                            "valido_ia": True,
+                            "token": str(residente_existente["id"]),
+                            "titular_id": residente_existente["id"], 
+                            "quantidade": len(membros)
+                        }
+                    else:
+                        # Se foi um dependente a abandonar, pedimos ao cidadão para rever
+                        return {
+                            "status": "erro", 
+                            "mensagem": f"O CPF do dependente {residente_existente['cpf']} tem um pagamento pendente. Por favor, conclua o pagamento antigo ou contate o suporte."
+                        }
             
         # ◄── NOVA VALIDAÇÃO DE SEGURANÇA NO BACKEND (BLOQUEIA HACKERS E ERROS)
         formatos_imagem = ["image/jpeg", "image/png", "image/jpg"]
