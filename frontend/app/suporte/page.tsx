@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import React, { useEffect, useState, useRef, ReactNode } from 'react';
+import { supabase } from '@/lib/supabase'; // ◄── IMPORTAÇÃO DO SUPABASE ADICIONADA
 import { 
   Menu, X, ChevronDown, User, Mail, Phone, 
   FileText, UploadCloud, ArrowRight, CheckCircle2, 
@@ -197,6 +198,7 @@ export default function ContatoPage() {
     }
   };
 
+  // ◄── LÓGICA DE ENVIO CORRIGIDA COM SUPABASE + API ──►
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErroValidacao("");
@@ -205,11 +207,61 @@ export default function ContatoPage() {
     if (form.cpf.length < 14) { setErroValidacao("Por favor, introduza um CPF válido."); return; }
 
     setLoading(true);
+    
     try {
-      // Simulação de envio da API
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      let arquivo_url = null;
+
+      // 1. Fazer upload do ficheiro se existir (estamos usando a pasta 'galeria' para simplificar, mas crie uma 'suporte' se preferir)
+      if (arquivo) {
+        const ext = arquivo.name.split('.').pop();
+        const path = `suporte/${Date.now()}_${form.cpf.replace(/\D/g, '')}.${ext}`;
+        const { error: uploadError } = await supabase.storage.from('galeria').upload(path, arquivo);
+        
+        if (!uploadError) {
+          const { data: pubUrl } = supabase.storage.from('galeria').getPublicUrl(path);
+          arquivo_url = pubUrl.publicUrl;
+        } else {
+            console.error("Erro no upload do anexo:", uploadError);
+        }
+      }
+
+      // 2. Inserir queixa na tabela 'suporte'
+      const { data: suporteData, error: dbError } = await supabase
+        .from('suporte')
+        .insert([{
+          nome: form.nome,
+          cpf: form.cpf,
+          email: form.email,
+          whatsapp: form.whatsapp,
+          assunto: form.assunto,
+          mensagem: form.mensagem,
+          arquivo_url: arquivo_url
+        }])
+        .select()
+        .single();
+
+      if (dbError) throw new Error("Erro ao guardar solicitação no banco de dados.");
+
+      // 3. Disparar o email de confirmação via API no Railway
+      const protocolo = suporteData.protocolo;
+      
+      const response = await fetch('https://sagaturismo-production.up.railway.app/api/v1/suporte/novo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: form.email,
+          nome: form.nome,
+          protocolo: protocolo
+        })
+      });
+
+      if (!response.ok) {
+          console.warn("A solicitação foi salva, mas falhou ao disparar o e-mail de confirmação.");
+      }
+
       setSucesso(true);
-    } catch (error) {
+    } catch (error: any) {
+      console.error(error);
       setErroValidacao("Ocorreu um erro ao enviar. Tente novamente mais tarde.");
     } finally {
       setLoading(false);
@@ -230,7 +282,7 @@ export default function ContatoPage() {
             </div>
             <h2 className={`${jakarta.className} text-2xl font-black text-slate-800 mb-3`}>Formulário Enviado!</h2>
             <p className="text-slate-500 text-sm leading-relaxed mb-8">
-              Recebemos a sua solicitação. Um e-mail de confirmação foi enviado para <strong>{form.email}</strong>. A nossa equipa analisará o seu caso o mais rápido possível.
+              Recebemos a sua solicitação. Um e-mail de confirmação foi enviado para <strong>{form.email}</strong>. A nossa equipe analisará o seu caso o mais rápido possível.
             </p>
             <button onClick={() => window.location.reload()} className={`${jakarta.className} w-full bg-[#00577C] text-white font-black py-4 rounded-xl uppercase tracking-widest text-sm shadow-md hover:bg-[#004a6b] transition-colors`}>
               Voltar ao Início

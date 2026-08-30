@@ -454,11 +454,24 @@ export default function CadastroPage() {
             <p className="mx-auto mb-8 max-w-md leading-relaxed text-slate-600 font-medium">
                {rejeicaoIA.mensagem}
             </p>
+            
             <div className="flex flex-col gap-3">
               <button onClick={() => setRejeicaoIA(null)} className="rounded-full bg-[#00577C] px-8 py-4 font-bold text-white transition hover:bg-[#004766] active:scale-95 shadow-lg">
                 Corrigir e Enviar Novamente
               </button>
-              <Link href="/" className="text-sm font-semibold text-slate-400 hover:text-slate-600">Voltar ao início</Link>
+
+              {/* ◄── INÍCIO: BLOCO DE SUPORTE ADICIONADO ──► */}
+              <div className="mt-4 pt-5 border-t border-slate-100">
+                <p className="text-xs font-medium text-slate-500 mb-3">
+                  Acha que houve algum engano na nossa análise automática?
+                </p>
+                <Link href="/suporte" className="inline-flex w-full items-center justify-center rounded-full border-2 border-slate-200 bg-white px-8 py-3.5 font-bold text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 hover:border-slate-300 active:scale-95">
+                  Contatar Suporte
+                </Link>
+              </div>
+              {/* ◄── FIM: BLOCO DE SUPORTE ──► */}
+
+              <Link href="/" className="mt-3 text-sm font-semibold text-slate-400 hover:text-slate-600">Voltar ao início</Link>
             </div>
           </div>
         </div>
