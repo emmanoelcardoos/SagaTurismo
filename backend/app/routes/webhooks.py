@@ -320,38 +320,36 @@ async def webhook_bb(request: Request):
                     residentes_encontrados = res_res.data or []
 
                 if residentes_encontrados:
-                    caminhos_pdfs = []
                     email_real_destino = email_cliente
-                    nome_real_destino = nome_cliente
 
                     for res in residentes_encontrados:
-                        # Muda o status do morador para ativo!
+                        # Muda o status do morador para ativo na base de dados
                         supabase.table("rd_residentes").update({"status": "ativo"}).eq("id", res["id"]).execute()
                         
-                        
-
                         try:
+                            # 1. Prepara os dados
+                            nome_membro = res.get("nome_completo") or res.get("nome", "Residente Oficial")
                             dados_pdf = {
-                                "nome": res.get("nome_completo") or res.get("nome", "Residente Oficial"),
+                                "nome": nome_membro,
                                 "cpf": res.get("cpf", pedido.get("cpf_cliente")),
                                 "data_nascimento": res.get("data_nascimento", "--/--/----"),
                                 "foto_url": res.get("foto_url")
                             }
-                            # Gera o PDF
+                            
+                            # 2. Gera o PDF
                             caminho_pdf = gerar_pdf_carteira(dados_pdf, res.get("qrcode_token") or res["id"])
-                            if caminho_pdf: caminhos_pdfs.append(caminho_pdf)
-                        except Exception as e_pdf:
-                            print(f"[WEBHOOK BB] Erro ao gerar PDF: {e_pdf}")
-                    
-                    if caminhos_pdfs:
-                        try:
-                            # Envia o E-mail com os PDFs em anexo
-                            enviar_carteiras_por_email(email_real_destino, nome_real_destino, caminhos_pdfs)
-                            print(f"[WEBHOOK BB] Carteira enviada com sucesso para: {email_real_destino}")
-                        except Exception as e_email:
-                            print(f"[WEBHOOK BB] Erro ao enviar e-mail: {e_email}")
+                            
+                            # 3. ENVIO FRACIONADO IMEDIATO 
+                            # Envia apenas este PDF para o e-mail do Titular, saudando o nome do dependente
+                            if caminho_pdf:
+                                enviar_carteiras_por_email(email_real_destino, nome_membro, [caminho_pdf])
+                                print(f"[WEBHOOK] Carteira individual de {nome_membro} enviada para: {email_real_destino}")
+
+                        except Exception as e_processo:
+                            print(f"[WEBHOOK] Erro ao processar/enviar carteira de {res.get('nome_completo')}: {e_processo}")
+                            
                 else:
-                    print(f"[WEBHOOK BB] Residente não encontrado para o token {token_id}")
+                    print(f"[WEBHOOK] Residente não encontrado para o token {token_id}")
 
         # O Banco do Brasil exige uma resposta de HTTP 200 OK para saber que recebemos o aviso
         return {"status": "200 OK"}
