@@ -578,3 +578,57 @@ def enviar_email_boas_vindas(email_destino: str) -> bool:
 </html>
  """
     return enviar_email(email_destino, "🌿 Bem-vindo a São Geraldo do Araguaia", html)
+
+# ==========================================
+# 7. SUPORTE E ATENDIMENTO AO CIDADÃO
+# ==========================================
+def enviar_confirmacao_suporte(email_destino: str, nome: str, protocolo: str) -> bool:
+    primeiro_nome = nome.strip().split()[0]
+    html = f"""
+    <div style="font-family: Arial, sans-serif; color: #334155; max-width: 600px; margin: 0 auto; border: 1px solid #E2E8F0; border-radius: 16px; overflow: hidden;">
+        <div style="background: #00577C; padding: 30px; text-align: center;">
+            <h1 style="color: #ffffff; margin: 0; font-size: 22px;">Solicitação Recebida 📩</h1>
+        </div>
+        <div style="padding: 30px; background: #ffffff;">
+            <p style="font-size: 16px;">Olá, <strong>{primeiro_nome}</strong>.</p>
+            <p>Recebemos a sua solicitação com sucesso. A nossa equipe já está a analisar o seu caso e responderá em breve através deste mesmo e-mail.</p>
+            <div style="margin: 20px 0; padding: 15px; background: #F8FAFC; border-left: 4px solid #F9C400;">
+                <p style="margin: 0; font-size: 14px;"><strong>O seu Protocolo de Atendimento:</strong> {protocolo}</p>
+            </div>
+            <p style="font-size: 12px; color: #94A3B8;">Prefeitura Municipal de São Geraldo do Araguaia</p>
+        </div>
+    </div>
+    """
+    return enviar_email(email_destino, f"Recebemos a sua solicitação - Protocolo {protocolo}", html)
+
+def enviar_resposta_suporte(email_destino: str, nome: str, protocolo: str, resposta: str, link_anexo: str = None) -> bool:
+    primeiro_nome = nome.strip().split()[0]
+    
+    anexo_html = ""
+    if link_anexo:
+        anexo_html = f"""
+        <div style="margin-top: 20px; padding: 15px; border: 1px dashed #CBD5E1; border-radius: 8px;">
+            <p style="margin: 0; font-size: 14px; color: #00577C;"><strong>📎 Documento em Anexo:</strong></p>
+            <a href="{link_anexo}" target="_blank" style="color: #009640; text-decoration: none; font-weight: bold;">Clique aqui para visualizar o ficheiro enviado pelo suporte</a>
+        </div>
+        """
+
+    html = f"""
+    <div style="font-family: Arial, sans-serif; color: #334155; max-width: 600px; margin: 0 auto; border: 1px solid #E2E8F0; border-radius: 16px; overflow: hidden;">
+        <div style="background: #009640; padding: 30px; text-align: center;">
+            <h1 style="color: #ffffff; margin: 0; font-size: 22px;">Atualização do seu Chamado 🔔</h1>
+        </div>
+        <div style="padding: 30px; background: #ffffff;">
+            <p style="font-size: 16px;">Olá, <strong>{primeiro_nome}</strong>. A nossa equipe respondeu à sua solicitação (Protocolo: {protocolo}).</p>
+            
+            <div style="margin: 20px 0; padding: 20px; background: #F1F5F9; border-radius: 12px; white-space: pre-wrap;">
+                <p style="margin: 0; font-size: 15px;">{resposta}</p>
+            </div>
+            
+            {anexo_html}
+            
+            <p style="font-size: 14px; margin-top: 30px;">Se precisar de mais ajuda, pode responder diretamente a este e-mail.</p>
+        </div>
+    </div>
+    """
+    return enviar_email(email_destino, f"Atualização do Chamado #{protocolo}", html)
