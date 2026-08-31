@@ -7,7 +7,7 @@ import {
   ArrowRight, ShieldCheck, Star, ExternalLink, Menu, Landmark, Hotel,
   Mountain, Waves, TreePine, CalendarDays, MapPin, Ticket,
   Loader2, Sparkles, Image as ImageIcon, Compass, CheckCircle2, X,
-  ChevronLeft, ChevronRight, Route, ChevronDown, ChevronUp, UserCircle, Link2, Share2, Phone, Mail, Clock
+  ChevronLeft, ChevronRight, Route, ChevronDown, ChevronUp, UserCircle, Link2, Share2, Phone, Mail, Clock, Headset
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -698,6 +698,46 @@ function NewsletterHome() {
 }
 
 // ==========================================
+// COMPONENTE: SECÇÃO DE SUPORTE
+// ==========================================
+function SeccaoSuporte() {
+  return (
+    <section className="py-24 bg-white overflow-hidden border-t border-slate-100">
+      <div className="max-w-[1400px] mx-auto px-6">
+        <div className="grid md:grid-cols-2 gap-12 lg:gap-20 items-center">
+          
+          <AnimatedSection animation="fade-right" className="order-2 md:order-1 relative h-[350px] md:h-[450px] w-full rounded-[2.5rem] overflow-hidden shadow-xl border-[4px] border-slate-50">
+            <Image
+              src="https://images.pexels.com/photos/8897621/pexels-photo-8897621.jpeg?_gl=1*qlmbt2*_gcl_au*NDU0NDkxNDc2LjE3ODczNjc3NjI.*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3ODgxMzUxMzYkbzExOSRnMSR0MTc4ODEzNTE0OSRqNDckbDAkaDA." 
+              alt="Central de Suporte ao Cidadão"
+              fill
+              className="object-cover hover:scale-105 transition-transform duration-[2000ms]"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 via-slate-900/10 to-transparent" />
+          </AnimatedSection>
+
+          <AnimatedSection animation="fade-left" delay={200} className="order-1 md:order-2">
+            <h2 className={`${jakarta.className} text-5xl md:text-6xl lg:text-7xl font-black text-slate-900 leading-[0.9] tracking-tight mb-8`}>
+              Precisa de<br />
+              <span className="italic text-[#00577C]">alguma ajuda?</span>
+            </h2>
+            
+            <p className="text-slate-500 text-lg leading-relaxed mb-8 font-medium">
+              Teve problemas com a emissão da sua Carteira Digital, dúvidas sobre passeios ou não encontrou o que procurava? A nossa equipe de suporte está pronta para analisar e resolver o seu caso rapidamente.
+            </p>
+            
+            <Link href="/suporte" className="inline-flex items-center gap-3 bg-[#00577C] text-white px-8 py-4 rounded-full font-black text-xs uppercase tracking-widest hover:bg-[#004a6b] shadow-lg hover:shadow-xl transition-all hover:-translate-y-1">
+              Contatar Suporte <ArrowRight size={16} />
+            </Link>
+          </AnimatedSection>
+          
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ==========================================
 // COMPONENTE PRINCIPAL: HOMEPAGE
 // ==========================================
 export default function HomePage() {
@@ -1106,6 +1146,9 @@ const menuGroups = [
           </div>
         </div>
       </section>
+
+      {/* ── SECÇÃO SUPORTE ── */}
+      <SeccaoSuporte />
 
       {/* ── SECÇÃO NEWSLETTER ── */}
       <NewsletterHome />
