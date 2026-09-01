@@ -892,18 +892,19 @@ export default function CadastroPage() {
               </div>
 
               {/* ETAPA 1: CONSULTAR CPF DO TITULAR */}
+              {/* ETAPA 1: CONSULTAR CPF DO TITULAR */}
               <div className="mb-10 bg-slate-50 border border-slate-200 p-6 rounded-3xl">
                 <label className="block text-[10px] font-black uppercase tracking-widest text-[#00577C] mb-2">CPF do Titular da Conta *</label>
                 <p className="text-xs text-slate-500 mb-4">Insira o CPF de quem já possui a carteira ATIVA no sistema.</p>
-                <div className="flex flex-col md:flex-row gap-4 max-w-xl">
-                  <div className="flex-1">
+                <div className="flex flex-col md:flex-row items-end gap-4 max-w-xl">
+                  <div className="flex-1 w-full">
                     <CPFInput value={cpfTitularExistente} onChange={setCpfTitularExistente} error={errors.cpf} />
                   </div>
                   <button 
                     type="button" 
                     onClick={handleConsultarTitular}
                     disabled={checandoCpf}
-                    className="h-[52px] px-6 rounded-xl bg-[#00577C] text-white font-bold hover:bg-[#004766] transition disabled:opacity-50"
+                    className="h-[52px] px-6 rounded-xl bg-[#00577C] text-white font-bold hover:bg-[#004766] transition disabled:opacity-50 w-full md:w-auto"
                   >
                     {checandoCpf ? 'Consultando...' : 'Consultar'}
                   </button>
