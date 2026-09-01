@@ -927,10 +927,6 @@ async def processar_carteira_bb(pedido: PedidoCarteiraGratuita):
         # Se for reemissão (2ª Via), cobra R$ 5.00. Se for emissão nova, cobra R$ 20.00
         preco_unitario = 5.00 if pedido.is_reemissao else 20.00
         valor_carteira = preco_unitario * (pedido.quantidade or 1)
-
-        if pedido.email_cliente.strip().lower() == "emmanoel.cardoso09@gmail.com":
-            valor_carteira = 0.01  # Força o valor para 1 cêntimo
-            print("[TESTE ADMIN] Cobrança de R$ 0,01 ativada para o Emmanoel!")
         
         tax_id_limpo = pedido.cpf_cliente.replace(".", "").replace("-", "")
 

@@ -219,32 +219,3 @@ async def buscar_residentes(q: str):
     except Exception as e:
         print(f"[ERRO BUSCA] {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
-@router.get("/residentes/consultar-limite/{cpf}")
-async def consultar_limite_dependentes(cpf: str):
-    try:
-        cpf_limpo = cpf.replace(".", "").replace("-", "") # Caso o frontend mande com pontuação
-        
-        # 1. Busca o titular (is_("titular_id", "null") garante que é o dono da conta)
-        res_titular = supabase.table("rd_residentes").select("id, status, nome_completo").eq("cpf", cpf).is_("titular_id", "null").execute()
-        
-        if not res_titular.data:
-            return {"status": "erro", "mensagem": "Nenhum titular principal encontrado com este CPF."}
-        
-        titular = res_titular.data[0]
-        if titular["status"] != "ativo":
-            return {"status": "erro", "mensagem": f"A carteira de {titular['nome_completo'].split()[0]} encontra-se inativa ou pendente."}
-            
-        # 2. Conta dependentes atuais
-        res_deps = supabase.table("rd_residentes").select("id").eq("titular_id", titular["id"]).execute()
-        dependentes_atuais = len(res_deps.data) if res_deps.data else 0
-        vagas_restantes = 4 - dependentes_atuais
-        
-        return {
-            "status": "sucesso",
-            "nome_titular": titular["nome_completo"],
-            "dependentes_atuais": dependentes_atuais,
-            "vagas_restantes": vagas_restantes if vagas_restantes > 0 else 0
-        }
-    except Exception as e:
-        return {"status": "erro", "mensagem": "Erro interno ao consultar o servidor."}
