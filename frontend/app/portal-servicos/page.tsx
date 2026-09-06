@@ -20,18 +20,18 @@ if (typeof window !== "undefined") {
 
 const ReactQuill = dynamic(() => import('react-quill'), { 
   ssr: false,
-  loading: () => <p className="text-sm text-slate-400 p-4">A carregar editor de texto...</p>
+  loading: () => <p className="text-sm text-[#8A8A8A] p-4">A carregar editor de texto...</p>
 });
 
-// Configuração da barra de ferramentas (Opções que o utilizador vai ter)
+// Configuração da barra de ferramentas
 const quillModules = {
   toolbar: [
     [{ 'header': [1, 2, 3, 4, false] }],
     ['bold', 'italic', 'underline', 'strike'],
-    [{ 'script': 'sub'}, { 'script': 'super' }], // Importante para notações
+    [{ 'script': 'sub'}, { 'script': 'super' }],
     [{ 'color': [] }, { 'background': [] }],
     [{ 'list': 'ordered'}, { 'list': 'bullet' }, { 'align': [] }],
-    ['link', 'image', 'video', 'formula'], // ◄── 'formula' adicionado aqui
+    ['link', 'image', 'video', 'formula'],
     ['clean']
   ],
 };
@@ -39,7 +39,31 @@ const quillModules = {
 const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["600", "700", "800"] });
 const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
-// ─── Tipos Limpos e Diretos ──────────────────────────────────────────────────
+// ─── ESTILOS WINDOWS 11 ──────────────────────────────────────────────────────────
+const inputCls = "w-full bg-white border border-[#D1D9E6] text-[#1A1A1A] text-sm rounded-md px-3 py-2 focus:outline-none focus:border-[#0078D4] focus:ring-1 focus:ring-[#0078D4] transition placeholder:text-[#8A8A8A]";
+
+function FormField({ label, children, className = "" }: { label: string; children: React.ReactNode; className?: string }) {
+  return <div className={className}><label className="block text-xs font-semibold text-[#1A1A1A] mb-1">{label}</label>{children}</div>;
+}
+
+function Th({ children, className = "" }: { children?: React.ReactNode; className?: string }) {
+  return <th className={`px-4 py-2 text-left text-xs font-semibold text-[#1A1A1A] ${className}`}>{children}</th>;
+}
+
+function Skeleton({ rows }: { rows: number }) {
+  return <div className="rounded-md border border-[#D1D9E6] overflow-hidden bg-white shadow-sm">{Array.from({ length: rows }).map((_, i) => <div key={i} className="h-14 bg-[#F0F4F8] border-b border-[#D1D9E6] animate-pulse" />)}</div>;
+}
+
+function fmtData(iso: string) {
+  if (!iso) return "—"; const [y, m, d] = iso.split("-"); return `${d}/${m}/${y}`;
+}
+
+function fmtDatetime(iso: string) {
+  if (!iso) return "—"; const d = new Date(iso);
+  return d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
+
+// ─── Tipos ──────────────────────────────────────────────────────────────────
 
 interface Evento {
   id: string; titulo: string; subtitulo: string | null; descricao: string | null;
@@ -83,37 +107,11 @@ interface Pedido {
   valor_total: number; status_pagamento: string; criado_em: string;
 }
 
-// NOVO TIPO: Blog
 interface BlogPost {
   id: string; titulo: string; resumo: string; conteudo: string;
   imagem_url: string | null; data_publicacao: string;
   ativo: boolean; autor: string | null; categoria: string | null;
   destaque: boolean;
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const inputCls = "w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-[#00577C] focus:ring-2 focus:ring-[#00577C]/20 transition placeholder:text-slate-400";
-
-function FormField({ label, children, className = "" }: { label: string; children: React.ReactNode; className?: string }) {
-  return <div className={className}><label className="block text-xs font-black text-slate-500 mb-1 uppercase tracking-wider">{label}</label>{children}</div>;
-}
-
-function Th({ children, className = "" }: { children?: React.ReactNode; className?: string }) {
-  return <th className={`px-4 py-3 text-left text-xs font-black text-slate-500 uppercase tracking-wider ${className}`}>{children}</th>;
-}
-
-function Skeleton({ rows }: { rows: number }) {
-  return <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm">{Array.from({ length: rows }).map((_, i) => <div key={i} className="h-14 bg-slate-50 border-b border-slate-100 animate-pulse" />)}</div>;
-}
-
-function fmtData(iso: string) {
-  if (!iso) return "—"; const [y, m, d] = iso.split("-"); return `${d}/${m}/${y}`;
-}
-
-function fmtDatetime(iso: string) {
-  if (!iso) return "—"; const d = new Date(iso);
-  return d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
 // ─── Login ───────────────────────────────────────────────────────────────────
@@ -131,12 +129,10 @@ export default function PortalServicos() {
     setLoadingLogin(true);
 
     try {
-      // Faz apenas a verificação oficial e segura do Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password: senha });
       
       if (authError) throw new Error("Credenciais inválidas. Verifique o e-mail e a senha.");
 
-      // Se passou pelo erro acima, o login foi um sucesso! Entra direto no painel:
       setRole("geral"); 
       
     } catch (error: any) {
@@ -148,18 +144,18 @@ export default function PortalServicos() {
 
   if (!role) {
     return (
-      <div className={`${inter.className} min-h-screen bg-[#FDFCF7] flex items-center justify-center p-4`}>
+      <div className={`${inter.className} min-h-screen bg-[#F0F4F8] flex items-center justify-center p-4`}>
         <div className="w-full max-w-sm">
           <div className="mb-8 flex flex-col items-center">
             <div className="relative w-32 h-16 mb-4"><Image src="/logop.png" alt="Logo" fill className="object-contain" priority /></div>
-            <h1 className={`${jakarta.className} text-xl font-black text-[#00577C]`}>CMS Institucional</h1>
-            <p className="text-sm text-slate-500 mt-1">Gestão do Portal SagaTurismo</p>
+            <h1 className={`${jakarta.className} text-xl font-bold text-[#1A1A1A]`}>CMS Institucional</h1>
+            <p className="text-sm text-[#8A8A8A] mt-1">Gestão do Portal SagaTurismo</p>
           </div>
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+          <div className="bg-white rounded-md border border-[#D1D9E6] shadow-sm p-6">
             <form onSubmit={handleLogin} className="space-y-4">
               <FormField label="E-mail de acesso"><input type="email" value={email} onChange={(e) => { setEmail(e.target.value); setErroLogin(""); }} className={inputCls} placeholder="admin@sagaturismo.com.br" required autoFocus /></FormField>
-              <FormField label="Senha de acesso"><input type="password" value={senha} onChange={(e) => { setSenha(e.target.value); setErroLogin(""); }} className={inputCls} placeholder="••••••••" required />{erroLogin && <p className="text-red-500 text-xs mt-2 font-medium">{erroLogin}</p>}</FormField>
-              <button type="submit" disabled={loadingLogin} className="w-full bg-[#00577C] hover:bg-[#004a6b] text-white font-black rounded-lg py-3 text-sm transition shadow-sm uppercase tracking-widest mt-2 disabled:opacity-70">{loadingLogin ? "A verificar..." : "Entrar"}</button>
+              <FormField label="Senha de acesso"><input type="password" value={senha} onChange={(e) => { setSenha(e.target.value); setErroLogin(""); }} className={inputCls} placeholder="••••••••" required />{erroLogin && <p className="text-[#D13438] text-xs mt-2 font-medium">{erroLogin}</p>}</FormField>
+              <button type="submit" disabled={loadingLogin} className="w-full bg-[#0078D4] hover:bg-[#005A9E] text-white font-semibold rounded-md py-3 text-sm transition shadow-sm uppercase tracking-widest mt-2 disabled:opacity-70">{loadingLogin ? "A verificar..." : "Entrar"}</button>
             </form>
           </div>
         </div>
@@ -204,48 +200,47 @@ function AdminDashboard({ role, email, onLogout }: { role: string; email: string
     }
   ];
 
-  // ◄── TRAVA DE SEGURANÇA: Aba Restrita agora com Base de Residentes ──►
   if (email === "emmanoel.cardoso09@gmail.com" || email === "planejamentosaga@gmail.com") {
     menuGroups.push({
       label: "Admin Restrito",
       items: [
         { id: "emissao", label: "Emissão de Carteira", icon: <AlertCircle size={16} /> },
         { id: "suporte", label: "Central de Suporte", icon: <Headset size={16} /> },
-        { id: "residentes", label: "Base de Residentes", icon: <Users size={16} /> } // ◄── Nova Aba Adicionada
+        { id: "residentes", label: "Base de Residentes", icon: <Users size={16} /> }
       ]
     });
   }
 
   return (
-    <div className={`${inter.className} min-h-screen bg-[#FDFCF7] text-slate-800`}>
-      <header className="border-b border-slate-200 bg-white sticky top-0 z-20 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
+    <div className={`${inter.className} min-h-screen bg-[#F0F4F8] text-[#1A1A1A]`}>
+      {/* ─── BARRA DE TÍTULO WINDOWS 11 ── */}
+      <header className="bg-[#F0F4F8] border-b border-[#D1D9E6] sticky top-0 z-20">
+        <div className="px-4 sm:px-6 h-12 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="relative w-28 h-8"><Image src="/logop.png" alt="Logo" fill className="object-contain object-left" priority /></div>
-            <span className="hidden sm:block text-xs font-bold text-slate-500 border-l border-slate-200 pl-3 uppercase tracking-wider">Painel Administrativo</span>
+            <span className="hidden sm:block text-xs font-semibold text-[#8A8A8A] border-l border-[#D1D9E6] pl-3 uppercase tracking-wider">Painel Administrativo</span>
           </div>
-          <button onClick={onLogout} className="text-xs text-slate-500 hover:text-[#00577C] transition flex items-center gap-1.5 font-bold uppercase tracking-widest">Sair</button>
+          <button onClick={onLogout} className="text-xs text-[#8A8A8A] hover:text-[#0078D4] transition font-semibold uppercase">Sair</button>
         </div>
         
-        {/* SUB-HEADER: BARRA DE NAVEGAÇÃO AGRUPADA COM DROPDOWNS */}
-        <div className="bg-slate-50 border-t border-slate-200 px-4 sm:px-6 relative z-10">
-          <div className="max-w-7xl mx-auto flex flex-wrap gap-2 py-2">
+        {/* ─── MENU DE NAVEGAÇÃO ── */}
+        <div className="bg-[#F0F4F8] border-t border-[#D1D9E6] px-4 sm:px-6 relative z-10">
+          <div className="flex flex-wrap gap-1 py-1">
             {menuGroups.map((grupo, idx) => {
               const isActiveGroup = grupo.items.some(item => item.id === activeTab);
               return (
                 <div key={idx} className="relative group">
-                  <button className={`flex items-center gap-2 px-4 py-2 text-sm font-black rounded-xl transition-colors ${isActiveGroup ? 'bg-[#00577C]/10 text-[#00577C]' : 'text-slate-600 hover:bg-slate-200 hover:text-slate-800'}`}>
-                    {grupo.label} <ChevronDown size={14} className={`transition-transform group-hover:rotate-180 ${isActiveGroup ? 'text-[#00577C]' : 'text-slate-400'}`} />
+                  <button className={`flex items-center gap-2 px-3 py-1.5 text-sm font-semibold rounded-md transition-colors ${isActiveGroup ? 'bg-[#0078D4] text-white' : 'text-[#1A1A1A] hover:bg-[#D1D9E6]'}`}>
+                    {grupo.label} <ChevronDown size={14} className={`transition-transform group-hover:rotate-180 ${isActiveGroup ? 'text-white' : 'text-[#8A8A8A]'}`} />
                   </button>
                   
-                  {/* Caixa do Dropdown */}
-                  <div className="absolute left-0 top-full pt-2 hidden group-hover:flex flex-col w-56">
-                    <div className="bg-white border border-slate-100 shadow-xl rounded-2xl p-2 flex flex-col gap-1">
+                  <div className="absolute left-0 top-full pt-1 hidden group-hover:flex flex-col w-56">
+                    <div className="bg-white border border-[#D1D9E6] shadow-lg rounded-md p-1 flex flex-col gap-0.5">
                       {grupo.items.map(tab => (
                         <button 
                           key={tab.id} 
                           onClick={() => setActiveTab(tab.id)} 
-                          className={`flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold rounded-xl w-full text-left transition-colors ${activeTab === tab.id ? 'bg-[#00577C] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50 hover:text-[#00577C]'}`}
+                          className={`flex items-center gap-2.5 px-3 py-2 text-xs font-semibold rounded-md w-full text-left transition-colors ${activeTab === tab.id ? 'bg-[#0078D4] text-white shadow-sm' : 'text-[#1A1A1A] hover:bg-[#F0F4F8]'}`}
                         >
                           {tab.icon} {tab.label}
                         </button>
@@ -259,8 +254,7 @@ function AdminDashboard({ role, email, onLogout }: { role: string; email: string
         </div>
       </header>
 
-      {/* RENDERIZAÇÃO DAS ABAS */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+      <main className="px-4 sm:px-6 py-6">
         {activeTab === "dashboard"   && <TabDashboard />}
         {activeTab === "blog"        && <TabBlog />}
         {activeTab === "eventos"     && <TabEventos />}
@@ -280,7 +274,7 @@ function AdminDashboard({ role, email, onLogout }: { role: string; email: string
   );
 }
 
-// ─── Aba: Dashboard (Simplificada) ───────────────────────────────────────────
+// ─── Aba: Dashboard ───────────────────────────────────────────────────────────
 
 function TabDashboard() {
   const [eventos, setEventos] = useState<any[]>([]);
@@ -296,11 +290,9 @@ function TabDashboard() {
     const hojeIso = hoje.toISOString().split('T')[0];
     const daquiA7DiasIso = daquiA7Dias.toISOString().split('T')[0];
 
-    // Busca Eventos da Semana
     const { data: eventosData } = await supabase.from('eventos').select('titulo, data, local').gte('data', hojeIso).lte('data', daquiA7DiasIso).order('data', { ascending: true });
     setEventos(eventosData || []);
 
-    // Conta os Registos Ativos
     const { count: cAtracoes } = await supabase.from('atracoes').select('*', { count: 'exact', head: true });
     const { count: cHoteis } = await supabase.from('hoteis').select('*', { count: 'exact', head: true });
     const { count: cAgencias } = await supabase.from('agencias').select('*', { count: 'exact', head: true });
@@ -313,59 +305,57 @@ function TabDashboard() {
     setLoading(false);
   }
 
-  if (loading) return <div className="py-20 flex justify-center"><Loader2 className="animate-spin text-[#00577C]" size={32}/></div>;
+  if (loading) return <div className="py-20 flex justify-center"><Loader2 className="animate-spin text-[#0078D4]" size={32}/></div>;
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
-      {/* Cards de Resumo */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-        <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col items-center text-center">
-          <div className="w-12 h-12 bg-blue-50 text-[#00577C] rounded-2xl flex items-center justify-center mb-3"><MapPin size={24}/></div>
-          <span className={`${jakarta.className} text-3xl font-black text-slate-800`}>{stats.atracoes}</span>
-          <span className="text-xs font-black text-slate-400 uppercase tracking-widest mt-1">Atrativos</span>
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-white p-6 rounded-md border border-[#D1D9E6] shadow-sm flex flex-col items-center text-center">
+          <div className="w-12 h-12 bg-[#E5F0FF] text-[#0078D4] rounded-md flex items-center justify-center mb-3"><MapPin size={24}/></div>
+          <span className={`${jakarta.className} text-3xl font-bold text-[#1A1A1A]`}>{stats.atracoes}</span>
+          <span className="text-xs font-semibold text-[#8A8A8A] uppercase tracking-widest mt-1">Atrativos</span>
         </div>
-        <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col items-center text-center">
-          <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mb-3"><Building2 size={24}/></div>
-          <span className={`${jakarta.className} text-3xl font-black text-slate-800`}>{stats.hoteis}</span>
-          <span className="text-xs font-black text-slate-400 uppercase tracking-widest mt-1">Hotéis</span>
+        <div className="bg-white p-6 rounded-md border border-[#D1D9E6] shadow-sm flex flex-col items-center text-center">
+          <div className="w-12 h-12 bg-[#FFF8E5] text-[#DAA520] rounded-md flex items-center justify-center mb-3"><Building2 size={24}/></div>
+          <span className={`${jakarta.className} text-3xl font-bold text-[#1A1A1A]`}>{stats.hoteis}</span>
+          <span className="text-xs font-semibold text-[#8A8A8A] uppercase tracking-widest mt-1">Hotéis</span>
         </div>
-        <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col items-center text-center">
-          <div className="w-12 h-12 bg-green-50 text-[#009640] rounded-2xl flex items-center justify-center mb-3"><Utensils size={24}/></div>
-          <span className={`${jakarta.className} text-3xl font-black text-slate-800`}>{stats.restaurantes}</span>
-          <span className="text-xs font-black text-slate-400 uppercase tracking-widest mt-1">Restaurantes</span>
+        <div className="bg-white p-6 rounded-md border border-[#D1D9E6] shadow-sm flex flex-col items-center text-center">
+          <div className="w-12 h-12 bg-[#E5F0FF] text-[#0078D4] rounded-md flex items-center justify-center mb-3"><Utensils size={24}/></div>
+          <span className={`${jakarta.className} text-3xl font-bold text-[#1A1A1A]`}>{stats.restaurantes}</span>
+          <span className="text-xs font-semibold text-[#8A8A8A] uppercase tracking-widest mt-1">Restaurantes</span>
         </div>
-        <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col items-center text-center">
-          <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center mb-3"><Briefcase size={24}/></div>
-          <span className={`${jakarta.className} text-3xl font-black text-slate-800`}>{stats.agencias}</span>
-          <span className="text-xs font-black text-slate-400 uppercase tracking-widest mt-1">Agências</span>
+        <div className="bg-white p-6 rounded-md border border-[#D1D9E6] shadow-sm flex flex-col items-center text-center">
+          <div className="w-12 h-12 bg-[#FDE7E9] text-[#D13438] rounded-md flex items-center justify-center mb-3"><Briefcase size={24}/></div>
+          <span className={`${jakarta.className} text-3xl font-bold text-[#1A1A1A]`}>{stats.agencias}</span>
+          <span className="text-xs font-semibold text-[#8A8A8A] uppercase tracking-widest mt-1">Agências</span>
         </div>
       </div>
 
-      {/* Próximos Eventos */}
-      <section className="bg-white border border-slate-200 rounded-[2rem] p-6 shadow-sm max-w-3xl mx-auto">
-        <div className="flex items-center gap-3 border-b border-slate-100 pb-4 mb-4">
-          <div className="bg-[#00577C]/10 text-[#00577C] p-2 rounded-xl"><CalendarIcon size={20}/></div>
-          <h3 className={`${jakarta.className} text-xl font-black text-slate-800`}>Eventos Municipais (Próximos 7 Dias)</h3>
+      <section className="bg-white border border-[#D1D9E6] rounded-md p-6 shadow-sm max-w-3xl mx-auto">
+        <div className="flex items-center gap-3 border-b border-[#D1D9E6] pb-4 mb-4">
+          <div className="bg-[#E5F0FF] text-[#0078D4] p-2 rounded-md"><CalendarIcon size={20}/></div>
+          <h3 className={`${jakarta.className} text-xl font-bold text-[#1A1A1A]`}>Eventos Municipais (Próximos 7 Dias)</h3>
         </div>
         {eventos.length === 0 ? (
           <div className="text-center py-12">
-            <Clock size={40} className="mx-auto text-slate-200 mb-3"/>
-            <p className="font-bold text-slate-400">Agenda livre.</p>
-            <p className="text-xs text-slate-400">Nenhum evento programado para esta semana.</p>
+            <Clock size={40} className="mx-auto text-[#D1D9E6] mb-3"/>
+            <p className="font-semibold text-[#8A8A8A]">Agenda livre.</p>
+            <p className="text-xs text-[#8A8A8A]">Nenhum evento programado para esta semana.</p>
           </div>
         ) : (
           <div className="space-y-3">
             {eventos.map((ev, idx) => {
               const [ano, mes, dia] = ev.data.split('-');
               return (
-                <div key={idx} className="flex items-center gap-4 p-4 bg-blue-50/50 border border-blue-100 rounded-2xl">
-                  <div className="bg-white border border-blue-100 rounded-xl w-14 h-14 flex flex-col items-center justify-center shrink-0 shadow-sm">
-                    <span className="text-[10px] font-black uppercase text-[#00577C] leading-none mb-1">{new Date(ev.data).toLocaleString('pt-BR', { month: 'short' })}</span>
-                    <span className={`${jakarta.className} text-xl font-black text-slate-900 leading-none`}>{dia}</span>
+                <div key={idx} className="flex items-center gap-4 p-4 bg-[#E5F0FF] border border-[#D1D9E6] rounded-md">
+                  <div className="bg-white border border-[#D1D9E6] rounded-md w-14 h-14 flex flex-col items-center justify-center shrink-0 shadow-sm">
+                    <span className="text-[10px] font-semibold uppercase text-[#0078D4] leading-none mb-1">{new Date(ev.data).toLocaleString('pt-BR', { month: 'short' })}</span>
+                    <span className={`${jakarta.className} text-xl font-bold text-[#1A1A1A] leading-none`}>{dia}</span>
                   </div>
                   <div>
-                    <p className="font-bold text-sm text-slate-800">{ev.titulo}</p>
-                    <p className="text-xs text-slate-500 font-medium flex items-center gap-1 mt-1"><MapPin size={12}/> {ev.local}</p>
+                    <p className="font-semibold text-sm text-[#1A1A1A]">{ev.titulo}</p>
+                    <p className="text-xs text-[#8A8A8A] font-medium flex items-center gap-1 mt-1"><MapPin size={12}/> {ev.local}</p>
                   </div>
                 </div>
               );
@@ -389,7 +379,7 @@ function TabBlog() {
   const [modoEditor, setModoEditor] = useState<'visual' | 'codigo'>('visual');
   
   const formVazio = { 
-    titulo: "", resumo: "", conteudo: "", legenda_imagem_capa: "", // ◄── Novo
+    titulo: "", resumo: "", conteudo: "", legenda_imagem_capa: "",
     data_publicacao: new Date().toISOString().split('T')[0], 
     autor: "Redação", categoria: "Turismo", 
     ativo: true, destaque: false 
@@ -431,7 +421,7 @@ function TabBlog() {
     if (imagemFile) {
       const ext = imagemFile.name.split(".").pop();
       const path = `blog/${Date.now()}.${ext}`;
-      const { error } = await supabase.storage.from("galeria").upload(path, imagemFile, { upsert: true }); // Pode usar outro bucket se preferir
+      const { error } = await supabase.storage.from("galeria").upload(path, imagemFile, { upsert: true });
       if (!error) {
         const { data: pub } = supabase.storage.from("galeria").getPublicUrl(path);
         imagem_url = pub.publicUrl;
@@ -457,21 +447,21 @@ function TabBlog() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className={`${jakarta.className} text-xl font-black text-[#00577C]`}>Gestão do Blog</h2>
-          <p className="text-xs text-slate-500 mt-1">{posts.length} artigos publicados</p>
+          <h2 className={`${jakarta.className} text-xl font-bold text-[#1A1A1A]`}>Gestão do Blog</h2>
+          <p className="text-xs text-[#8A8A8A] mt-1">{posts.length} artigos publicados</p>
         </div>
-        <button onClick={abrirFormNovo} className="bg-[#00577C] hover:bg-[#004a6b] text-white font-black text-sm px-5 py-2.5 rounded-xl transition shadow-md flex items-center gap-2">
+        <button onClick={abrirFormNovo} className="bg-[#0078D4] hover:bg-[#005A9E] text-white font-semibold text-sm px-5 py-2.5 rounded-md transition shadow-md flex items-center gap-2">
           <Plus size={16} /> Novo Artigo
         </button>
       </div>
 
       {showForm ? (
-        <div className="bg-white rounded-[2rem] p-8 shadow-lg border border-slate-100 animate-in fade-in slide-in-from-bottom-4">
-          <div className="flex items-center justify-between mb-8 border-b border-slate-100 pb-4">
-            <h3 className={`${jakarta.className} text-2xl font-black text-slate-800 flex items-center gap-2`}>
-              <Newspaper className="text-[#F9C400]" /> {editando ? "Editar Artigo" : "Escrever Novo Artigo"}
+        <div className="bg-white rounded-md p-8 shadow-lg border border-[#D1D9E6] animate-in fade-in slide-in-from-bottom-4">
+          <div className="flex items-center justify-between mb-8 border-b border-[#D1D9E6] pb-4">
+            <h3 className={`${jakarta.className} text-2xl font-bold text-[#1A1A1A] flex items-center gap-2`}>
+              <Newspaper className="text-[#DAA520]" /> {editando ? "Editar Artigo" : "Escrever Novo Artigo"}
             </h3>
-            <button onClick={() => setShowForm(false)} className="text-sm font-bold text-slate-400 hover:text-slate-800">Cancelar</button>
+            <button onClick={() => setShowForm(false)} className="text-sm font-semibold text-[#8A8A8A] hover:text-[#1A1A1A]">Cancelar</button>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-8 gap-y-8">
@@ -479,29 +469,28 @@ function TabBlog() {
               <FormField label="Título da Notícia/Artigo *"><input value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value })} className={inputCls} placeholder="Ex: Novo roteiro descoberto..." /></FormField>
               <FormField label="Resumo Breve"><textarea value={form.resumo || ""} onChange={(e) => setForm({ ...form, resumo: e.target.value })} rows={2} className={inputCls} placeholder="Uma breve frase sobre o artigo" /></FormField>
               <div className="flex items-center justify-between mb-2">
-                <label className="block text-xs font-black text-slate-500 uppercase tracking-wider">
+                <label className="block text-xs font-semibold text-[#1A1A1A] uppercase tracking-wider">
                   Conteúdo Completo *
                 </label>
-                {/* Abas de troca de modo */}
-                <div className="flex bg-slate-100 p-1 rounded-lg">
+                <div className="flex bg-[#F0F4F8] p-1 rounded-md">
                   <button 
                     type="button"
                     onClick={() => setModoEditor('visual')}
-                    className={`text-[10px] font-black uppercase px-3 py-1.5 rounded-md transition-all ${modoEditor === 'visual' ? 'bg-white text-[#00577C] shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                    className={`text-[10px] font-semibold uppercase px-3 py-1.5 rounded-md transition-all ${modoEditor === 'visual' ? 'bg-white text-[#0078D4] shadow-sm' : 'text-[#8A8A8A] hover:text-[#1A1A1A]'}`}
                   >
                     Modo Visual
                   </button>
                   <button 
                     type="button"
                     onClick={() => setModoEditor('codigo')}
-                    className={`text-[10px] font-black uppercase px-3 py-1.5 rounded-md transition-all ${modoEditor === 'codigo' ? 'bg-white text-[#00577C] shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                    className={`text-[10px] font-semibold uppercase px-3 py-1.5 rounded-md transition-all ${modoEditor === 'codigo' ? 'bg-white text-[#0078D4] shadow-sm' : 'text-[#8A8A8A] hover:text-[#1A1A1A]'}`}
                   >
                     HTML / LaTeX Bruto
                   </button>
                 </div>
               </div>
 
-              <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
+              <div className="bg-white border border-[#D1D9E6] rounded-md overflow-hidden">
                 {modoEditor === 'visual' ? (
                   <ReactQuill 
                     theme="snow" 
@@ -515,7 +504,7 @@ function TabBlog() {
                   <textarea 
                     value={form.conteudo || ""}
                     onChange={(e) => setForm({ ...form, conteudo: e.target.value })}
-                    className="w-full h-[450px] p-4 bg-slate-900 text-green-400 font-mono text-sm focus:outline-none"
+                    className="w-full h-[450px] p-4 bg-[#1A1A1A] text-[#E5F0FF] font-mono text-sm focus:outline-none"
                     placeholder="<p>Insira seu código HTML ou marcações LaTeX aqui...</p>"
                   />
                 )}
@@ -523,7 +512,7 @@ function TabBlog() {
             </div>
             
             <div className="space-y-5">
-              <h4 className="font-black text-[#00577C] border-b pb-2">Detalhes & Publicação</h4>
+              <h4 className="font-bold text-[#1A1A1A] border-b pb-2">Detalhes & Publicação</h4>
               <FormField label="Autor"><input value={form.autor || ""} onChange={(e) => setForm({ ...form, autor: e.target.value })} className={inputCls} placeholder="Ex: Redação, Nome..." /></FormField>
               <FormField label="Categoria"><input value={form.categoria || ""} onChange={(e) => setForm({ ...form, categoria: e.target.value })} className={inputCls} placeholder="Ex: Turismo, Eventos..." /></FormField>
               <FormField label="Data de Publicação *"><input type="date" value={form.data_publicacao} onChange={(e) => setForm({ ...form, data_publicacao: e.target.value })} className={inputCls} /></FormField>
@@ -534,11 +523,11 @@ function TabBlog() {
               </div>
 
               <FormField label="Imagem de Capa">
-                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 text-slate-500 p-6 rounded-xl cursor-pointer hover:border-[#00577C] transition-colors text-center text-xs">
+                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-[#D1D9E6] bg-[#F0F4F8] text-[#8A8A8A] p-6 rounded-md cursor-pointer hover:border-[#0078D4] transition-colors text-center text-xs">
                   <input type="file" accept="image/*" className="hidden" onChange={(e) => setImagemFile(e.target.files?.[0] || null)} />
                   <ImageIcon size={18} /> {imagemFile ? imagemFile.name : form.imagem_url ? "Trocar imagem atual" : "Anexar Imagem"}
                 </label>
-                {form.imagem_url && !imagemFile && <img src={form.imagem_url} alt="Capa atual" className="mt-3 h-24 w-full object-cover rounded-xl border border-slate-200" />}
+                {form.imagem_url && !imagemFile && <img src={form.imagem_url} alt="Capa atual" className="mt-3 h-24 w-full object-cover rounded-md border border-[#D1D9E6]" />}
               </FormField>
 
               <FormField label="Legenda / Créditos da Capa" className="mt-4">
@@ -552,43 +541,43 @@ function TabBlog() {
             </div>
           </div>
 
-          <div className="mt-10 flex items-center justify-between pt-6 border-t border-slate-100">
-            <span className="text-sm font-bold text-[#009640]">{feedback}</span>
-            <button onClick={handleSave} disabled={saving} className="bg-[#009640] hover:bg-green-700 text-white px-10 py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg flex items-center gap-2 transition-all">
+          <div className="mt-10 flex items-center justify-between pt-6 border-t border-[#D1D9E6]">
+            <span className="text-sm font-semibold text-[#0078D4]">{feedback}</span>
+            <button onClick={handleSave} disabled={saving} className="bg-[#0078D4] hover:bg-[#005A9E] text-white px-10 py-4 rounded-md font-semibold text-sm uppercase tracking-widest shadow-lg flex items-center gap-2 transition-all">
               {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Publicar Artigo
             </button>
           </div>
         </div>
       ) : (
-        loading ? <div className="py-12 flex justify-center"><Loader2 size={32} className="text-[#00577C] animate-spin" /></div> : (
-          <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm overflow-x-auto">
+        loading ? <div className="py-12 flex justify-center"><Loader2 size={32} className="text-[#0078D4] animate-spin" /></div> : (
+          <div className="rounded-md border border-[#D1D9E6] overflow-hidden bg-white shadow-sm overflow-x-auto">
             <table className="w-full text-sm min-w-[800px]">
               <thead>
-                <tr className="border-b border-slate-200 bg-slate-50">
+                <tr className="border-b border-[#D1D9E6] bg-[#F0F4F8]">
                   <Th className="w-16">Capa</Th><Th>Título do Artigo</Th><Th>Categoria</Th><Th>Data</Th><Th>Status</Th><Th className="text-right">Ações</Th>
                 </tr>
               </thead>
               <tbody>
                 {posts.map((post) => (
-                  <tr key={post.id} className="border-b border-slate-100 hover:bg-slate-50 transition">
-                    <td className="px-4 py-3"><img src={post.imagem_url || "/placeholder.png"} alt={post.titulo} className="w-10 h-10 rounded-lg object-cover" /></td>
-                    <td className="px-4 py-3"><p className="font-bold text-slate-800 line-clamp-1">{post.titulo}</p><p className="text-xs text-slate-500 line-clamp-1 mt-0.5">{post.resumo}</p></td>
-                    <td className="px-4 py-3 text-slate-600">{post.categoria || "—"}</td>
-                    <td className="px-4 py-3 text-slate-600">{fmtData(post.data_publicacao)}</td>
+                  <tr key={post.id} className="border-b border-[#D1D9E6] hover:bg-[#F0F4F8] transition">
+                    <td className="px-4 py-3"><img src={post.imagem_url || "/placeholder.png"} alt={post.titulo} className="w-10 h-10 rounded-md object-cover" /></td>
+                    <td className="px-4 py-3"><p className="font-semibold text-[#1A1A1A] line-clamp-1">{post.titulo}</p><p className="text-xs text-[#8A8A8A] line-clamp-1 mt-0.5">{post.resumo}</p></td>
+                    <td className="px-4 py-3 text-[#1A1A1A]">{post.categoria || "—"}</td>
+                    <td className="px-4 py-3 text-[#1A1A1A]">{fmtData(post.data_publicacao)}</td>
                     <td className="px-4 py-3">
-                      <button onClick={() => toggleAtivo(post.id, post.ativo)} className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-full transition-colors ${post.ativo ? 'text-[#009640] bg-green-50 hover:bg-green-100' : 'text-slate-500 bg-slate-200 hover:bg-slate-300'}`}>
+                      <button onClick={() => toggleAtivo(post.id, post.ativo)} className={`text-[10px] font-semibold uppercase px-2.5 py-1 rounded-full transition-colors ${post.ativo ? 'text-[#0078D4] bg-[#E5F0FF] hover:bg-[#D1D9E6]' : 'text-[#8A8A8A] bg-[#F0F4F8] hover:bg-[#D1D9E6]'}`}>
                         {post.ativo ? "Público" : "Oculto"}
                       </button>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex justify-end gap-3">
-                         <button onClick={() => abrirFormEditar(post)} className="text-xs font-bold text-[#00577C] hover:underline">Editar</button>
-                         <button onClick={() => handleDelete(post.id)} className="text-xs font-bold text-red-500 hover:underline">Remover</button>
+                         <button onClick={() => abrirFormEditar(post)} className="text-xs font-semibold text-[#0078D4] hover:underline">Editar</button>
+                         <button onClick={() => handleDelete(post.id)} className="text-xs font-semibold text-[#D13438] hover:underline">Remover</button>
                       </div>
                     </td>
                   </tr>
                 ))}
-                {posts.length === 0 && (<tr><td colSpan={6} className="px-4 py-10 text-center text-slate-400">Nenhum artigo publicado no blog.</td></tr>)}
+                {posts.length === 0 && (<tr><td colSpan={6} className="px-4 py-10 text-center text-[#8A8A8A]">Nenhum artigo publicado no blog.</td></tr>)}
               </tbody>
             </table>
           </div>
@@ -599,11 +588,7 @@ function TabBlog() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// NEWSLETTER COMERCIAL
-// ═══════════════════════════════════════════════════════════════════════════════
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// NEWSLETTER COMERCIAL (HTML LIVRE)
+// NEWSLETTER
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function TabNewsletter() {
@@ -612,7 +597,6 @@ function TabNewsletter() {
   const [enviando, setEnviando] = useState(false);
   const [feedback, setFeedback] = useState("");
 
-  // Campos Simplificados
   const [assunto, setAssunto] = useState("");
   const [textoHtml, setTextoHtml] = useState("");
 
@@ -676,60 +660,58 @@ function TabNewsletter() {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className={`${jakarta.className} text-xl font-black text-[#00577C]`}>Campanhas de Newsletter</h2>
-          <p className="text-xs text-slate-500 mt-1">Total de {inscritos.length} utilizadores inscritos para receber novidades.</p>
+          <h2 className={`${jakarta.className} text-xl font-bold text-[#1A1A1A]`}>Campanhas de Newsletter</h2>
+          <p className="text-xs text-[#8A8A8A] mt-1">Total de {inscritos.length} utilizadores inscritos para receber novidades.</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* FORMULÁRIO DE DISPARO (CÓDIGO LIVRE) */}
-        <div className="lg:col-span-2 bg-white rounded-[2rem] p-8 shadow-sm border border-slate-200">
-          <h3 className={`${jakarta.className} text-lg font-black text-slate-800 mb-6 flex items-center gap-2`}>
-            <Bell size={18} className="text-[#F9C400]" /> Disparo de E-mail (Código Livre)
+        <div className="lg:col-span-2 bg-white rounded-md p-8 shadow-sm border border-[#D1D9E6]">
+          <h3 className={`${jakarta.className} text-lg font-bold text-[#1A1A1A] mb-6 flex items-center gap-2`}>
+            <Bell size={18} className="text-[#DAA520]" /> Disparo de E-mail (Código Livre)
           </h3>
 
           <form onSubmit={handleDisparar} className="space-y-5">
-            <FormField label="Assunto do E-mail (O que aparece na caixa de entrada) *">
+            <FormField label="Assunto do E-mail *">
               <input value={assunto} onChange={e => setAssunto(e.target.value)} className={inputCls} placeholder="Ex: Descubra as novas cachoeiras 🌿" required />
             </FormField>
 
-            <FormField label="Código HTML Completo (Cole aqui o código do seu editor) *">
+            <FormField label="Código HTML Completo *">
               <textarea 
                 rows={16} 
                 value={textoHtml} 
                 onChange={e => setTextoHtml(e.target.value)} 
-                className={`${inputCls} font-mono text-xs bg-slate-900 text-green-400 p-4`} 
+                className={`${inputCls} font-mono text-xs bg-[#1A1A1A] text-[#E5F0FF] p-4`} 
                 placeholder="<!DOCTYPE html><html>..." 
                 required 
               />
             </FormField>
 
-            <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
-              <span className="text-xs font-bold text-[#009640]">{feedback}</span>
-              <button type="submit" disabled={enviando} className="bg-[#00577C] hover:bg-[#004a6b] text-white px-8 py-3.5 rounded-xl font-black text-xs uppercase tracking-widest shadow-md flex items-center gap-2 disabled:opacity-50 transition-all">
+            <div className="pt-4 border-t border-[#D1D9E6] flex items-center justify-between">
+              <span className="text-xs font-semibold text-[#0078D4]">{feedback}</span>
+              <button type="submit" disabled={enviando} className="bg-[#0078D4] hover:bg-[#005A9E] text-white px-8 py-3.5 rounded-md font-semibold text-xs uppercase tracking-widest shadow-md flex items-center gap-2 disabled:opacity-50 transition-all">
                 {enviando ? <Loader2 size={16} className="animate-spin" /> : <Bell size={16} />} Disparar para {inscritos.length} Inscritos
               </button>
             </div>
           </form>
         </div>
 
-        {/* LISTAGEM RÁPIDA DOS INSCRITOS */}
-        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200 flex flex-col h-fit">
-          <h4 className={`${jakarta.className} text-sm font-black text-slate-800 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100`}>
+        <div className="bg-white rounded-md p-6 shadow-sm border border-[#D1D9E6] flex flex-col h-fit">
+          <h4 className={`${jakarta.className} text-sm font-bold text-[#1A1A1A] uppercase tracking-wider mb-4 pb-2 border-b border-[#D1D9E6]`}>
             Base de Leads Capturados
           </h4>
           
           {loading ? (
-            <div className="py-8 flex justify-center"><Loader2 className="animate-spin text-[#00577C]" size={24} /></div>
+            <div className="py-8 flex justify-center"><Loader2 className="animate-spin text-[#0078D4]" size={24} /></div>
           ) : inscritos.length === 0 ? (
-            <p className="text-xs text-slate-400 py-6 text-center">Nenhum e-mail inscrito na newsletter até ao momento.</p>
+            <p className="text-xs text-[#8A8A8A] py-6 text-center">Nenhum e-mail inscrito na newsletter até ao momento.</p>
           ) : (
             <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
               {inscritos.map((item, idx) => (
-                <div key={item.id || idx} className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex flex-col">
-                  <span className="text-xs font-bold text-slate-700 truncate">{item.email}</span>
-                  <span className="text-[10px] text-slate-400 mt-0.5">Cadastrado em: {fmtData(item.criado_em?.split('T')[0])}</span>
+                <div key={item.id || idx} className="p-3 bg-[#F0F4F8] border border-[#D1D9E6] rounded-md flex flex-col">
+                  <span className="text-xs font-semibold text-[#1A1A1A] truncate">{item.email}</span>
+                  <span className="text-[10px] text-[#8A8A8A] mt-0.5">Cadastrado em: {fmtData(item.criado_em?.split('T')[0])}</span>
                 </div>
               ))}
             </div>
@@ -742,7 +724,7 @@ function TabNewsletter() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// EVENTOS - GESTÃO COMPLETA (EM LOTE E MANUAL/EDIÇÃO)
+// EVENTOS
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function TabEventos() {
@@ -750,13 +732,11 @@ function TabEventos() {
   const [eventosList, setEventosList] = useState<Evento[]>([]);
   const [loadingList, setLoadingList] = useState(true);
   
-  // ── ESTADOS DO CSV ──
   const [eventosPreview, setEventosPreview] = useState<any[]>([]);
   const [imagensMap, setImagensMap] = useState<{ [key: number]: File }>({});
   const [feedback, setFeedback] = useState("");
 
-  // ── ESTADOS DO MANUAL & EDIÇÃO ──
-  const [editando, setEditando] = useState<Evento | null>(null); // ◄── Novo estado para Edição
+  const [editando, setEditando] = useState<Evento | null>(null);
   const [formManual, setFormManual] = useState<any>({ destaque: false, categoria: 'Cultura' });
   const [imagemManual, setImagemManual] = useState<File | null>(null);
   const [savingManual, setSavingManual] = useState(false);
@@ -785,7 +765,6 @@ function TabEventos() {
     fetchEventos();
   }
 
-  // ── 1. MOTOR DE LEITURA DO CSV ──
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -823,7 +802,6 @@ function TabEventos() {
 
   const handleImagemChange = (index: number, file: File) => setImagensMap(prev => ({ ...prev, [index]: file }));
 
-  // ── 2. ENVIO EM LOTE (CSV) ──
   const handleSalvarTudo = async () => {
     setFase('salvando');
     setFeedback("A iniciar a sincronização com a base de dados...");
@@ -860,7 +838,6 @@ function TabEventos() {
     setFase('sucesso');
   };
 
-  // ── 3. ENVIO MANUAL & EDIÇÃO ──
   const abrirFormManual = () => {
     setEditando(null);
     setFormManual({ destaque: false, categoria: 'Cultura' });
@@ -869,7 +846,6 @@ function TabEventos() {
     setFase('manual');
   };
 
-  // ◄── Nova Função: Carrega os dados do evento antigo para o formulário
   const abrirFormEditar = (ev: Evento) => {
     setEditando(ev);
     setFormManual({
@@ -901,7 +877,7 @@ function TabEventos() {
     setFeedback("A guardar evento...");
 
     try {
-      let imagem_url = formManual.imagem_url; // Mantém a imagem antiga se existir
+      let imagem_url = formManual.imagem_url;
       
       if (imagemManual) {
         const ext = imagemManual.name.split('.').pop();
@@ -933,7 +909,6 @@ function TabEventos() {
 
       let erroBd;
 
-      // ◄── Lógica Inteligente (Insert vs Update) com bloqueio de Erro
       if (editando) {
         const { error } = await supabase.from('eventos').update(payload).eq('id', editando.id);
         erroBd = error;
@@ -967,62 +942,58 @@ function TabEventos() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className={`${jakarta.className} text-xl font-black text-[#00577C]`}>Gestão de Eventos</h2>
-          <p className="text-xs text-slate-500 mt-1">Ferramenta exclusiva da Prefeitura para o calendário da cidade.</p>
+          <h2 className={`${jakarta.className} text-xl font-bold text-[#1A1A1A]`}>Gestão de Eventos</h2>
+          <p className="text-xs text-[#8A8A8A] mt-1">Ferramenta exclusiva da Prefeitura para o calendário da cidade.</p>
         </div>
-        {fase !== 'inicio' && (<button onClick={resetar} className="text-xs text-slate-500 font-bold hover:text-slate-800 underline">Cancelar e Voltar</button>)}
+        {fase !== 'inicio' && (<button onClick={resetar} className="text-xs text-[#8A8A8A] font-semibold hover:text-[#1A1A1A] underline">Cancelar e Voltar</button>)}
       </div>
 
-      {/* TELA 1: ESCOLHA DE MÉTODO (CSV ou MANUAL) + TABELA DE EVENTOS */}
       {fase === 'inicio' && (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Opção Lote */}
-            <div className="border-2 border-dashed border-slate-300 rounded-[2rem] p-10 text-center bg-white hover:bg-slate-50 transition-colors relative group flex flex-col items-center justify-center">
+            <div className="border-2 border-dashed border-[#D1D9E6] rounded-md p-10 text-center bg-white hover:bg-[#F0F4F8] transition-colors relative group flex flex-col items-center justify-center">
               <input type="file" accept=".csv" onChange={handleFileUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
-              <div className="w-16 h-16 bg-[#00577C]/10 text-[#00577C] rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform mb-4"><FileSpreadsheet size={32} /></div>
-              <h3 className={`${jakarta.className} text-xl font-black text-slate-800`}>Importação em Lote</h3>
-              <p className="text-xs font-medium text-slate-500 mt-2">Arraste o seu ficheiro CSV (Excel) para carregar dezenas de eventos de uma só vez.</p>
-              <button className="mt-6 bg-[#00577C] text-white px-6 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest shadow-md">Selecionar CSV</button>
+              <div className="w-16 h-16 bg-[#E5F0FF] text-[#0078D4] rounded-md flex items-center justify-center group-hover:scale-110 transition-transform mb-4"><FileSpreadsheet size={32} /></div>
+              <h3 className={`${jakarta.className} text-xl font-bold text-[#1A1A1A]`}>Importação em Lote</h3>
+              <p className="text-xs font-medium text-[#8A8A8A] mt-2">Arraste o seu ficheiro CSV (Excel) para carregar dezenas de eventos de uma só vez.</p>
+              <button className="mt-6 bg-[#0078D4] text-white px-6 py-2.5 rounded-md font-semibold text-xs uppercase tracking-widest shadow-md">Selecionar CSV</button>
             </div>
 
-            {/* Opção Manual */}
-            <div className="border border-slate-200 rounded-[2rem] p-10 text-center bg-white hover:shadow-xl transition-all flex flex-col items-center justify-center">
-              <div className="w-16 h-16 bg-[#009640]/10 text-[#009640] rounded-2xl flex items-center justify-center mb-4"><Plus size={32} /></div>
-              <h3 className={`${jakarta.className} text-xl font-black text-slate-800`}>Cadastro Manual</h3>
-              <p className="text-xs font-medium text-slate-500 mt-2">Crie um evento único preenchendo o formulário completo de publicação.</p>
-              <button onClick={abrirFormManual} className="mt-6 bg-[#009640] hover:bg-green-700 text-white px-6 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest shadow-md transition-colors">Criar Evento Manual</button>
+            <div className="border border-[#D1D9E6] rounded-md p-10 text-center bg-white hover:shadow-md transition-all flex flex-col items-center justify-center">
+              <div className="w-16 h-16 bg-[#E5F0FF] text-[#0078D4] rounded-md flex items-center justify-center mb-4"><Plus size={32} /></div>
+              <h3 className={`${jakarta.className} text-xl font-bold text-[#1A1A1A]`}>Cadastro Manual</h3>
+              <p className="text-xs font-medium text-[#8A8A8A] mt-2">Crie um evento único preenchendo o formulário completo de publicação.</p>
+              <button onClick={abrirFormManual} className="mt-6 bg-[#0078D4] hover:bg-[#005A9E] text-white px-6 py-2.5 rounded-md font-semibold text-xs uppercase tracking-widest shadow-md transition-colors">Criar Evento Manual</button>
             </div>
           </div>
 
           <div className="pt-4">
-            <h3 className={`${jakarta.className} text-lg font-black text-[#00577C] mb-4`}>Eventos Cadastrados</h3>
+            <h3 className={`${jakarta.className} text-lg font-bold text-[#1A1A1A] mb-4`}>Eventos Cadastrados</h3>
             {loadingList ? (
               <Skeleton rows={5} />
             ) : (
-              <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm">
+              <div className="rounded-md border border-[#D1D9E6] overflow-hidden bg-white shadow-sm">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-slate-200 bg-slate-50">
+                    <tr className="border-b border-[#D1D9E6] bg-[#F0F4F8]">
                       <Th>Cartaz</Th><Th>Título</Th><Th>Data</Th><Th>Local</Th><Th>Categoria</Th><Th className="text-right">Ações</Th>
                     </tr>
                   </thead>
                   <tbody>
                     {eventosList.map((ev) => (
-                      <tr key={ev.id} className="border-b border-slate-100 hover:bg-slate-50 transition">
-                        <td className="px-4 py-3"><img src={ev.imagem_url || "/placeholder.png"} alt={ev.titulo} className="w-10 h-10 rounded-lg object-cover" /></td>
-                        <td className="px-4 py-3 font-medium text-slate-800">{ev.titulo}</td>
-                        <td className="px-4 py-3 text-slate-600 whitespace-nowrap">{fmtData(ev.data)}</td>
-                        <td className="px-4 py-3 text-slate-600">{ev.local}</td>
-                        <td className="px-4 py-3 text-slate-600">{ev.categoria}</td>
+                      <tr key={ev.id} className="border-b border-[#D1D9E6] hover:bg-[#F0F4F8] transition">
+                        <td className="px-4 py-3"><img src={ev.imagem_url || "/placeholder.png"} alt={ev.titulo} className="w-10 h-10 rounded-md object-cover" /></td>
+                        <td className="px-4 py-3 font-medium text-[#1A1A1A]">{ev.titulo}</td>
+                        <td className="px-4 py-3 text-[#1A1A1A] whitespace-nowrap">{fmtData(ev.data)}</td>
+                        <td className="px-4 py-3 text-[#1A1A1A]">{ev.local}</td>
+                        <td className="px-4 py-3 text-[#1A1A1A]">{ev.categoria}</td>
                         <td className="px-4 py-3 text-right space-x-3">
-                          {/* ◄── Botão Editar Novo ──► */}
-                          <button onClick={() => abrirFormEditar(ev)} className="text-xs font-bold text-[#00577C] hover:underline">Editar</button>
-                          <button onClick={() => handleDeleteEvento(ev.id)} className="text-xs text-red-500 hover:text-red-600 border border-red-200 bg-red-50 px-2.5 py-1 rounded-md transition">Remover</button>
+                          <button onClick={() => abrirFormEditar(ev)} className="text-xs font-semibold text-[#0078D4] hover:underline">Editar</button>
+                          <button onClick={() => handleDeleteEvento(ev.id)} className="text-xs text-[#D13438] hover:text-[#D13438] border border-[#D13438] bg-[#FDE7E9] px-2.5 py-1 rounded-md transition">Remover</button>
                         </td>
                       </tr>
                     ))}
-                    {eventosList.length === 0 && (<tr><td colSpan={6} className="px-4 py-10 text-center text-slate-400">Nenhum evento cadastrado.</td></tr>)}
+                    {eventosList.length === 0 && (<tr><td colSpan={6} className="px-4 py-10 text-center text-[#8A8A8A]">Nenhum evento cadastrado.</td></tr>)}
                   </tbody>
                 </table>
               </div>
@@ -1031,19 +1002,18 @@ function TabEventos() {
         </div>
       )}
 
-      {/* TELA 2: FORMULÁRIO MANUAL & EDIÇÃO */}
       {fase === 'manual' && (
-        <div className="bg-white rounded-[2rem] p-8 shadow-lg border border-slate-100 animate-in fade-in slide-in-from-bottom-4">
-          <div className="flex items-center justify-between mb-8 border-b border-slate-100 pb-4">
-            <h3 className={`${jakarta.className} text-2xl font-black text-slate-800 flex items-center gap-2`}>
-              <CalendarIcon className="text-[#F9C400]" /> 
+        <div className="bg-white rounded-md p-8 shadow-lg border border-[#D1D9E6] animate-in fade-in slide-in-from-bottom-4">
+          <div className="flex items-center justify-between mb-8 border-b border-[#D1D9E6] pb-4">
+            <h3 className={`${jakarta.className} text-2xl font-bold text-[#1A1A1A] flex items-center gap-2`}>
+              <CalendarIcon className="text-[#DAA520]" /> 
               {editando ? "Editar Evento" : "Construtor de Evento"}
             </h3>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-6">
             <div className="space-y-4">
-              <h4 className="font-black text-[#00577C] border-b pb-2">Informações Base</h4>
+              <h4 className="font-bold text-[#1A1A1A] border-b pb-2">Informações Base</h4>
               <FormField label="Título do Evento *"><input value={formManual.titulo || ""} onChange={(e) => setFormManual({ ...formManual, titulo: e.target.value })} className={inputCls} placeholder="Ex: Festival de Verão" /></FormField>
               <FormField label="Subtítulo"><input value={formManual.subtitulo || ""} onChange={(e) => setFormManual({ ...formManual, subtitulo: e.target.value })} className={inputCls} placeholder="Frase de chamariz..." /></FormField>
               <FormField label="Descrição"><textarea value={formManual.descricao || ""} onChange={(e) => setFormManual({ ...formManual, descricao: e.target.value })} rows={4} className={inputCls} /></FormField>
@@ -1058,7 +1028,7 @@ function TabEventos() {
             </div>
 
             <div className="space-y-4">
-              <h4 className="font-black text-[#00577C] border-b pb-2">Logística e Mídia</h4>
+              <h4 className="font-bold text-[#1A1A1A] border-b pb-2">Logística e Mídia</h4>
               <div className="grid grid-cols-2 gap-4">
                 <FormField label="Data *"><input type="date" value={formManual.data || ""} onChange={(e) => setFormManual({ ...formManual, data: e.target.value })} className={inputCls} /></FormField>
                 <FormField label="Horário de Início"><input type="time" value={formManual.horario || ""} onChange={(e) => setFormManual({ ...formManual, horario: e.target.value })} className={inputCls} /></FormField>
@@ -1067,7 +1037,7 @@ function TabEventos() {
                 <FormField label="Duração Estimada"><input value={formManual.duracao || ""} onChange={(e) => setFormManual({ ...formManual, duracao: e.target.value })} className={inputCls} placeholder="Ex: 3 dias, 4 horas..." /></FormField>
                 <FormField label="Classificação Etária"><input value={formManual.classificacao || ""} onChange={(e) => setFormManual({ ...formManual, classificacao: e.target.value })} className={inputCls} placeholder="Ex: Livre, +18..." /></FormField>
               </div>
-              <FormField label="Local do Evento *"><div className="relative"><MapPin size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" /><input value={formManual.local || ""} onChange={(e) => setFormManual({ ...formManual, local: e.target.value })} className={`${inputCls} pl-9`} placeholder="Ex: Praça Central" /></div></FormField>
+              <FormField label="Local do Evento *"><div className="relative"><MapPin size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8A8A8A]" /><input value={formManual.local || ""} onChange={(e) => setFormManual({ ...formManual, local: e.target.value })} className={`${inputCls} pl-9`} placeholder="Ex: Praça Central" /></div></FormField>
               
               <div className="grid grid-cols-2 gap-4">
                 <FormField label="Preço (Deixe vazio se grátis)"><input value={formManual.preco || ""} onChange={(e) => setFormManual({ ...formManual, preco: e.target.value })} className={inputCls} placeholder="R$ 50,00" /></FormField>
@@ -1075,50 +1045,47 @@ function TabEventos() {
               </div>
 
               <FormField label="Cartaz Oficial (Imagem)">
-                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 text-slate-500 p-4 rounded-xl cursor-pointer hover:border-[#00577C] transition-colors mt-1">
+                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-[#D1D9E6] bg-[#F0F4F8] text-[#8A8A8A] p-4 rounded-md cursor-pointer hover:border-[#0078D4] transition-colors mt-1">
                   <input type="file" accept="image/*" className="hidden" onChange={(e) => setImagemManual(e.target.files?.[0] || null)} />
                   <ImageIcon size={18} /> {imagemManual ? imagemManual.name : formManual.imagem_url ? "Substituir Cartaz Atual" : "Clique para anexar Cartaz"}
                 </label>
-                {/* ◄── Mostra a miniatura do cartaz antigo em caso de edição */}
                 {formManual.imagem_url && !imagemManual && (
-                  <img src={formManual.imagem_url} alt="Cartaz Atual" className="mt-3 h-24 w-auto object-cover rounded-xl border border-slate-200 shadow-sm" />
+                  <img src={formManual.imagem_url} alt="Cartaz Atual" className="mt-3 h-24 w-auto object-cover rounded-md border border-[#D1D9E6] shadow-sm" />
                 )}
               </FormField>
             </div>
           </div>
 
-          <div className="mt-8 flex items-center justify-between pt-6 border-t border-slate-100">
-            {/* O Feedback agora vai ficar vermelho em caso de erro! */}
-            <span className={`text-sm font-bold ${feedback.includes('❌') ? 'text-red-500' : 'text-[#009640]'}`}>{feedback}</span>
-            <button onClick={handleSalvarManual} disabled={savingManual} className="bg-[#009640] hover:bg-green-700 text-white px-10 py-3.5 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg flex items-center gap-2 transition-all">
+          <div className="mt-8 flex items-center justify-between pt-6 border-t border-[#D1D9E6]">
+            <span className={`text-sm font-semibold ${feedback.includes('❌') ? 'text-[#D13438]' : 'text-[#0078D4]'}`}>{feedback}</span>
+            <button onClick={handleSalvarManual} disabled={savingManual} className="bg-[#0078D4] hover:bg-[#005A9E] text-white px-10 py-3.5 rounded-md font-semibold text-sm uppercase tracking-widest shadow-lg flex items-center gap-2 transition-all">
               {savingManual ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} {editando ? "Guardar Edição" : "Publicar Evento"}
             </button>
           </div>
         </div>
       )}
 
-      {/* TELA 3: PREVIEW DO CSV */}
       {fase === 'preview' && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
-          <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-start gap-3">
-             <AlertCircle className="text-amber-600 shrink-0 mt-0.5" size={18} />
-             <div><p className="text-sm font-bold text-amber-800">Foram identificados {eventosPreview.length} eventos no ficheiro!</p><p className="text-xs text-amber-700 mt-1">Anexe as fotos oficiais de cada um abaixo e clique no botão verde para guardar tudo no portal.</p></div>
+          <div className="bg-[#FFF8E5] border border-[#D1D9E6] p-4 rounded-md flex items-start gap-3">
+             <AlertCircle className="text-[#DAA520] shrink-0 mt-0.5" size={18} />
+             <div><p className="text-sm font-semibold text-[#1A1A1A]">Foram identificados {eventosPreview.length} eventos no ficheiro!</p><p className="text-xs text-[#8A8A8A] mt-1">Anexe as fotos oficiais de cada um abaixo e clique no botão para guardar tudo no portal.</p></div>
           </div>
-          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+          <div className="bg-white rounded-md border border-[#D1D9E6] overflow-hidden shadow-sm">
             <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 text-slate-500 text-[10px] uppercase font-black tracking-widest">
+              <thead className="bg-[#F0F4F8] text-[#8A8A8A] text-[10px] uppercase font-semibold tracking-widest">
                 <tr><th className="p-4 border-b">Festa / Evento</th><th className="p-4 border-b">Data e Local</th><th className="p-4 border-b">Categoria</th><th className="p-4 border-b">Upload do Cartaz</th></tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[#D1D9E6]">
                 {eventosPreview.map((ev, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50/50">
-                    <td className="p-4"><p className="font-bold text-slate-900">{ev.titulo}</p><p className="text-xs text-slate-500 line-clamp-1">{ev.descricao}</p></td>
-                    <td className="p-4 text-xs font-bold text-slate-600"><p>{ev.data}</p><p className="text-slate-400 font-medium">{ev.local}</p></td>
-                    <td className="p-4"><span className="bg-slate-100 text-slate-600 px-2 py-1 rounded text-[10px] font-black uppercase">{ev.categoria || 'Geral'}</span></td>
+                  <tr key={idx} className="hover:bg-[#F0F4F8]/50">
+                    <td className="p-4"><p className="font-semibold text-[#1A1A1A]">{ev.titulo}</p><p className="text-xs text-[#8A8A8A] line-clamp-1">{ev.descricao}</p></td>
+                    <td className="p-4 text-xs font-semibold text-[#1A1A1A]"><p>{ev.data}</p><p className="text-[#8A8A8A] font-medium">{ev.local}</p></td>
+                    <td className="p-4"><span className="bg-[#F0F4F8] text-[#1A1A1A] px-2 py-1 rounded text-[10px] font-semibold uppercase">{ev.categoria || 'Geral'}</span></td>
                     <td className="p-4">
-                       <label className="flex items-center justify-center gap-2 border border-slate-200 hover:border-[#00577C] bg-white text-slate-600 hover:text-[#00577C] px-3 py-2 rounded-lg cursor-pointer transition-colors text-xs font-bold">
+                       <label className="flex items-center justify-center gap-2 border border-[#D1D9E6] hover:border-[#0078D4] bg-white text-[#1A1A1A] hover:text-[#0078D4] px-3 py-2 rounded-md cursor-pointer transition-colors text-xs font-semibold">
                          <input type="file" accept="image/*" className="hidden" onChange={(e) => { if (e.target.files) handleImagemChange(idx, e.target.files[0]); }} />
-                         <ImageIcon size={14} />{imagensMap[idx] ? <span className="text-[#009640]">Imagem Selecionada ✓</span> : <span>Anexar Foto</span>}
+                         <ImageIcon size={14} />{imagensMap[idx] ? <span className="text-[#0078D4]">Imagem Selecionada ✓</span> : <span>Anexar Foto</span>}
                        </label>
                     </td>
                   </tr>
@@ -1126,19 +1093,18 @@ function TabEventos() {
               </tbody>
             </table>
           </div>
-          <div className="flex justify-end pt-4 border-t border-slate-200">
-             <button onClick={handleSalvarTudo} className="bg-[#009640] hover:bg-green-700 text-white px-8 py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg flex items-center gap-2 transition-all"><Save size={18} /> Salvar {eventosPreview.length} Eventos no Portal</button>
+          <div className="flex justify-end pt-4 border-t border-[#D1D9E6]">
+             <button onClick={handleSalvarTudo} className="bg-[#0078D4] hover:bg-[#005A9E] text-white px-8 py-4 rounded-md font-semibold text-sm uppercase tracking-widest shadow-lg flex items-center gap-2 transition-all"><Save size={18} /> Salvar {eventosPreview.length} Eventos no Portal</button>
           </div>
         </div>
       )}
 
-      {/* TELA 4: FEEDBACK DE SALVAMENTO */}
       {(fase === 'salvando' || fase === 'sucesso') && (
-        <div className="bg-white rounded-3xl p-12 text-center shadow-sm border border-slate-100">
-          {fase === 'salvando' ? (<Loader2 size={48} className="mx-auto text-[#00577C] animate-spin mb-6" />) : (<CheckCircle2 size={48} className="mx-auto text-[#009640] mb-6" />)}
-          <h3 className={`${jakarta.className} text-2xl font-black text-slate-900 mb-2`}>{fase === 'salvando' ? 'A Sincronizar Calendário...' : 'Evento(s) Guardado(s) com Sucesso!'}</h3>
-          <p className="text-slate-500 font-medium mb-8">{feedback}</p>
-          {fase === 'sucesso' && (<button onClick={resetar} className="bg-[#00577C] text-white px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest shadow-md">Voltar ao Início</button>)}
+        <div className="bg-white rounded-md p-12 text-center shadow-sm border border-[#D1D9E6]">
+          {fase === 'salvando' ? (<Loader2 size={48} className="mx-auto text-[#0078D4] animate-spin mb-6" />) : (<CheckCircle2 size={48} className="mx-auto text-[#0078D4] mb-6" />)}
+          <h3 className={`${jakarta.className} text-2xl font-bold text-[#1A1A1A] mb-2`}>{fase === 'salvando' ? 'A Sincronizar Calendário...' : 'Evento(s) Guardado(s) com Sucesso!'}</h3>
+          <p className="text-[#8A8A8A] font-medium mb-8">{feedback}</p>
+          {fase === 'sucesso' && (<button onClick={resetar} className="bg-[#0078D4] text-white px-8 py-3 rounded-md font-semibold text-xs uppercase tracking-widest shadow-md">Voltar ao Início</button>)}
         </div>
       )}
     </div>
@@ -1146,7 +1112,7 @@ function TabEventos() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// HOTÉIS & POUSADAS (VITRINE SIMPLIFICADA)
+// HOTÉIS & POUSADAS
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function TabHoteis() {
@@ -1185,7 +1151,7 @@ function TabHoteis() {
     setForm({ 
       nome: hotel.nome, tipo: hotel.tipo, descricao: hotel.descricao || "", 
       estrelas: hotel.estrelas || 3, 
-      whatsapp: hotel.whatsapp || "", // ◄── Agora lê diretamente da coluna 'whatsapp'
+      whatsapp: hotel.whatsapp || "",
       endereco: hotel.endereco || "", instagram: hotel.instagram || "", 
       ativo: hotel.ativo ?? true 
     });
@@ -1218,7 +1184,6 @@ function TabHoteis() {
         galeriaFinal = [...galeriaFinal, ...novasUrls];
       }
 
-      // ◄── Payload limpo: mapeado para a coluna 'whatsapp' no banco
       const payloadHotel = { 
         nome: form.nome,
         tipo: form.tipo,
@@ -1234,7 +1199,6 @@ function TabHoteis() {
 
       let erroBd;
 
-      // ◄── TRAVA DE ERROS ATIVADA: Agora o código apanha qualquer rejeição da Base de Dados
       if (editando) {
         const { error } = await supabase.from('hoteis').update(payloadHotel).eq('id', editando.id);
         erroBd = error;
@@ -1243,7 +1207,6 @@ function TabHoteis() {
         erroBd = error;
       }
 
-      // Se a base de dados rejeitar, lança o erro real para o ecrã
       if (erroBd) throw new Error(erroBd.message);
 
       setFeedback(editando ? "✅ Hotel atualizado com sucesso!" : "✅ Hotel publicado com sucesso!");
@@ -1270,17 +1233,17 @@ function TabHoteis() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div><h2 className={`${jakarta.className} text-xl font-black text-[#00577C]`}>Vitrine de Hotéis</h2><p className="text-xs text-slate-500 mt-1">{hoteis.length} alojamentos</p></div>
-        <button onClick={abrirNovo} className="bg-[#00577C] text-white font-black text-sm px-5 py-2.5 rounded-xl flex items-center gap-2"><Plus size={16} /> Novo Hotel</button>
+        <div><h2 className={`${jakarta.className} text-xl font-bold text-[#1A1A1A]`}>Vitrine de Hotéis</h2><p className="text-xs text-[#8A8A8A] mt-1">{hoteis.length} alojamentos</p></div>
+        <button onClick={abrirNovo} className="bg-[#0078D4] text-white font-semibold text-sm px-5 py-2.5 rounded-md flex items-center gap-2"><Plus size={16} /> Novo Hotel</button>
       </div>
 
       {showForm ? (
-        <div className="bg-white rounded-[2rem] p-8 shadow-lg border border-slate-100">
-          <div className="flex items-center justify-between mb-8 border-b pb-4"><h3 className={`${jakarta.className} text-2xl font-black text-slate-800`}><Building2 className="text-[#F9C400] inline mr-2"/>{editando ? "Editar Alojamento" : "Novo Alojamento"}</h3><button onClick={() => setShowForm(false)} className="text-sm font-bold text-slate-400">Cancelar</button></div>
+        <div className="bg-white rounded-md p-8 shadow-lg border border-[#D1D9E6]">
+          <div className="flex items-center justify-between mb-8 border-b pb-4"><h3 className={`${jakarta.className} text-2xl font-bold text-[#1A1A1A]`}><Building2 className="text-[#DAA520] inline mr-2"/>{editando ? "Editar Alojamento" : "Novo Alojamento"}</h3><button onClick={() => setShowForm(false)} className="text-sm font-semibold text-[#8A8A8A]">Cancelar</button></div>
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-8">
             <div className="space-y-5">
-              <h4 className="font-black text-[#00577C] border-b pb-2">Informações Principais</h4>
+              <h4 className="font-bold text-[#1A1A1A] border-b pb-2">Informações Principais</h4>
               <FormField label="Nome *"><input type="text" value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} className={inputCls} /></FormField>
               <div className="grid grid-cols-2 gap-4">
                 <FormField label="Tipo"><select value={form.tipo} onChange={e => setForm({...form, tipo: e.target.value})} className={inputCls}><option>Hotel</option><option>Pousada</option><option>Pensão</option><option>Resort</option></select></FormField>
@@ -1290,21 +1253,21 @@ function TabHoteis() {
             </div>
             
             <div className="space-y-5">
-              <h4 className="font-black text-[#00577C] border-b pb-2">Contatos e Mídia</h4>
+              <h4 className="font-bold text-[#1A1A1A] border-b pb-2">Contatos e Mídia</h4>
               <div className="grid grid-cols-2 gap-4">
-                <FormField label="WhatsApp"><div className="relative"><Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" /><input type="text" value={form.whatsapp} onChange={e => setForm({...form, whatsapp: e.target.value})} className={`${inputCls} pl-10`} /></div></FormField>
-                <FormField label="Instagram"><div className="relative"><span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">@</span><input type="text" value={form.instagram} onChange={e => setForm({...form, instagram: e.target.value})} className={`${inputCls} pl-9`} /></div></FormField>
+                <FormField label="WhatsApp"><div className="relative"><Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8A8A8A]" /><input type="text" value={form.whatsapp} onChange={e => setForm({...form, whatsapp: e.target.value})} className={`${inputCls} pl-10`} /></div></FormField>
+                <FormField label="Instagram"><div className="relative"><span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8A8A8A] font-semibold text-xs">@</span><input type="text" value={form.instagram} onChange={e => setForm({...form, instagram: e.target.value})} className={`${inputCls} pl-9`} /></div></FormField>
               </div>
-              <FormField label="Endereço"><div className="relative"><MapPin size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" /><input type="text" value={form.endereco} onChange={e => setForm({...form, endereco: e.target.value})} className={`${inputCls} pl-10`} /></div></FormField>
+              <FormField label="Endereço"><div className="relative"><MapPin size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8A8A8A]" /><input type="text" value={form.endereco} onChange={e => setForm({...form, endereco: e.target.value})} className={`${inputCls} pl-10`} /></div></FormField>
               
               <FormField label="Foto Principal (Vitrine)">
-                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 p-4 rounded-xl cursor-pointer hover:border-[#00577C] text-slate-500">
+                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-[#D1D9E6] bg-[#F0F4F8] p-4 rounded-md cursor-pointer hover:border-[#0078D4] text-[#8A8A8A]">
                   <input type="file" accept="image/*" className="hidden" onChange={e => setImagemFile(e.target.files?.[0] || null)} />
                   <ImageIcon size={18} /> {imagemFile ? imagemFile.name : (editando?.imagem_url ? 'Substituir Imagem' : 'Anexar Imagem')}
                 </label>
               </FormField>
               <FormField label="Adicionar Fotos à Galeria (Opcional)">
-                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 p-4 rounded-xl cursor-pointer hover:border-[#00577C] text-slate-500">
+                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-[#D1D9E6] bg-[#F0F4F8] p-4 rounded-md cursor-pointer hover:border-[#0078D4] text-[#8A8A8A]">
                   <input type="file" accept="image/*" multiple className="hidden" onChange={e => { if (e.target.files) setGaleriaFiles(Array.from(e.target.files)); }} />
                   <ImageIcon size={18} /> {galeriaFiles.length > 0 ? `${galeriaFiles.length} ficheiros novos` : 'Anexar Fotos extras'}
                 </label>
@@ -1313,32 +1276,31 @@ function TabHoteis() {
             </div>
           </div>
 
-          <div className="mt-10 flex items-center justify-between pt-6 border-t border-slate-100">
-            {/* ◄── Feedback dinâmico: Fica vermelho em caso de erro ──► */}
-            <span className={`text-sm font-bold ${feedback.includes('❌') ? 'text-red-500' : 'text-[#009640]'}`}>{feedback}</span>
-            <button onClick={handleSalvar} disabled={saving} className="bg-[#009640] text-white px-10 py-4 rounded-xl font-black text-sm shadow-lg flex items-center gap-2">{saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Guardar Hotel</button>
+          <div className="mt-10 flex items-center justify-between pt-6 border-t border-[#D1D9E6]">
+            <span className={`text-sm font-semibold ${feedback.includes('❌') ? 'text-[#D13438]' : 'text-[#0078D4]'}`}>{feedback}</span>
+            <button onClick={handleSalvar} disabled={saving} className="bg-[#0078D4] text-white px-10 py-4 rounded-md font-semibold text-sm shadow-lg flex items-center gap-2">{saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Guardar Hotel</button>
           </div>
         </div>
       ) : (
-        loading ? (<div className="py-12 flex justify-center"><Loader2 size={32} className="text-[#00577C] animate-spin" /></div>) : (
+        loading ? (<div className="py-12 flex justify-center"><Loader2 size={32} className="text-[#0078D4] animate-spin" /></div>) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {hoteis.map((hotel) => (
-              <div key={hotel.id} className={`bg-white rounded-[2rem] border border-slate-200 p-4 flex flex-col hover:shadow-xl transition-all ${!hotel.ativo && 'opacity-60 bg-slate-50'}`}>
-                <div className="relative w-full h-48 rounded-2xl overflow-hidden bg-slate-100 mb-4">
+              <div key={hotel.id} className={`bg-white rounded-md border border-[#D1D9E6] p-4 flex flex-col hover:shadow-md transition-all ${!hotel.ativo && 'opacity-60 bg-[#F0F4F8]'}`}>
+                <div className="relative w-full h-48 rounded-md overflow-hidden bg-[#F0F4F8] mb-4">
                   <img src={hotel.imagem_url || "/placeholder.png"} alt={hotel.nome} className="object-cover w-full h-full" />
                 </div>
                 <div className="px-2 pb-2 flex-1 flex flex-col">
-                  <h3 className={`${jakarta.className} text-xl font-black text-slate-800 mb-1`}>{hotel.nome}</h3>
-                  <p className="text-xs font-medium text-slate-500 line-clamp-1 mb-4">{hotel.endereco}</p>
+                  <h3 className={`${jakarta.className} text-xl font-bold text-[#1A1A1A] mb-1`}>{hotel.nome}</h3>
+                  <p className="text-xs font-medium text-[#8A8A8A] line-clamp-1 mb-4">{hotel.endereco}</p>
                   
-                  <div className="mt-auto flex flex-col gap-2 pt-4 border-t border-slate-100">
+                  <div className="mt-auto flex flex-col gap-2 pt-4 border-t border-[#D1D9E6]">
                     <div className="flex justify-between items-center w-full">
-                      <button onClick={() => toggleAtivo(hotel.id, hotel.ativo)} className={`text-[10px] font-black uppercase px-2 py-1 rounded-md transition-colors ${hotel.ativo ? 'text-[#009640] bg-green-50 hover:bg-green-100' : 'text-slate-500 bg-slate-200 hover:bg-slate-300'}`}>
+                      <button onClick={() => toggleAtivo(hotel.id, hotel.ativo)} className={`text-[10px] font-semibold uppercase px-2 py-1 rounded-md transition-colors ${hotel.ativo ? 'text-[#0078D4] bg-[#E5F0FF] hover:bg-[#D1D9E6]' : 'text-[#8A8A8A] bg-[#F0F4F8] hover:bg-[#D1D9E6]'}`}>
                         {hotel.ativo ? "Público ✓" : "Oculto ✕"}
                       </button>
                       <div className="flex gap-3">
-                        <button onClick={() => abrirEditar(hotel)} className="text-xs font-bold text-[#00577C] hover:underline">Editar</button>
-                        <button onClick={() => handleDelete(hotel.id)} className="text-xs font-bold text-red-500 hover:underline">Remover</button>
+                        <button onClick={() => abrirEditar(hotel)} className="text-xs font-semibold text-[#0078D4] hover:underline">Editar</button>
+                        <button onClick={() => handleDelete(hotel.id)} className="text-xs font-semibold text-[#D13438] hover:underline">Remover</button>
                       </div>
                     </div>
                   </div>
@@ -1370,8 +1332,6 @@ function TabGastronomia() {
   const [imagemUrlFile, setImagemUrlFile] = useState<File | null>(null);
   const [imagemCapaFile, setImagemCapaFile] = useState<File | null>(null);
   const [galeriaFiles, setGaleriaFiles] = useState<File[]>([]);
-  
-  // Especialidades (Título + Imagem Upload)
   const [especialidades, setEspecialidades] = useState<any[]>([{ titulo: "", file: null, imagem_url: "" }]);
 
   useEffect(() => { fetchRestaurantes(); }, []);
@@ -1436,7 +1396,6 @@ function TabGastronomia() {
         galeriaFinal = [...galeriaFinal, ...novasUrls];
       }
 
-      // Upload das fotos de especialidades
       const espLimpos = [];
       for (const esp of especialidades) {
         if (!esp.titulo.trim()) continue;
@@ -1450,7 +1409,6 @@ function TabGastronomia() {
 
       setFeedback("A guardar restaurante...");
       
-      // ◄── PAYLOAD A ENVIAR PARA O SUPABASE
       const payload = { 
         ...form, 
         imagem_url, 
@@ -1461,7 +1419,6 @@ function TabGastronomia() {
 
       let erroBd;
 
-      // ◄── TRAVA DE ERROS ATIVADA AQUI ──►
       if (editando) {
         const { error } = await supabase.from('gastronomia').update(payload).eq('id', editando.id);
         erroBd = error;
@@ -1470,14 +1427,13 @@ function TabGastronomia() {
         erroBd = error;
       }
 
-      // Se a base de dados rejeitar (ex: nome de coluna errado), avisa!
       if (erroBd) throw new Error(erroBd.message);
 
       setFeedback("✅ Salvo com sucesso!");
       setTimeout(() => { setShowForm(false); setFeedback(""); fetchRestaurantes(); }, 2000);
 
     } catch (err: any) { 
-      setFeedback(`❌ Erro: ${err.message}`); // Mostra o erro a vermelho
+      setFeedback(`❌ Erro: ${err.message}`);
     } finally { 
       setSaving(false); 
     }
@@ -1491,40 +1447,40 @@ function TabGastronomia() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div><h2 className={`${jakarta.className} text-xl font-black text-[#00577C]`}>Vitrine Gastronómica</h2><p className="text-xs text-slate-500 mt-1">{restaurantes.length} estabelecimentos</p></div>
-        <button onClick={abrirNovo} className="bg-[#00577C] text-white font-black text-sm px-5 py-2.5 rounded-xl flex items-center gap-2"><Plus size={16} /> Novo Restaurante</button>
+        <div><h2 className={`${jakarta.className} text-xl font-bold text-[#1A1A1A]`}>Vitrine Gastronómica</h2><p className="text-xs text-[#8A8A8A] mt-1">{restaurantes.length} estabelecimentos</p></div>
+        <button onClick={abrirNovo} className="bg-[#0078D4] text-white font-semibold text-sm px-5 py-2.5 rounded-md flex items-center gap-2"><Plus size={16} /> Novo Restaurante</button>
       </div>
 
       {showForm ? (
-        <div className="bg-white rounded-[2rem] p-8 shadow-lg border border-slate-100">
-          <div className="flex items-center justify-between mb-8 border-b pb-4"><h3 className={`${jakarta.className} text-2xl font-black text-slate-800`}><Utensils className="text-[#F9C400] inline mr-2"/>{editando ? "Editar Restaurante" : "Novo Restaurante"}</h3><button onClick={() => setShowForm(false)} className="text-sm font-bold text-slate-400">Cancelar</button></div>
+        <div className="bg-white rounded-md p-8 shadow-lg border border-[#D1D9E6]">
+          <div className="flex items-center justify-between mb-8 border-b pb-4"><h3 className={`${jakarta.className} text-2xl font-bold text-[#1A1A1A]`}><Utensils className="text-[#DAA520] inline mr-2"/>{editando ? "Editar Restaurante" : "Novo Restaurante"}</h3><button onClick={() => setShowForm(false)} className="text-sm font-semibold text-[#8A8A8A]">Cancelar</button></div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-8">
             <div className="space-y-5">
-              <h4 className="font-black text-[#00577C] border-b pb-2">Informações Básicas</h4>
+              <h4 className="font-bold text-[#1A1A1A] border-b pb-2">Informações Básicas</h4>
               <FormField label="Nome do Estabelecimento *"><input type="text" value={form.titulo} onChange={e => setForm({...form, titulo: e.target.value})} className={inputCls} /></FormField>
               <FormField label="Descrição Curta"><textarea rows={3} value={form.descricao_curta} onChange={e => setForm({...form, descricao_curta: e.target.value})} className={inputCls} /></FormField>
               <div className="grid grid-cols-2 gap-4">
-                <FormField label="WhatsApp"><div className="relative"><Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" /><input type="text" value={form.whatsapp} onChange={e => setForm({...form, whatsapp: e.target.value})} className={`${inputCls} pl-10`} /></div></FormField>
-                <FormField label="Endereço (Link Google Maps)"><div className="relative"><MapPin size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" /><input type="text" value={form.link_google_maps} onChange={e => setForm({...form, link_google_maps: e.target.value})} className={`${inputCls} pl-10`} /></div></FormField>
+                <FormField label="WhatsApp"><div className="relative"><Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8A8A8A]" /><input type="text" value={form.whatsapp} onChange={e => setForm({...form, whatsapp: e.target.value})} className={`${inputCls} pl-10`} /></div></FormField>
+                <FormField label="Endereço (Link Google Maps)"><div className="relative"><MapPin size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8A8A8A]" /><input type="text" value={form.link_google_maps} onChange={e => setForm({...form, link_google_maps: e.target.value})} className={`${inputCls} pl-10`} /></div></FormField>
               </div>
               <FormField label="Visibilidade"><select value={String(form.ativo)} onChange={e => setForm({...form, ativo: e.target.value === 'true'})} className={inputCls}><option value="true">Público (Ativo)</option><option value="false">Oculto</option></select></FormField>
             </div>
             <div className="space-y-5">
-              <h4 className="font-black text-[#00577C] border-b pb-2">Fotografias</h4>
+              <h4 className="font-bold text-[#1A1A1A] border-b pb-2">Fotografias</h4>
               <FormField label="Foto da Vitrine (Card principal)">
-                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 text-slate-500 p-4 rounded-xl cursor-pointer hover:border-[#00577C]">
+                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-[#D1D9E6] bg-[#F0F4F8] text-[#8A8A8A] p-4 rounded-md cursor-pointer hover:border-[#0078D4]">
                   <input type="file" accept="image/*" className="hidden" onChange={e => setImagemUrlFile(e.target.files?.[0] || null)} />
                   <ImageIcon size={18} /> {imagemUrlFile ? imagemUrlFile.name : (editando?.imagem_url ? 'Substituir Imagem' : 'Anexar Imagem')}
                 </label>
               </FormField>
               <FormField label="Foto de Capa (Página interna)">
-                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 text-slate-500 p-4 rounded-xl cursor-pointer hover:border-[#00577C]">
+                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-[#D1D9E6] bg-[#F0F4F8] text-[#8A8A8A] p-4 rounded-md cursor-pointer hover:border-[#0078D4]">
                   <input type="file" accept="image/*" className="hidden" onChange={e => setImagemCapaFile(e.target.files?.[0] || null)} />
                   <ImageIcon size={18} /> {imagemCapaFile ? imagemCapaFile.name : (editando?.imagem_capa ? 'Substituir Capa' : 'Anexar Capa')}
                 </label>
               </FormField>
               <FormField label="Adicionar à Galeria de Fotos">
-                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 text-slate-500 p-4 rounded-xl cursor-pointer hover:border-[#00577C]">
+                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-[#D1D9E6] bg-[#F0F4F8] text-[#8A8A8A] p-4 rounded-md cursor-pointer hover:border-[#0078D4]">
                   <input type="file" accept="image/*" multiple className="hidden" onChange={e => { if (e.target.files) setGaleriaFiles(Array.from(e.target.files)); }} />
                   <ImageIcon size={18} /> {galeriaFiles.length > 0 ? `${galeriaFiles.length} fotos novas` : 'Anexar Fotos'}
                 </label>
@@ -1532,38 +1488,37 @@ function TabGastronomia() {
             </div>
           </div>
           <div className="mt-12 space-y-4">
-            <div className="flex items-center justify-between border-b pb-2"><h4 className="font-black text-[#00577C]">Especialidades / Destaques do Cardápio</h4><button onClick={addEsp} className="text-xs font-bold text-[#009640] flex items-center gap-1"><Plus size={14}/> Adicionar Especialidade</button></div>
+            <div className="flex items-center justify-between border-b pb-2"><h4 className="font-bold text-[#1A1A1A]">Especialidades / Destaques do Cardápio</h4><button onClick={addEsp} className="text-xs font-semibold text-[#0078D4] flex items-center gap-1"><Plus size={14}/> Adicionar Especialidade</button></div>
             <div className="space-y-3">
               {especialidades.map((item, index) => (
-                <div key={index} className="flex flex-col md:flex-row gap-3 items-center bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <div key={index} className="flex flex-col md:flex-row gap-3 items-center bg-[#F0F4F8] p-4 rounded-md border border-[#D1D9E6]">
                   <div className="w-full md:flex-1"><input type="text" value={item.titulo} onChange={e => handleEspChange(index, 'titulo', e.target.value)} placeholder="Ex: Carnes Nobres" className={inputCls} /></div>
                   <div className="w-full md:flex-1 flex items-center gap-2">
-                    <label className="flex-1 flex items-center justify-center gap-2 border border-slate-200 bg-white text-slate-500 py-2 rounded-lg cursor-pointer text-xs font-bold">
+                    <label className="flex-1 flex items-center justify-center gap-2 border border-[#D1D9E6] bg-white text-[#8A8A8A] py-2 rounded-md cursor-pointer text-xs font-semibold">
                       <input type="file" accept="image/*" className="hidden" onChange={e => handleEspChange(index, 'file', e.target.files?.[0] || null)} />
                       <Upload size={14}/> {item.file ? "Foto pronta ✓" : (item.imagem_url ? "Tem foto ✓" : "Anexar Foto")}
                     </label>
-                    <button onClick={() => removeEsp(index)} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 border border-red-200"><Trash2 size={16} /></button>
+                    <button onClick={() => removeEsp(index)} className="p-2 bg-[#FDE7E9] text-[#D13438] rounded-md hover:bg-[#FDE7E9] border border-[#D13438]"><Trash2 size={16} /></button>
                   </div>
                 </div>
               ))}
             </div>
           </div>
-          <div className="mt-10 flex items-center justify-between pt-6 border-t border-slate-100">
-            {/* O Feedback agora vai ficar vermelho em caso de erro! */}
-            <span className={`text-sm font-bold ${feedback.includes('❌') ? 'text-red-500' : 'text-[#009640]'}`}>{feedback}</span>
-            <button onClick={handleSalvar} disabled={saving} className="bg-[#009640] text-white px-10 py-4 rounded-xl font-black text-sm shadow-lg flex items-center gap-2">{saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Guardar Restaurante</button>
+          <div className="mt-10 flex items-center justify-between pt-6 border-t border-[#D1D9E6]">
+            <span className={`text-sm font-semibold ${feedback.includes('❌') ? 'text-[#D13438]' : 'text-[#0078D4]'}`}>{feedback}</span>
+            <button onClick={handleSalvar} disabled={saving} className="bg-[#0078D4] text-white px-10 py-4 rounded-md font-semibold text-sm shadow-lg flex items-center gap-2">{saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Guardar Restaurante</button>
           </div>
         </div>
       ) : (
-        loading ? (<div className="py-12 flex justify-center"><Loader2 size={32} className="text-[#00577C] animate-spin" /></div>) : (
+        loading ? (<div className="py-12 flex justify-center"><Loader2 size={32} className="text-[#0078D4] animate-spin" /></div>) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {restaurantes.map((rest) => (
-              <div key={rest.id} className={`bg-white rounded-[2rem] border border-slate-200 p-4 flex flex-col hover:shadow-xl ${!rest.ativo && 'opacity-60'}`}>
-                <div className="relative w-full h-48 rounded-2xl overflow-hidden bg-slate-100 mb-4"><img src={rest.imagem_url || "/placeholder.png"} alt={rest.titulo} className="object-cover w-full h-full" /></div>
+              <div key={rest.id} className={`bg-white rounded-md border border-[#D1D9E6] p-4 flex flex-col hover:shadow-md ${!rest.ativo && 'opacity-60'}`}>
+                <div className="relative w-full h-48 rounded-md overflow-hidden bg-[#F0F4F8] mb-4"><img src={rest.imagem_url || "/placeholder.png"} alt={rest.titulo} className="object-cover w-full h-full" /></div>
                 <div className="px-2 pb-2 flex-1 flex flex-col">
-                  <h3 className={`${jakarta.className} text-xl font-black text-slate-800 mb-1`}>{rest.titulo}</h3>
-                  <p className="text-xs font-medium text-slate-500 line-clamp-2 mb-4">{rest.descricao_curta}</p>
-                  <div className="mt-auto flex items-center justify-between pt-4 border-t border-slate-100"><button onClick={() => abrirEditar(rest)} className="text-xs font-bold text-[#00577C] hover:underline">Editar</button><button onClick={() => handleDelete(rest.id)} className="text-xs font-bold text-red-500 hover:underline">Remover</button></div>
+                  <h3 className={`${jakarta.className} text-xl font-bold text-[#1A1A1A] mb-1`}>{rest.titulo}</h3>
+                  <p className="text-xs font-medium text-[#8A8A8A] line-clamp-2 mb-4">{rest.descricao_curta}</p>
+                  <div className="mt-auto flex items-center justify-between pt-4 border-t border-[#D1D9E6]"><button onClick={() => abrirEditar(rest)} className="text-xs font-semibold text-[#0078D4] hover:underline">Editar</button><button onClick={() => handleDelete(rest.id)} className="text-xs font-semibold text-[#D13438] hover:underline">Remover</button></div>
                 </div>
               </div>
             ))}
@@ -1604,7 +1559,6 @@ function TabAgencias() {
     setLoading(false);
   }
 
-  // NOVA FUNÇÃO: Ativar/Desativar rapidamente com um clique
   async function toggleAtivo(id: string, estadoAtual: boolean) {
     await supabase.from('agencias').update({ ativo: !estadoAtual }).eq('id', id);
     fetchAgencias();
@@ -1699,17 +1653,17 @@ function TabAgencias() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div><h2 className={`${jakarta.className} text-xl font-black text-[#00577C]`}>Diretório de Agências</h2><p className="text-xs text-slate-500 mt-1">{agencias.length} agências registadas</p></div>
-        <button onClick={abrirNovo} className="bg-[#00577C] text-white font-black text-sm px-5 py-2.5 rounded-xl flex items-center gap-2"><Plus size={16} /> Nova Agência</button>
+        <div><h2 className={`${jakarta.className} text-xl font-bold text-[#1A1A1A]`}>Diretório de Agências</h2><p className="text-xs text-[#8A8A8A] mt-1">{agencias.length} agências registadas</p></div>
+        <button onClick={abrirNovo} className="bg-[#0078D4] text-white font-semibold text-sm px-5 py-2.5 rounded-md flex items-center gap-2"><Plus size={16} /> Nova Agência</button>
       </div>
 
       {showForm ? (
-        <div className="bg-white rounded-[2rem] p-8 shadow-lg border border-slate-100">
-          <div className="flex items-center justify-between mb-8 border-b pb-4"><h3 className={`${jakarta.className} text-2xl font-black text-slate-800`}><Briefcase className="text-[#F9C400] inline mr-2"/>{editando ? "Editar Agência" : "Nova Agência Oficial"}</h3><button onClick={() => setShowForm(false)} className="text-sm font-bold text-slate-400">Cancelar</button></div>
+        <div className="bg-white rounded-md p-8 shadow-lg border border-[#D1D9E6]">
+          <div className="flex items-center justify-between mb-8 border-b pb-4"><h3 className={`${jakarta.className} text-2xl font-bold text-[#1A1A1A]`}><Briefcase className="text-[#DAA520] inline mr-2"/>{editando ? "Editar Agência" : "Nova Agência Oficial"}</h3><button onClick={() => setShowForm(false)} className="text-sm font-semibold text-[#8A8A8A]">Cancelar</button></div>
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-8">
             <div className="space-y-5">
-              <h4 className="font-black text-[#00577C] border-b pb-2">Informações da Empresa</h4>
+              <h4 className="font-bold text-[#1A1A1A] border-b pb-2">Informações da Empresa</h4>
               <FormField label="Nome da Agência *"><input type="text" value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} className={inputCls} /></FormField>
               <FormField label="Cadastur (Registro)"><input type="text" value={form.cadastur} onChange={e => setForm({...form, cadastur: e.target.value})} className={inputCls} placeholder="XX.XXXXXX.XX-X" /></FormField>
               <FormField label="Resumo (Aparece no Cartão)"><textarea rows={2} value={form.descricao_curta} onChange={e => setForm({...form, descricao_curta: e.target.value})} className={inputCls} /></FormField>
@@ -1717,23 +1671,23 @@ function TabAgencias() {
             </div>
             
             <div className="space-y-5">
-              <h4 className="font-black text-[#00577C] border-b pb-2">Contatos e Identidade Visual</h4>
+              <h4 className="font-bold text-[#1A1A1A] border-b pb-2">Contatos e Identidade Visual</h4>
               <div className="grid grid-cols-2 gap-4">
-                <FormField label="WhatsApp"><div className="relative"><Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" /><input type="text" value={form.whatsapp} onChange={e => setForm({...form, whatsapp: e.target.value})} className={`${inputCls} pl-10`} /></div></FormField>
-                <FormField label="Instagram"><div className="relative"><span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">@</span><input type="text" value={form.instagram} onChange={e => setForm({...form, instagram: e.target.value})} className={`${inputCls} pl-9`} /></div></FormField>
+                <FormField label="WhatsApp"><div className="relative"><Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8A8A8A]" /><input type="text" value={form.whatsapp} onChange={e => setForm({...form, whatsapp: e.target.value})} className={`${inputCls} pl-10`} /></div></FormField>
+                <FormField label="Instagram"><div className="relative"><span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8A8A8A] font-semibold text-xs">@</span><input type="text" value={form.instagram} onChange={e => setForm({...form, instagram: e.target.value})} className={`${inputCls} pl-9`} /></div></FormField>
               </div>
               <FormField label="Endereço Físico"><input type="text" value={form.endereco} onChange={e => setForm({...form, endereco: e.target.value})} className={inputCls} /></FormField>
               <FormField label="Visibilidade"><select value={String(form.ativo)} onChange={e => setForm({...form, ativo: e.target.value === 'true'})} className={inputCls}><option value="true">Público (Ativo)</option><option value="false">Oculto</option></select></FormField>
               
               <div className="grid grid-cols-2 gap-4">
                 <FormField label="Logotipo">
-                  <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 p-4 rounded-xl cursor-pointer hover:border-[#00577C] text-slate-500 text-xs text-center">
+                  <label className="flex items-center justify-center gap-2 border-2 border-dashed border-[#D1D9E6] bg-[#F0F4F8] p-4 rounded-md cursor-pointer hover:border-[#0078D4] text-[#8A8A8A] text-xs text-center">
                     <input type="file" accept="image/*" className="hidden" onChange={e => setLogoFile(e.target.files?.[0] || null)} />
                     {logoFile ? "Pronta ✓" : (editando?.logo_url ? "Substituir" : "Anexar Logo")}
                   </label>
                 </FormField>
                 <FormField label="Capa do Perfil">
-                  <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 p-4 rounded-xl cursor-pointer hover:border-[#00577C] text-slate-500 text-xs text-center">
+                  <label className="flex items-center justify-center gap-2 border-2 border-dashed border-[#D1D9E6] bg-[#F0F4F8] p-4 rounded-md cursor-pointer hover:border-[#0078D4] text-[#8A8A8A] text-xs text-center">
                     <input type="file" accept="image/*" className="hidden" onChange={e => setCapaFile(e.target.files?.[0] || null)} />
                     {capaFile ? "Pronta ✓" : (editando?.capa_url ? "Substituir" : "Anexar Capa")}
                   </label>
@@ -1741,7 +1695,7 @@ function TabAgencias() {
               </div>
               
               <FormField label="Adicionar Fotos à Galeria">
-                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 p-4 rounded-xl cursor-pointer hover:border-[#00577C] text-slate-500 text-xs text-center">
+                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-[#D1D9E6] bg-[#F0F4F8] p-4 rounded-md cursor-pointer hover:border-[#0078D4] text-[#8A8A8A] text-xs text-center">
                   <input type="file" accept="image/*" multiple className="hidden" onChange={e => { if (e.target.files) setGaleriaFiles(Array.from(e.target.files)); }} />
                   {galeriaFiles.length > 0 ? `${galeriaFiles.length} imagens novas` : 'Selecionar Fotos'}
                 </label>
@@ -1750,49 +1704,48 @@ function TabAgencias() {
           </div>
 
           <div className="mt-12 space-y-4">
-            <div className="flex items-center justify-between border-b pb-2"><h4 className="font-black text-[#00577C]">Especialidades da Agência</h4><button onClick={addEsp} className="text-xs font-bold text-[#009640] flex items-center gap-1"><Plus size={14}/> Adicionar Especialidade</button></div>
+            <div className="flex items-center justify-between border-b pb-2"><h4 className="font-bold text-[#1A1A1A]">Especialidades da Agência</h4><button onClick={addEsp} className="text-xs font-semibold text-[#0078D4] flex items-center gap-1"><Plus size={14}/> Adicionar Especialidade</button></div>
             <div className="space-y-3">
               {especialidades.map((item, index) => (
-                <div key={index} className="flex flex-col md:flex-row gap-3 items-center bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <div key={index} className="flex flex-col md:flex-row gap-3 items-center bg-[#F0F4F8] p-4 rounded-md border border-[#D1D9E6]">
                   <div className="w-full md:flex-1"><input type="text" value={item.nome} onChange={e => handleEspChange(index, 'nome', e.target.value)} placeholder="Nome (Ex: Trilhas)" className={inputCls} /></div>
                   <div className="w-full md:flex-1 flex items-center gap-2">
-                    <label className="flex-1 flex items-center justify-center gap-2 border border-slate-200 bg-white text-slate-500 py-2 rounded-lg cursor-pointer text-xs font-bold">
+                    <label className="flex-1 flex items-center justify-center gap-2 border border-[#D1D9E6] bg-white text-[#8A8A8A] py-2 rounded-md cursor-pointer text-xs font-semibold">
                       <input type="file" accept="image/*" className="hidden" onChange={e => handleEspChange(index, 'file', e.target.files?.[0] || null)} />
                       <Upload size={14}/> {item.file ? "Foto pronta ✓" : (item.imagem_url ? "Tem foto ✓" : "Anexar Foto")}
                     </label>
-                    <button onClick={() => removeEsp(index)} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 border border-red-200"><Trash2 size={16} /></button>
+                    <button onClick={() => removeEsp(index)} className="p-2 bg-[#FDE7E9] text-[#D13438] rounded-md hover:bg-[#FDE7E9] border border-[#D13438]"><Trash2 size={16} /></button>
                   </div>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="mt-10 flex items-center justify-between pt-6 border-t border-slate-100">
-            <span className="text-sm font-bold text-[#009640]">{feedback}</span>
-            <button onClick={handleSalvar} disabled={saving} className="bg-[#009640] text-white px-10 py-4 rounded-xl font-black text-sm shadow-lg flex items-center gap-2">{saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Guardar Agência</button>
+          <div className="mt-10 flex items-center justify-between pt-6 border-t border-[#D1D9E6]">
+            <span className="text-sm font-semibold text-[#0078D4]">{feedback}</span>
+            <button onClick={handleSalvar} disabled={saving} className="bg-[#0078D4] text-white px-10 py-4 rounded-md font-semibold text-sm shadow-lg flex items-center gap-2">{saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Guardar Agência</button>
           </div>
         </div>
       ) : (
-        loading ? (<div className="py-12 flex justify-center"><Loader2 size={32} className="text-[#00577C] animate-spin" /></div>) : (
+        loading ? (<div className="py-12 flex justify-center"><Loader2 size={32} className="text-[#0078D4] animate-spin" /></div>) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {agencias.map((ag) => (
-              <div key={ag.id} className={`bg-white rounded-[2rem] border border-slate-200 p-6 flex flex-col hover:shadow-xl text-center ${!ag.ativo && 'opacity-60 bg-slate-50'}`}>
-                <div className="w-24 h-24 rounded-full mx-auto overflow-hidden border-4 border-slate-100 shadow-sm flex items-center justify-center bg-slate-50">
-                  {ag.logo_url ? <img src={ag.logo_url} className="object-cover w-full h-full" /> : <Briefcase className="text-slate-300"/>}
+              <div key={ag.id} className={`bg-white rounded-md border border-[#D1D9E6] p-6 flex flex-col hover:shadow-md text-center ${!ag.ativo && 'opacity-60 bg-[#F0F4F8]'}`}>
+                <div className="w-24 h-24 rounded-full mx-auto overflow-hidden border-4 border-[#D1D9E6] shadow-sm flex items-center justify-center bg-[#F0F4F8]">
+                  {ag.logo_url ? <img src={ag.logo_url} className="object-cover w-full h-full" /> : <Briefcase className="text-[#D1D9E6]"/>}
                 </div>
                 <div className="pt-4 flex-1 flex flex-col">
-                  <h3 className={`${jakarta.className} text-lg font-black text-slate-800 mb-1`}>{ag.nome}</h3>
-                  <p className="text-xs font-medium text-slate-500 line-clamp-1 mb-4">{ag.cadastur ? `Cadastur: ${ag.cadastur}` : 'Turismo Legal'}</p>
+                  <h3 className={`${jakarta.className} text-lg font-bold text-[#1A1A1A] mb-1`}>{ag.nome}</h3>
+                  <p className="text-xs font-medium text-[#8A8A8A] line-clamp-1 mb-4">{ag.cadastur ? `Cadastur: ${ag.cadastur}` : 'Turismo Legal'}</p>
                   
-                  {/* BOTÕES DE AÇÃO COM O TOGGLE ATIVO/INATIVO */}
-                  <div className="mt-auto flex flex-col gap-2 pt-4 border-t border-slate-100">
+                  <div className="mt-auto flex flex-col gap-2 pt-4 border-t border-[#D1D9E6]">
                     <div className="flex justify-between items-center w-full">
-                      <button onClick={() => toggleAtivo(ag.id, ag.ativo)} className={`text-[10px] font-black uppercase px-2 py-1 rounded-md transition-colors ${ag.ativo ? 'text-[#009640] bg-green-50 hover:bg-green-100' : 'text-slate-500 bg-slate-200 hover:bg-slate-300'}`}>
+                      <button onClick={() => toggleAtivo(ag.id, ag.ativo)} className={`text-[10px] font-semibold uppercase px-2 py-1 rounded-md transition-colors ${ag.ativo ? 'text-[#0078D4] bg-[#E5F0FF] hover:bg-[#D1D9E6]' : 'text-[#8A8A8A] bg-[#F0F4F8] hover:bg-[#D1D9E6]'}`}>
                         {ag.ativo ? "Público ✓" : "Oculto ✕"}
                       </button>
                       <div className="flex gap-3">
-                        <button onClick={() => abrirEditar(ag)} className="text-xs font-bold text-[#00577C] hover:underline">Editar</button>
-                        <button onClick={() => handleDelete(ag.id)} className="text-xs font-bold text-red-500 hover:underline">Remover</button>
+                        <button onClick={() => abrirEditar(ag)} className="text-xs font-semibold text-[#0078D4] hover:underline">Editar</button>
+                        <button onClick={() => handleDelete(ag.id)} className="text-xs font-semibold text-[#D13438] hover:underline">Remover</button>
                       </div>
                     </div>
                   </div>
@@ -1811,7 +1764,6 @@ function TabAgencias() {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function TabAplicativo() {
-  // Estados para as Notificações Push
   const [tokens, setTokens] = useState<any[]>([]);
   const [loadingTokens, setLoadingTokens] = useState(true);
   const [enviando, setEnviando] = useState(false);
@@ -1819,7 +1771,6 @@ function TabAplicativo() {
   const [titulo, setTitulo] = useState("");
   const [mensagem, setMensagem] = useState("");
 
-  // Estados para o Upload de Materiais
   const [tituloPdf, setTituloPdf] = useState("");
   const [descricaoPdf, setDescricaoPdf] = useState("");
   const [arquivo, setArquivo] = useState<File | null>(null);
@@ -1927,22 +1878,20 @@ function TabAplicativo() {
 
   return (
     <div className="space-y-6">
-      {/* HEADER - mesmo padrão da TabAtracoes */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className={`${jakarta.className} text-xl font-black text-[#00577C]`}>Gestão do Aplicativo</h2>
-          <p className="text-xs text-slate-500 mt-1">Envie alertas em tempo real e disponibilize guias digitais para os utilizadores.</p>
+          <h2 className={`${jakarta.className} text-xl font-bold text-[#1A1A1A]`}>Gestão do Aplicativo</h2>
+          <p className="text-xs text-[#8A8A8A] mt-1">Envie alertas em tempo real e disponibilize guias digitais para os utilizadores.</p>
         </div>
-        <span className="text-xs font-bold bg-slate-100 px-3 py-1 rounded-full text-slate-600">
+        <span className="text-xs font-semibold bg-[#F0F4F8] px-3 py-1 rounded-full text-[#1A1A1A]">
           {tokens.length} dispositivos registados
         </span>
       </div>
 
-      {/* SECÇÃO 1: NOTIFICAÇÕES PUSH - mesma estrutura da TabAtracoes */}
-      <div className="bg-white rounded-[2rem] p-8 shadow-lg border border-slate-100">
-        <div className="flex items-center justify-between mb-8 border-b border-slate-100 pb-4">
-          <h3 className={`${jakarta.className} text-2xl font-black text-slate-800 flex items-center gap-2`}>
-            <Bell size={22} className="text-[#F9C400]" /> Notificações Push
+      <div className="bg-white rounded-md p-8 shadow-lg border border-[#D1D9E6]">
+        <div className="flex items-center justify-between mb-8 border-b border-[#D1D9E6] pb-4">
+          <h3 className={`${jakarta.className} text-2xl font-bold text-[#1A1A1A] flex items-center gap-2`}>
+            <Bell size={22} className="text-[#DAA520]" /> Notificações Push
           </h3>
         </div>
 
@@ -1951,7 +1900,7 @@ function TabAplicativo() {
             <input 
               value={titulo} 
               onChange={e => setTitulo(e.target.value)} 
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm" 
+              className={inputCls}
               placeholder="Ex: 🌿 Novo artigo no Blog!" 
               required 
               maxLength={50} 
@@ -1963,19 +1912,19 @@ function TabAplicativo() {
               rows={4} 
               value={mensagem} 
               onChange={e => setMensagem(e.target.value)} 
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm" 
+              className={inputCls}
               placeholder="Ex: Descubra as novidades..." 
               required 
               maxLength={150} 
             />
           </FormField>
 
-          <div className="pt-6 border-t border-slate-100 flex items-center justify-between">
-            <span className="text-sm font-bold text-[#009640]">{feedbackPush}</span>
+          <div className="pt-6 border-t border-[#D1D9E6] flex items-center justify-between">
+            <span className="text-sm font-semibold text-[#0078D4]">{feedbackPush}</span>
             <button 
               type="submit" 
               disabled={enviando || tokens.length === 0} 
-              className="bg-[#00577C] hover:bg-[#004a6b] text-white px-8 py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg flex items-center gap-2 transition-all disabled:opacity-50"
+              className="bg-[#0078D4] hover:bg-[#005A9E] text-white px-8 py-4 rounded-md font-semibold text-sm uppercase tracking-widest shadow-lg flex items-center gap-2 transition-all disabled:opacity-50"
             >
               {enviando ? (
                 <>
@@ -1989,11 +1938,10 @@ function TabAplicativo() {
         </form>
       </div>
 
-      {/* SECÇÃO 2: MATERIAIS E GUIAS DIGITAIS - mesmo padrão */}
-      <div className="bg-white rounded-[2rem] p-8 shadow-lg border border-slate-100">
-        <div className="flex items-center justify-between mb-8 border-b border-slate-100 pb-4">
-          <h3 className={`${jakarta.className} text-2xl font-black text-slate-800 flex items-center gap-2`}>
-            <FileText size={22} className="text-[#00577C]" /> Disponibilizar Guias e Panfletos (PDF)
+      <div className="bg-white rounded-md p-8 shadow-lg border border-[#D1D9E6]">
+        <div className="flex items-center justify-between mb-8 border-b border-[#D1D9E6] pb-4">
+          <h3 className={`${jakarta.className} text-2xl font-bold text-[#1A1A1A] flex items-center gap-2`}>
+            <FileText size={22} className="text-[#0078D4]" /> Disponibilizar Guias e Panfletos (PDF)
           </h3>
         </div>
 
@@ -2002,7 +1950,7 @@ function TabAplicativo() {
             <input 
               value={tituloPdf} 
               onChange={e => setTituloPdf(e.target.value)} 
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm" 
+              className={inputCls}
               placeholder="Ex: Guia Turístico Oficial 2026" 
               required 
             />
@@ -2013,13 +1961,13 @@ function TabAplicativo() {
               rows={3} 
               value={descricaoPdf} 
               onChange={e => setDescricaoPdf(e.target.value)} 
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm" 
+              className={inputCls}
               placeholder="Ex: Mapa completo com trilhas e pontos de apoio..." 
             />
           </FormField>
 
           <FormField label="Ficheiro PDF *">
-            <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 text-slate-500 p-6 rounded-xl cursor-pointer hover:border-[#00577C] transition-colors">
+            <label className="flex items-center justify-center gap-2 border-2 border-dashed border-[#D1D9E6] bg-[#F0F4F8] text-[#8A8A8A] p-6 rounded-md cursor-pointer hover:border-[#0078D4] transition-colors">
               <input 
                 type="file" 
                 accept=".pdf" 
@@ -2031,12 +1979,12 @@ function TabAplicativo() {
             </label>
           </FormField>
 
-          <div className="pt-6 border-t border-slate-100 flex items-center justify-between">
-            <span className="text-sm font-bold text-[#009640]">{feedbackPdf}</span>
+          <div className="pt-6 border-t border-[#D1D9E6] flex items-center justify-between">
+            <span className="text-sm font-semibold text-[#0078D4]">{feedbackPdf}</span>
             <button 
               type="submit" 
               disabled={uploading} 
-              className="bg-[#009640] hover:bg-green-700 text-white px-8 py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg flex items-center gap-2 transition-all disabled:opacity-50"
+              className="bg-[#0078D4] hover:bg-[#005A9E] text-white px-8 py-4 rounded-md font-semibold text-sm uppercase tracking-widest shadow-lg flex items-center gap-2 transition-all disabled:opacity-50"
             >
               {uploading ? (
                 <>
@@ -2054,7 +2002,7 @@ function TabAplicativo() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// ATRAÇÕES (Atualizado com Ordem e Galeria)
+// ATRAÇÕES
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function TabAtracoes() {
@@ -2144,26 +2092,26 @@ function TabAtracoes() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className={`${jakarta.className} text-xl font-black text-[#00577C]`}>Vitrine de Atrações</h2>
-          <p className="text-xs text-slate-500 mt-1">{atracoes.length} pontos turísticos em exibição</p>
+          <h2 className={`${jakarta.className} text-xl font-bold text-[#1A1A1A]`}>Vitrine de Atrações</h2>
+          <p className="text-xs text-[#8A8A8A] mt-1">{atracoes.length} pontos turísticos em exibição</p>
         </div>
-        <button onClick={abrirFormNovo} className="bg-[#00577C] hover:bg-[#004a6b] text-white font-black text-sm px-5 py-2.5 rounded-xl transition shadow-md flex items-center gap-2">
+        <button onClick={abrirFormNovo} className="bg-[#0078D4] hover:bg-[#005A9E] text-white font-semibold text-sm px-5 py-2.5 rounded-md transition shadow-md flex items-center gap-2">
           <Plus size={16} /> Nova Atração
         </button>
       </div>
 
       {showForm ? (
-        <div className="bg-white rounded-[2rem] p-8 shadow-lg border border-slate-100 animate-in fade-in slide-in-from-bottom-4">
-          <div className="flex items-center justify-between mb-8 border-b border-slate-100 pb-4">
-            <h3 className={`${jakarta.className} text-2xl font-black text-slate-800 flex items-center gap-2`}>
-              <MapPin className="text-[#F9C400]" /> {editando ? "Editar Atração" : "Construtor de Página da Atração"}
+        <div className="bg-white rounded-md p-8 shadow-lg border border-[#D1D9E6] animate-in fade-in slide-in-from-bottom-4">
+          <div className="flex items-center justify-between mb-8 border-b border-[#D1D9E6] pb-4">
+            <h3 className={`${jakarta.className} text-2xl font-bold text-[#1A1A1A] flex items-center gap-2`}>
+              <MapPin className="text-[#DAA520]" /> {editando ? "Editar Atração" : "Construtor de Página da Atração"}
             </h3>
-            <button onClick={() => setShowForm(false)} className="text-sm font-bold text-slate-400 hover:text-slate-800">Cancelar</button>
+            <button onClick={() => setShowForm(false)} className="text-sm font-semibold text-[#8A8A8A] hover:text-[#1A1A1A]">Cancelar</button>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-8">
             <div className="space-y-5">
-              <h4 className="font-black text-[#00577C] border-b pb-2">Informações Principais</h4>
+              <h4 className="font-bold text-[#1A1A1A] border-b pb-2">Informações Principais</h4>
               <FormField label="Nome da Atração *"><input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} className={inputCls} placeholder="Ex: Mirante da Serra" /></FormField>
               <div className="grid grid-cols-2 gap-4">
                 <FormField label="Tipo"><input value={form.tipo} onChange={(e) => setForm({ ...form, tipo: e.target.value })} className={inputCls} placeholder="Ex: Natureza, Museu..." /></FormField>
@@ -2184,20 +2132,20 @@ function TabAtracoes() {
             </div>
             
             <div className="space-y-5">
-              <h4 className="font-black text-[#00577C] border-b pb-2">Localização e Mídia</h4>
+              <h4 className="font-bold text-[#1A1A1A] border-b pb-2">Localização e Mídia</h4>
               <div className="grid grid-cols-2 gap-4">
-                <FormField label="WhatsApp de Contato"><div className="relative"><Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" /><input value={form.whatsapp || ""} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })} className={`${inputCls} pl-10`} placeholder="94 90000-0000" /></div></FormField>
-                <FormField label="Link Google Maps"><div className="relative"><MapPin size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" /><input value={form.link_google_maps || ""} onChange={(e) => setForm({ ...form, link_google_maps: e.target.value })} className={`${inputCls} pl-10`} placeholder="https://maps..." /></div></FormField>
+                <FormField label="WhatsApp de Contato"><div className="relative"><Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8A8A8A]" /><input value={form.whatsapp || ""} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })} className={`${inputCls} pl-10`} placeholder="94 90000-0000" /></div></FormField>
+                <FormField label="Link Google Maps"><div className="relative"><MapPin size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8A8A8A]" /><input value={form.link_google_maps || ""} onChange={(e) => setForm({ ...form, link_google_maps: e.target.value })} className={`${inputCls} pl-10`} placeholder="https://maps..." /></div></FormField>
               </div>
               <FormField label="Fotografia de Capa (Principal)">
-                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 text-slate-500 p-4 rounded-xl cursor-pointer hover:border-[#00577C] transition-colors">
+                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-[#D1D9E6] bg-[#F0F4F8] text-[#8A8A8A] p-4 rounded-md cursor-pointer hover:border-[#0078D4] transition-colors">
                   <input type="file" accept="image/*" className="hidden" onChange={(e) => setImagemFile(e.target.files?.[0] || null)} />
                   <ImageIcon size={18} /> {imagemFile ? imagemFile.name : form.imagem_url ? "Trocar Capa Atual" : "Anexar Capa"}
                 </label>
-                {form.imagem_url && !imagemFile && <img src={form.imagem_url} alt="Capa atual" className="mt-3 h-24 w-full object-cover rounded-xl border border-slate-200" />}
+                {form.imagem_url && !imagemFile && <img src={form.imagem_url} alt="Capa atual" className="mt-3 h-24 w-full object-cover rounded-md border border-[#D1D9E6]" />}
               </FormField>
               <FormField label="Adicionar Imagens à Galeria">
-                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 text-slate-500 p-4 rounded-xl cursor-pointer hover:border-[#00577C] transition-colors">
+                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-[#D1D9E6] bg-[#F0F4F8] text-[#8A8A8A] p-4 rounded-md cursor-pointer hover:border-[#0078D4] transition-colors">
                   <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => { if(e.target.files) setGaleriaFiles(Array.from(e.target.files)); }} />
                   <ImageIcon size={18} /> {galeriaFiles.length > 0 ? `${galeriaFiles.length} ficheiros novos` : "Selecionar Múltiplas Fotos"}
                 </label>
@@ -2205,32 +2153,32 @@ function TabAtracoes() {
             </div>
           </div>
 
-          <div className="mt-10 flex items-center justify-between pt-6 border-t border-slate-100">
-            <span className="text-sm font-bold text-[#009640]">{feedback}</span>
-            <button onClick={handleSave} disabled={saving} className="bg-[#009640] hover:bg-green-700 text-white px-10 py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg flex items-center gap-2 transition-all">
+          <div className="mt-10 flex items-center justify-between pt-6 border-t border-[#D1D9E6]">
+            <span className="text-sm font-semibold text-[#0078D4]">{feedback}</span>
+            <button onClick={handleSave} disabled={saving} className="bg-[#0078D4] hover:bg-[#005A9E] text-white px-10 py-4 rounded-md font-semibold text-sm uppercase tracking-widest shadow-lg flex items-center gap-2 transition-all">
               {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Publicar Atração
             </button>
           </div>
         </div>
       ) : (
-        loading ? <div className="py-12 flex justify-center"><Loader2 size={32} className="text-[#00577C] animate-spin" /></div> : (
+        loading ? <div className="py-12 flex justify-center"><Loader2 size={32} className="text-[#0078D4] animate-spin" /></div> : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {atracoes.map((a) => (
-              <div key={a.id} className="bg-white rounded-[2rem] border border-slate-200 p-4 flex flex-col hover:shadow-xl transition-shadow relative">
-                <div className="absolute -top-3 -left-3 bg-[#00577C] text-white w-8 h-8 flex items-center justify-center rounded-full font-black text-xs z-10 shadow-sm border-2 border-white">
+              <div key={a.id} className="bg-white rounded-md border border-[#D1D9E6] p-4 flex flex-col hover:shadow-md transition-shadow relative">
+                <div className="absolute -top-3 -left-3 bg-[#0078D4] text-white w-8 h-8 flex items-center justify-center rounded-full font-semibold text-xs z-10 shadow-sm border-2 border-white">
                   {a.ordem || 0}
                 </div>
-                <div className="relative w-full h-48 rounded-2xl overflow-hidden bg-slate-100 mb-4">
+                <div className="relative w-full h-48 rounded-md overflow-hidden bg-[#F0F4F8] mb-4">
                   <img src={a.imagem_url || "/placeholder.png"} alt={a.nome} className="object-cover w-full h-full" />
-                  <div className="absolute top-3 right-3 bg-white/90 backdrop-blur px-2 py-1 rounded text-[10px] font-black text-[#00577C] shadow-sm uppercase">{a.tipo}</div>
+                  <div className="absolute top-3 right-3 bg-white/90 backdrop-blur px-2 py-1 rounded text-[10px] font-semibold text-[#0078D4] shadow-sm uppercase">{a.tipo}</div>
                 </div>
                 <div className="px-2 pb-2 flex-1 flex flex-col">
-                  <h3 className={`${jakarta.className} text-xl font-black text-slate-800 mb-1`}>{a.nome}</h3>
-                  <p className="text-xs font-bold text-[#009640] mb-3">R$ {(Number(a.preco_entrada) || 0).toFixed(2)}</p>
+                  <h3 className={`${jakarta.className} text-xl font-bold text-[#1A1A1A] mb-1`}>{a.nome}</h3>
+                  <p className="text-xs font-semibold text-[#0078D4] mb-3">R$ {(Number(a.preco_entrada) || 0).toFixed(2)}</p>
                   
-                  <div className="mt-auto flex items-center justify-between pt-4 border-t border-slate-100">
-                    <button onClick={() => abrirFormEditar(a)} className="text-xs font-bold text-[#00577C] hover:underline">Editar Atração</button>
-                    <button onClick={() => handleDelete(a.id)} className="text-xs font-bold text-red-500 hover:underline">Remover</button>
+                  <div className="mt-auto flex items-center justify-between pt-4 border-t border-[#D1D9E6]">
+                    <button onClick={() => abrirFormEditar(a)} className="text-xs font-semibold text-[#0078D4] hover:underline">Editar Atração</button>
+                    <button onClick={() => handleDelete(a.id)} className="text-xs font-semibold text-[#D13438] hover:underline">Remover</button>
                   </div>
                 </div>
               </div>
@@ -2243,7 +2191,7 @@ function TabAtracoes() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// COMUNIDADES (NOVO - Uni as tabelas comunidades e comunidade_pontos)
+// COMUNIDADES
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function TabComunidades() {
@@ -2391,24 +2339,24 @@ function TabComunidades() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className={`${jakarta.className} text-xl font-black text-[#00577C]`}>Gestão de Comunidades</h2>
-          <p className="text-xs text-slate-500 mt-1">{comunidades.length} comunidades no portal</p>
+          <h2 className={`${jakarta.className} text-xl font-bold text-[#1A1A1A]`}>Gestão de Comunidades</h2>
+          <p className="text-xs text-[#8A8A8A] mt-1">{comunidades.length} comunidades no portal</p>
         </div>
-        <button onClick={abrirFormNovo} className="bg-[#00577C] hover:bg-[#004a6b] text-white font-black text-sm px-5 py-2.5 rounded-xl transition shadow-md flex items-center gap-2">
+        <button onClick={abrirFormNovo} className="bg-[#0078D4] hover:bg-[#005A9E] text-white font-semibold text-sm px-5 py-2.5 rounded-md transition shadow-md flex items-center gap-2">
           <Plus size={16} /> Nova Comunidade
         </button>
       </div>
 
       {showForm ? (
-        <div className="bg-white rounded-[2rem] p-8 shadow-lg border border-slate-100 animate-in fade-in slide-in-from-bottom-4">
-          <div className="flex items-center justify-between mb-8 border-b border-slate-100 pb-4">
-            <h3 className={`${jakarta.className} text-2xl font-black text-slate-800 flex items-center gap-2`}><Compass className="text-[#F9C400]" /> {editando ? "Editar Comunidade" : "Nova Comunidade"}</h3>
-            <button onClick={() => setShowForm(false)} className="text-sm font-bold text-slate-400 hover:text-slate-800">Cancelar</button>
+        <div className="bg-white rounded-md p-8 shadow-lg border border-[#D1D9E6] animate-in fade-in slide-in-from-bottom-4">
+          <div className="flex items-center justify-between mb-8 border-b border-[#D1D9E6] pb-4">
+            <h3 className={`${jakarta.className} text-2xl font-bold text-[#1A1A1A] flex items-center gap-2`}><Compass className="text-[#DAA520]" /> {editando ? "Editar Comunidade" : "Nova Comunidade"}</h3>
+            <button onClick={() => setShowForm(false)} className="text-sm font-semibold text-[#8A8A8A] hover:text-[#1A1A1A]">Cancelar</button>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-8">
             <div className="space-y-5">
-              <h4 className="font-black text-[#00577C] border-b pb-2">Identificação</h4>
+              <h4 className="font-bold text-[#1A1A1A] border-b pb-2">Identificação</h4>
               <FormField label="Nome da Comunidade *"><input value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value })} className={inputCls} placeholder="Ex: Santa Cruz" /></FormField>
               <FormField label="Descrição Curta (Resumo)"><textarea value={form.descricao_curta || ""} onChange={(e) => setForm({ ...form, descricao_curta: e.target.value })} rows={3} className={inputCls} /></FormField>
               
@@ -2422,15 +2370,15 @@ function TabComunidades() {
             </div>
             
             <div className="space-y-5">
-              <h4 className="font-black text-[#00577C] border-b pb-2">Mídia Oficial</h4>
+              <h4 className="font-bold text-[#1A1A1A] border-b pb-2">Mídia Oficial</h4>
               <FormField label="Fotografia de Capa (Principal)">
-                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 text-slate-500 p-4 rounded-xl cursor-pointer hover:border-[#00577C] transition-colors">
+                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-[#D1D9E6] bg-[#F0F4F8] text-[#8A8A8A] p-4 rounded-md cursor-pointer hover:border-[#0078D4] transition-colors">
                   <input type="file" accept="image/*" className="hidden" onChange={(e) => setImagemFile(e.target.files?.[0] || null)} />
                   <ImageIcon size={18} /> {imagemFile ? imagemFile.name : form.imagem_url ? "Trocar Capa Atual" : "Anexar Capa"}
                 </label>
               </FormField>
               <FormField label="Adicionar Imagens à Galeria">
-                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 text-slate-500 p-4 rounded-xl cursor-pointer hover:border-[#00577C] transition-colors">
+                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-[#D1D9E6] bg-[#F0F4F8] text-[#8A8A8A] p-4 rounded-md cursor-pointer hover:border-[#0078D4] transition-colors">
                   <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => { if(e.target.files) setGaleriaFiles(Array.from(e.target.files)); }} />
                   <ImageIcon size={18} /> {galeriaFiles.length > 0 ? `${galeriaFiles.length} ficheiros novos` : "Selecionar Fotos"}
                 </label>
@@ -2440,12 +2388,12 @@ function TabComunidades() {
 
           <div className="mt-12 space-y-4">
             <div className="flex items-center justify-between border-b pb-2">
-              <h4 className="font-black text-[#00577C]">Pontos da Comunidade (Atrações, Pousadas, etc.)</h4>
-              <button onClick={addPonto} className="text-xs font-bold text-[#009640] flex items-center gap-1"><Plus size={14}/> Adicionar Ponto</button>
+              <h4 className="font-bold text-[#1A1A1A]">Pontos da Comunidade (Atrações, Pousadas, etc.)</h4>
+              <button onClick={addPonto} className="text-xs font-semibold text-[#0078D4] flex items-center gap-1"><Plus size={14}/> Adicionar Ponto</button>
             </div>
             <div className="space-y-3">
               {pontos.filter(p => !p._deleted).map((item, index) => (
-                <div key={index} className="flex flex-col md:flex-row gap-3 items-center bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <div key={index} className="flex flex-col md:flex-row gap-3 items-center bg-[#F0F4F8] p-4 rounded-md border border-[#D1D9E6]">
                   <div className="w-full md:w-[25%]"><input type="text" value={item.titulo} onChange={e => handlePontoChange(index, 'titulo', e.target.value)} placeholder="Nome do Ponto" className={inputCls} /></div>
                   <div className="w-full md:w-[15%]">
                     <select value={item.tipo} onChange={e => handlePontoChange(index, 'tipo', e.target.value)} className={inputCls}>
@@ -2455,42 +2403,42 @@ function TabComunidades() {
                   <div className="w-full md:w-[20%]"><input type="text" value={item.whatsapp} onChange={e => handlePontoChange(index, 'whatsapp', e.target.value)} placeholder="WhatsApp" className={inputCls} /></div>
                   <div className="w-full md:w-[20%]"><input type="text" value={item.link_destino} onChange={e => handlePontoChange(index, 'link_destino', e.target.value)} placeholder="Link / URL" className={inputCls} /></div>
                   <div className="w-full md:w-[20%] flex items-center gap-2">
-                    <label className="flex-1 flex items-center justify-center gap-2 border border-slate-200 bg-white text-slate-500 py-2 rounded-lg cursor-pointer text-xs font-bold">
+                    <label className="flex-1 flex items-center justify-center gap-2 border border-[#D1D9E6] bg-white text-[#8A8A8A] py-2 rounded-md cursor-pointer text-xs font-semibold">
                       <input type="file" accept="image/*" className="hidden" onChange={e => handlePontoChange(index, 'file', e.target.files?.[0] || null)} />
                       <Upload size={14}/> {item.file ? "Pronto ✓" : (item.imagem_url ? "Tem foto ✓" : "Foto")}
                     </label>
-                    <button onClick={() => removePonto(index)} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 border border-red-200"><Trash2 size={16} /></button>
+                    <button onClick={() => removePonto(index)} className="p-2 bg-[#FDE7E9] text-[#D13438] rounded-md hover:bg-[#FDE7E9] border border-[#D13438]"><Trash2 size={16} /></button>
                   </div>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="mt-10 flex items-center justify-between pt-6 border-t border-slate-100">
-            <span className="text-sm font-bold text-[#009640]">{feedback}</span>
-            <button onClick={handleSave} disabled={saving} className="bg-[#009640] hover:bg-green-700 text-white px-10 py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg flex items-center gap-2 transition-all">
+          <div className="mt-10 flex items-center justify-between pt-6 border-t border-[#D1D9E6]">
+            <span className="text-sm font-semibold text-[#0078D4]">{feedback}</span>
+            <button onClick={handleSave} disabled={saving} className="bg-[#0078D4] hover:bg-[#005A9E] text-white px-10 py-4 rounded-md font-semibold text-sm uppercase tracking-widest shadow-lg flex items-center gap-2 transition-all">
               {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Guardar Comunidade
             </button>
           </div>
         </div>
       ) : (
-        loading ? <div className="py-12 flex justify-center"><Loader2 size={32} className="text-[#00577C] animate-spin" /></div> : (
+        loading ? <div className="py-12 flex justify-center"><Loader2 size={32} className="text-[#0078D4] animate-spin" /></div> : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {comunidades.map((c) => (
-              <div key={c.id} className="bg-white rounded-[2rem] border border-slate-200 p-4 flex flex-col hover:shadow-xl transition-shadow relative">
-                <div className="absolute -top-3 -left-3 bg-[#00577C] text-white w-8 h-8 flex items-center justify-center rounded-full font-black text-xs z-10 shadow-sm border-2 border-white">
+              <div key={c.id} className="bg-white rounded-md border border-[#D1D9E6] p-4 flex flex-col hover:shadow-md transition-shadow relative">
+                <div className="absolute -top-3 -left-3 bg-[#0078D4] text-white w-8 h-8 flex items-center justify-center rounded-full font-semibold text-xs z-10 shadow-sm border-2 border-white">
                   {c.ordem || 0}
                 </div>
-                <div className="relative w-full h-48 rounded-2xl overflow-hidden bg-slate-100 mb-4">
+                <div className="relative w-full h-48 rounded-md overflow-hidden bg-[#F0F4F8] mb-4">
                   <img src={c.imagem_url || "/placeholder.png"} alt={c.titulo} className="object-cover w-full h-full" />
                 </div>
                 <div className="px-2 pb-2 flex-1 flex flex-col">
-                  <h3 className={`${jakarta.className} text-xl font-black text-slate-800 mb-1`}>{c.titulo}</h3>
-                  <p className="text-xs text-slate-500 line-clamp-2">{c.descricao_curta}</p>
+                  <h3 className={`${jakarta.className} text-xl font-bold text-[#1A1A1A] mb-1`}>{c.titulo}</h3>
+                  <p className="text-xs text-[#8A8A8A] line-clamp-2">{c.descricao_curta}</p>
                   
-                  <div className="mt-auto flex items-center justify-between pt-4 border-t border-slate-100">
-                    <button onClick={() => abrirFormEditar(c)} className="text-xs font-bold text-[#00577C] hover:underline">Editar Completo</button>
-                    <button onClick={() => handleDelete(c.id)} className="text-xs font-bold text-red-500 hover:underline">Remover</button>
+                  <div className="mt-auto flex items-center justify-between pt-4 border-t border-[#D1D9E6]">
+                    <button onClick={() => abrirFormEditar(c)} className="text-xs font-semibold text-[#0078D4] hover:underline">Editar Completo</button>
+                    <button onClick={() => handleDelete(c.id)} className="text-xs font-semibold text-[#D13438] hover:underline">Remover</button>
                   </div>
                 </div>
               </div>
@@ -2503,7 +2451,7 @@ function TabComunidades() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// REUNIÕES COMTUR (NOVO)
+// REUNIÕES COMTUR
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function TabReunioesComtur() {
@@ -2558,19 +2506,19 @@ function TabReunioesComtur() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className={`${jakarta.className} text-xl font-black text-[#00577C]`}>Reuniões COMTUR</h2>
-          <p className="text-xs text-slate-500 mt-1">Gestão de transparência e pautas do Conselho Municipal de Turismo</p>
+          <h2 className={`${jakarta.className} text-xl font-bold text-[#1A1A1A]`}>Reuniões COMTUR</h2>
+          <p className="text-xs text-[#8A8A8A] mt-1">Gestão de transparência e pautas do Conselho Municipal de Turismo</p>
         </div>
-        <button onClick={abrirFormNovo} className="bg-[#00577C] hover:bg-[#004a6b] text-white font-black text-sm px-5 py-2.5 rounded-xl transition shadow-md flex items-center gap-2">
+        <button onClick={abrirFormNovo} className="bg-[#0078D4] hover:bg-[#005A9E] text-white font-semibold text-sm px-5 py-2.5 rounded-md transition shadow-md flex items-center gap-2">
           <Plus size={16} /> Registar Reunião
         </button>
       </div>
 
       {showForm ? (
-        <div className="bg-white rounded-[2rem] p-8 shadow-lg border border-slate-100 max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-4">
-          <div className="flex items-center justify-between mb-8 border-b border-slate-100 pb-4">
-            <h3 className={`${jakarta.className} text-xl font-black text-slate-800 flex items-center gap-2`}><Users className="text-[#F9C400]" /> {editando ? "Editar Reunião" : "Nova Reunião"}</h3>
-            <button onClick={() => setShowForm(false)} className="text-sm font-bold text-slate-400 hover:text-slate-800">Cancelar</button>
+        <div className="bg-white rounded-md p-8 shadow-lg border border-[#D1D9E6] max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-4">
+          <div className="flex items-center justify-between mb-8 border-b border-[#D1D9E6] pb-4">
+            <h3 className={`${jakarta.className} text-xl font-bold text-[#1A1A1A] flex items-center gap-2`}><Users className="text-[#DAA520]" /> {editando ? "Editar Reunião" : "Nova Reunião"}</h3>
+            <button onClick={() => setShowForm(false)} className="text-sm font-semibold text-[#8A8A8A] hover:text-[#1A1A1A]">Cancelar</button>
           </div>
 
           <div className="space-y-5">
@@ -2586,38 +2534,38 @@ function TabReunioesComtur() {
             </div>
           </div>
 
-          <div className="mt-10 flex items-center justify-between pt-6 border-t border-slate-100">
-            <span className="text-sm font-bold text-[#009640]">{feedback}</span>
-            <button onClick={handleSave} disabled={saving} className="bg-[#009640] hover:bg-green-700 text-white px-8 py-3 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg flex items-center gap-2 transition-all">
+          <div className="mt-10 flex items-center justify-between pt-6 border-t border-[#D1D9E6]">
+            <span className="text-sm font-semibold text-[#0078D4]">{feedback}</span>
+            <button onClick={handleSave} disabled={saving} className="bg-[#0078D4] hover:bg-[#005A9E] text-white px-8 py-3 rounded-md font-semibold text-sm uppercase tracking-widest shadow-lg flex items-center gap-2 transition-all">
               {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Salvar Registro
             </button>
           </div>
         </div>
       ) : (
-        loading ? <div className="py-12 flex justify-center"><Loader2 size={32} className="text-[#00577C] animate-spin" /></div> : (
-          <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm overflow-x-auto">
+        loading ? <div className="py-12 flex justify-center"><Loader2 size={32} className="text-[#0078D4] animate-spin" /></div> : (
+          <div className="rounded-md border border-[#D1D9E6] overflow-hidden bg-white shadow-sm overflow-x-auto">
             <table className="w-full text-sm min-w-[600px]">
               <thead>
-                <tr className="border-b border-slate-200 bg-slate-50">
+                <tr className="border-b border-[#D1D9E6] bg-[#F0F4F8]">
                   <Th>Mês / Ano</Th><Th>Ordem da Reunião</Th><Th>Data</Th><Th>Status</Th><Th className="text-right">Ações</Th>
                 </tr>
               </thead>
               <tbody>
                 {reunioes.map((r) => (
-                  <tr key={r.id} className="border-b border-slate-100 hover:bg-slate-50 transition">
-                    <td className="px-4 py-3 font-bold text-slate-800">{r.mes_ano}</td>
-                    <td className="px-4 py-3 text-slate-600">{r.ordem_reuniao}</td>
-                    <td className="px-4 py-3 text-slate-600">{fmtData(r.data_reuniao)}</td>
-                    <td className="px-4 py-3"><span className={`px-2 py-1 rounded text-xs font-bold ${r.status === 'Realizada' ? 'bg-green-100 text-green-700' : r.status === 'Agendada' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>{r.status}</span></td>
+                  <tr key={r.id} className="border-b border-[#D1D9E6] hover:bg-[#F0F4F8] transition">
+                    <td className="px-4 py-3 font-semibold text-[#1A1A1A]">{r.mes_ano}</td>
+                    <td className="px-4 py-3 text-[#1A1A1A]">{r.ordem_reuniao}</td>
+                    <td className="px-4 py-3 text-[#1A1A1A]">{fmtData(r.data_reuniao)}</td>
+                    <td className="px-4 py-3"><span className={`px-2 py-1 rounded text-xs font-semibold ${r.status === 'Realizada' ? 'bg-[#E5F0FF] text-[#0078D4]' : r.status === 'Agendada' ? 'bg-[#E5F0FF] text-[#0078D4]' : 'bg-[#FDE7E9] text-[#D13438]'}`}>{r.status}</span></td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex justify-end gap-3">
-                         <button onClick={() => abrirFormEditar(r)} className="text-xs font-bold text-[#00577C] hover:underline">Editar</button>
-                         <button onClick={() => handleDelete(r.id)} className="text-xs font-bold text-red-500 hover:underline">Apagar</button>
+                         <button onClick={() => abrirFormEditar(r)} className="text-xs font-semibold text-[#0078D4] hover:underline">Editar</button>
+                         <button onClick={() => handleDelete(r.id)} className="text-xs font-semibold text-[#D13438] hover:underline">Apagar</button>
                       </div>
                     </td>
                   </tr>
                 ))}
-                {reunioes.length === 0 && (<tr><td colSpan={5} className="px-4 py-10 text-center text-slate-400">Nenhum  do COMTUR.</td></tr>)}
+                {reunioes.length === 0 && (<tr><td colSpan={5} className="px-4 py-10 text-center text-[#8A8A8A]">Nenhum  do COMTUR.</td></tr>)}
               </tbody>
             </table>
           </div>
@@ -2628,16 +2576,14 @@ function TabReunioesComtur() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// CENTRAL DE ADMINISTRAÇÃO DA CARTEIRA (CRM, REEMISSÃO E MANUAL)
+// CENTRAL DE ADMINISTRAÇÃO DA CARTEIRA
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function TabEmissaoManual() {
-  // ── Estados do Buscador
   const [busca, setBusca] = useState("");
   const [resultados, setResultados] = useState<any[]>([]);
   const [loadingBusca, setLoadingBusca] = useState(false);
   
-  // ── Estados de Acões (Reemissão 2ª Via)
   const [reemissaoId, setReemissaoId] = useState<string | null>(null);
   const [novoEmail, setNovoEmail] = useState("");
   const [metodoReemissao, setMetodoReemissao] = useState("dinheiro");
@@ -2646,23 +2592,20 @@ function TabEmissaoManual() {
   const [feedbackAcao, setFeedbackAcao] = useState("");
   const [pixGerado, setPixGerado] = useState<{ qr: string, copiaCola: string, msg: string } | null>(null);
 
-  // ── Estados da Emissão Manual (Do zero)
   const [form, setForm] = useState({ nome: "", cpf: "", email: "", data_nascimento: "" });
   const [foto, setFoto] = useState<File | null>(null);
   const [metodoNovaEmissao, setMetodoNovaEmissao] = useState("dinheiro");
   const [savingManual, setSavingManual] = useState(false);
 
-  // ── Máscara Automática de CPF
   const mascaraCPF = (valor: string) => {
     return valor
-      .replace(/\D/g, '') // Remove tudo o que não é dígito
-      .replace(/(\d{3})(\d)/, '$1.$2') // Coloca ponto após os primeiros 3 dígitos
-      .replace(/(\d{3})(\d)/, '$1.$2') // Coloca ponto após os segundos 3 dígitos
-      .replace(/(\d{3})(\d{1,2})/, '$1-$2') // Coloca traço
-      .replace(/(-\d{2})\d+?$/, '$1'); // Limita a 11 dígitos
+      .replace(/\D/g, '')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d{1,2})/, '$1-$2')
+      .replace(/(-\d{2})\d+?$/, '$1');
   };
 
-  // ─── 1. FUNÇÃO DE BUSCA ───
   async function handleBuscar(e: React.FormEvent) {
     e.preventDefault();
     if (!busca.trim()) return;
@@ -2687,7 +2630,6 @@ function TabEmissaoManual() {
     }
   }
 
-  // ─── 2. CONFIRMAR REEMISSÃO (2ª VIA - R$ 5,00) ───
   async function handleConfirmarReemissao(residente: any) {
     if (!novoEmail) { alert("Insira o novo e-mail para envio."); return; }
     if (!confirm(`Confirmar emissão de 2ª via para ${residente.nome_completo}?`)) return;
@@ -2695,7 +2637,6 @@ function TabEmissaoManual() {
     setLoadingAcao(true); setFeedbackAcao("A processar a 2ª Via..."); setPixGerado(null);
 
     try {
-      // Atualiza a Base de Dados com o Novo Email
       const { error } = await supabase.from('rd_residentes').update({ email: novoEmail }).eq('id', residente.id);
       if (error) throw error;
 
@@ -2708,18 +2649,16 @@ function TabEmissaoManual() {
         data_nascimento: residente.data_nascimento,
         token_id: residente.id,
         quantidade: 1,
-        is_reemissao: true // ◄── Diz ao backend que é 2ª Via (Custa R$ 5)
+        is_reemissao: true
       };
 
       if (metodoReemissao === "dinheiro") {
-        // Dinheiro: Dispara logo o PDF
         const resp = await fetch('https://sagaturismo-production.up.railway.app/api/v1/pagamentos/carteira-gratuita', {
           method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(reqBody)
         });
         if (!resp.ok) throw new Error("Erro ao disparar o e-mail.");
         setFeedbackAcao("✅ Pagamento em Dinheiro confirmado! A 2ª Via foi enviada por e-mail.");
       } else {
-        // PIX: Gera Cobrança de R$ 5
         const resp = await fetch('https://sagaturismo-production.up.railway.app/api/v1/pagamentos/carteira-bb', {
           method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(reqBody)
         });
@@ -2736,7 +2675,6 @@ function TabEmissaoManual() {
     }
   }
 
-  // ─── 3. EMISSÃO MANUAL DO ZERO (R$ 20,00) ───
   async function handleEmitirManual(e: React.FormEvent) {
     e.preventDefault();
     if (!form.nome || !form.cpf || !form.email || !form.data_nascimento || !foto) {
@@ -2777,7 +2715,7 @@ function TabEmissaoManual() {
         nome_cliente: form.nome, cpf_cliente: form.cpf, email_cliente: form.email,
         telefone_cliente: "00000000000", foto_url: fotoUrlCompleta, 
         data_nascimento: form.data_nascimento, token_id: residenteId, quantidade: 1,
-        is_reemissao: false // ◄── Diz ao backend que é emissão nova (Custa R$ 20)
+        is_reemissao: false
       };
 
       if (metodoNovaEmissao === "dinheiro") {
@@ -2811,86 +2749,82 @@ function TabEmissaoManual() {
     <div className="space-y-10">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className={`${jakarta.className} text-xl font-black text-[#00577C] flex items-center gap-2`}><AlertCircle size={20} /> Central de Gestão & Emissão</h2>
-          <p className="text-xs text-slate-500 mt-1">Pesquise residentes para 2ª Via (R$ 5) ou emita novas carteiras do zero (R$ 20).</p>
+          <h2 className={`${jakarta.className} text-xl font-bold text-[#D13438] flex items-center gap-2`}><AlertCircle size={20} /> Central de Gestão & Emissão</h2>
+          <p className="text-xs text-[#8A8A8A] mt-1">Pesquise residentes para 2ª Via (R$ 5) ou emita novas carteiras do zero (R$ 20).</p>
         </div>
       </div>
 
-      {/* ─── MODAL PIX GLOBAL ─── */}
       {pixGerado && (
-        <div className="mb-6 p-6 border-2 border-green-400 bg-green-50 rounded-2xl flex flex-col items-center animate-in fade-in">
-          <h4 className="font-black text-green-800 mb-2">Cobrança PIX Gerada (Banco do Brasil)</h4>
-          <p className="text-xs text-green-700 mb-4 text-center font-medium">{pixGerado.msg}</p>
-          <img src={pixGerado.qr} alt="QR Code PIX" className="w-48 h-48 rounded-xl border-4 border-white shadow-sm mb-4" />
-          <div className="w-full max-w-md bg-white border border-green-200 rounded-lg p-3 flex gap-2">
-            <input type="text" value={pixGerado.copiaCola} readOnly className="flex-1 text-xs text-slate-500 bg-transparent outline-none truncate" />
-            <button onClick={() => { navigator.clipboard.writeText(pixGerado.copiaCola); alert("Copiado!"); }} className="text-xs font-bold text-green-700 hover:text-green-800">Copiar</button>
+        <div className="mb-6 p-6 border-2 border-[#0078D4] bg-[#E5F0FF] rounded-md flex flex-col items-center animate-in fade-in">
+          <h4 className="font-bold text-[#1A1A1A] mb-2">Cobrança PIX Gerada (Banco do Brasil)</h4>
+          <p className="text-xs text-[#1A1A1A] mb-4 text-center font-medium">{pixGerado.msg}</p>
+          <img src={pixGerado.qr} alt="QR Code PIX" className="w-48 h-48 rounded-md border-4 border-white shadow-sm mb-4" />
+          <div className="w-full max-w-md bg-white border border-[#D1D9E6] rounded-md p-3 flex gap-2">
+            <input type="text" value={pixGerado.copiaCola} readOnly className="flex-1 text-xs text-[#8A8A8A] bg-transparent outline-none truncate" />
+            <button onClick={() => { navigator.clipboard.writeText(pixGerado.copiaCola); alert("Copiado!"); }} className="text-xs font-semibold text-[#0078D4] hover:text-[#005A9E]">Copiar</button>
           </div>
-          <button onClick={() => setPixGerado(null)} className="mt-4 text-xs font-bold text-slate-400 hover:text-slate-600 underline">Fechar Janela PIX</button>
+          <button onClick={() => setPixGerado(null)} className="mt-4 text-xs font-semibold text-[#8A8A8A] hover:text-[#1A1A1A] underline">Fechar Janela PIX</button>
         </div>
       )}
 
-      {/* ─── SECÇÃO 1: BUSCADOR CRM ─── */}
-      <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-200">
-        <h3 className={`${jakarta.className} text-lg font-black text-slate-800 mb-4`}>🔍 Localizar Cidadão (Para 2ª Via)</h3>
+      <div className="bg-white rounded-md p-8 shadow-sm border border-[#D1D9E6]">
+        <h3 className={`${jakarta.className} text-lg font-bold text-[#1A1A1A] mb-4`}>🔍 Localizar Cidadão (Para 2ª Via)</h3>
         <form onSubmit={handleBuscar} className="flex gap-4 mb-6">
           <input 
             type="text" 
             value={busca} 
-            onChange={(e) => setBusca(mascaraCPF(e.target.value))} // ◄── Máscara automática aplicada aqui!
+            onChange={(e) => setBusca(mascaraCPF(e.target.value))}
             placeholder="Digite o Nome ou CPF (000.000.000-00)..." 
-            className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#00577C]" 
+            className="flex-1 bg-white border border-[#D1D9E6] rounded-md px-4 py-3 text-sm focus:outline-none focus:border-[#0078D4] focus:ring-1 focus:ring-[#0078D4]" 
           />
-          <button type="submit" disabled={loadingBusca} className="bg-[#00577C] text-white px-8 rounded-xl font-black text-sm transition-all hover:bg-[#004a6b] disabled:opacity-50">
+          <button type="submit" disabled={loadingBusca} className="bg-[#0078D4] text-white px-8 rounded-md font-semibold text-sm transition-all hover:bg-[#005A9E] disabled:opacity-50">
             {loadingBusca ? <Loader2 size={18} className="animate-spin mx-auto" /> : "Procurar"}
           </button>
         </form>
 
         {feedbackAcao && !savingManual && (
-          <div className={`mb-6 p-4 rounded-xl text-sm font-bold text-center border ${feedbackAcao.includes('❌') ? 'bg-red-50 text-red-600 border-red-200' : 'bg-green-50 text-[#009640] border-green-200'}`}>
+          <div className={`mb-6 p-4 rounded-md text-sm font-semibold text-center border ${feedbackAcao.includes('❌') ? 'bg-[#FDE7E9] text-[#D13438] border-[#D13438]' : 'bg-[#E5F0FF] text-[#0078D4] border-[#0078D4]'}`}>
             {feedbackAcao}
           </div>
         )}
 
         {resultados.length > 0 && (
-          <div className="border border-slate-200 rounded-xl overflow-hidden">
+          <div className="border border-[#D1D9E6] rounded-md overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-black text-xs uppercase">
+              <thead className="bg-[#F0F4F8] border-b border-[#D1D9E6] text-[#8A8A8A] font-semibold text-xs uppercase">
                 <tr><th className="p-4 text-left">Foto</th><th className="p-4 text-left">Dados do Cidadão</th><th className="p-4 text-left">Status</th><th className="p-4 text-right">Ação</th></tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[#D1D9E6]">
                 {resultados.map((res) => (
                   <React.Fragment key={res.id}>
-                    <tr className="hover:bg-slate-50">
+                    <tr className="hover:bg-[#F0F4F8]">
                       <td className="p-4">
-                        <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-200 border border-slate-300">
+                        <div className="w-12 h-12 rounded-full overflow-hidden bg-[#F0F4F8] border border-[#D1D9E6]">
                           {res.foto_url && res.foto_url.includes('http') ? (
                             <img src={res.foto_url} alt="Foto" className="w-full h-full object-cover" />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">Sem Link</div>
+                            <div className="w-full h-full flex items-center justify-center text-[#8A8A8A] text-xs">Sem Link</div>
                           )}
                         </div>
                       </td>
                       <td className="p-4">
-                        <p className="font-bold text-slate-800">{res.nome_completo}</p>
-                        <p className="text-xs text-slate-500">{res.cpf} • {res.email}</p>
+                        <p className="font-semibold text-[#1A1A1A]">{res.nome_completo}</p>
+                        <p className="text-xs text-[#8A8A8A]">{res.cpf} • {res.email}</p>
                       </td>
                       <td className="p-4">
-                        <span className={`px-2 py-1 rounded text-[10px] uppercase font-black tracking-wider ${res.status === 'ativo' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>{res.status}</span>
+                        <span className={`px-2 py-1 rounded text-[10px] uppercase font-semibold tracking-wider ${res.status === 'ativo' ? 'bg-[#E5F0FF] text-[#0078D4]' : 'bg-[#FFF8E5] text-[#DAA520]'}`}>{res.status}</span>
                       </td>
                       <td className="p-4 text-right">
-                        {/* ◄── Botão Único e Limpo para abrir as opções */}
-                        <button onClick={() => { setReemissaoId(reemissaoId === res.id ? null : res.id); setNovoEmail(res.email); }} className="text-xs bg-[#00577C] hover:bg-[#004a6b] text-white font-black px-4 py-2 rounded-lg transition-colors uppercase shadow-sm">
+                        <button onClick={() => { setReemissaoId(reemissaoId === res.id ? null : res.id); setNovoEmail(res.email); }} className="text-xs bg-[#0078D4] hover:bg-[#005A9E] text-white font-semibold px-4 py-2 rounded-md transition-colors uppercase shadow-sm">
                           {reemissaoId === res.id ? "Cancelar" : "Opções de 2ª Via"}
                         </button>
                       </td>
                     </tr>
                     
-                    {/* ◄── BLOCO EXPANSÍVEL DE REEMISSÃO (DINHEIRO/PIX) ──► */}
                     {reemissaoId === res.id && (
-                      <tr className="bg-slate-50">
-                        <td colSpan={4} className="p-6 border-b border-slate-200">
-                          <div className="flex flex-col md:flex-row gap-4 items-end bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                      <tr className="bg-[#F0F4F8]">
+                        <td colSpan={4} className="p-6 border-b border-[#D1D9E6]">
+                          <div className="flex flex-col md:flex-row gap-4 items-end bg-white p-4 rounded-md border border-[#D1D9E6] shadow-sm">
                             <FormField label="E-mail de Destino (Novo ou Atual)" className="flex-1">
                               <input type="email" value={novoEmail} onChange={e => setNovoEmail(e.target.value)} className={inputCls} />
                             </FormField>
@@ -2900,7 +2834,7 @@ function TabEmissaoManual() {
                                 <option value="pix">Pagamento via PIX (Gera QR Code)</option>
                               </select>
                             </FormField>
-                            <button onClick={() => handleConfirmarReemissao(res)} disabled={loadingAcao} className="bg-[#009640] hover:bg-green-700 text-white px-6 py-2 rounded-lg font-black text-xs uppercase tracking-widest shadow-md transition-all h-[38px] w-full md:w-auto">
+                            <button onClick={() => handleConfirmarReemissao(res)} disabled={loadingAcao} className="bg-[#0078D4] hover:bg-[#005A9E] text-white px-6 py-2 rounded-md font-semibold text-xs uppercase tracking-widest shadow-md transition-all h-[38px] w-full md:w-auto">
                               Confirmar & Enviar 2ª Via
                             </button>
                           </div>
@@ -2915,22 +2849,20 @@ function TabEmissaoManual() {
         )}
       </div>
 
-      <div className="flex items-center gap-4 text-slate-300">
-        <div className="flex-1 h-px bg-slate-200"></div><span className="text-xs font-black uppercase tracking-widest">OU</span><div className="flex-1 h-px bg-slate-200"></div>
+      <div className="flex items-center gap-4 text-[#D1D9E6]">
+        <div className="flex-1 h-px bg-[#D1D9E6]"></div><span className="text-xs font-semibold uppercase tracking-widest">OU</span><div className="flex-1 h-px bg-[#D1D9E6]"></div>
       </div>
 
-      {/* ─── SECÇÃO 2: EMISSÃO MANUAL (DO ZERO) ─── */}
-      <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-200 max-w-3xl">
-        <div className="mb-6 border-b border-slate-100 pb-4">
-          <h3 className={`${jakarta.className} text-lg font-black text-[#00577C]`}>Emissão de Nova Carteira (Do Zero)</h3>
-          <p className="text-xs text-slate-500 mt-1">Apenas para cidadãos sem registro ou acesso tecnológico.</p>
+      <div className="bg-white rounded-md p-8 shadow-sm border border-[#D1D9E6] max-w-3xl">
+        <div className="mb-6 border-b border-[#D1D9E6] pb-4">
+          <h3 className={`${jakarta.className} text-lg font-bold text-[#D13438]`}>Emissão de Nova Carteira (Do Zero)</h3>
+          <p className="text-xs text-[#8A8A8A] mt-1">Apenas para cidadãos sem registro ou acesso tecnológico.</p>
         </div>
 
         <form onSubmit={handleEmitirManual} className="space-y-5">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <FormField label="Nome Completo *"><input type="text" value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} className={inputCls} required /></FormField>
             <FormField label="CPF *">
-              {/* ◄── Máscara automática aplicada aqui também! */}
               <input type="text" value={form.cpf} onChange={e => setForm({...form, cpf: mascaraCPF(e.target.value)})} className={inputCls} placeholder="000.000.000-00" required />
             </FormField>
           </div>
@@ -2942,7 +2874,7 @@ function TabEmissaoManual() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <FormField label="Foto do Cidadão (3x4) *">
-              <label className="flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 bg-slate-50 text-slate-600 p-2.5 rounded-xl cursor-pointer hover:border-[#00577C] text-sm font-bold transition-colors">
+              <label className="flex items-center justify-center gap-2 border-2 border-dashed border-[#D1D9E6] bg-[#F0F4F8] text-[#8A8A8A] p-2.5 rounded-md cursor-pointer hover:border-[#0078D4] text-sm font-semibold transition-colors">
                 <input type="file" accept="image/*" className="hidden" onChange={e => setFoto(e.target.files?.[0] || null)} required />
                 <Upload size={16} /> {foto ? "Foto Carregada ✓" : "Anexar Fotografia"}
               </label>
@@ -2955,9 +2887,9 @@ function TabEmissaoManual() {
             </FormField>
           </div>
 
-          <div className="pt-8 border-t border-slate-100 flex items-center justify-between">
-            <span className="text-sm font-bold text-[#009640]">{savingManual ? "A processar..." : feedbackAcao}</span>
-            <button type="submit" disabled={savingManual || loadingAcao} className="bg-[#00577C] hover:bg-[#004a6b] text-white px-8 py-3.5 rounded-xl font-black text-sm uppercase tracking-widest shadow-md flex items-center gap-2 transition-all disabled:opacity-50">
+          <div className="pt-8 border-t border-[#D1D9E6] flex items-center justify-between">
+            <span className="text-sm font-semibold text-[#0078D4]">{savingManual ? "A processar..." : feedbackAcao}</span>
+            <button type="submit" disabled={savingManual || loadingAcao} className="bg-[#D13438] hover:bg-[#D13438] text-white px-8 py-3.5 rounded-md font-semibold text-sm uppercase tracking-widest shadow-md flex items-center gap-2 transition-all disabled:opacity-50">
               {savingManual ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle2 size={18} />} 
               {metodoNovaEmissao === "dinheiro" ? "Registar & Emitir (Dinheiro)" : "Registar & Gerar PIX (R$ 20)"}
             </button>
@@ -2969,14 +2901,13 @@ function TabEmissaoManual() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// CENTRAL DE SUPORTE (NOVO)
+// CENTRAL DE SUPORTE
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function TabSuporte() {
   const [chamados, setChamados] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // Controle do Chamado Aberto
   const [chamadoAberto, setChamadoAberto] = useState<any | null>(null);
   const [resposta, setResposta] = useState("");
   const [arquivoAdmin, setArquivoAdmin] = useState<File | null>(null);
@@ -3014,7 +2945,6 @@ function TabSuporte() {
     try {
       let linkAnexoAdmin = null;
 
-      // Se o admin quiser enviar um anexo de volta
       if (arquivoAdmin) {
         const ext = arquivoAdmin.name.split('.').pop();
         const path = `respostas_suporte/${chamadoAberto.protocolo}_${Date.now()}.${ext}`;
@@ -3025,7 +2955,6 @@ function TabSuporte() {
         }
       }
 
-      // 1. Atualizar Base de Dados
       const { error: dbError } = await supabase.from('suporte').update({
         status: statusAtual,
         resposta_admin: resposta || chamadoAberto.resposta_admin
@@ -3033,7 +2962,6 @@ function TabSuporte() {
 
       if (dbError) throw dbError;
 
-      // 2. Se houver texto, enviar e-mail via API
       if (resposta) {
         const resp = await fetch('https://sagaturismo-production.up.railway.app/api/v1/suporte/responder', {
           method: 'POST',
@@ -3063,83 +2991,82 @@ function TabSuporte() {
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className={`${jakarta.className} text-xl font-black text-[#00577C] flex items-center gap-2`}><Headset size={20}/> Central de Suporte</h2>
-          <p className="text-xs text-slate-500 mt-1">Gira as queixas e dúvidas dos cidadãos.</p>
+          <h2 className={`${jakarta.className} text-xl font-bold text-[#D13438] flex items-center gap-2`}><Headset size={20}/> Central de Suporte</h2>
+          <p className="text-xs text-[#8A8A8A] mt-1">Gira as queixas e dúvidas dos cidadãos.</p>
         </div>
-        <span className="text-xs font-black uppercase tracking-wider bg-blue-50 text-[#00577C] px-4 py-2 rounded-xl border border-blue-100">
+        <span className="text-xs font-semibold uppercase tracking-wider bg-[#E5F0FF] text-[#0078D4] px-4 py-2 rounded-md border border-[#D1D9E6]">
           Total: {chamados.length} chamados
         </span>
       </div>
 
       {!chamadoAberto ? (
-        <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
+        <div className="bg-white rounded-md shadow-sm border border-[#D1D9E6] overflow-hidden">
           {loading ? (
-            <div className="py-16 flex justify-center"><Loader2 size={32} className="text-[#00577C] animate-spin" /></div>
+            <div className="py-16 flex justify-center"><Loader2 size={32} className="text-[#0078D4] animate-spin" /></div>
           ) : (
             <table className="w-full text-sm text-left">
-              <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-black text-xs uppercase">
-                <tr><th className="p-5">Protocolo</th><th className="p-5">Cidadão</th><th className="p-5">Assunto</th><th className="p-5">Data</th><th className="p-5 text-center">Status</th></tr>
+              <thead className="bg-[#F0F4F8] border-b border-[#D1D9E6] text-[#8A8A8A] font-semibold text-xs uppercase">
+                <tr><th className="p-4">Protocolo</th><th className="p-4">Cidadão</th><th className="p-4">Assunto</th><th className="p-4">Data</th><th className="p-4 text-center">Status</th></tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[#D1D9E6]">
                 {chamados.map((c) => (
-                  <tr key={c.id} onClick={() => abrirChamado(c)} className="hover:bg-blue-50/50 cursor-pointer transition-colors group">
-                    <td className="p-5 font-bold text-slate-800 group-hover:text-[#00577C]">{c.protocolo}</td>
-                    <td className="p-5"><p className="font-bold text-slate-700">{c.nome}</p><p className="text-xs text-slate-500">{c.cpf} • {c.whatsapp || "Sem Tel"}</p></td>
-                    <td className="p-5 text-slate-600 line-clamp-1">{c.assunto}</td>
-                    <td className="p-5 text-slate-500">{fmtDatetime(c.criado_em)}</td>
-                    <td className="p-5 text-center">
-                      <span className={`px-3 py-1.5 rounded-lg text-[10px] uppercase font-black tracking-wider ${
-                        c.status === 'Concluído' ? 'bg-green-100 text-green-700' : 
-                        c.status === 'Em andamento' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'
+                  <tr key={c.id} onClick={() => abrirChamado(c)} className="hover:bg-[#E5F0FF] cursor-pointer transition-colors group">
+                    <td className="p-4 font-semibold text-[#1A1A1A] group-hover:text-[#0078D4]">{c.protocolo}</td>
+                    <td className="p-4"><p className="font-semibold text-[#1A1A1A]">{c.nome}</p><p className="text-xs text-[#8A8A8A]">{c.cpf} • {c.whatsapp || "Sem Tel"}</p></td>
+                    <td className="p-4 text-[#1A1A1A] line-clamp-1">{c.assunto}</td>
+                    <td className="p-4 text-[#8A8A8A]">{fmtDatetime(c.criado_em)}</td>
+                    <td className="p-4 text-center">
+                      <span className={`px-3 py-1.5 rounded-md text-[10px] uppercase font-semibold ${
+                        c.status === 'Concluído' ? 'bg-[#E5F0FF] text-[#0078D4]' : 
+                        c.status === 'Em andamento' ? 'bg-[#FFF8E5] text-[#DAA520]' : 'bg-[#FDE7E9] text-[#D13438]'
                       }`}>{c.status}</span>
                     </td>
                   </tr>
                 ))}
-                {chamados.length === 0 && (<tr><td colSpan={5} className="p-10 text-center text-slate-400 font-medium">Nenhum chamado recebido.</td></tr>)}
+                {chamados.length === 0 && (<tr><td colSpan={5} className="p-10 text-center text-[#8A8A8A] font-medium">Nenhum chamado recebido.</td></tr>)}
               </tbody>
             </table>
           )}
         </div>
       ) : (
-        /* PAINEL DE DETALHE DO CHAMADO */
-        <div className="bg-white rounded-[2rem] p-8 shadow-lg border border-slate-100">
-          <div className="flex items-center justify-between mb-6 border-b border-slate-100 pb-4">
-            <h3 className={`${jakarta.className} text-xl font-black text-slate-800 flex items-center gap-2`}><MessageSquare className="text-[#00577C]" /> Protocolo: {chamadoAberto.protocolo}</h3>
-            <button onClick={() => setChamadoAberto(null)} className="text-sm font-bold text-slate-400 hover:text-slate-800">Voltar à Lista</button>
+        <div className="bg-white rounded-md p-8 shadow-lg border border-[#D1D9E6]">
+          <div className="flex items-center justify-between mb-6 border-b border-[#D1D9E6] pb-4">
+            <h3 className={`${jakarta.className} text-xl font-bold text-[#1A1A1A] flex items-center gap-2`}><MessageSquare className="text-[#0078D4]" /> Protocolo: {chamadoAberto.protocolo}</h3>
+            <button onClick={() => setChamadoAberto(null)} className="text-sm font-semibold text-[#8A8A8A] hover:text-[#1A1A1A]">Voltar à Lista</button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-            <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200">
-              <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Dados do Cidadão</h4>
-              <p className="font-bold text-slate-800">{chamadoAberto.nome}</p>
-              <p className="text-sm text-slate-600 mt-1">E-mail: {chamadoAberto.email}</p>
-              <p className="text-sm text-slate-600 mt-1">CPF: {chamadoAberto.cpf}</p>
-              <p className="text-sm text-slate-600 mt-1">WhatsApp: {chamadoAberto.whatsapp || "Não fornecido"}</p>
-              <p className="text-xs text-slate-400 mt-4">Enviado em: {fmtDatetime(chamadoAberto.criado_em)}</p>
+            <div className="bg-[#F0F4F8] p-6 rounded-md border border-[#D1D9E6]">
+              <h4 className="text-xs font-semibold text-[#8A8A8A] uppercase tracking-widest mb-4">Dados do Cidadão</h4>
+              <p className="font-semibold text-[#1A1A1A]">{chamadoAberto.nome}</p>
+              <p className="text-sm text-[#1A1A1A] mt-1">E-mail: {chamadoAberto.email}</p>
+              <p className="text-sm text-[#1A1A1A] mt-1">CPF: {chamadoAberto.cpf}</p>
+              <p className="text-sm text-[#1A1A1A] mt-1">WhatsApp: {chamadoAberto.whatsapp || "Não fornecido"}</p>
+              <p className="text-xs text-[#8A8A8A] mt-4">Enviado em: {fmtDatetime(chamadoAberto.criado_em)}</p>
             </div>
-            <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200">
-              <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Mensagem Original</h4>
-              <p className="font-bold text-slate-800 text-sm mb-2">Assunto: {chamadoAberto.assunto}</p>
-              <p className="text-sm text-slate-600 whitespace-pre-wrap">{chamadoAberto.mensagem}</p>
+            <div className="bg-[#F0F4F8] p-6 rounded-md border border-[#D1D9E6]">
+              <h4 className="text-xs font-semibold text-[#8A8A8A] uppercase tracking-widest mb-4">Mensagem Original</h4>
+              <p className="font-semibold text-[#1A1A1A] text-sm mb-2">Assunto: {chamadoAberto.assunto}</p>
+              <p className="text-sm text-[#1A1A1A] whitespace-pre-wrap">{chamadoAberto.mensagem}</p>
               {chamadoAberto.arquivo_url && (
-                <a href={chamadoAberto.arquivo_url} target="_blank" className="inline-flex items-center gap-2 mt-4 text-xs font-bold text-[#00577C] bg-blue-100 px-4 py-2 rounded-lg hover:bg-blue-200 transition-colors">
+                <a href={chamadoAberto.arquivo_url} target="_blank" className="inline-flex items-center gap-2 mt-4 text-xs font-semibold text-[#0078D4] bg-[#E5F0FF] px-4 py-2 rounded-md hover:bg-[#D1D9E6] transition-colors">
                   <FileText size={14} /> Ver Anexo do Cidadão
                 </a>
               )}
             </div>
           </div>
 
-          <div className="border-t border-slate-100 pt-6 space-y-5">
-            <h4 className="text-lg font-black text-[#00577C]">Responder e Atualizar</h4>
+          <div className="border-t border-[#D1D9E6] pt-6 space-y-5">
+            <h4 className="text-lg font-bold text-[#0078D4]">Responder e Atualizar</h4>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               <div className="md:col-span-2">
-                <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Escrever Resposta (Vai por E-mail)</label>
+                <label className="block text-xs font-semibold text-[#1A1A1A] mb-1.5 uppercase tracking-wider">Escrever Resposta (Vai por E-mail)</label>
                 <textarea rows={4} value={resposta} onChange={e => setResposta(e.target.value)} className={inputCls} placeholder="Escreva a resposta ao utente..."></textarea>
               </div>
               <div className="space-y-5">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Mudar Status</label>
+                  <label className="block text-xs font-semibold text-[#1A1A1A] mb-1.5 uppercase tracking-wider">Mudar Status</label>
                   <select value={statusAtual} onChange={e => setStatusAtual(e.target.value)} className={inputCls}>
                     <option value="Aberto">🔴 Aberto</option>
                     <option value="Em andamento">🟡 Em andamento</option>
@@ -3147,8 +3074,8 @@ function TabSuporte() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Enviar PDF/Anexo</label>
-                  <label className="flex items-center justify-center gap-2 border border-slate-200 bg-white text-slate-600 p-2 rounded-lg cursor-pointer hover:border-[#00577C] text-xs font-bold">
+                  <label className="block text-xs font-semibold text-[#1A1A1A] mb-1.5 uppercase tracking-wider">Enviar PDF/Anexo</label>
+                  <label className="flex items-center justify-center gap-2 border border-[#D1D9E6] bg-white text-[#1A1A1A] p-2 rounded-md cursor-pointer hover:border-[#0078D4] text-xs font-semibold">
                     <input type="file" className="hidden" onChange={e => setArquivoAdmin(e.target.files?.[0] || null)} />
                     <UploadCloud size={14} /> {arquivoAdmin ? "Anexo Pronto ✓" : "Anexar Ficheiro"}
                   </label>
@@ -3157,16 +3084,16 @@ function TabSuporte() {
             </div>
 
             <div className="pt-4 flex items-center justify-between">
-              <span className={`text-sm font-bold ${feedback.includes('❌') ? 'text-red-500' : 'text-[#009640]'}`}>{feedback}</span>
-              <button onClick={handleResponder} disabled={saving} className="bg-[#00577C] hover:bg-[#004a6b] text-white px-8 py-3.5 rounded-xl font-black text-xs uppercase tracking-widest shadow-md flex items-center gap-2 disabled:opacity-50 transition-all">
+              <span className={`text-sm font-semibold ${feedback.includes('❌') ? 'text-[#D13438]' : 'text-[#0078D4]'}`}>{feedback}</span>
+              <button onClick={handleResponder} disabled={saving} className="bg-[#0078D4] hover:bg-[#005A9E] text-white px-8 py-3.5 rounded-md font-semibold text-xs uppercase tracking-widest shadow-md flex items-center gap-2 disabled:opacity-50 transition-all">
                 {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} Salvar & Enviar
               </button>
             </div>
 
             {chamadoAberto.resposta_admin && (
-              <div className="mt-6 bg-green-50 border border-green-200 p-4 rounded-xl">
-                <p className="text-xs font-bold text-green-800 uppercase tracking-widest mb-1">Última Resposta do Admin:</p>
-                <p className="text-sm text-green-900 whitespace-pre-wrap">{chamadoAberto.resposta_admin}</p>
+              <div className="mt-6 bg-[#E5F0FF] border border-[#D1D9E6] p-4 rounded-md">
+                <p className="text-xs font-semibold text-[#0078D4] uppercase tracking-widest mb-1">Última Resposta do Admin:</p>
+                <p className="text-sm text-[#1A1A1A] whitespace-pre-wrap">{chamadoAberto.resposta_admin}</p>
               </div>
             )}
           </div>
@@ -3177,7 +3104,7 @@ function TabSuporte() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// BASE DE RESIDENTES (LISTAGEM RESTRITA ADMIN)
+// BASE DE RESIDENTES
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function TabResidentes() {
@@ -3190,7 +3117,6 @@ function TabResidentes() {
 
   async function fetchResidentes() {
     setLoading(true);
-    // Busca apenas os campos necessários, ordenando pelos mais recentes
     const { data, error } = await supabase
       .from('rd_residentes')
       .select('id, nome_completo, cpf, email, status')
@@ -3208,43 +3134,43 @@ function TabResidentes() {
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className={`${jakarta.className} text-xl font-black text-red-600 flex items-center gap-2`}>
+          <h2 className={`${jakarta.className} text-xl font-bold text-[#D13438] flex items-center gap-2`}>
             <Users size={20} /> Base de Residentes
           </h2>
-          <p className="text-xs text-slate-500 mt-1">Listagem completa dos cidadãos registados na base de dados.</p>
+          <p className="text-xs text-[#8A8A8A] mt-1">Listagem completa dos cidadãos registados na base de dados.</p>
         </div>
-        <span className="text-xs font-black uppercase tracking-wider bg-red-50 text-red-600 px-4 py-2 rounded-xl border border-red-100">
+        <span className="text-xs font-semibold uppercase tracking-wider bg-[#FDE7E9] text-[#D13438] px-4 py-2 rounded-md border border-[#D1D9E6]">
           Total: {residentes.length} registros
         </span>
       </div>
 
-      <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-md shadow-sm border border-[#D1D9E6] overflow-hidden">
         {loading ? (
           <div className="py-16 flex justify-center">
-            <Loader2 size={32} className="text-red-500 animate-spin" />
+            <Loader2 size={32} className="text-[#D13438] animate-spin" />
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-black text-xs uppercase">
+              <thead className="bg-[#F0F4F8] border-b border-[#D1D9E6] text-[#8A8A8A] font-semibold text-xs uppercase">
                 <tr>
-                  <th className="p-5 text-left">Nome Completo</th>
-                  <th className="p-5 text-left">CPF</th>
-                  <th className="p-5 text-left">E-mail</th>
-                  <th className="p-5 text-center">Status</th>
+                  <th className="p-4 text-left">Nome Completo</th>
+                  <th className="p-4 text-left">CPF</th>
+                  <th className="p-4 text-left">E-mail</th>
+                  <th className="p-4 text-center">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[#D1D9E6]">
                 {residentes.map((res) => (
-                  <tr key={res.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="p-5 font-bold text-slate-800">{res.nome_completo}</td>
-                    <td className="p-5 text-slate-600 font-medium">{res.cpf}</td>
-                    <td className="p-5 text-slate-500">{res.email}</td>
-                    <td className="p-5 text-center">
-                      <span className={`px-3 py-1.5 rounded-lg text-[10px] uppercase font-black tracking-wider ${
-                        res.status === 'ativo' ? 'bg-green-100 text-green-700' : 
-                        res.status === 'aguardando_pagamento' ? 'bg-amber-100 text-amber-700' : 
-                        'bg-slate-100 text-slate-700'
+                  <tr key={res.id} className="hover:bg-[#F0F4F8] transition-colors">
+                    <td className="p-4 font-semibold text-[#1A1A1A]">{res.nome_completo}</td>
+                    <td className="p-4 text-[#1A1A1A] font-medium">{res.cpf}</td>
+                    <td className="p-4 text-[#8A8A8A]">{res.email}</td>
+                    <td className="p-4 text-center">
+                      <span className={`px-3 py-1.5 rounded-md text-[10px] uppercase font-semibold ${
+                        res.status === 'ativo' ? 'bg-[#E5F0FF] text-[#0078D4]' : 
+                        res.status === 'aguardando_pagamento' ? 'bg-[#FFF8E5] text-[#DAA520]' : 
+                        'bg-[#F0F4F8] text-[#8A8A8A]'
                       }`}>
                         {res.status}
                       </span>
@@ -3253,7 +3179,7 @@ function TabResidentes() {
                 ))}
                 {residentes.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="p-10 text-center text-slate-400 font-medium">
+                    <td colSpan={4} className="p-10 text-center text-[#8A8A8A] font-medium">
                       Nenhum residente encontrado na base de dados.
                     </td>
                   </tr>
