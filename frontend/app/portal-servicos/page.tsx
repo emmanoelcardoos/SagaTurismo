@@ -1,3194 +1,1133 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
-import Image from "next/image";
+import React, { useEffect, useState, useMemo } from "react";
 import { Plus_Jakarta_Sans, Inter } from "next/font/google";
 import { supabase } from "@/lib/supabase";
-import { 
-  Calendar as CalendarIcon, Bell, CheckCircle2, Clock, Map, Package, Activity, AlertCircle,
-  Upload, Image as ImageIcon, Save, Loader2, FileSpreadsheet, Utensils, MapPin, Phone, Plus, Trash2,
-  Building2, Briefcase, Compass, Newspaper, Smartphone, FileText, Users, ChevronDown, Headset, MessageSquare, UploadCloud,
-} from 'lucide-react';
-import dynamic from 'next/dynamic';
-import 'react-quill/dist/quill.snow.css';
-import katex from 'katex';
-import 'katex/dist/katex.min.css';
-
-if (typeof window !== "undefined") {
-  window.katex = katex;
-}
-
-const ReactQuill = dynamic(() => import('react-quill'), { 
-  ssr: false,
-  loading: () => <p className="text-sm text-[#8A8A8A] p-4">A carregar editor de texto...</p>
-});
-
-// Configuração da barra de ferramentas
-const quillModules = {
-  toolbar: [
-    [{ 'header': [1, 2, 3, 4, false] }],
-    ['bold', 'italic', 'underline', 'strike'],
-    [{ 'script': 'sub'}, { 'script': 'super' }],
-    [{ 'color': [] }, { 'background': [] }],
-    [{ 'list': 'ordered'}, { 'list': 'bullet' }, { 'align': [] }],
-    ['link', 'image', 'video', 'formula'],
-    ['clean']
-  ],
-};
+import Link from "next/link";
+import {
+  Calendar as CalendarIcon, Clock, MapPin, Building2, Utensils,
+  Briefcase, Loader2, Sparkles, ArrowRight, Inbox, TrendingUp,
+  Target, Compass, Coffee, Users, Users2, Headset, MessageSquare,
+  Mail, BadgeCheck, Activity, Layers, Eye, ChevronRight, Zap,
+  AlertTriangle, CheckCircle2, Circle, BarChart3, PieChart,
+  FileText, Notebook, PlusCircle, Star,
+} from "lucide-react";
 
 const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["600", "700", "800"] });
 const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
-// ─── ESTILOS WINDOWS 11 ──────────────────────────────────────────────────────────
-const inputCls = "w-full bg-white border border-[#D1D9E6] text-[#1A1A1A] text-sm rounded-md px-3 py-2 focus:outline-none focus:border-[#0078D4] focus:ring-1 focus:ring-[#0078D4] transition placeholder:text-[#8A8A8A]";
+// ─── CORES (paleta Azure/Microsoft) ───
+const AZUL = "#0078D4";
+const AZUL_ESCURO = "#005A9E";
+const AMBAR = "#DAA520";
+const AMBAR_LIGHT = "#FBBF24";
+const VERMELHO = "#D13438";
+const VERDE = "#168821";
+const VERDE_LIGHT = "#22C55E";
+const ROXO = "#7C3AED";
 
-function FormField({ label, children, className = "" }: { label: string; children: React.ReactNode; className?: string }) {
-  return <div className={className}><label className="block text-xs font-semibold text-[#1A1A1A] mb-1">{label}</label>{children}</div>;
-}
+// ═══════════════════════════════════════════════════════════════
+// ESTILOS GLOBAIS
+// ═══════════════════════════════════════════════════════════════
 
-function Th({ children, className = "" }: { children?: React.ReactNode; className?: string }) {
-  return <th className={`px-4 py-2 text-left text-xs font-semibold text-[#1A1A1A] ${className}`}>{children}</th>;
-}
-
-function Skeleton({ rows }: { rows: number }) {
-  return <div className="rounded-md border border-[#D1D9E6] overflow-hidden bg-white shadow-sm">{Array.from({ length: rows }).map((_, i) => <div key={i} className="h-14 bg-[#F0F4F8] border-b border-[#D1D9E6] animate-pulse" />)}</div>;
-}
-
-function fmtData(iso: string) {
-  if (!iso) return "—"; const [y, m, d] = iso.split("-"); return `${d}/${m}/${y}`;
-}
-
-function fmtDatetime(iso: string) {
-  if (!iso) return "—"; const d = new Date(iso);
-  return d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-}
-
-// ─── Tipos ──────────────────────────────────────────────────────────────────
-
-interface Evento {
-  id: string; titulo: string; subtitulo: string | null; descricao: string | null;
-  data: string; horario: string | null; duracao: string | null; local: string;
-  imagem_url: string | null; categoria: string; preco: string | null;
-  classificacao: string | null; link_bilheteira: string | null; destaque: boolean;
-}
-
-interface Atracao {
-  id: string; nome: string; tipo: string; descricao: string; imagem_url: string;
-  preco_entrada: number; asaas_wallet_id: string | null; whatsapp: string | null;
-  link_google_maps: string | null; link_hospedagem: string | null; galeria: string[] | null;
-  ordem: number | null; ativo: boolean;
-}
-
-interface Hotel {
-  id: string; nome: string; tipo: string; descricao: string; estrelas: number;
-  imagem_url: string; whatsapp: string | null; endereco: string | null;
-  preco_medio: string | null; comodidades: string[] | null; galeria: string[] | null;
-  ativo: boolean;
-}
-
-interface Agencia {
-  id: string; nome: string; descricao_curta: string | null; sobre: string | null;
-  capa_url: string | null; logo_url: string | null; cadastur: string | null;
-  endereco: string | null; instagram: string | null; email: string | null;
-  whatsapp: string | null; galeria: string[] | null; especialidades: any | null;
-  ativo: boolean;
-}
-
-interface Gastronomia {
-  id: string; titulo: string; descricao_curta: string; imagem_url: string;
-  ordem: number; ativo: boolean; criado_em: string; whatsapp: string | null;
-  link_google_maps: string | null; sobre_nos_texto: string | null;
-  foto_equipe_url: string | null; galeria: string[] | null; cardapio: any[] | null;
-}
-
-interface Pedido {
-  id: string; codigo_pedido: string; tipo_item: string; item_id: string;
-  nome_cliente: string; cpf_cliente: string; email_cliente: string;
-  valor_total: number; status_pagamento: string; criado_em: string;
-}
-
-interface BlogPost {
-  id: string; titulo: string; resumo: string; conteudo: string;
-  imagem_url: string | null; data_publicacao: string;
-  ativo: boolean; autor: string | null; categoria: string | null;
-  destaque: boolean;
-}
-
-// ─── Login ───────────────────────────────────────────────────────────────────
-
-export default function PortalServicos() {
-  const [role, setRole] = useState<"geral" | "turismo" | "meio_ambiente" | null>(null);
-  const [email, setEmail] = useState("");
-  const [senha, setSenha] = useState("");
-  const [erroLogin, setErroLogin] = useState("");
-  const [loadingLogin, setLoadingLogin] = useState(false);
-
-  async function handleLogin(e: React.FormEvent) {
-    e.preventDefault();
-    setErroLogin("");
-    setLoadingLogin(true);
-
-    try {
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password: senha });
-      
-      if (authError) throw new Error("Credenciais inválidas. Verifique o e-mail e a senha.");
-
-      setRole("geral"); 
-      
-    } catch (error: any) {
-      setErroLogin(error.message);
-    } finally {
-      setLoadingLogin(false);
-    }
-  }
-
-  if (!role) {
-    return (
-      <div className={`${inter.className} min-h-screen bg-[#F0F4F8] flex items-center justify-center p-4`}>
-        <div className="w-full max-w-sm">
-          <div className="mb-8 flex flex-col items-center">
-            <div className="relative w-32 h-16 mb-4"><Image src="/logop.png" alt="Logo" fill className="object-contain" priority /></div>
-            <h1 className={`${jakarta.className} text-xl font-bold text-[#1A1A1A]`}>CMS Institucional</h1>
-            <p className="text-sm text-[#8A8A8A] mt-1">Gestão do Portal SagaTurismo</p>
-          </div>
-          <div className="bg-white rounded-md border border-[#D1D9E6] shadow-sm p-6">
-            <form onSubmit={handleLogin} className="space-y-4">
-              <FormField label="E-mail de acesso"><input type="email" value={email} onChange={(e) => { setEmail(e.target.value); setErroLogin(""); }} className={inputCls} placeholder="admin@sagaturismo.com.br" required autoFocus /></FormField>
-              <FormField label="Senha de acesso"><input type="password" value={senha} onChange={(e) => { setSenha(e.target.value); setErroLogin(""); }} className={inputCls} placeholder="••••••••" required />{erroLogin && <p className="text-[#D13438] text-xs mt-2 font-medium">{erroLogin}</p>}</FormField>
-              <button type="submit" disabled={loadingLogin} className="w-full bg-[#0078D4] hover:bg-[#005A9E] text-white font-semibold rounded-md py-3 text-sm transition shadow-sm uppercase tracking-widest mt-2 disabled:opacity-70">{loadingLogin ? "A verificar..." : "Entrar"}</button>
-            </form>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return <AdminDashboard role={role} email={email} onLogout={() => { supabase.auth.signOut(); setRole(null); setEmail(""); setSenha(""); }} />;
-}
-
-// ─── Dashboard Base ──────────────────────────────────────────────────────────
-
-function AdminDashboard({ role, email, onLogout }: { role: string; email: string; onLogout: () => void }) {
-  const [activeTab, setActiveTab] = useState<string>("dashboard");
-
-  const menuGroups = [
-    {
-      label: "Painel & Conteúdo",
-      items: [
-        { id: "dashboard",   label: "Painel Geral", icon: <Activity size={16} /> },
-        { id: "blog",        label: "Blog/Notícias",icon: <Newspaper size={16} /> },
-        { id: "eventos",     label: "Eventos",      icon: <CalendarIcon size={16} /> },
-      ]
-    },
-    {
-      label: "Turismo & Trade",
-      items: [
-        { id: "atracoes",    label: "Atrativos",    icon: <MapPin size={16} /> },
-        { id: "comunidades", label: "Comunidades",  icon: <Compass size={16} /> },
-        { id: "hoteis",      label: "Hotéis",       icon: <Building2 size={16} /> },
-        { id: "gastronomia", label: "Gastronomia",  icon: <Utensils size={16} /> },
-        { id: "agencias",    label: "Agências",     icon: <Briefcase size={16} /> },
-      ]
-    },
-    {
-      label: "Cidadão & Serviços",
-      items: [
-        { id: "aplicativo",  label: "Aplicativo",   icon: <Smartphone size={16} /> },
-        { id: "newsletter",  label: "Newsletter",   icon: <Bell size={16} /> }, 
-        { id: "reunioes",    label: "Reuniões COMTUR", icon: <FileText size={16} /> },
-      ]
-    }
-  ];
-
-  if (email === "emmanoel.cardoso09@gmail.com" || email === "planejamentosaga@gmail.com") {
-    menuGroups.push({
-      label: "Admin Restrito",
-      items: [
-        { id: "emissao", label: "Emissão de Carteira", icon: <AlertCircle size={16} /> },
-        { id: "suporte", label: "Central de Suporte", icon: <Headset size={16} /> },
-        { id: "residentes", label: "Base de Residentes", icon: <Users size={16} /> }
-      ]
-    });
-  }
-
+function GlobalStyles() {
   return (
-    <div className={`${inter.className} min-h-screen bg-[#F0F4F8] text-[#1A1A1A]`}>
-      {/* ─── BARRA DE TÍTULO WINDOWS 11 ── */}
-      <header className="bg-[#F0F4F8] border-b border-[#D1D9E6] sticky top-0 z-20">
-        <div className="px-4 sm:px-6 h-12 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="relative w-28 h-8"><Image src="/logop.png" alt="Logo" fill className="object-contain object-left" priority /></div>
-            <span className="hidden sm:block text-xs font-semibold text-[#8A8A8A] border-l border-[#D1D9E6] pl-3 uppercase tracking-wider">Painel Administrativo</span>
-          </div>
-          <button onClick={onLogout} className="text-xs text-[#8A8A8A] hover:text-[#0078D4] transition font-semibold uppercase">Sair</button>
-        </div>
-        
-        {/* ─── MENU DE NAVEGAÇÃO ── */}
-        <div className="bg-[#F0F4F8] border-t border-[#D1D9E6] px-4 sm:px-6 relative z-10">
-          <div className="flex flex-wrap gap-1 py-1">
-            {menuGroups.map((grupo, idx) => {
-              const isActiveGroup = grupo.items.some(item => item.id === activeTab);
-              return (
-                <div key={idx} className="relative group">
-                  <button className={`flex items-center gap-2 px-3 py-1.5 text-sm font-semibold rounded-md transition-colors ${isActiveGroup ? 'bg-[#0078D4] text-white' : 'text-[#1A1A1A] hover:bg-[#D1D9E6]'}`}>
-                    {grupo.label} <ChevronDown size={14} className={`transition-transform group-hover:rotate-180 ${isActiveGroup ? 'text-white' : 'text-[#8A8A8A]'}`} />
-                  </button>
-                  
-                  <div className="absolute left-0 top-full pt-1 hidden group-hover:flex flex-col w-56">
-                    <div className="bg-white border border-[#D1D9E6] shadow-lg rounded-md p-1 flex flex-col gap-0.5">
-                      {grupo.items.map(tab => (
-                        <button 
-                          key={tab.id} 
-                          onClick={() => setActiveTab(tab.id)} 
-                          className={`flex items-center gap-2.5 px-3 py-2 text-xs font-semibold rounded-md w-full text-left transition-colors ${activeTab === tab.id ? 'bg-[#0078D4] text-white shadow-sm' : 'text-[#1A1A1A] hover:bg-[#F0F4F8]'}`}
-                        >
-                          {tab.icon} {tab.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </header>
-
-      <main className="px-4 sm:px-6 py-6">
-        {activeTab === "dashboard"   && <TabDashboard />}
-        {activeTab === "blog"        && <TabBlog />}
-        {activeTab === "eventos"     && <TabEventos />}
-        {activeTab === "atracoes"    && <TabAtracoes />}
-        {activeTab === "comunidades" && <TabComunidades />}
-        {activeTab === "gastronomia" && <TabGastronomia />}
-        {activeTab === "hoteis"      && <TabHoteis />} 
-        {activeTab === "agencias"    && <TabAgencias />}
-        {activeTab === "reunioes"    && <TabReunioesComtur />}
-        {activeTab === "newsletter"  && <TabNewsletter />}
-        {activeTab === "aplicativo"  && <TabAplicativo />}
-        {activeTab === "emissao"     && <TabEmissaoManual />}
-        {activeTab === "residentes"  && <TabResidentes />} 
-        {activeTab === "suporte" && <TabSuporte />}
-      </main>
-    </div>
+    <style jsx global>{`
+      @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @keyframes pulseDot {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.5; transform: scale(0.85); }
+      }
+      @keyframes growBar {
+        from { transform: scaleY(0); }
+        to { transform: scaleY(1); }
+      }
+      .anim-fade-up { animation: fadeInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; }
+      .anim-fade { animation: fadeIn 0.25s ease both; }
+      .pulse-dot { animation: pulseDot 1.8s ease-in-out infinite; }
+      .grow-bar { animation: growBar 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; transform-origin: bottom; }
+      .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+      .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+      .scrollbar-thin::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
+      .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+    `}</style>
   );
 }
 
-// ─── Aba: Dashboard ───────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// SUB-COMPONENTES
+// ═══════════════════════════════════════════════════════════════
 
-function TabDashboard() {
-  const [eventos, setEventos] = useState<any[]>([]);
-  const [stats, setStats] = useState({ hoteis: 0, agencias: 0, restaurantes: 0, atracoes: 0 });
+function StatCard({
+  titulo,
+  valor,
+  subtitulo,
+  cor,
+  gradient,
+  icone,
+  href,
+  delay = 0,
+}: {
+  titulo: string;
+  valor: number;
+  subtitulo: string;
+  cor: string;
+  gradient: string;
+  icone: React.ReactNode;
+  href?: string;
+  delay?: number;
+}) {
+  const content = (
+    <>
+      <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: gradient }} />
+      <div
+        className="absolute -top-12 -right-12 w-24 h-24 rounded-full opacity-0 group-hover:opacity-20 transition-opacity duration-500 blur-2xl"
+        style={{ background: cor }}
+      />
+      <div className="relative flex items-center gap-2.5 mb-3">
+        <div
+          className="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0 transition-transform group-hover:scale-105"
+          style={{ background: gradient }}
+        >
+          {icone}
+        </div>
+        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 leading-tight">
+          {titulo}
+        </span>
+      </div>
+      <p
+        className={`${jakarta.className} relative text-3xl font-extrabold leading-none tracking-tight`}
+        style={{ color: valor > 0 ? cor : "#94A3B8" }}
+      >
+        {valor}
+      </p>
+      <p className="relative text-[10px] text-slate-400 mt-2 font-medium">
+        {subtitulo}
+      </p>
+      {href && (
+        <div className="relative mt-3 pt-3 border-t border-slate-100 flex items-center justify-between">
+          <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: cor }}>
+            Gerir
+          </span>
+          <ChevronRight
+            size={13}
+            className="group-hover:translate-x-0.5 transition-transform"
+            style={{ color: cor }}
+          />
+        </div>
+      )}
+    </>
+  );
+
+  const Wrapper: any = href ? Link : "div";
+
+  return (
+    <Wrapper
+      {...(href ? { href } : {})}
+      style={{ animationDelay: `${delay}ms` }}
+      className="relative bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 overflow-hidden group anim-fade-up block"
+    >
+      {content}
+    </Wrapper>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PÁGINA
+// ═══════════════════════════════════════════════════════════════
+
+export default function PortalDashboard() {
   const [loading, setLoading] = useState(true);
+  const [eventos, setEventos] = useState<any[]>([]);
+  const [suportes, setSuportes] = useState<any[]>([]);
+  const [residentesSemana, setResidentesSemana] = useState<any[]>([]);
+  const [stats, setStats] = useState({
+    atracoes: 0,
+    hoteis: 0,
+    restaurantes: 0,
+    agencias: 0,
+    comunidades: 0,
+    eventos: 0,
+    blog: 0,
+    guias: 0,
+    residentes: 0,
+    residentesAtivos: 0,
+    newsletter: 0,
+  });
+  const [suporteStats, setSuporteStats] = useState({
+    total: 0,
+    abertos: 0,
+    andamento: 0,
+    concluidos: 0,
+  });
 
-  useEffect(() => { carregarDashboard(); }, []);
+  const [agora, setAgora] = useState(new Date());
+
+  useEffect(() => {
+    carregarDashboard();
+
+    // Atualiza a hora a cada 60s
+    const interval = setInterval(() => setAgora(new Date()), 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   async function carregarDashboard() {
     setLoading(true);
-    const hoje = new Date();
-    const daquiA7Dias = new Date(); daquiA7Dias.setDate(hoje.getDate() + 7);
-    const hojeIso = hoje.toISOString().split('T')[0];
-    const daquiA7DiasIso = daquiA7Dias.toISOString().split('T')[0];
 
-    const { data: eventosData } = await supabase.from('eventos').select('titulo, data, local').gte('data', hojeIso).lte('data', daquiA7DiasIso).order('data', { ascending: true });
+    const hoje = new Date();
+    const daquiA7Dias = new Date();
+    daquiA7Dias.setDate(hoje.getDate() + 7);
+    const hojeIso = hoje.toISOString().split("T")[0];
+    const daquiA7DiasIso = daquiA7Dias.toISOString().split("T")[0];
+
+    // Eventos próximos 7 dias
+    const { data: eventosData } = await supabase
+      .from("eventos")
+      .select("titulo, data, local")
+      .gte("data", hojeIso)
+      .lte("data", daquiA7DiasIso)
+      .order("data", { ascending: true });
+
     setEventos(eventosData || []);
 
-    const { count: cAtracoes } = await supabase.from('atracoes').select('*', { count: 'exact', head: true });
-    const { count: cHoteis } = await supabase.from('hoteis').select('*', { count: 'exact', head: true });
-    const { count: cAgencias } = await supabase.from('agencias').select('*', { count: 'exact', head: true });
-    const { count: cRest } = await supabase.from('gastronomia').select('*', { count: 'exact', head: true });
+    // Suportes em aberto
+    const { data: suportesData } = await supabase
+      .from("suporte")
+      .select("id, protocolo, nome, assunto, status, criado_em")
+      .neq("status", "Concluído")
+      .order("criado_em", { ascending: false })
+      .limit(5);
 
-    setStats({ 
-      atracoes: cAtracoes || 0, hoteis: cHoteis || 0, 
-      agencias: cAgencias || 0, restaurantes: cRest || 0 
+    setSuportes(suportesData || []);
+
+    // Residentes da última semana (para o gráfico)
+    const seteDiasAtras = new Date();
+    seteDiasAtras.setDate(hoje.getDate() - 6);
+    const seteDiasIso = seteDiasAtras.toISOString();
+
+    const { data: residentesData } = await supabase
+      .from("rd_residentes")
+      .select("id, status, criado_at")
+      .gte("criado_at", seteDiasIso)
+      .order("criado_at", { ascending: true });
+
+    setResidentesSemana(residentesData || []);
+
+    // ─── CONTAGENS ───
+    const counts = await Promise.all([
+      supabase.from("atracoes").select("*", { count: "exact", head: true }),
+      supabase.from("hoteis").select("*", { count: "exact", head: true }),
+      supabase.from("gastronomia").select("*", { count: "exact", head: true }),
+      supabase.from("agencias").select("*", { count: "exact", head: true }),
+      supabase.from("comunidades").select("*", { count: "exact", head: true }),
+      supabase.from("eventos").select("*", { count: "exact", head: true }),
+      supabase.from("blog").select("*", { count: "exact", head: true }),
+      supabase.from("guias_turisticos").select("*", { count: "exact", head: true }),
+      supabase.from("rd_residentes").select("*", { count: "exact", head: true }),
+      supabase
+        .from("rd_residentes")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "ativo"),
+      supabase.from("newsletter_inscritos").select("*", { count: "exact", head: true }),
+    ]);
+
+    setStats({
+      atracoes: counts[0].count || 0,
+      hoteis: counts[1].count || 0,
+      restaurantes: counts[2].count || 0,
+      agencias: counts[3].count || 0,
+      comunidades: counts[4].count || 0,
+      eventos: counts[5].count || 0,
+      blog: counts[6].count || 0,
+      guias: counts[7].count || 0,
+      residentes: counts[8].count || 0,
+      residentesAtivos: counts[9].count || 0,
+      newsletter: counts[10].count || 0,
     });
+
+    // ─── SUPORTE STATS ───
+    const { data: suporteTotal } = await supabase
+      .from("suporte")
+      .select("status");
+    const allSuporte = suporteTotal || [];
+
+    setSuporteStats({
+      total: allSuporte.length,
+      abertos: allSuporte.filter((s) => s.status === "Aberto").length,
+      andamento: allSuporte.filter((s) => s.status === "Em andamento").length,
+      concluidos: allSuporte.filter((s) => s.status === "Concluído").length,
+    });
+
     setLoading(false);
   }
 
-  if (loading) return <div className="py-20 flex justify-center"><Loader2 className="animate-spin text-[#0078D4]" size={32}/></div>;
+  // ─── GRÁFICO: últimos 7 dias de residentes ───
+  const graficoResidentes = useMemo(() => {
+    const dias: any[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const iso = d.toISOString().split("T")[0];
+      const label = d.toLocaleDateString("pt-BR", { weekday: "short" }).slice(0, 3);
+
+      const total = residentesSemana.filter(
+        (r) => r.criado_at?.split("T")[0] === iso
+      ).length;
+      const ativos = residentesSemana.filter(
+        (r) => r.criado_at?.split("T")[0] === iso && r.status === "ativo"
+      ).length;
+
+      dias.push({ label, iso, total, ativos });
+    }
+    const max = Math.max(...dias.map((d) => d.total), 1);
+    return { dias, max };
+  }, [residentesSemana]);
+
+  const dataFormatada = agora.toLocaleDateString("pt-BR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+  const horaFormatada = agora.toLocaleTimeString("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  // ─── LOADING ───
+  if (loading) {
+    return (
+      <>
+        <GlobalStyles />
+        <div className="py-24 flex flex-col items-center justify-center gap-3">
+          <div
+            className="w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-sm"
+            style={{ background: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})` }}
+          >
+            <Loader2 size={22} className="animate-spin" />
+          </div>
+          <p className="text-xs text-slate-400 font-medium">
+            A carregar painel geral...
+          </p>
+        </div>
+      </>
+    );
+  }
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white p-6 rounded-md border border-[#D1D9E6] shadow-sm flex flex-col items-center text-center">
-          <div className="w-12 h-12 bg-[#E5F0FF] text-[#0078D4] rounded-md flex items-center justify-center mb-3"><MapPin size={24}/></div>
-          <span className={`${jakarta.className} text-3xl font-bold text-[#1A1A1A]`}>{stats.atracoes}</span>
-          <span className="text-xs font-semibold text-[#8A8A8A] uppercase tracking-widest mt-1">Atrativos</span>
-        </div>
-        <div className="bg-white p-6 rounded-md border border-[#D1D9E6] shadow-sm flex flex-col items-center text-center">
-          <div className="w-12 h-12 bg-[#FFF8E5] text-[#DAA520] rounded-md flex items-center justify-center mb-3"><Building2 size={24}/></div>
-          <span className={`${jakarta.className} text-3xl font-bold text-[#1A1A1A]`}>{stats.hoteis}</span>
-          <span className="text-xs font-semibold text-[#8A8A8A] uppercase tracking-widest mt-1">Hotéis</span>
-        </div>
-        <div className="bg-white p-6 rounded-md border border-[#D1D9E6] shadow-sm flex flex-col items-center text-center">
-          <div className="w-12 h-12 bg-[#E5F0FF] text-[#0078D4] rounded-md flex items-center justify-center mb-3"><Utensils size={24}/></div>
-          <span className={`${jakarta.className} text-3xl font-bold text-[#1A1A1A]`}>{stats.restaurantes}</span>
-          <span className="text-xs font-semibold text-[#8A8A8A] uppercase tracking-widest mt-1">Restaurantes</span>
-        </div>
-        <div className="bg-white p-6 rounded-md border border-[#D1D9E6] shadow-sm flex flex-col items-center text-center">
-          <div className="w-12 h-12 bg-[#FDE7E9] text-[#D13438] rounded-md flex items-center justify-center mb-3"><Briefcase size={24}/></div>
-          <span className={`${jakarta.className} text-3xl font-bold text-[#1A1A1A]`}>{stats.agencias}</span>
-          <span className="text-xs font-semibold text-[#8A8A8A] uppercase tracking-widest mt-1">Agências</span>
-        </div>
-      </div>
+    <>
+      <GlobalStyles />
+      <div className={`${inter.className} space-y-6`}>
 
-      <section className="bg-white border border-[#D1D9E6] rounded-md p-6 shadow-sm max-w-3xl mx-auto">
-        <div className="flex items-center gap-3 border-b border-[#D1D9E6] pb-4 mb-4">
-          <div className="bg-[#E5F0FF] text-[#0078D4] p-2 rounded-md"><CalendarIcon size={20}/></div>
-          <h3 className={`${jakarta.className} text-xl font-bold text-[#1A1A1A]`}>Eventos Municipais (Próximos 7 Dias)</h3>
-        </div>
-        {eventos.length === 0 ? (
-          <div className="text-center py-12">
-            <Clock size={40} className="mx-auto text-[#D1D9E6] mb-3"/>
-            <p className="font-semibold text-[#8A8A8A]">Agenda livre.</p>
-            <p className="text-xs text-[#8A8A8A]">Nenhum evento programado para esta semana.</p>
+        {/* ═══════════════════════════════════════════════════════════ */}
+        {/* CABEÇALHO                                                   */}
+        {/* ═══════════════════════════════════════════════════════════ */}
+
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 anim-fade-up">
+          <div>
+            <h1 className={`${jakarta.className} text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight`}>
+              Visão geral
+            </h1>
+            <p className="text-sm text-slate-500 mt-1.5 flex items-center gap-2">
+              <Compass size={14} style={{ color: AZUL }} />
+              Estado consolidado do portal — conteúdo, agenda e atendimento.
+            </p>
           </div>
-        ) : (
-          <div className="space-y-3">
-            {eventos.map((ev, idx) => {
-              const [ano, mes, dia] = ev.data.split('-');
-              return (
-                <div key={idx} className="flex items-center gap-4 p-4 bg-[#E5F0FF] border border-[#D1D9E6] rounded-md">
-                  <div className="bg-white border border-[#D1D9E6] rounded-md w-14 h-14 flex flex-col items-center justify-center shrink-0 shadow-sm">
-                    <span className="text-[10px] font-semibold uppercase text-[#0078D4] leading-none mb-1">{new Date(ev.data).toLocaleString('pt-BR', { month: 'short' })}</span>
-                    <span className={`${jakarta.className} text-xl font-bold text-[#1A1A1A] leading-none`}>{dia}</span>
+
+          {/* Data/hora */}
+          <div
+            className="self-start sm:self-auto inline-flex items-center gap-3 px-4 py-2.5 rounded-xl border shadow-sm"
+            style={{
+              background: `linear-gradient(135deg, ${AZUL}06, ${AZUL}02)`,
+              borderColor: `${AZUL}20`,
+            }}
+          >
+            <div className="relative">
+              <Clock size={15} style={{ color: AZUL }} />
+              <span
+                className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full pulse-dot"
+                style={{ background: VERDE_LIGHT }}
+              />
+            </div>
+            <div className="flex flex-col leading-tight">
+              <span className={`${jakarta.className} text-sm font-bold text-slate-800`}>
+                {horaFormatada}
+              </span>
+              <span className="text-[10px] text-slate-500 capitalize">
+                {dataFormatada}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* ═══════════════════════════════════════════════════════════ */}
+        {/* KPIs PRINCIPAIS (Turismo & Trade)                          */}
+        {/* ═══════════════════════════════════════════════════════════ */}
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
+          <StatCard
+            titulo="Atrativos"
+            valor={stats.atracoes}
+            subtitulo="pontos turísticos"
+            cor={AZUL}
+            gradient={`linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})`}
+            icone={<MapPin size={15} />}
+            href="/portal-servicos/atracoes"
+            delay={0}
+          />
+          <StatCard
+            titulo="Hotéis"
+            valor={stats.hoteis}
+            subtitulo="alojamentos registrados"
+            cor={AMBAR}
+            gradient={`linear-gradient(135deg, ${AMBAR}, ${AMBAR_LIGHT})`}
+            icone={<Building2 size={15} />}
+            href="/portal-servicos/hoteis"
+            delay={60}
+          />
+          <StatCard
+            titulo="Restaurantes"
+            valor={stats.restaurantes}
+            subtitulo="gastronomia local"
+            cor={VERDE}
+            gradient={`linear-gradient(135deg, ${VERDE}, ${VERDE_LIGHT})`}
+            icone={<Utensils size={15} />}
+            href="/portal-servicos/gastronomia"
+            delay={120}
+          />
+          <StatCard
+            titulo="Agências"
+            valor={stats.agencias}
+            subtitulo="operadores turísticos"
+            cor={VERMELHO}
+            gradient={`linear-gradient(135deg, ${VERMELHO}, #F87171)`}
+            icone={<Briefcase size={15} />}
+            href="/portal-servicos/agencias"
+            delay={180}
+          />
+        </div>
+
+        {/* ═══════════════════════════════════════════════════════════ */}
+        {/* KPIs SECUNDÁRIOS (Conteúdo + Serviços)                     */}
+        {/* ═══════════════════════════════════════════════════════════ */}
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
+          <StatCard
+            titulo="Comunidades"
+            valor={stats.comunidades}
+            subtitulo="registros no portal"
+            cor={ROXO}
+            gradient={`linear-gradient(135deg, ${ROXO}, #A78BFA)`}
+            icone={<Users size={15} />}
+            href="/portal-servicos/comunidades"
+            delay={0}
+          />
+          <StatCard
+            titulo="Eventos"
+            valor={stats.eventos}
+            subtitulo="no calendário municipal"
+            cor={AMBAR}
+            gradient={`linear-gradient(135deg, ${AMBAR}, ${AMBAR_LIGHT})`}
+            icone={<CalendarIcon size={15} />}
+            href="/portal-servicos/eventos"
+            delay={60}
+          />
+          <StatCard
+            titulo="Blog / Notícias"
+            valor={stats.blog}
+            subtitulo="matérias publicadas"
+            cor={AZUL}
+            gradient={`linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})`}
+            icone={<FileText size={15} />}
+            href="/portal-servicos/noticias"
+            delay={120}
+          />
+          <StatCard
+            titulo="Guias PDF"
+            valor={stats.guias}
+            subtitulo="materiais digitais"
+            cor="#0284C7"
+            gradient={`linear-gradient(135deg, #0284C7, #38BDF8)`}
+            icone={<Notebook size={15} />}
+            href="/portal-servicos/aplicativo"
+            delay={180}
+          />
+        </div>
+
+        {/* ═══════════════════════════════════════════════════════════ */}
+        {/* KPIs DE SERVIÇOS CRÍTICOS (Residentes + Suporte + Newsletter) */}
+        {/* ═══════════════════════════════════════════════════════════ */}
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+
+          {/* Residentes Ativos */}
+          <Link
+            href="/portal-servicos/residentes"
+            className="relative bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 anim-fade-up group block"
+          >
+            <div className="h-0.5" style={{ background: `linear-gradient(90deg, ${AZUL}, ${AZUL_ESCURO})` }} />
+
+            <div className="p-5">
+              <div className="flex items-start justify-between gap-3 mb-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div
+                    className="w-11 h-11 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0 transition-transform group-hover:scale-105"
+                    style={{ background: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})` }}
+                  >
+                    <BadgeCheck size={18} />
                   </div>
-                  <div>
-                    <p className="font-semibold text-sm text-[#1A1A1A]">{ev.titulo}</p>
-                    <p className="text-xs text-[#8A8A8A] font-medium flex items-center gap-1 mt-1"><MapPin size={12}/> {ev.local}</p>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                      Residentes
+                    </p>
+                    <p className={`${jakarta.className} text-sm font-bold text-slate-800 mt-0.5`}>
+                      Carteiras ativas
+                    </p>
                   </div>
                 </div>
+                <ChevronRight
+                  size={16}
+                  className="text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all shrink-0 mt-1"
+                />
+              </div>
+
+              <div className="flex items-baseline gap-2">
+                <p
+                  className={`${jakarta.className} text-4xl font-extrabold leading-none tracking-tight`}
+                  style={{ color: AZUL }}
+                >
+                  {stats.residentesAtivos}
+                </p>
+                <span className="text-xs font-bold text-slate-400">
+                  / {stats.residentes} total
+                </span>
+              </div>
+
+              {/* Barra de progresso */}
+              <div className="mt-4 pt-4 border-t border-slate-100">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                    Taxa de ativação
+                  </span>
+                  <span className={`${jakarta.className} text-[11px] font-bold`} style={{ color: AZUL }}>
+                    {stats.residentes > 0
+                      ? Math.round((stats.residentesAtivos / stats.residentes) * 100)
+                      : 0}
+                    %
+                  </span>
+                </div>
+                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-700"
+                    style={{
+                      width: `${
+                        stats.residentes > 0
+                          ? (stats.residentesAtivos / stats.residentes) * 100
+                          : 0
+                      }%`,
+                      background: `linear-gradient(90deg, ${AZUL}, ${AZUL_ESCURO})`,
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </Link>
+
+          {/* Suporte em aberto */}
+          <Link
+            href="/portal-servicos/suporte"
+            className="relative bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 anim-fade-up group block"
+            style={{ animationDelay: "60ms" }}
+          >
+            <div className="h-0.5" style={{ background: `linear-gradient(90deg, ${VERMELHO}, #F87171)` }} />
+
+            <div className="p-5">
+              <div className="flex items-start justify-between gap-3 mb-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div
+                    className="w-11 h-11 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0 transition-transform group-hover:scale-105"
+                    style={{ background: `linear-gradient(135deg, ${VERMELHO}, #F87171)` }}
+                  >
+                    <Headset size={18} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                      Suporte
+                    </p>
+                    <p className={`${jakarta.className} text-sm font-bold text-slate-800 mt-0.5`}>
+                      Chamados em aberto
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight
+                  size={16}
+                  className="text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all shrink-0 mt-1"
+                />
+              </div>
+
+              <div className="flex items-baseline gap-2">
+                <p
+                  className={`${jakarta.className} text-4xl font-extrabold leading-none tracking-tight`}
+                  style={{
+                    color:
+                      suporteStats.abertos + suporteStats.andamento > 0
+                        ? VERMELHO
+                        : "#94A3B8",
+                  }}
+                >
+                  {suporteStats.abertos + suporteStats.andamento}
+                </p>
+                <span className="text-xs font-bold text-slate-400">
+                  / {suporteStats.total} total
+                </span>
+              </div>
+
+              {/* Distribuição por status */}
+              <div className="mt-4 pt-4 border-t border-slate-100 space-y-2">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="flex items-center gap-1.5 text-slate-500">
+                    <Circle size={8} style={{ color: VERMELHO }} className="fill-current" />
+                    Abertos
+                  </span>
+                  <span className={`${jakarta.className} font-bold`} style={{ color: VERMELHO }}>
+                    {suporteStats.abertos}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="flex items-center gap-1.5 text-slate-500">
+                    <Circle size={8} style={{ color: AMBAR }} className="fill-current" />
+                    Em andamento
+                  </span>
+                  <span className={`${jakarta.className} font-bold`} style={{ color: AMBAR }}>
+                    {suporteStats.andamento}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="flex items-center gap-1.5 text-slate-500">
+                    <Circle size={8} style={{ color: VERDE }} className="fill-current" />
+                    Concluídos
+                  </span>
+                  <span className={`${jakarta.className} font-bold`} style={{ color: VERDE }}>
+                    {suporteStats.concluidos}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </Link>
+
+          {/* Newsletter */}
+          <Link
+            href="/portal-servicos/newsletter"
+            className="relative bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 anim-fade-up group block"
+            style={{ animationDelay: "120ms" }}
+          >
+            <div className="h-0.5" style={{ background: `linear-gradient(90deg, ${AMBAR}, ${AMBAR_LIGHT})` }} />
+
+            <div className="p-5">
+              <div className="flex items-start justify-between gap-3 mb-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div
+                    className="w-11 h-11 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0 transition-transform group-hover:scale-105"
+                    style={{ background: `linear-gradient(135deg, ${AMBAR}, ${AMBAR_LIGHT})` }}
+                  >
+                    <Mail size={18} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                      Newsletter
+                    </p>
+                    <p className={`${jakarta.className} text-sm font-bold text-slate-800 mt-0.5`}>
+                      Inscritos na base
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight
+                  size={16}
+                  className="text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all shrink-0 mt-1"
+                />
+              </div>
+
+              <p
+                className={`${jakarta.className} text-4xl font-extrabold leading-none tracking-tight`}
+                style={{ color: stats.newsletter > 0 ? AMBAR : "#94A3B8" }}
+              >
+                {stats.newsletter}
+              </p>
+
+              <p className="text-[10px] text-slate-400 mt-2 font-medium">
+                emails capturados
+              </p>
+
+              <div className="mt-4 pt-4 border-t border-slate-100">
+                <p className="text-[11px] text-slate-500 leading-relaxed flex items-start gap-1.5">
+                  <Sparkles size={11} style={{ color: AMBAR }} className="mt-0.5 shrink-0" />
+                  Prontos para receber campanhas por e-mail
+                </p>
+              </div>
+            </div>
+          </Link>
+        </div>
+
+        {/* ═══════════════════════════════════════════════════════════ */}
+        {/* GRELHA PRINCIPAL: Gráfico + Fila                            */}
+        {/* ═══════════════════════════════════════════════════════════ */}
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+          {/* Gráfico: últimos 7 dias */
+          }
+          <div className="lg:col-span-2">
+            <div
+              className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm anim-fade-up"
+              style={{ animationDelay: "180ms" }}
+            >
+              <div className="h-0.5" style={{ background: `linear-gradient(90deg, ${AZUL}, ${AZUL_ESCURO})` }} />
+
+              {/* Header */}
+              <div
+                className="px-5 py-4 border-b border-slate-100 flex items-center gap-3"
+                style={{ background: `linear-gradient(135deg, ${AZUL}06, ${AZUL}02)` }}
+              >
+                <div
+                  className="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0"
+                  style={{ background: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})` }}
+                >
+                  <BarChart3 size={15} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className={`${jakarta.className} text-sm font-bold text-slate-800 flex items-center gap-2 flex-wrap`}>
+                    Novos registros de residentes
+                    <span
+                      className="text-[10px] font-bold px-2 py-0.5 rounded-full border"
+                      style={{
+                        background: `${AZUL}10`,
+                        color: AZUL,
+                        borderColor: `${AZUL}25`,
+                      }}
+                    >
+                      Últimos 7 dias
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Total de novos cidadãos por dia · {residentesSemana.length} na semana
+                  </p>
+                </div>
+              </div>
+
+              {/* Gráfico */}
+              <div className="p-5">
+                {residentesSemana.length === 0 ? (
+                  <div className="py-12 text-center">
+                    <div
+                      className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-sm text-white"
+                      style={{
+                        background: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})`,
+                      }}
+                    >
+                      <TrendingUp size={24} />
+                    </div>
+                    <p className={`${jakarta.className} text-sm font-bold text-slate-700 mb-1`}>
+                      Sem atividade esta semana
+                    </p>
+                    <p className="text-[11px] text-slate-500">
+                      Nenhum residente se registrou nos últimos 7 dias.
+                    </p>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="h-56 flex items-end gap-2 sm:gap-3">
+                      {graficoResidentes.dias.map((dia, idx) => {
+                        const altura = (dia.total / graficoResidentes.max) * 100;
+                        const alturaAtivos = (dia.ativos / graficoResidentes.max) * 100;
+                        return (
+                          <div
+                            key={dia.iso}
+                            className="flex-1 flex flex-col items-center gap-2 group"
+                          >
+                            {/* Barra */}
+                            <div className="w-full relative flex flex-col justify-end h-40">
+                              {dia.total > 0 ? (
+                                <>
+                                  {/* Barra total */}
+                                  <div
+                                    className="w-full rounded-t-lg relative grow-bar"
+                                    style={{
+                                      height: `${Math.max(altura, 8)}%`,
+                                      background: `linear-gradient(180deg, ${AZUL}, ${AZUL_ESCURO})`,
+                                      animationDelay: `${idx * 60}ms`,
+                                      boxShadow: `0 2px 8px ${AZUL}30`,
+                                    }}
+                                  >
+                                    <span
+                                      className={`${jakarta.className} absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold`}
+                                      style={{ color: AZUL }}
+                                    >
+                                      {dia.total}
+                                    </span>
+                                    {/* Barra ativos (overlay) */}
+                                    {dia.ativos > 0 && (
+                                      <div
+                                        className="absolute bottom-0 left-0 right-0 rounded-t-lg grow-bar"
+                                        style={{
+                                          height: `${
+                                            dia.total > 0
+                                              ? (dia.ativos / dia.total) * 100
+                                              : 0
+                                          }%`,
+                                          background: `linear-gradient(180deg, ${VERDE}, ${VERDE_LIGHT})`,
+                                          animationDelay: `${idx * 60 + 100}ms`,
+                                        }}
+                                      />
+                                    )}
+                                  </div>
+                                </>
+                              ) : (
+                                <div className="w-full h-1 rounded-t-lg bg-slate-100" />
+                              )}
+                            </div>
+
+                            {/* Label */}
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                              {dia.label}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Legenda */}
+                    <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-center gap-5 flex-wrap">
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded"
+                          style={{
+                            background: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})`,
+                          }}
+                        />
+                        <span className="text-[11px] font-bold text-slate-600">
+                          Total de novos registros
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded"
+                          style={{
+                            background: `linear-gradient(135deg, ${VERDE}, ${VERDE_LIGHT})`,
+                          }}
+                        />
+                        <span className="text-[11px] font-bold text-slate-600">
+                          Já ativados (pagos)
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Fila de Suporte em Aberto */}
+          <div>
+            <div
+              className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm h-full anim-fade-up"
+              style={{ animationDelay: "240ms" }}
+            >
+              <div className="h-0.5" style={{ background: `linear-gradient(90deg, ${VERMELHO}, #F87171)` }} />
+
+              {/* Header */}
+              <div
+                className="px-5 py-4 border-b border-slate-100 flex items-center gap-3"
+                style={{ background: `linear-gradient(135deg, ${VERMELHO}06, ${VERMELHO}02)` }}
+              >
+                <div
+                  className="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0"
+                  style={{ background: `linear-gradient(135deg, ${VERMELHO}, #F87171)` }}
+                >
+                  <Headset size={15} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className={`${jakarta.className} text-sm font-bold text-slate-800`}>
+                    Suportes abertos
+                  </h3>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Aguardando resposta
+                  </p>
+                </div>
+                <Link
+                  href="/portal-servicos/suporte"
+                  className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-lg transition-colors shrink-0"
+                  style={{ color: VERMELHO, background: `${VERMELHO}10` }}
+                >
+                  Ver todos
+                </Link>
+              </div>
+
+              {/* Lista */}
+              {suportes.length === 0 ? (
+                <div className="py-12 px-6 text-center">
+                  <div
+                    className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-sm text-white"
+                    style={{
+                      background: `linear-gradient(135deg, ${VERDE}, ${VERDE_LIGHT})`,
+                    }}
+                  >
+                    <CheckCircle2 size={24} />
+                  </div>
+                  <p className={`${jakarta.className} text-sm font-bold text-slate-700 mb-1`}>
+                    Fila limpa
+                  </p>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                    Nenhum suporte em aberto neste momento.
+                  </p>
+                </div>
+              ) : (
+                <div className="p-3 space-y-2 max-h-[420px] overflow-y-auto scrollbar-thin">
+                  {suportes.map((s, idx) => {
+                    const isAberto = s.status === "Aberto";
+                    const cor = isAberto ? VERMELHO : AMBAR;
+                    return (
+                      <Link
+                        key={s.id}
+                        href="/portal-servicos/suporte"
+                        style={{ animationDelay: `${300 + idx * 40}ms` }}
+                        className="block p-3 bg-slate-50/70 hover:bg-white border border-slate-200/60 hover:border-slate-300 rounded-xl transition-all hover:shadow-sm group anim-fade-up"
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <span
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest border"
+                            style={{
+                              background: `${cor}10`,
+                              color: cor,
+                              borderColor: `${cor}25`,
+                            }}
+                          >
+                            <Circle size={7} className="fill-current" />
+                            {s.status}
+                          </span>
+                          <span className="text-[10px] font-mono text-slate-400 truncate">
+                            {s.protocolo}
+                          </span>
+                        </div>
+                        <p className="text-xs font-bold text-slate-800 truncate mb-1">
+                          {s.assunto}
+                        </p>
+                        <p className="text-[10px] text-slate-500 truncate flex items-center gap-1">
+                          <Users size={9} />
+                          {s.nome}
+                        </p>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* ═══════════════════════════════════════════════════════════ */}
+        {/* PRÓXIMOS EVENTOS                                            */}
+        {/* ═══════════════════════════════════════════════════════════ */}
+
+        <div
+          className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm max-w-3xl mx-auto anim-fade-up"
+          style={{ animationDelay: "300ms" }}
+        >
+          <div className="h-0.5" style={{ background: `linear-gradient(90deg, ${AMBAR}, ${AMBAR_LIGHT})` }} />
+
+          {/* Header */}
+          <div
+            className="px-5 py-4 border-b border-slate-100 flex items-center gap-3"
+            style={{ background: `linear-gradient(135deg, ${AMBAR}06, ${AMBAR}02)` }}
+          >
+            <div
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0"
+              style={{ background: `linear-gradient(135deg, ${AMBAR}, ${AMBAR_LIGHT})` }}
+            >
+              <CalendarIcon size={15} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className={`${jakarta.className} text-sm font-bold text-slate-800 flex items-center gap-2 flex-wrap`}>
+                Eventos municipais
+                <span
+                  className="text-[10px] font-bold px-2 py-0.5 rounded-full border"
+                  style={{
+                    background: `${AMBAR}10`,
+                    color: AMBAR,
+                    borderColor: `${AMBAR}25`,
+                  }}
+                >
+                  Próximos 7 dias
+                </span>
+              </h3>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                Agenda cultural e institucional do município
+              </p>
+            </div>
+          </div>
+
+          {/* Lista */}
+          {eventos.length === 0 ? (
+            <div className="py-16 text-center anim-fade">
+              <div
+                className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm text-white"
+                style={{
+                  background: `linear-gradient(135deg, ${AMBAR}, ${AMBAR_LIGHT})`,
+                }}
+              >
+                <Inbox size={28} />
+              </div>
+              <h3 className={`${jakarta.className} text-lg font-bold text-slate-800 mb-1.5`}>
+                Agenda livre
+              </h3>
+              <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+                Não há eventos programados para esta semana.
+              </p>
+            </div>
+          ) : (
+            <div className="p-4 space-y-2.5">
+              {eventos.map((ev, idx) => {
+                const [, , dia] = ev.data.split("-");
+                const nomeMes = new Date(ev.data)
+                  .toLocaleString("pt-BR", { month: "short" })
+                  .replace(".", "");
+
+                return (
+                  <div
+                    key={idx}
+                    style={{ animationDelay: `${360 + idx * 40}ms` }}
+                    className="flex items-center gap-4 p-4 bg-slate-50/70 hover:bg-white border border-slate-200/60 hover:border-slate-300 rounded-xl transition-all hover:shadow-sm anim-fade-up group"
+                  >
+                    {/* Data destacada */}
+                    <div
+                      className="w-14 h-14 rounded-xl flex flex-col items-center justify-center shrink-0 text-white shadow-sm transition-transform group-hover:scale-105"
+                      style={{
+                        background: `linear-gradient(135deg, ${AMBAR}, ${AMBAR_LIGHT})`,
+                      }}
+                    >
+                      <span className="text-[9px] font-bold uppercase tracking-widest text-white/80 leading-none mb-1">
+                        {nomeMes}
+                      </span>
+                      <span
+                        className={`${jakarta.className} text-xl font-extrabold leading-none`}
+                      >
+                        {dia}
+                      </span>
+                    </div>
+
+                    {/* Info */}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-bold text-slate-800 truncate">
+                        {ev.titulo}
+                      </p>
+                      <p className="text-xs text-slate-500 font-medium flex items-center gap-1.5 mt-1.5 truncate">
+                        <MapPin size={12} className="shrink-0 text-slate-400" />
+                        <span className="truncate">{ev.local}</span>
+                      </p>
+                    </div>
+
+                    {/* Ícone indicativo */}
+                    <div
+                      className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-slate-400 group-hover:text-[#DAA520] group-hover:bg-[#DAA520]/08 transition-colors"
+                    >
+                      <ArrowRight size={15} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* ═══════════════════════════════════════════════════════════ */}
+        {/* ATALHOS RÁPIDOS                                             */}
+        {/* ═══════════════════════════════════════════════════════════ */}
+
+        <div className="anim-fade-up" style={{ animationDelay: "360ms" }}>
+          <div className="flex items-center gap-2 mb-4">
+            <div
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-white shadow-sm"
+              style={{ background: `linear-gradient(135deg, ${ROXO}, #A78BFA)` }}
+            >
+              <Zap size={13} />
+            </div>
+            <h2 className={`${jakarta.className} text-sm font-bold text-slate-800 uppercase tracking-widest`}>
+              Atalhos rápidos
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[
+              {
+                href: "/portal-servicos/noticias",
+                label: "Nova matéria",
+                descricao: "Publicar no blog",
+                icone: FileText,
+                gradient: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})`,
+              },
+              {
+                href: "/portal-servicos/eventos",
+                label: "Novo evento",
+                descricao: "Adicionar à agenda",
+                icone: CalendarIcon,
+                gradient: `linear-gradient(135deg, ${AMBAR}, ${AMBAR_LIGHT})`,
+              },
+              {
+                href: "/portal-servicos/atracoes",
+                label: "Novo atrativo",
+                descricao: "Vitrine turística",
+                icone: MapPin,
+                gradient: `linear-gradient(135deg, ${VERDE}, ${VERDE_LIGHT})`,
+              },
+              {
+                href: "/portal-servicos/emissao",
+                label: "Emitir carteira",
+                descricao: "Registro de residente",
+                icone: BadgeCheck,
+                gradient: `linear-gradient(135deg, ${VERMELHO}, #F87171)`,
+              },
+            ].map((atalho, idx) => {
+              const Icone = atalho.icone;
+              return (
+                <Link
+                  key={atalho.href}
+                  href={atalho.href}
+                  style={{ animationDelay: `${420 + idx * 40}ms` }}
+                  className="relative bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 group anim-fade-up block overflow-hidden"
+                >
+                  <div
+                    className="absolute -top-8 -right-8 w-20 h-20 rounded-full opacity-0 group-hover:opacity-15 transition-opacity duration-500 blur-2xl"
+                    style={{ background: atalho.gradient }}
+                  />
+                  <div className="relative flex items-center gap-3 mb-3">
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0 transition-transform group-hover:scale-105"
+                      style={{ background: atalho.gradient }}
+                    >
+                      <Icone size={16} />
+                    </div>
+                    <PlusCircle
+                      size={14}
+                      className="ml-auto text-slate-300 group-hover:text-slate-600 transition-colors shrink-0"
+                    />
+                  </div>
+                  <p className={`${jakarta.className} relative text-xs font-bold text-slate-800`}>
+                    {atalho.label}
+                  </p>
+                  <p className="relative text-[10px] text-slate-500 mt-0.5">
+                    {atalho.descricao}
+                  </p>
+                </Link>
               );
             })}
           </div>
-        )}
-      </section>
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// BLOG / NOTÍCIAS
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function TabBlog() {
-  const [posts, setPosts] = useState<BlogPost[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [editando, setEditando] = useState<BlogPost | null>(null);
-  const [modoEditor, setModoEditor] = useState<'visual' | 'codigo'>('visual');
-  
-  const formVazio = { 
-    titulo: "", resumo: "", conteudo: "", legenda_imagem_capa: "",
-    data_publicacao: new Date().toISOString().split('T')[0], 
-    autor: "Redação", categoria: "Turismo", 
-    ativo: true, destaque: false 
-  };
-  const [form, setForm] = useState<any>(formVazio);
-  
-  const [imagemFile, setImagemFile] = useState<File | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [feedback, setFeedback] = useState("");
-
-  useEffect(() => { fetchPosts(); }, []);
-
-  async function fetchPosts() {
-    setLoading(true);
-    const { data } = await supabase.from("blog").select("*").order("data_publicacao", { ascending: false });
-    setPosts(data || []);
-    setLoading(false);
-  }
-
-  function abrirFormNovo() {
-    setEditando(null); setForm(formVazio); setImagemFile(null); setShowForm(true);
-  }
-
-  function abrirFormEditar(post: BlogPost) {
-    setEditando(post); setForm({ ...post }); setImagemFile(null); setShowForm(true);
-  }
-
-  async function toggleAtivo(id: string, estadoAtual: boolean) {
-    await supabase.from("blog").update({ ativo: !estadoAtual }).eq("id", id);
-    fetchPosts();
-  }
-
-  async function handleSave() {
-    if (!form.titulo || !form.conteudo) { setFeedback("Título e Conteúdo são obrigatórios."); return; }
-    setSaving(true); setFeedback("Salvando...");
-    
-    let imagem_url = editando?.imagem_url || null;
-    
-    if (imagemFile) {
-      const ext = imagemFile.name.split(".").pop();
-      const path = `blog/${Date.now()}.${ext}`;
-      const { error } = await supabase.storage.from("galeria").upload(path, imagemFile, { upsert: true });
-      if (!error) {
-        const { data: pub } = supabase.storage.from("galeria").getPublicUrl(path);
-        imagem_url = pub.publicUrl;
-      }
-    }
-    
-    const payload = { ...form, imagem_url };
-    
-    if (editando) await supabase.from("blog").update(payload).eq("id", editando.id);
-    else await supabase.from("blog").insert(payload);
-    
-    setFeedback(editando ? "Artigo atualizado com sucesso!" : "Novo artigo publicado!");
-    setTimeout(() => { setShowForm(false); setSaving(false); fetchPosts(); setFeedback(""); }, 2000);
-  }
-
-  async function handleDelete(id: string) {
-    if (!confirm("Tem certeza que deseja apagar este artigo permanentemente?")) return;
-    await supabase.from("blog").delete().eq("id", id); 
-    fetchPosts();
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className={`${jakarta.className} text-xl font-bold text-[#1A1A1A]`}>Gestão do Blog</h2>
-          <p className="text-xs text-[#8A8A8A] mt-1">{posts.length} artigos publicados</p>
-        </div>
-        <button onClick={abrirFormNovo} className="bg-[#0078D4] hover:bg-[#005A9E] text-white font-semibold text-sm px-5 py-2.5 rounded-md transition shadow-md flex items-center gap-2">
-          <Plus size={16} /> Novo Artigo
-        </button>
-      </div>
-
-      {showForm ? (
-        <div className="bg-white rounded-md p-8 shadow-lg border border-[#D1D9E6] animate-in fade-in slide-in-from-bottom-4">
-          <div className="flex items-center justify-between mb-8 border-b border-[#D1D9E6] pb-4">
-            <h3 className={`${jakarta.className} text-2xl font-bold text-[#1A1A1A] flex items-center gap-2`}>
-              <Newspaper className="text-[#DAA520]" /> {editando ? "Editar Artigo" : "Escrever Novo Artigo"}
-            </h3>
-            <button onClick={() => setShowForm(false)} className="text-sm font-semibold text-[#8A8A8A] hover:text-[#1A1A1A]">Cancelar</button>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-8 gap-y-8">
-            <div className="lg:col-span-2 space-y-5">
-              <FormField label="Título da Notícia/Artigo *"><input value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value })} className={inputCls} placeholder="Ex: Novo roteiro descoberto..." /></FormField>
-              <FormField label="Resumo Breve"><textarea value={form.resumo || ""} onChange={(e) => setForm({ ...form, resumo: e.target.value })} rows={2} className={inputCls} placeholder="Uma breve frase sobre o artigo" /></FormField>
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-xs font-semibold text-[#1A1A1A] uppercase tracking-wider">
-                  Conteúdo Completo *
-                </label>
-                <div className="flex bg-[#F0F4F8] p-1 rounded-md">
-                  <button 
-                    type="button"
-                    onClick={() => setModoEditor('visual')}
-                    className={`text-[10px] font-semibold uppercase px-3 py-1.5 rounded-md transition-all ${modoEditor === 'visual' ? 'bg-white text-[#0078D4] shadow-sm' : 'text-[#8A8A8A] hover:text-[#1A1A1A]'}`}
-                  >
-                    Modo Visual
-                  </button>
-                  <button 
-                    type="button"
-                    onClick={() => setModoEditor('codigo')}
-                    className={`text-[10px] font-semibold uppercase px-3 py-1.5 rounded-md transition-all ${modoEditor === 'codigo' ? 'bg-white text-[#0078D4] shadow-sm' : 'text-[#8A8A8A] hover:text-[#1A1A1A]'}`}
-                  >
-                    HTML / LaTeX Bruto
-                  </button>
-                </div>
-              </div>
-
-              <div className="bg-white border border-[#D1D9E6] rounded-md overflow-hidden">
-                {modoEditor === 'visual' ? (
-                  <ReactQuill 
-                    theme="snow" 
-                    value={form.conteudo || ""} 
-                    onChange={(content) => setForm({ ...form, conteudo: content })} 
-                    modules={quillModules}
-                    placeholder="Escreva a sua notícia, adicione fotos ou fórmulas (botão fx)..."
-                    className="h-[400px] mb-12" 
-                  />
-                ) : (
-                  <textarea 
-                    value={form.conteudo || ""}
-                    onChange={(e) => setForm({ ...form, conteudo: e.target.value })}
-                    className="w-full h-[450px] p-4 bg-[#1A1A1A] text-[#E5F0FF] font-mono text-sm focus:outline-none"
-                    placeholder="<p>Insira seu código HTML ou marcações LaTeX aqui...</p>"
-                  />
-                )}
-              </div>
-            </div>
-            
-            <div className="space-y-5">
-              <h4 className="font-bold text-[#1A1A1A] border-b pb-2">Detalhes & Publicação</h4>
-              <FormField label="Autor"><input value={form.autor || ""} onChange={(e) => setForm({ ...form, autor: e.target.value })} className={inputCls} placeholder="Ex: Redação, Nome..." /></FormField>
-              <FormField label="Categoria"><input value={form.categoria || ""} onChange={(e) => setForm({ ...form, categoria: e.target.value })} className={inputCls} placeholder="Ex: Turismo, Eventos..." /></FormField>
-              <FormField label="Data de Publicação *"><input type="date" value={form.data_publicacao} onChange={(e) => setForm({ ...form, data_publicacao: e.target.value })} className={inputCls} /></FormField>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <FormField label="Visibilidade"><select value={String(form.ativo)} onChange={(e) => setForm({ ...form, ativo: e.target.value === 'true' })} className={inputCls}><option value="true">Público</option><option value="false">Oculto</option></select></FormField>
-                <FormField label="Destaque?"><select value={String(form.destaque)} onChange={(e) => setForm({ ...form, destaque: e.target.value === 'true' })} className={inputCls}><option value="false">Não</option><option value="true">Sim</option></select></FormField>
-              </div>
-
-              <FormField label="Imagem de Capa">
-                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-[#D1D9E6] bg-[#F0F4F8] text-[#8A8A8A] p-6 rounded-md cursor-pointer hover:border-[#0078D4] transition-colors text-center text-xs">
-                  <input type="file" accept="image/*" className="hidden" onChange={(e) => setImagemFile(e.target.files?.[0] || null)} />
-                  <ImageIcon size={18} /> {imagemFile ? imagemFile.name : form.imagem_url ? "Trocar imagem atual" : "Anexar Imagem"}
-                </label>
-                {form.imagem_url && !imagemFile && <img src={form.imagem_url} alt="Capa atual" className="mt-3 h-24 w-full object-cover rounded-md border border-[#D1D9E6]" />}
-              </FormField>
-
-              <FormField label="Legenda / Créditos da Capa" className="mt-4">
-                <input 
-                  value={form.legenda_imagem_capa || ""} 
-                  onChange={(e) => setForm({ ...form, legenda_imagem_capa: e.target.value })} 
-                  className={inputCls} 
-                  placeholder="Ex: Foto por João Silva / Parque Nacional..." 
-                />
-              </FormField>
-            </div>
-          </div>
-
-          <div className="mt-10 flex items-center justify-between pt-6 border-t border-[#D1D9E6]">
-            <span className="text-sm font-semibold text-[#0078D4]">{feedback}</span>
-            <button onClick={handleSave} disabled={saving} className="bg-[#0078D4] hover:bg-[#005A9E] text-white px-10 py-4 rounded-md font-semibold text-sm uppercase tracking-widest shadow-lg flex items-center gap-2 transition-all">
-              {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Publicar Artigo
-            </button>
-          </div>
-        </div>
-      ) : (
-        loading ? <div className="py-12 flex justify-center"><Loader2 size={32} className="text-[#0078D4] animate-spin" /></div> : (
-          <div className="rounded-md border border-[#D1D9E6] overflow-hidden bg-white shadow-sm overflow-x-auto">
-            <table className="w-full text-sm min-w-[800px]">
-              <thead>
-                <tr className="border-b border-[#D1D9E6] bg-[#F0F4F8]">
-                  <Th className="w-16">Capa</Th><Th>Título do Artigo</Th><Th>Categoria</Th><Th>Data</Th><Th>Status</Th><Th className="text-right">Ações</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {posts.map((post) => (
-                  <tr key={post.id} className="border-b border-[#D1D9E6] hover:bg-[#F0F4F8] transition">
-                    <td className="px-4 py-3"><img src={post.imagem_url || "/placeholder.png"} alt={post.titulo} className="w-10 h-10 rounded-md object-cover" /></td>
-                    <td className="px-4 py-3"><p className="font-semibold text-[#1A1A1A] line-clamp-1">{post.titulo}</p><p className="text-xs text-[#8A8A8A] line-clamp-1 mt-0.5">{post.resumo}</p></td>
-                    <td className="px-4 py-3 text-[#1A1A1A]">{post.categoria || "—"}</td>
-                    <td className="px-4 py-3 text-[#1A1A1A]">{fmtData(post.data_publicacao)}</td>
-                    <td className="px-4 py-3">
-                      <button onClick={() => toggleAtivo(post.id, post.ativo)} className={`text-[10px] font-semibold uppercase px-2.5 py-1 rounded-full transition-colors ${post.ativo ? 'text-[#0078D4] bg-[#E5F0FF] hover:bg-[#D1D9E6]' : 'text-[#8A8A8A] bg-[#F0F4F8] hover:bg-[#D1D9E6]'}`}>
-                        {post.ativo ? "Público" : "Oculto"}
-                      </button>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex justify-end gap-3">
-                         <button onClick={() => abrirFormEditar(post)} className="text-xs font-semibold text-[#0078D4] hover:underline">Editar</button>
-                         <button onClick={() => handleDelete(post.id)} className="text-xs font-semibold text-[#D13438] hover:underline">Remover</button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {posts.length === 0 && (<tr><td colSpan={6} className="px-4 py-10 text-center text-[#8A8A8A]">Nenhum artigo publicado no blog.</td></tr>)}
-              </tbody>
-            </table>
-          </div>
-        )
-      )}
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// NEWSLETTER
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function TabNewsletter() {
-  const [inscritos, setInscritos] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [enviando, setEnviando] = useState(false);
-  const [feedback, setFeedback] = useState("");
-
-  const [assunto, setAssunto] = useState("");
-  const [textoHtml, setTextoHtml] = useState("");
-
-  useEffect(() => {
-    fetchInscritos();
-  }, []);
-
-  async function fetchInscritos() {
-    setLoading(true);
-    const { data, error } = await supabase.from("newsletter_inscritos").select("*").order("criado_em", { ascending: false });
-    if (data) setInscritos(data);
-    setLoading(false);
-  }
-
-  async function handleDisparar(e: React.FormEvent) {
-    e.preventDefault();
-    if (!assunto || !textoHtml) {
-      alert("Preencha o assunto e cole o código HTML da newsletter.");
-      return;
-    }
-
-    if (inscritos.length === 0) {
-      alert("Não existem e-mails cadastrados na base de dados para envio.");
-      return;
-    }
-
-    if (!confirm(`Tem a certeza que deseja disparar esta newsletter para ${inscritos.length} inscritos?`)) {
-      return;
-    }
-
-    setEnviando(true);
-    setFeedback("A preparar disparos em lote...");
-
-    const listaEmails = inscritos.map(i => i.email);
-
-    try {
-      const response = await fetch('https://sagaturismo-production.up.railway.app/api/v1/newsletter/disparar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          emails: listaEmails,
-          assunto,
-          texto_html: textoHtml
-        })
-      });
-
-      if (response.ok) {
-        setFeedback(`Sucesso! Newsletter disparada para ${inscritos.length} destinatários.`);
-        setAssunto(""); setTextoHtml("");
-      } else {
-        setFeedback("Erro ao disparar e-mails pelo servidor.");
-      }
-    } catch (err) {
-      setFeedback("Erro de conexão com o servidor de disparo.");
-    } finally {
-      setEnviando(false);
-    }
-  }
-
-  return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className={`${jakarta.className} text-xl font-bold text-[#1A1A1A]`}>Campanhas de Newsletter</h2>
-          <p className="text-xs text-[#8A8A8A] mt-1">Total de {inscritos.length} utilizadores inscritos para receber novidades.</p>
         </div>
       </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        <div className="lg:col-span-2 bg-white rounded-md p-8 shadow-sm border border-[#D1D9E6]">
-          <h3 className={`${jakarta.className} text-lg font-bold text-[#1A1A1A] mb-6 flex items-center gap-2`}>
-            <Bell size={18} className="text-[#DAA520]" /> Disparo de E-mail (Código Livre)
-          </h3>
-
-          <form onSubmit={handleDisparar} className="space-y-5">
-            <FormField label="Assunto do E-mail *">
-              <input value={assunto} onChange={e => setAssunto(e.target.value)} className={inputCls} placeholder="Ex: Descubra as novas cachoeiras 🌿" required />
-            </FormField>
-
-            <FormField label="Código HTML Completo *">
-              <textarea 
-                rows={16} 
-                value={textoHtml} 
-                onChange={e => setTextoHtml(e.target.value)} 
-                className={`${inputCls} font-mono text-xs bg-[#1A1A1A] text-[#E5F0FF] p-4`} 
-                placeholder="<!DOCTYPE html><html>..." 
-                required 
-              />
-            </FormField>
-
-            <div className="pt-4 border-t border-[#D1D9E6] flex items-center justify-between">
-              <span className="text-xs font-semibold text-[#0078D4]">{feedback}</span>
-              <button type="submit" disabled={enviando} className="bg-[#0078D4] hover:bg-[#005A9E] text-white px-8 py-3.5 rounded-md font-semibold text-xs uppercase tracking-widest shadow-md flex items-center gap-2 disabled:opacity-50 transition-all">
-                {enviando ? <Loader2 size={16} className="animate-spin" /> : <Bell size={16} />} Disparar para {inscritos.length} Inscritos
-              </button>
-            </div>
-          </form>
-        </div>
-
-        <div className="bg-white rounded-md p-6 shadow-sm border border-[#D1D9E6] flex flex-col h-fit">
-          <h4 className={`${jakarta.className} text-sm font-bold text-[#1A1A1A] uppercase tracking-wider mb-4 pb-2 border-b border-[#D1D9E6]`}>
-            Base de Leads Capturados
-          </h4>
-          
-          {loading ? (
-            <div className="py-8 flex justify-center"><Loader2 className="animate-spin text-[#0078D4]" size={24} /></div>
-          ) : inscritos.length === 0 ? (
-            <p className="text-xs text-[#8A8A8A] py-6 text-center">Nenhum e-mail inscrito na newsletter até ao momento.</p>
-          ) : (
-            <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
-              {inscritos.map((item, idx) => (
-                <div key={item.id || idx} className="p-3 bg-[#F0F4F8] border border-[#D1D9E6] rounded-md flex flex-col">
-                  <span className="text-xs font-semibold text-[#1A1A1A] truncate">{item.email}</span>
-                  <span className="text-[10px] text-[#8A8A8A] mt-0.5">Cadastrado em: {fmtData(item.criado_em?.split('T')[0])}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-      </div>
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// EVENTOS
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function TabEventos() {
-  const [fase, setFase] = useState<'inicio' | 'preview' | 'salvando' | 'sucesso' | 'manual'>('inicio');
-  const [eventosList, setEventosList] = useState<Evento[]>([]);
-  const [loadingList, setLoadingList] = useState(true);
-  
-  const [eventosPreview, setEventosPreview] = useState<any[]>([]);
-  const [imagensMap, setImagensMap] = useState<{ [key: number]: File }>({});
-  const [feedback, setFeedback] = useState("");
-
-  const [editando, setEditando] = useState<Evento | null>(null);
-  const [formManual, setFormManual] = useState<any>({ destaque: false, categoria: 'Cultura' });
-  const [imagemManual, setImagemManual] = useState<File | null>(null);
-  const [savingManual, setSavingManual] = useState(false);
-
-  useEffect(() => {
-    fetchEventos();
-  }, []);
-
-  async function fetchEventos() {
-    setLoadingList(true);
-    const hoje = new Date().toISOString().split('T')[0];
-
-    const { data } = await supabase
-      .from('eventos')
-      .select('*')
-      .gte('data', hoje)
-      .order('data', { ascending: true });
-      
-    setEventosList(data || []);
-    setLoadingList(false);
-  }
-
-  async function handleDeleteEvento(id: string) {
-    if(!confirm("Remover este evento permanentemente?")) return;
-    await supabase.from('eventos').delete().eq('id', id);
-    fetchEventos();
-  }
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const text = event.target?.result as string;
-      processarCSV(text);
-    };
-    reader.readAsText(file);
-  };
-
-  const processarCSV = (csvText: string) => {
-    const linhas = csvText.split('\n').filter(linha => linha.trim() !== '');
-    if (linhas.length < 2) { alert("O ficheiro parece estar vazio ou sem os cabeçalhos."); return; }
-
-    const cabecalhos = linhas[0].toLowerCase().split(',').map(c => c.trim());
-    const eventosLidos = [];
-    
-    for (let i = 1; i < linhas.length; i++) {
-      const valores = linhas[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-      const evento: any = {};
-      
-      cabecalhos.forEach((cabecalho, index) => {
-        let valor = valores[index] ? valores[index].trim() : '';
-        if (valor.startsWith('"') && valor.endsWith('"')) valor = valor.substring(1, valor.length - 1);
-        evento[cabecalho] = valor;
-      });
-      
-      if (evento.titulo) eventosLidos.push({ ...evento, destaque: false, data: evento.data || null });
-    }
-    setEventosPreview(eventosLidos);
-    setFase('preview');
-  };
-
-  const handleImagemChange = (index: number, file: File) => setImagensMap(prev => ({ ...prev, [index]: file }));
-
-  const handleSalvarTudo = async () => {
-    setFase('salvando');
-    setFeedback("A iniciar a sincronização com a base de dados...");
-    let sucessos = 0;
-
-    for (let i = 0; i < eventosPreview.length; i++) {
-      const evento = eventosPreview[i];
-      const imagemFile = imagensMap[i];
-      let imagem_url = "";
-
-      try {
-        setFeedback(`A processar o evento: ${evento.titulo} (${i + 1}/${eventosPreview.length})...`);
-        if (imagemFile) {
-          const ext = imagemFile.name.split('.').pop();
-          const nomeFicheiro = `evento_${Date.now()}_${i}.${ext}`;
-          const { error: uploadErr } = await supabase.storage.from('eventos').upload(nomeFicheiro, imagemFile);
-          if (!uploadErr) {
-            const { data: pubUrl } = supabase.storage.from('eventos').getPublicUrl(nomeFicheiro);
-            imagem_url = pubUrl.publicUrl;
-          }
-        }
-        const { error: dbError } = await supabase.from('eventos').insert([{
-          titulo: evento.titulo, subtitulo: evento.subtitulo || null, descricao: evento.descricao || null,
-          data: evento.data || null, horario: evento.horario || null, local: evento.local || null,
-          categoria: evento.categoria || 'Cultura', preco: evento.preco || null, imagem_url: imagem_url || null, destaque: false
-        }]);
-        if (dbError) console.error(`Erro ao salvar ${evento.titulo}:`, dbError);
-        else sucessos++;
-      } catch (err) {
-        console.error(`Falha fatal no evento ${evento.titulo}:`, err);
-      }
-    }
-    setFeedback(`${sucessos} de ${eventosPreview.length} eventos foram guardados com sucesso!`);
-    setFase('sucesso');
-  };
-
-  const abrirFormManual = () => {
-    setEditando(null);
-    setFormManual({ destaque: false, categoria: 'Cultura' });
-    setImagemManual(null);
-    setFeedback("");
-    setFase('manual');
-  };
-
-  const abrirFormEditar = (ev: Evento) => {
-    setEditando(ev);
-    setFormManual({
-      titulo: ev.titulo || "",
-      subtitulo: ev.subtitulo || "",
-      descricao: ev.descricao || "",
-      data: ev.data || "",
-      horario: ev.horario || "",
-      duracao: ev.duracao || "",
-      local: ev.local || "",
-      categoria: ev.categoria || "Cultura",
-      preco: ev.preco || "",
-      classificacao: ev.classificacao || "",
-      link_bilheteira: ev.link_bilheteira || "",
-      destaque: ev.destaque || false,
-      imagem_url: ev.imagem_url || "" 
-    });
-    setImagemManual(null);
-    setFeedback("");
-    setFase('manual');
-  };
-
-  const handleSalvarManual = async () => {
-    if (!formManual.titulo || !formManual.data || !formManual.local) {
-      alert("Título, Data e Local são obrigatórios.");
-      return;
-    }
-    setSavingManual(true);
-    setFeedback("A guardar evento...");
-
-    try {
-      let imagem_url = formManual.imagem_url;
-      
-      if (imagemManual) {
-        const ext = imagemManual.name.split('.').pop();
-        const nomeFicheiro = `evento_manual_${Date.now()}.${ext}`;
-        const { error: uploadErr } = await supabase.storage.from('eventos').upload(nomeFicheiro, imagemManual);
-        if (!uploadErr) {
-          const { data: pubUrl } = supabase.storage.from('eventos').getPublicUrl(nomeFicheiro);
-          imagem_url = pubUrl.publicUrl;
-        } else {
-          throw new Error("Erro ao fazer upload do cartaz.");
-        }
-      }
-
-      const payload = {
-        titulo: formManual.titulo,
-        subtitulo: formManual.subtitulo || null,
-        descricao: formManual.descricao || null,
-        data: formManual.data,
-        horario: formManual.horario || null,
-        duracao: formManual.duracao || null,
-        local: formManual.local,
-        categoria: formManual.categoria,
-        preco: formManual.preco || null,
-        classificacao: formManual.classificacao || null,
-        link_bilheteira: formManual.link_bilheteira || null,
-        imagem_url: imagem_url || null,
-        destaque: String(formManual.destaque) === 'true'
-      };
-
-      let erroBd;
-
-      if (editando) {
-        const { error } = await supabase.from('eventos').update(payload).eq('id', editando.id);
-        erroBd = error;
-      } else {
-        const { error } = await supabase.from('eventos').insert([payload]);
-        erroBd = error;
-      }
-
-      if (erroBd) throw new Error(erroBd.message);
-
-      setFeedback(editando ? "✅ Evento atualizado com sucesso!" : "✅ Evento publicado com sucesso!");
-      setFase('sucesso');
-      
-    } catch (err: any) {
-      setFeedback(`❌ Erro: ${err.message}`);
-    } finally {
-      setSavingManual(false);
-    }
-  };
-
-  const resetar = () => { 
-    setFase('inicio'); 
-    setEventosPreview([]); 
-    setImagensMap({}); 
-    setFeedback(""); 
-    setEditando(null); 
-    fetchEventos(); 
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className={`${jakarta.className} text-xl font-bold text-[#1A1A1A]`}>Gestão de Eventos</h2>
-          <p className="text-xs text-[#8A8A8A] mt-1">Ferramenta exclusiva da Prefeitura para o calendário da cidade.</p>
-        </div>
-        {fase !== 'inicio' && (<button onClick={resetar} className="text-xs text-[#8A8A8A] font-semibold hover:text-[#1A1A1A] underline">Cancelar e Voltar</button>)}
-      </div>
-
-      {fase === 'inicio' && (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="border-2 border-dashed border-[#D1D9E6] rounded-md p-10 text-center bg-white hover:bg-[#F0F4F8] transition-colors relative group flex flex-col items-center justify-center">
-              <input type="file" accept=".csv" onChange={handleFileUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
-              <div className="w-16 h-16 bg-[#E5F0FF] text-[#0078D4] rounded-md flex items-center justify-center group-hover:scale-110 transition-transform mb-4"><FileSpreadsheet size={32} /></div>
-              <h3 className={`${jakarta.className} text-xl font-bold text-[#1A1A1A]`}>Importação em Lote</h3>
-              <p className="text-xs font-medium text-[#8A8A8A] mt-2">Arraste o seu ficheiro CSV (Excel) para carregar dezenas de eventos de uma só vez.</p>
-              <button className="mt-6 bg-[#0078D4] text-white px-6 py-2.5 rounded-md font-semibold text-xs uppercase tracking-widest shadow-md">Selecionar CSV</button>
-            </div>
-
-            <div className="border border-[#D1D9E6] rounded-md p-10 text-center bg-white hover:shadow-md transition-all flex flex-col items-center justify-center">
-              <div className="w-16 h-16 bg-[#E5F0FF] text-[#0078D4] rounded-md flex items-center justify-center mb-4"><Plus size={32} /></div>
-              <h3 className={`${jakarta.className} text-xl font-bold text-[#1A1A1A]`}>Cadastro Manual</h3>
-              <p className="text-xs font-medium text-[#8A8A8A] mt-2">Crie um evento único preenchendo o formulário completo de publicação.</p>
-              <button onClick={abrirFormManual} className="mt-6 bg-[#0078D4] hover:bg-[#005A9E] text-white px-6 py-2.5 rounded-md font-semibold text-xs uppercase tracking-widest shadow-md transition-colors">Criar Evento Manual</button>
-            </div>
-          </div>
-
-          <div className="pt-4">
-            <h3 className={`${jakarta.className} text-lg font-bold text-[#1A1A1A] mb-4`}>Eventos Cadastrados</h3>
-            {loadingList ? (
-              <Skeleton rows={5} />
-            ) : (
-              <div className="rounded-md border border-[#D1D9E6] overflow-hidden bg-white shadow-sm">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-[#D1D9E6] bg-[#F0F4F8]">
-                      <Th>Cartaz</Th><Th>Título</Th><Th>Data</Th><Th>Local</Th><Th>Categoria</Th><Th className="text-right">Ações</Th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {eventosList.map((ev) => (
-                      <tr key={ev.id} className="border-b border-[#D1D9E6] hover:bg-[#F0F4F8] transition">
-                        <td className="px-4 py-3"><img src={ev.imagem_url || "/placeholder.png"} alt={ev.titulo} className="w-10 h-10 rounded-md object-cover" /></td>
-                        <td className="px-4 py-3 font-medium text-[#1A1A1A]">{ev.titulo}</td>
-                        <td className="px-4 py-3 text-[#1A1A1A] whitespace-nowrap">{fmtData(ev.data)}</td>
-                        <td className="px-4 py-3 text-[#1A1A1A]">{ev.local}</td>
-                        <td className="px-4 py-3 text-[#1A1A1A]">{ev.categoria}</td>
-                        <td className="px-4 py-3 text-right space-x-3">
-                          <button onClick={() => abrirFormEditar(ev)} className="text-xs font-semibold text-[#0078D4] hover:underline">Editar</button>
-                          <button onClick={() => handleDeleteEvento(ev.id)} className="text-xs text-[#D13438] hover:text-[#D13438] border border-[#D13438] bg-[#FDE7E9] px-2.5 py-1 rounded-md transition">Remover</button>
-                        </td>
-                      </tr>
-                    ))}
-                    {eventosList.length === 0 && (<tr><td colSpan={6} className="px-4 py-10 text-center text-[#8A8A8A]">Nenhum evento cadastrado.</td></tr>)}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {fase === 'manual' && (
-        <div className="bg-white rounded-md p-8 shadow-lg border border-[#D1D9E6] animate-in fade-in slide-in-from-bottom-4">
-          <div className="flex items-center justify-between mb-8 border-b border-[#D1D9E6] pb-4">
-            <h3 className={`${jakarta.className} text-2xl font-bold text-[#1A1A1A] flex items-center gap-2`}>
-              <CalendarIcon className="text-[#DAA520]" /> 
-              {editando ? "Editar Evento" : "Construtor de Evento"}
-            </h3>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-6">
-            <div className="space-y-4">
-              <h4 className="font-bold text-[#1A1A1A] border-b pb-2">Informações Base</h4>
-              <FormField label="Título do Evento *"><input value={formManual.titulo || ""} onChange={(e) => setFormManual({ ...formManual, titulo: e.target.value })} className={inputCls} placeholder="Ex: Festival de Verão" /></FormField>
-              <FormField label="Subtítulo"><input value={formManual.subtitulo || ""} onChange={(e) => setFormManual({ ...formManual, subtitulo: e.target.value })} className={inputCls} placeholder="Frase de chamariz..." /></FormField>
-              <FormField label="Descrição"><textarea value={formManual.descricao || ""} onChange={(e) => setFormManual({ ...formManual, descricao: e.target.value })} rows={4} className={inputCls} /></FormField>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField label="Categoria"><input value={formManual.categoria || ""} onChange={(e) => setFormManual({ ...formManual, categoria: e.target.value })} className={inputCls} placeholder="Ex: Música, Cultura..." /></FormField>
-                <FormField label="Destaque?">
-                  <select value={String(formManual.destaque)} onChange={(e) => setFormManual({ ...formManual, destaque: e.target.value })} className={inputCls}>
-                    <option value="false">Não</option><option value="true">Sim (Banner Principal)</option>
-                  </select>
-                </FormField>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <h4 className="font-bold text-[#1A1A1A] border-b pb-2">Logística e Mídia</h4>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField label="Data *"><input type="date" value={formManual.data || ""} onChange={(e) => setFormManual({ ...formManual, data: e.target.value })} className={inputCls} /></FormField>
-                <FormField label="Horário de Início"><input type="time" value={formManual.horario || ""} onChange={(e) => setFormManual({ ...formManual, horario: e.target.value })} className={inputCls} /></FormField>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField label="Duração Estimada"><input value={formManual.duracao || ""} onChange={(e) => setFormManual({ ...formManual, duracao: e.target.value })} className={inputCls} placeholder="Ex: 3 dias, 4 horas..." /></FormField>
-                <FormField label="Classificação Etária"><input value={formManual.classificacao || ""} onChange={(e) => setFormManual({ ...formManual, classificacao: e.target.value })} className={inputCls} placeholder="Ex: Livre, +18..." /></FormField>
-              </div>
-              <FormField label="Local do Evento *"><div className="relative"><MapPin size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8A8A8A]" /><input value={formManual.local || ""} onChange={(e) => setFormManual({ ...formManual, local: e.target.value })} className={`${inputCls} pl-9`} placeholder="Ex: Praça Central" /></div></FormField>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <FormField label="Preço (Deixe vazio se grátis)"><input value={formManual.preco || ""} onChange={(e) => setFormManual({ ...formManual, preco: e.target.value })} className={inputCls} placeholder="R$ 50,00" /></FormField>
-                <FormField label="Link Bilheteira"><input value={formManual.link_bilheteira || ""} onChange={(e) => setFormManual({ ...formManual, link_bilheteira: e.target.value })} className={inputCls} placeholder="https://..." /></FormField>
-              </div>
-
-              <FormField label="Cartaz Oficial (Imagem)">
-                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-[#D1D9E6] bg-[#F0F4F8] text-[#8A8A8A] p-4 rounded-md cursor-pointer hover:border-[#0078D4] transition-colors mt-1">
-                  <input type="file" accept="image/*" className="hidden" onChange={(e) => setImagemManual(e.target.files?.[0] || null)} />
-                  <ImageIcon size={18} /> {imagemManual ? imagemManual.name : formManual.imagem_url ? "Substituir Cartaz Atual" : "Clique para anexar Cartaz"}
-                </label>
-                {formManual.imagem_url && !imagemManual && (
-                  <img src={formManual.imagem_url} alt="Cartaz Atual" className="mt-3 h-24 w-auto object-cover rounded-md border border-[#D1D9E6] shadow-sm" />
-                )}
-              </FormField>
-            </div>
-          </div>
-
-          <div className="mt-8 flex items-center justify-between pt-6 border-t border-[#D1D9E6]">
-            <span className={`text-sm font-semibold ${feedback.includes('❌') ? 'text-[#D13438]' : 'text-[#0078D4]'}`}>{feedback}</span>
-            <button onClick={handleSalvarManual} disabled={savingManual} className="bg-[#0078D4] hover:bg-[#005A9E] text-white px-10 py-3.5 rounded-md font-semibold text-sm uppercase tracking-widest shadow-lg flex items-center gap-2 transition-all">
-              {savingManual ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} {editando ? "Guardar Edição" : "Publicar Evento"}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {fase === 'preview' && (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
-          <div className="bg-[#FFF8E5] border border-[#D1D9E6] p-4 rounded-md flex items-start gap-3">
-             <AlertCircle className="text-[#DAA520] shrink-0 mt-0.5" size={18} />
-             <div><p className="text-sm font-semibold text-[#1A1A1A]">Foram identificados {eventosPreview.length} eventos no ficheiro!</p><p className="text-xs text-[#8A8A8A] mt-1">Anexe as fotos oficiais de cada um abaixo e clique no botão para guardar tudo no portal.</p></div>
-          </div>
-          <div className="bg-white rounded-md border border-[#D1D9E6] overflow-hidden shadow-sm">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-[#F0F4F8] text-[#8A8A8A] text-[10px] uppercase font-semibold tracking-widest">
-                <tr><th className="p-4 border-b">Festa / Evento</th><th className="p-4 border-b">Data e Local</th><th className="p-4 border-b">Categoria</th><th className="p-4 border-b">Upload do Cartaz</th></tr>
-              </thead>
-              <tbody className="divide-y divide-[#D1D9E6]">
-                {eventosPreview.map((ev, idx) => (
-                  <tr key={idx} className="hover:bg-[#F0F4F8]/50">
-                    <td className="p-4"><p className="font-semibold text-[#1A1A1A]">{ev.titulo}</p><p className="text-xs text-[#8A8A8A] line-clamp-1">{ev.descricao}</p></td>
-                    <td className="p-4 text-xs font-semibold text-[#1A1A1A]"><p>{ev.data}</p><p className="text-[#8A8A8A] font-medium">{ev.local}</p></td>
-                    <td className="p-4"><span className="bg-[#F0F4F8] text-[#1A1A1A] px-2 py-1 rounded text-[10px] font-semibold uppercase">{ev.categoria || 'Geral'}</span></td>
-                    <td className="p-4">
-                       <label className="flex items-center justify-center gap-2 border border-[#D1D9E6] hover:border-[#0078D4] bg-white text-[#1A1A1A] hover:text-[#0078D4] px-3 py-2 rounded-md cursor-pointer transition-colors text-xs font-semibold">
-                         <input type="file" accept="image/*" className="hidden" onChange={(e) => { if (e.target.files) handleImagemChange(idx, e.target.files[0]); }} />
-                         <ImageIcon size={14} />{imagensMap[idx] ? <span className="text-[#0078D4]">Imagem Selecionada ✓</span> : <span>Anexar Foto</span>}
-                       </label>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="flex justify-end pt-4 border-t border-[#D1D9E6]">
-             <button onClick={handleSalvarTudo} className="bg-[#0078D4] hover:bg-[#005A9E] text-white px-8 py-4 rounded-md font-semibold text-sm uppercase tracking-widest shadow-lg flex items-center gap-2 transition-all"><Save size={18} /> Salvar {eventosPreview.length} Eventos no Portal</button>
-          </div>
-        </div>
-      )}
-
-      {(fase === 'salvando' || fase === 'sucesso') && (
-        <div className="bg-white rounded-md p-12 text-center shadow-sm border border-[#D1D9E6]">
-          {fase === 'salvando' ? (<Loader2 size={48} className="mx-auto text-[#0078D4] animate-spin mb-6" />) : (<CheckCircle2 size={48} className="mx-auto text-[#0078D4] mb-6" />)}
-          <h3 className={`${jakarta.className} text-2xl font-bold text-[#1A1A1A] mb-2`}>{fase === 'salvando' ? 'A Sincronizar Calendário...' : 'Evento(s) Guardado(s) com Sucesso!'}</h3>
-          <p className="text-[#8A8A8A] font-medium mb-8">{feedback}</p>
-          {fase === 'sucesso' && (<button onClick={resetar} className="bg-[#0078D4] text-white px-8 py-3 rounded-md font-semibold text-xs uppercase tracking-widest shadow-md">Voltar ao Início</button>)}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// HOTÉIS & POUSADAS
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function TabHoteis() {
-  const [hoteis, setHoteis] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [feedback, setFeedback] = useState("");
-
-  const formVazio = { nome: "", tipo: "Hotel", descricao: "", estrelas: 3, whatsapp: "", endereco: "", instagram: "", ativo: true };
-  const [form, setForm] = useState(formVazio);
-  const [editando, setEditando] = useState<any | null>(null);
-  
-  const [imagemFile, setImagemFile] = useState<File | null>(null);
-  const [galeriaFiles, setGaleriaFiles] = useState<File[]>([]);
-
-  useEffect(() => { fetchHoteis(); }, []);
-
-  async function fetchHoteis() {
-    setLoading(true);
-    const { data, error } = await supabase.from('hoteis').select('*').order('nome');
-    setHoteis(data || []);
-    setLoading(false);
-  }
-
-  function abrirNovo() {
-    setEditando(null); 
-    setForm(formVazio); 
-    setImagemFile(null); 
-    setGaleriaFiles([]); 
-    setShowForm(true);
-  }
-
-  function abrirEditar(hotel: any) {
-    setEditando(hotel);
-    setForm({ 
-      nome: hotel.nome, tipo: hotel.tipo, descricao: hotel.descricao || "", 
-      estrelas: hotel.estrelas || 3, 
-      whatsapp: hotel.whatsapp || "",
-      endereco: hotel.endereco || "", instagram: hotel.instagram || "", 
-      ativo: hotel.ativo ?? true 
-    });
-    setImagemFile(null); 
-    setGaleriaFiles([]);
-    setShowForm(true);
-  }
-
-  async function uploadImagem(file: File, pasta: string): Promise<string | null> {
-    const ext = file.name.split('.').pop();
-    const path = `${pasta}/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
-    const { error } = await supabase.storage.from('hoteis').upload(path, file);
-    if (error) return null;
-    const { data } = supabase.storage.from('hoteis').getPublicUrl(path);
-    return data.publicUrl;
-  }
-
-  async function handleSalvar() {
-    if (!form.nome) { alert("Nome do estabelecimento é obrigatório."); return; }
-    setSaving(true); setFeedback("A guardar alojamento...");
-
-    try {
-      let imagem_url = editando?.imagem_url || null;
-      if (imagemFile) imagem_url = await uploadImagem(imagemFile, 'capas');
-
-      let galeriaFinal = editando?.galeria || [];
-      if (galeriaFiles.length > 0) {
-        const novasUrls = [];
-        for (const file of galeriaFiles) { const url = await uploadImagem(file, 'galeria'); if (url) novasUrls.push(url); }
-        galeriaFinal = [...galeriaFinal, ...novasUrls];
-      }
-
-      const payloadHotel = { 
-        nome: form.nome,
-        tipo: form.tipo,
-        descricao: form.descricao,
-        estrelas: form.estrelas,
-        whatsapp: form.whatsapp, 
-        endereco: form.endereco,
-        instagram: form.instagram,
-        ativo: form.ativo,
-        imagem_url, 
-        galeria: galeriaFinal.length > 0 ? galeriaFinal : null
-      };
-
-      let erroBd;
-
-      if (editando) {
-        const { error } = await supabase.from('hoteis').update(payloadHotel).eq('id', editando.id);
-        erroBd = error;
-      } else {
-        const { error } = await supabase.from('hoteis').insert([payloadHotel]);
-        erroBd = error;
-      }
-
-      if (erroBd) throw new Error(erroBd.message);
-
-      setFeedback(editando ? "✅ Hotel atualizado com sucesso!" : "✅ Hotel publicado com sucesso!");
-      setTimeout(() => { setShowForm(false); setFeedback(""); fetchHoteis(); }, 2000);
-
-    } catch (err: any) { 
-      setFeedback(`❌ Erro: ${err.message}`); 
-    } finally { 
-      setSaving(false); 
-    }
-  }
-
-  async function handleDelete(id: string) {
-    if (!confirm("Remover permanentemente este alojamento?")) return;
-    await supabase.from('hoteis').delete().eq('id', id); 
-    fetchHoteis();
-  }
-
-  async function toggleAtivo(id: string, estadoAtual: boolean) {
-    await supabase.from('hoteis').update({ ativo: !estadoAtual }).eq('id', id);
-    fetchHoteis();
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div><h2 className={`${jakarta.className} text-xl font-bold text-[#1A1A1A]`}>Vitrine de Hotéis</h2><p className="text-xs text-[#8A8A8A] mt-1">{hoteis.length} alojamentos</p></div>
-        <button onClick={abrirNovo} className="bg-[#0078D4] text-white font-semibold text-sm px-5 py-2.5 rounded-md flex items-center gap-2"><Plus size={16} /> Novo Hotel</button>
-      </div>
-
-      {showForm ? (
-        <div className="bg-white rounded-md p-8 shadow-lg border border-[#D1D9E6]">
-          <div className="flex items-center justify-between mb-8 border-b pb-4"><h3 className={`${jakarta.className} text-2xl font-bold text-[#1A1A1A]`}><Building2 className="text-[#DAA520] inline mr-2"/>{editando ? "Editar Alojamento" : "Novo Alojamento"}</h3><button onClick={() => setShowForm(false)} className="text-sm font-semibold text-[#8A8A8A]">Cancelar</button></div>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-8">
-            <div className="space-y-5">
-              <h4 className="font-bold text-[#1A1A1A] border-b pb-2">Informações Principais</h4>
-              <FormField label="Nome *"><input type="text" value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} className={inputCls} /></FormField>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField label="Tipo"><select value={form.tipo} onChange={e => setForm({...form, tipo: e.target.value})} className={inputCls}><option>Hotel</option><option>Pousada</option><option>Pensão</option><option>Resort</option></select></FormField>
-                {form.tipo === 'Hotel' && <FormField label="Estrelas"><input type="number" min="1" max="5" value={form.estrelas} onChange={e => setForm({...form, estrelas: parseInt(e.target.value)})} className={inputCls} /></FormField>}
-              </div>
-              <FormField label="Descrição"><textarea rows={4} value={form.descricao} onChange={e => setForm({...form, descricao: e.target.value})} className={inputCls} /></FormField>
-            </div>
-            
-            <div className="space-y-5">
-              <h4 className="font-bold text-[#1A1A1A] border-b pb-2">Contatos e Mídia</h4>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField label="WhatsApp"><div className="relative"><Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8A8A8A]" /><input type="text" value={form.whatsapp} onChange={e => setForm({...form, whatsapp: e.target.value})} className={`${inputCls} pl-10`} /></div></FormField>
-                <FormField label="Instagram"><div className="relative"><span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8A8A8A] font-semibold text-xs">@</span><input type="text" value={form.instagram} onChange={e => setForm({...form, instagram: e.target.value})} className={`${inputCls} pl-9`} /></div></FormField>
-              </div>
-              <FormField label="Endereço"><div className="relative"><MapPin size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8A8A8A]" /><input type="text" value={form.endereco} onChange={e => setForm({...form, endereco: e.target.value})} className={`${inputCls} pl-10`} /></div></FormField>
-              
-              <FormField label="Foto Principal (Vitrine)">
-                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-[#D1D9E6] bg-[#F0F4F8] p-4 rounded-md cursor-pointer hover:border-[#0078D4] text-[#8A8A8A]">
-                  <input type="file" accept="image/*" className="hidden" onChange={e => setImagemFile(e.target.files?.[0] || null)} />
-                  <ImageIcon size={18} /> {imagemFile ? imagemFile.name : (editando?.imagem_url ? 'Substituir Imagem' : 'Anexar Imagem')}
-                </label>
-              </FormField>
-              <FormField label="Adicionar Fotos à Galeria (Opcional)">
-                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-[#D1D9E6] bg-[#F0F4F8] p-4 rounded-md cursor-pointer hover:border-[#0078D4] text-[#8A8A8A]">
-                  <input type="file" accept="image/*" multiple className="hidden" onChange={e => { if (e.target.files) setGaleriaFiles(Array.from(e.target.files)); }} />
-                  <ImageIcon size={18} /> {galeriaFiles.length > 0 ? `${galeriaFiles.length} ficheiros novos` : 'Anexar Fotos extras'}
-                </label>
-              </FormField>
-              <FormField label="Visibilidade"><select value={String(form.ativo)} onChange={e => setForm({...form, ativo: e.target.value === 'true'})} className={inputCls}><option value="true">Público (Ativo)</option><option value="false">Oculto</option></select></FormField>
-            </div>
-          </div>
-
-          <div className="mt-10 flex items-center justify-between pt-6 border-t border-[#D1D9E6]">
-            <span className={`text-sm font-semibold ${feedback.includes('❌') ? 'text-[#D13438]' : 'text-[#0078D4]'}`}>{feedback}</span>
-            <button onClick={handleSalvar} disabled={saving} className="bg-[#0078D4] text-white px-10 py-4 rounded-md font-semibold text-sm shadow-lg flex items-center gap-2">{saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Guardar Hotel</button>
-          </div>
-        </div>
-      ) : (
-        loading ? (<div className="py-12 flex justify-center"><Loader2 size={32} className="text-[#0078D4] animate-spin" /></div>) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {hoteis.map((hotel) => (
-              <div key={hotel.id} className={`bg-white rounded-md border border-[#D1D9E6] p-4 flex flex-col hover:shadow-md transition-all ${!hotel.ativo && 'opacity-60 bg-[#F0F4F8]'}`}>
-                <div className="relative w-full h-48 rounded-md overflow-hidden bg-[#F0F4F8] mb-4">
-                  <img src={hotel.imagem_url || "/placeholder.png"} alt={hotel.nome} className="object-cover w-full h-full" />
-                </div>
-                <div className="px-2 pb-2 flex-1 flex flex-col">
-                  <h3 className={`${jakarta.className} text-xl font-bold text-[#1A1A1A] mb-1`}>{hotel.nome}</h3>
-                  <p className="text-xs font-medium text-[#8A8A8A] line-clamp-1 mb-4">{hotel.endereco}</p>
-                  
-                  <div className="mt-auto flex flex-col gap-2 pt-4 border-t border-[#D1D9E6]">
-                    <div className="flex justify-between items-center w-full">
-                      <button onClick={() => toggleAtivo(hotel.id, hotel.ativo)} className={`text-[10px] font-semibold uppercase px-2 py-1 rounded-md transition-colors ${hotel.ativo ? 'text-[#0078D4] bg-[#E5F0FF] hover:bg-[#D1D9E6]' : 'text-[#8A8A8A] bg-[#F0F4F8] hover:bg-[#D1D9E6]'}`}>
-                        {hotel.ativo ? "Público ✓" : "Oculto ✕"}
-                      </button>
-                      <div className="flex gap-3">
-                        <button onClick={() => abrirEditar(hotel)} className="text-xs font-semibold text-[#0078D4] hover:underline">Editar</button>
-                        <button onClick={() => handleDelete(hotel.id)} className="text-xs font-semibold text-[#D13438] hover:underline">Remover</button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )
-      )}
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// GASTRONOMIA
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function TabGastronomia() {
-  const [restaurantes, setRestaurantes] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [feedback, setFeedback] = useState("");
-
-  const formVazio = { titulo: "", descricao_curta: "", whatsapp: "", link_google_maps: "", ativo: true };
-  const [form, setForm] = useState(formVazio);
-  const [editando, setEditando] = useState<any | null>(null);
-
-  const [imagemUrlFile, setImagemUrlFile] = useState<File | null>(null);
-  const [imagemCapaFile, setImagemCapaFile] = useState<File | null>(null);
-  const [galeriaFiles, setGaleriaFiles] = useState<File[]>([]);
-  const [especialidades, setEspecialidades] = useState<any[]>([{ titulo: "", file: null, imagem_url: "" }]);
-
-  useEffect(() => { fetchRestaurantes(); }, []);
-
-  async function fetchRestaurantes() {
-    setLoading(true);
-    const { data } = await supabase.from('gastronomia').select('*').order('ordem', { ascending: true });
-    setRestaurantes(data || []);
-    setLoading(false);
-  }
-
-  function abrirNovo() {
-    setEditando(null); setForm(formVazio); 
-    setImagemUrlFile(null); setImagemCapaFile(null); setGaleriaFiles([]); 
-    setEspecialidades([{ titulo: "", file: null, imagem_url: "" }]);
-    setShowForm(true);
-  }
-
-  function abrirEditar(rest: any) {
-    setEditando(rest);
-    setForm({ titulo: rest.titulo, descricao_curta: rest.descricao_curta || "", whatsapp: rest.whatsapp || "", link_google_maps: rest.link_google_maps || "", ativo: rest.ativo ?? true });
-    setImagemUrlFile(null); setImagemCapaFile(null); setGaleriaFiles([]);
-    
-    let espParsed = [];
-    if (typeof rest.especialidades === 'string') { try { espParsed = JSON.parse(rest.especialidades); } catch(e){} } 
-    else if (Array.isArray(rest.especialidades)) { espParsed = rest.especialidades; }
-    
-    setEspecialidades(espParsed.length > 0 ? espParsed.map((e: any) => ({ ...e, file: null })) : [{ titulo: "", file: null, imagem_url: "" }]);
-    setShowForm(true);
-  }
-
-  const addEsp = () => setEspecialidades([...especialidades, { titulo: "", file: null, imagem_url: "" }]);
-  const removeEsp = (index: number) => setEspecialidades(especialidades.filter((_, i) => i !== index));
-  const handleEspChange = (index: number, field: string, value: any) => {
-    const novos = [...especialidades]; novos[index] = { ...novos[index], [field]: value }; setEspecialidades(novos);
-  };
-
-  async function uploadImagem(file: File, pasta: string): Promise<string | null> {
-    const ext = file.name.split('.').pop();
-    const path = `${pasta}/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
-    const { error } = await supabase.storage.from('gastronomia').upload(path, file);
-    if (error) return null;
-    const { data } = supabase.storage.from('gastronomia').getPublicUrl(path);
-    return data.publicUrl;
-  }
-
-  async function handleSalvar() {
-    if (!form.titulo) { alert("Nome é obrigatório!"); return; }
-    setSaving(true); setFeedback("A enviar imagens...");
-
-    try {
-      let imagem_url = editando?.imagem_url || null;
-      if (imagemUrlFile) imagem_url = await uploadImagem(imagemUrlFile, 'vitrine');
-      
-      let imagem_capa = editando?.imagem_capa || null;
-      if (imagemCapaFile) imagem_capa = await uploadImagem(imagemCapaFile, 'capas');
-
-      let galeriaFinal = editando?.galeria || [];
-      if (galeriaFiles.length > 0) {
-        const novasUrls = [];
-        for (const file of galeriaFiles) { const url = await uploadImagem(file, 'galeria'); if (url) novasUrls.push(url); }
-        galeriaFinal = [...galeriaFinal, ...novasUrls];
-      }
-
-      const espLimpos = [];
-      for (const esp of especialidades) {
-        if (!esp.titulo.trim()) continue;
-        let espUrl = esp.imagem_url;
-        if (esp.file) {
-          const uploadedUrl = await uploadImagem(esp.file, 'especialidades');
-          if (uploadedUrl) espUrl = uploadedUrl;
-        }
-        espLimpos.push({ titulo: esp.titulo, imagem_url: espUrl });
-      }
-
-      setFeedback("A guardar restaurante...");
-      
-      const payload = { 
-        ...form, 
-        imagem_url, 
-        imagem_capa, 
-        galeria: galeriaFinal.length > 0 ? galeriaFinal : null, 
-        especialidades: espLimpos.length > 0 ? espLimpos : null 
-      };
-
-      let erroBd;
-
-      if (editando) {
-        const { error } = await supabase.from('gastronomia').update(payload).eq('id', editando.id);
-        erroBd = error;
-      } else {
-        const { error } = await supabase.from('gastronomia').insert([{ ...payload, ordem: restaurantes.length + 1 }]);
-        erroBd = error;
-      }
-
-      if (erroBd) throw new Error(erroBd.message);
-
-      setFeedback("✅ Salvo com sucesso!");
-      setTimeout(() => { setShowForm(false); setFeedback(""); fetchRestaurantes(); }, 2000);
-
-    } catch (err: any) { 
-      setFeedback(`❌ Erro: ${err.message}`);
-    } finally { 
-      setSaving(false); 
-    }
-  }
-
-  async function handleDelete(id: string) {
-    if (!confirm("Remover da vitrine?")) return;
-    await supabase.from('gastronomia').delete().eq('id', id); fetchRestaurantes();
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div><h2 className={`${jakarta.className} text-xl font-bold text-[#1A1A1A]`}>Vitrine Gastronómica</h2><p className="text-xs text-[#8A8A8A] mt-1">{restaurantes.length} estabelecimentos</p></div>
-        <button onClick={abrirNovo} className="bg-[#0078D4] text-white font-semibold text-sm px-5 py-2.5 rounded-md flex items-center gap-2"><Plus size={16} /> Novo Restaurante</button>
-      </div>
-
-      {showForm ? (
-        <div className="bg-white rounded-md p-8 shadow-lg border border-[#D1D9E6]">
-          <div className="flex items-center justify-between mb-8 border-b pb-4"><h3 className={`${jakarta.className} text-2xl font-bold text-[#1A1A1A]`}><Utensils className="text-[#DAA520] inline mr-2"/>{editando ? "Editar Restaurante" : "Novo Restaurante"}</h3><button onClick={() => setShowForm(false)} className="text-sm font-semibold text-[#8A8A8A]">Cancelar</button></div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-8">
-            <div className="space-y-5">
-              <h4 className="font-bold text-[#1A1A1A] border-b pb-2">Informações Básicas</h4>
-              <FormField label="Nome do Estabelecimento *"><input type="text" value={form.titulo} onChange={e => setForm({...form, titulo: e.target.value})} className={inputCls} /></FormField>
-              <FormField label="Descrição Curta"><textarea rows={3} value={form.descricao_curta} onChange={e => setForm({...form, descricao_curta: e.target.value})} className={inputCls} /></FormField>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField label="WhatsApp"><div className="relative"><Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8A8A8A]" /><input type="text" value={form.whatsapp} onChange={e => setForm({...form, whatsapp: e.target.value})} className={`${inputCls} pl-10`} /></div></FormField>
-                <FormField label="Endereço (Link Google Maps)"><div className="relative"><MapPin size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8A8A8A]" /><input type="text" value={form.link_google_maps} onChange={e => setForm({...form, link_google_maps: e.target.value})} className={`${inputCls} pl-10`} /></div></FormField>
-              </div>
-              <FormField label="Visibilidade"><select value={String(form.ativo)} onChange={e => setForm({...form, ativo: e.target.value === 'true'})} className={inputCls}><option value="true">Público (Ativo)</option><option value="false">Oculto</option></select></FormField>
-            </div>
-            <div className="space-y-5">
-              <h4 className="font-bold text-[#1A1A1A] border-b pb-2">Fotografias</h4>
-              <FormField label="Foto da Vitrine (Card principal)">
-                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-[#D1D9E6] bg-[#F0F4F8] text-[#8A8A8A] p-4 rounded-md cursor-pointer hover:border-[#0078D4]">
-                  <input type="file" accept="image/*" className="hidden" onChange={e => setImagemUrlFile(e.target.files?.[0] || null)} />
-                  <ImageIcon size={18} /> {imagemUrlFile ? imagemUrlFile.name : (editando?.imagem_url ? 'Substituir Imagem' : 'Anexar Imagem')}
-                </label>
-              </FormField>
-              <FormField label="Foto de Capa (Página interna)">
-                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-[#D1D9E6] bg-[#F0F4F8] text-[#8A8A8A] p-4 rounded-md cursor-pointer hover:border-[#0078D4]">
-                  <input type="file" accept="image/*" className="hidden" onChange={e => setImagemCapaFile(e.target.files?.[0] || null)} />
-                  <ImageIcon size={18} /> {imagemCapaFile ? imagemCapaFile.name : (editando?.imagem_capa ? 'Substituir Capa' : 'Anexar Capa')}
-                </label>
-              </FormField>
-              <FormField label="Adicionar à Galeria de Fotos">
-                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-[#D1D9E6] bg-[#F0F4F8] text-[#8A8A8A] p-4 rounded-md cursor-pointer hover:border-[#0078D4]">
-                  <input type="file" accept="image/*" multiple className="hidden" onChange={e => { if (e.target.files) setGaleriaFiles(Array.from(e.target.files)); }} />
-                  <ImageIcon size={18} /> {galeriaFiles.length > 0 ? `${galeriaFiles.length} fotos novas` : 'Anexar Fotos'}
-                </label>
-              </FormField>
-            </div>
-          </div>
-          <div className="mt-12 space-y-4">
-            <div className="flex items-center justify-between border-b pb-2"><h4 className="font-bold text-[#1A1A1A]">Especialidades / Destaques do Cardápio</h4><button onClick={addEsp} className="text-xs font-semibold text-[#0078D4] flex items-center gap-1"><Plus size={14}/> Adicionar Especialidade</button></div>
-            <div className="space-y-3">
-              {especialidades.map((item, index) => (
-                <div key={index} className="flex flex-col md:flex-row gap-3 items-center bg-[#F0F4F8] p-4 rounded-md border border-[#D1D9E6]">
-                  <div className="w-full md:flex-1"><input type="text" value={item.titulo} onChange={e => handleEspChange(index, 'titulo', e.target.value)} placeholder="Ex: Carnes Nobres" className={inputCls} /></div>
-                  <div className="w-full md:flex-1 flex items-center gap-2">
-                    <label className="flex-1 flex items-center justify-center gap-2 border border-[#D1D9E6] bg-white text-[#8A8A8A] py-2 rounded-md cursor-pointer text-xs font-semibold">
-                      <input type="file" accept="image/*" className="hidden" onChange={e => handleEspChange(index, 'file', e.target.files?.[0] || null)} />
-                      <Upload size={14}/> {item.file ? "Foto pronta ✓" : (item.imagem_url ? "Tem foto ✓" : "Anexar Foto")}
-                    </label>
-                    <button onClick={() => removeEsp(index)} className="p-2 bg-[#FDE7E9] text-[#D13438] rounded-md hover:bg-[#FDE7E9] border border-[#D13438]"><Trash2 size={16} /></button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="mt-10 flex items-center justify-between pt-6 border-t border-[#D1D9E6]">
-            <span className={`text-sm font-semibold ${feedback.includes('❌') ? 'text-[#D13438]' : 'text-[#0078D4]'}`}>{feedback}</span>
-            <button onClick={handleSalvar} disabled={saving} className="bg-[#0078D4] text-white px-10 py-4 rounded-md font-semibold text-sm shadow-lg flex items-center gap-2">{saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Guardar Restaurante</button>
-          </div>
-        </div>
-      ) : (
-        loading ? (<div className="py-12 flex justify-center"><Loader2 size={32} className="text-[#0078D4] animate-spin" /></div>) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {restaurantes.map((rest) => (
-              <div key={rest.id} className={`bg-white rounded-md border border-[#D1D9E6] p-4 flex flex-col hover:shadow-md ${!rest.ativo && 'opacity-60'}`}>
-                <div className="relative w-full h-48 rounded-md overflow-hidden bg-[#F0F4F8] mb-4"><img src={rest.imagem_url || "/placeholder.png"} alt={rest.titulo} className="object-cover w-full h-full" /></div>
-                <div className="px-2 pb-2 flex-1 flex flex-col">
-                  <h3 className={`${jakarta.className} text-xl font-bold text-[#1A1A1A] mb-1`}>{rest.titulo}</h3>
-                  <p className="text-xs font-medium text-[#8A8A8A] line-clamp-2 mb-4">{rest.descricao_curta}</p>
-                  <div className="mt-auto flex items-center justify-between pt-4 border-t border-[#D1D9E6]"><button onClick={() => abrirEditar(rest)} className="text-xs font-semibold text-[#0078D4] hover:underline">Editar</button><button onClick={() => handleDelete(rest.id)} className="text-xs font-semibold text-[#D13438] hover:underline">Remover</button></div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )
-      )}
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// AGÊNCIAS
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function TabAgencias() {
-  const [agencias, setAgencias] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [feedback, setFeedback] = useState("");
-
-  const formVazio = { nome: "", descricao_curta: "", sobre: "", cadastur: "", endereco: "", instagram: "", whatsapp: "", ativo: true };
-  const [form, setForm] = useState(formVazio);
-  const [editando, setEditando] = useState<any | null>(null);
-  
-  const [capaFile, setCapaFile] = useState<File | null>(null);
-  const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [galeriaFiles, setGaleriaFiles] = useState<File[]>([]);
-  
-  const [especialidades, setEspecialidades] = useState<any[]>([{ nome: "", file: null, imagem_url: "" }]);
-
-  useEffect(() => { fetchAgencias(); }, []);
-
-  async function fetchAgencias() {
-    setLoading(true);
-    const { data } = await supabase.from('agencias').select('*').order('nome');
-    setAgencias(data || []);
-    setLoading(false);
-  }
-
-  async function toggleAtivo(id: string, estadoAtual: boolean) {
-    await supabase.from('agencias').update({ ativo: !estadoAtual }).eq('id', id);
-    fetchAgencias();
-  }
-
-  function abrirNovo() {
-    setEditando(null); setForm(formVazio); 
-    setCapaFile(null); setLogoFile(null); setGaleriaFiles([]); 
-    setEspecialidades([{ nome: "", file: null, imagem_url: "" }]);
-    setShowForm(true);
-  }
-
-  function abrirEditar(ag: any) {
-    setEditando(ag);
-    setForm({ nome: ag.nome, descricao_curta: ag.descricao_curta || "", sobre: ag.sobre || "", cadastur: ag.cadastur || "", endereco: ag.endereco || "", instagram: ag.instagram || "", whatsapp: ag.whatsapp || "", ativo: ag.ativo ?? true });
-    setCapaFile(null); setLogoFile(null); setGaleriaFiles([]);
-    
-    let espParsed = [];
-    if (typeof ag.especialidades === 'string') { try { espParsed = JSON.parse(ag.especialidades); } catch(e){} } 
-    else if (Array.isArray(ag.especialidades)) { espParsed = ag.especialidades; }
-    
-    setEspecialidades(espParsed.length > 0 ? espParsed.map((e: any) => ({ ...e, file: null })) : [{ nome: "", file: null, imagem_url: "" }]);
-    setShowForm(true);
-  }
-
-  const addEsp = () => setEspecialidades([...especialidades, { nome: "", file: null, imagem_url: "" }]);
-  const removeEsp = (index: number) => setEspecialidades(especialidades.filter((_, i) => i !== index));
-  const handleEspChange = (index: number, field: string, value: any) => {
-    const novos = [...especialidades]; novos[index] = { ...novos[index], [field]: value }; setEspecialidades(novos);
-  };
-
-  async function uploadImagem(file: File, pasta: string): Promise<string | null> {
-    const ext = file.name.split('.').pop();
-    const path = `${pasta}/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
-    const { error } = await supabase.storage.from('agencias').upload(path, file);
-    if (error) return null;
-    const { data } = supabase.storage.from('agencias').getPublicUrl(path);
-    return data.publicUrl;
-  }
-
-  async function handleSalvar() {
-    if (!form.nome) { alert("Nome da agência é obrigatório."); return; }
-    setSaving(true); setFeedback("A processar ficheiros...");
-
-    try {
-      let capa_url = editando?.capa_url || null;
-      if (capaFile) capa_url = await uploadImagem(capaFile, 'capas');
-      
-      let logo_url = editando?.logo_url || null;
-      if (logoFile) logo_url = await uploadImagem(logoFile, 'logos');
-
-      let galeriaFinal = editando?.galeria || [];
-      if (galeriaFiles.length > 0) {
-        const novasUrls = [];
-        for (const file of galeriaFiles) { const url = await uploadImagem(file, 'fotos'); if (url) novasUrls.push(url); }
-        galeriaFinal = [...galeriaFinal, ...novasUrls];
-      }
-
-      const espLimpos = [];
-      for (const esp of especialidades) {
-        if (!esp.nome.trim()) continue;
-        let espUrl = esp.imagem_url;
-        if (esp.file) {
-          const uploadedUrl = await uploadImagem(esp.file, 'especialidades');
-          if (uploadedUrl) espUrl = uploadedUrl;
-        }
-        espLimpos.push({ nome: esp.nome, imagem_url: espUrl });
-      }
-
-      setFeedback("A guardar perfil...");
-      const payload = { 
-        ...form, 
-        capa_url, 
-        logo_url,
-        galeria: galeriaFinal.length > 0 ? galeriaFinal : null,
-        especialidades: espLimpos.length > 0 ? espLimpos : null
-      };
-
-      if (editando) await supabase.from('agencias').update(payload).eq('id', editando.id);
-      else await supabase.from('agencias').insert([payload]);
-
-      setFeedback("Agência salva com sucesso!");
-      setTimeout(() => { setShowForm(false); setFeedback(""); fetchAgencias(); }, 2000);
-    } catch (err: any) { alert("Erro ao salvar: " + err.message); setFeedback(""); } finally { setSaving(false); }
-  }
-
-  async function handleDelete(id: string) {
-    if (!confirm("Remover esta agência permanentemente?")) return;
-    await supabase.from('agencias').delete().eq('id', id); fetchAgencias();
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div><h2 className={`${jakarta.className} text-xl font-bold text-[#1A1A1A]`}>Diretório de Agências</h2><p className="text-xs text-[#8A8A8A] mt-1">{agencias.length} agências registadas</p></div>
-        <button onClick={abrirNovo} className="bg-[#0078D4] text-white font-semibold text-sm px-5 py-2.5 rounded-md flex items-center gap-2"><Plus size={16} /> Nova Agência</button>
-      </div>
-
-      {showForm ? (
-        <div className="bg-white rounded-md p-8 shadow-lg border border-[#D1D9E6]">
-          <div className="flex items-center justify-between mb-8 border-b pb-4"><h3 className={`${jakarta.className} text-2xl font-bold text-[#1A1A1A]`}><Briefcase className="text-[#DAA520] inline mr-2"/>{editando ? "Editar Agência" : "Nova Agência Oficial"}</h3><button onClick={() => setShowForm(false)} className="text-sm font-semibold text-[#8A8A8A]">Cancelar</button></div>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-8">
-            <div className="space-y-5">
-              <h4 className="font-bold text-[#1A1A1A] border-b pb-2">Informações da Empresa</h4>
-              <FormField label="Nome da Agência *"><input type="text" value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} className={inputCls} /></FormField>
-              <FormField label="Cadastur (Registro)"><input type="text" value={form.cadastur} onChange={e => setForm({...form, cadastur: e.target.value})} className={inputCls} placeholder="XX.XXXXXX.XX-X" /></FormField>
-              <FormField label="Resumo (Aparece no Cartão)"><textarea rows={2} value={form.descricao_curta} onChange={e => setForm({...form, descricao_curta: e.target.value})} className={inputCls} /></FormField>
-              <FormField label="História / Sobre a Agência"><textarea rows={5} value={form.sobre} onChange={e => setForm({...form, sobre: e.target.value})} className={inputCls} /></FormField>
-            </div>
-            
-            <div className="space-y-5">
-              <h4 className="font-bold text-[#1A1A1A] border-b pb-2">Contatos e Identidade Visual</h4>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField label="WhatsApp"><div className="relative"><Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8A8A8A]" /><input type="text" value={form.whatsapp} onChange={e => setForm({...form, whatsapp: e.target.value})} className={`${inputCls} pl-10`} /></div></FormField>
-                <FormField label="Instagram"><div className="relative"><span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8A8A8A] font-semibold text-xs">@</span><input type="text" value={form.instagram} onChange={e => setForm({...form, instagram: e.target.value})} className={`${inputCls} pl-9`} /></div></FormField>
-              </div>
-              <FormField label="Endereço Físico"><input type="text" value={form.endereco} onChange={e => setForm({...form, endereco: e.target.value})} className={inputCls} /></FormField>
-              <FormField label="Visibilidade"><select value={String(form.ativo)} onChange={e => setForm({...form, ativo: e.target.value === 'true'})} className={inputCls}><option value="true">Público (Ativo)</option><option value="false">Oculto</option></select></FormField>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <FormField label="Logotipo">
-                  <label className="flex items-center justify-center gap-2 border-2 border-dashed border-[#D1D9E6] bg-[#F0F4F8] p-4 rounded-md cursor-pointer hover:border-[#0078D4] text-[#8A8A8A] text-xs text-center">
-                    <input type="file" accept="image/*" className="hidden" onChange={e => setLogoFile(e.target.files?.[0] || null)} />
-                    {logoFile ? "Pronta ✓" : (editando?.logo_url ? "Substituir" : "Anexar Logo")}
-                  </label>
-                </FormField>
-                <FormField label="Capa do Perfil">
-                  <label className="flex items-center justify-center gap-2 border-2 border-dashed border-[#D1D9E6] bg-[#F0F4F8] p-4 rounded-md cursor-pointer hover:border-[#0078D4] text-[#8A8A8A] text-xs text-center">
-                    <input type="file" accept="image/*" className="hidden" onChange={e => setCapaFile(e.target.files?.[0] || null)} />
-                    {capaFile ? "Pronta ✓" : (editando?.capa_url ? "Substituir" : "Anexar Capa")}
-                  </label>
-                </FormField>
-              </div>
-              
-              <FormField label="Adicionar Fotos à Galeria">
-                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-[#D1D9E6] bg-[#F0F4F8] p-4 rounded-md cursor-pointer hover:border-[#0078D4] text-[#8A8A8A] text-xs text-center">
-                  <input type="file" accept="image/*" multiple className="hidden" onChange={e => { if (e.target.files) setGaleriaFiles(Array.from(e.target.files)); }} />
-                  {galeriaFiles.length > 0 ? `${galeriaFiles.length} imagens novas` : 'Selecionar Fotos'}
-                </label>
-              </FormField>
-            </div>
-          </div>
-
-          <div className="mt-12 space-y-4">
-            <div className="flex items-center justify-between border-b pb-2"><h4 className="font-bold text-[#1A1A1A]">Especialidades da Agência</h4><button onClick={addEsp} className="text-xs font-semibold text-[#0078D4] flex items-center gap-1"><Plus size={14}/> Adicionar Especialidade</button></div>
-            <div className="space-y-3">
-              {especialidades.map((item, index) => (
-                <div key={index} className="flex flex-col md:flex-row gap-3 items-center bg-[#F0F4F8] p-4 rounded-md border border-[#D1D9E6]">
-                  <div className="w-full md:flex-1"><input type="text" value={item.nome} onChange={e => handleEspChange(index, 'nome', e.target.value)} placeholder="Nome (Ex: Trilhas)" className={inputCls} /></div>
-                  <div className="w-full md:flex-1 flex items-center gap-2">
-                    <label className="flex-1 flex items-center justify-center gap-2 border border-[#D1D9E6] bg-white text-[#8A8A8A] py-2 rounded-md cursor-pointer text-xs font-semibold">
-                      <input type="file" accept="image/*" className="hidden" onChange={e => handleEspChange(index, 'file', e.target.files?.[0] || null)} />
-                      <Upload size={14}/> {item.file ? "Foto pronta ✓" : (item.imagem_url ? "Tem foto ✓" : "Anexar Foto")}
-                    </label>
-                    <button onClick={() => removeEsp(index)} className="p-2 bg-[#FDE7E9] text-[#D13438] rounded-md hover:bg-[#FDE7E9] border border-[#D13438]"><Trash2 size={16} /></button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-10 flex items-center justify-between pt-6 border-t border-[#D1D9E6]">
-            <span className="text-sm font-semibold text-[#0078D4]">{feedback}</span>
-            <button onClick={handleSalvar} disabled={saving} className="bg-[#0078D4] text-white px-10 py-4 rounded-md font-semibold text-sm shadow-lg flex items-center gap-2">{saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Guardar Agência</button>
-          </div>
-        </div>
-      ) : (
-        loading ? (<div className="py-12 flex justify-center"><Loader2 size={32} className="text-[#0078D4] animate-spin" /></div>) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {agencias.map((ag) => (
-              <div key={ag.id} className={`bg-white rounded-md border border-[#D1D9E6] p-6 flex flex-col hover:shadow-md text-center ${!ag.ativo && 'opacity-60 bg-[#F0F4F8]'}`}>
-                <div className="w-24 h-24 rounded-full mx-auto overflow-hidden border-4 border-[#D1D9E6] shadow-sm flex items-center justify-center bg-[#F0F4F8]">
-                  {ag.logo_url ? <img src={ag.logo_url} className="object-cover w-full h-full" /> : <Briefcase className="text-[#D1D9E6]"/>}
-                </div>
-                <div className="pt-4 flex-1 flex flex-col">
-                  <h3 className={`${jakarta.className} text-lg font-bold text-[#1A1A1A] mb-1`}>{ag.nome}</h3>
-                  <p className="text-xs font-medium text-[#8A8A8A] line-clamp-1 mb-4">{ag.cadastur ? `Cadastur: ${ag.cadastur}` : 'Turismo Legal'}</p>
-                  
-                  <div className="mt-auto flex flex-col gap-2 pt-4 border-t border-[#D1D9E6]">
-                    <div className="flex justify-between items-center w-full">
-                      <button onClick={() => toggleAtivo(ag.id, ag.ativo)} className={`text-[10px] font-semibold uppercase px-2 py-1 rounded-md transition-colors ${ag.ativo ? 'text-[#0078D4] bg-[#E5F0FF] hover:bg-[#D1D9E6]' : 'text-[#8A8A8A] bg-[#F0F4F8] hover:bg-[#D1D9E6]'}`}>
-                        {ag.ativo ? "Público ✓" : "Oculto ✕"}
-                      </button>
-                      <div className="flex gap-3">
-                        <button onClick={() => abrirEditar(ag)} className="text-xs font-semibold text-[#0078D4] hover:underline">Editar</button>
-                        <button onClick={() => handleDelete(ag.id)} className="text-xs font-semibold text-[#D13438] hover:underline">Remover</button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )
-      )}
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// APLICATIVO
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function TabAplicativo() {
-  const [tokens, setTokens] = useState<any[]>([]);
-  const [loadingTokens, setLoadingTokens] = useState(true);
-  const [enviando, setEnviando] = useState(false);
-  const [feedbackPush, setFeedbackPush] = useState("");
-  const [titulo, setTitulo] = useState("");
-  const [mensagem, setMensagem] = useState("");
-
-  const [tituloPdf, setTituloPdf] = useState("");
-  const [descricaoPdf, setDescricaoPdf] = useState("");
-  const [arquivo, setArquivo] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [feedbackPdf, setFeedbackPdf] = useState("");
-
-  useEffect(() => {
-    fetchTokens();
-  }, []);
-
-  async function fetchTokens() {
-    setLoadingTokens(true);
-    const { data } = await supabase.from("push_tokens").select("*").order("criado_em", { ascending: false });
-    if (data) setTokens(data);
-    setLoadingTokens(false);
-  }
-
-  async function handleDisparar(e: React.FormEvent) {
-    e.preventDefault();
-    if (!titulo || !mensagem) {
-      alert("Preencha o título e a mensagem da notificação.");
-      return;
-    }
-    if (tokens.length === 0) {
-      alert("Nenhum telefone registrado na base de dados.");
-      return;
-    }
-    if (!confirm(`Deseja disparar esta notificação para ${tokens.length} telefones?`)) return;
-
-    setEnviando(true);
-    setFeedbackPush("A comunicar com os servidores...");
-
-    const mensagensPush = tokens.map((t) => ({
-      to: t.token,
-      sound: 'default',
-      title: titulo,
-      body: mensagem,
-      data: { portal: true },
-    }));
-
-    try {
-      const response = await fetch('/api/push', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mensagens: mensagensPush })
-      });
-
-      if (!response.ok) throw new Error("Falha na API");
-
-      setFeedbackPush(`Sucesso! Enviado para ${tokens.length} dispositivos.`);
-      setTitulo(""); setMensagem("");
-    } catch (err) {
-      console.error(err);
-      setFeedbackPush("Erro ao enviar notificação.");
-    } finally {
-      setEnviando(false);
-    }
-  }
-
-  async function handleUploadPdf(e: React.FormEvent) {
-    e.preventDefault();
-    if (!tituloPdf || !arquivo) {
-      alert("Título e ficheiro PDF são obrigatórios!");
-      return;
-    }
-
-    setUploading(true);
-    setFeedbackPdf("A carregar ficheiro...");
-
-    try {
-      const fileExt = arquivo.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `pdf/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('guias')
-        .upload(filePath, arquivo);
-
-      if (uploadError) throw uploadError;
-
-      const { data: publicUrlData } = supabase.storage
-        .from('guias')
-        .getPublicUrl(filePath);
-
-      const { error: dbError } = await supabase
-        .from('guias_turisticos')
-        .insert([{
-          titulo: tituloPdf,
-          descricao: descricaoPdf,
-          arquivo_url: publicUrlData.publicUrl,
-          categoria: 'Guia Digital'
-        }]);
-
-      if (dbError) throw dbError;
-
-      setFeedbackPdf("✅ PDF publicado com sucesso!");
-      setTituloPdf(""); setDescricaoPdf(""); setArquivo(null);
-    } catch (err) {
-      console.error(err);
-      setFeedbackPdf("❌ Erro ao enviar o PDF.");
-    } finally {
-      setUploading(false);
-    }
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className={`${jakarta.className} text-xl font-bold text-[#1A1A1A]`}>Gestão do Aplicativo</h2>
-          <p className="text-xs text-[#8A8A8A] mt-1">Envie alertas em tempo real e disponibilize guias digitais para os utilizadores.</p>
-        </div>
-        <span className="text-xs font-semibold bg-[#F0F4F8] px-3 py-1 rounded-full text-[#1A1A1A]">
-          {tokens.length} dispositivos registados
-        </span>
-      </div>
-
-      <div className="bg-white rounded-md p-8 shadow-lg border border-[#D1D9E6]">
-        <div className="flex items-center justify-between mb-8 border-b border-[#D1D9E6] pb-4">
-          <h3 className={`${jakarta.className} text-2xl font-bold text-[#1A1A1A] flex items-center gap-2`}>
-            <Bell size={22} className="text-[#DAA520]" /> Notificações Push
-          </h3>
-        </div>
-
-        <form onSubmit={handleDisparar} className="space-y-5">
-          <FormField label="Título do Alerta *">
-            <input 
-              value={titulo} 
-              onChange={e => setTitulo(e.target.value)} 
-              className={inputCls}
-              placeholder="Ex: 🌿 Novo artigo no Blog!" 
-              required 
-              maxLength={50} 
-            />
-          </FormField>
-
-          <FormField label="Mensagem *">
-            <textarea 
-              rows={4} 
-              value={mensagem} 
-              onChange={e => setMensagem(e.target.value)} 
-              className={inputCls}
-              placeholder="Ex: Descubra as novidades..." 
-              required 
-              maxLength={150} 
-            />
-          </FormField>
-
-          <div className="pt-6 border-t border-[#D1D9E6] flex items-center justify-between">
-            <span className="text-sm font-semibold text-[#0078D4]">{feedbackPush}</span>
-            <button 
-              type="submit" 
-              disabled={enviando || tokens.length === 0} 
-              className="bg-[#0078D4] hover:bg-[#005A9E] text-white px-8 py-4 rounded-md font-semibold text-sm uppercase tracking-widest shadow-lg flex items-center gap-2 transition-all disabled:opacity-50"
-            >
-              {enviando ? (
-                <>
-                  <Loader2 size={18} className="animate-spin" /> A enviar...
-                </>
-              ) : (
-                "Disparar Alerta"
-              )}
-            </button>
-          </div>
-        </form>
-      </div>
-
-      <div className="bg-white rounded-md p-8 shadow-lg border border-[#D1D9E6]">
-        <div className="flex items-center justify-between mb-8 border-b border-[#D1D9E6] pb-4">
-          <h3 className={`${jakarta.className} text-2xl font-bold text-[#1A1A1A] flex items-center gap-2`}>
-            <FileText size={22} className="text-[#0078D4]" /> Disponibilizar Guias e Panfletos (PDF)
-          </h3>
-        </div>
-
-        <form onSubmit={handleUploadPdf} className="space-y-5">
-          <FormField label="Título do Material *">
-            <input 
-              value={tituloPdf} 
-              onChange={e => setTituloPdf(e.target.value)} 
-              className={inputCls}
-              placeholder="Ex: Guia Turístico Oficial 2026" 
-              required 
-            />
-          </FormField>
-
-          <FormField label="Breve Descrição">
-            <textarea 
-              rows={3} 
-              value={descricaoPdf} 
-              onChange={e => setDescricaoPdf(e.target.value)} 
-              className={inputCls}
-              placeholder="Ex: Mapa completo com trilhas e pontos de apoio..." 
-            />
-          </FormField>
-
-          <FormField label="Ficheiro PDF *">
-            <label className="flex items-center justify-center gap-2 border-2 border-dashed border-[#D1D9E6] bg-[#F0F4F8] text-[#8A8A8A] p-6 rounded-md cursor-pointer hover:border-[#0078D4] transition-colors">
-              <input 
-                type="file" 
-                accept=".pdf" 
-                className="hidden" 
-                onChange={e => setArquivo(e.target.files?.[0] || null)} 
-                required 
-              />
-              <FileText size={18} /> {arquivo ? arquivo.name : "Clique para anexar o PDF"}
-            </label>
-          </FormField>
-
-          <div className="pt-6 border-t border-[#D1D9E6] flex items-center justify-between">
-            <span className="text-sm font-semibold text-[#0078D4]">{feedbackPdf}</span>
-            <button 
-              type="submit" 
-              disabled={uploading} 
-              className="bg-[#0078D4] hover:bg-[#005A9E] text-white px-8 py-4 rounded-md font-semibold text-sm uppercase tracking-widest shadow-lg flex items-center gap-2 transition-all disabled:opacity-50"
-            >
-              {uploading ? (
-                <>
-                  <Loader2 size={18} className="animate-spin" /> A enviar...
-                </>
-              ) : (
-                "Publicar PDF"
-              )}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// ATRAÇÕES
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function TabAtracoes() {
-  const [atracoes, setAtracoes] = useState<Atracao[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [editando, setEditando] = useState<Atracao | null>(null);
-  const [form, setForm] = useState<any>({});
-  
-  const [imagemFile, setImagemFile] = useState<File | null>(null);
-  const [galeriaFiles, setGaleriaFiles] = useState<File[]>([]);
-
-  const [saving, setSaving] = useState(false);
-  const [feedback, setFeedback] = useState("");
-
-  useEffect(() => { fetchAtracoes(); }, []);
-
-  async function fetchAtracoes() {
-    setLoading(true);
-    const { data } = await supabase.from("atracoes").select("*").order("ordem", { ascending: true, nullsFirst: false });
-    setAtracoes(data || []);
-    setLoading(false);
-  }
-
-  function abrirFormNovo() {
-    setEditando(null); 
-    setForm({ nome: "", tipo: "", descricao: "", imagem_url: "", preco_entrada: 0, whatsapp: "", link_google_maps: "", ordem: 0, ativo: true });
-    setImagemFile(null); 
-    setGaleriaFiles([]);
-    setShowForm(true);
-  }
-
-  function abrirFormEditar(a: Atracao) {
-    setEditando(a); 
-    setForm({ ...a, ordem: a.ordem || 0 }); 
-    setImagemFile(null); 
-    setGaleriaFiles([]);
-    setShowForm(true);
-  }
-
-  async function handleSave() {
-    if (!form.nome) { setFeedback("Nome obrigatório."); return; }
-    setSaving(true);
-    
-    let imagem_url = form.imagem_url;
-    
-    if (imagemFile) {
-      const ext = imagemFile.name.split(".").pop();
-      const path = `atracoes/${Date.now()}.${ext}`;
-      const { error } = await supabase.storage.from("galeria").upload(path, imagemFile, { upsert: true });
-      if (!error) {
-        const { data: pub } = supabase.storage.from("galeria").getPublicUrl(path);
-        imagem_url = pub.publicUrl;
-      }
-    }
-
-    let galeriaFinal = editando?.galeria || [];
-    if (galeriaFiles.length > 0) {
-      const novasUrls = [];
-      for (const file of galeriaFiles) {
-        const ext = file.name.split(".").pop();
-        const path = `atracoes/galeria_${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
-        const { error } = await supabase.storage.from("galeria").upload(path, file);
-        if (!error) {
-          const { data: pub } = supabase.storage.from("galeria").getPublicUrl(path);
-          novasUrls.push(pub.publicUrl);
-        }
-      }
-      galeriaFinal = [...galeriaFinal, ...novasUrls];
-    }
-    
-    const payload = { ...form, imagem_url, galeria: galeriaFinal.length > 0 ? galeriaFinal : null };
-    if (editando) await supabase.from("atracoes").update(payload).eq("id", editando.id);
-    else await supabase.from("atracoes").insert(payload);
-    
-    setFeedback(editando ? "Atração atualizada!" : "Atração publicada com sucesso!");
-    setTimeout(() => { setShowForm(false); setSaving(false); fetchAtracoes(); setFeedback(""); }, 2000);
-  }
-
-  async function handleDelete(id: string) {
-    if (!confirm("Remover esta atração da vitrine?")) return;
-    await supabase.from("atracoes").delete().eq("id", id); 
-    fetchAtracoes();
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className={`${jakarta.className} text-xl font-bold text-[#1A1A1A]`}>Vitrine de Atrações</h2>
-          <p className="text-xs text-[#8A8A8A] mt-1">{atracoes.length} pontos turísticos em exibição</p>
-        </div>
-        <button onClick={abrirFormNovo} className="bg-[#0078D4] hover:bg-[#005A9E] text-white font-semibold text-sm px-5 py-2.5 rounded-md transition shadow-md flex items-center gap-2">
-          <Plus size={16} /> Nova Atração
-        </button>
-      </div>
-
-      {showForm ? (
-        <div className="bg-white rounded-md p-8 shadow-lg border border-[#D1D9E6] animate-in fade-in slide-in-from-bottom-4">
-          <div className="flex items-center justify-between mb-8 border-b border-[#D1D9E6] pb-4">
-            <h3 className={`${jakarta.className} text-2xl font-bold text-[#1A1A1A] flex items-center gap-2`}>
-              <MapPin className="text-[#DAA520]" /> {editando ? "Editar Atração" : "Construtor de Página da Atração"}
-            </h3>
-            <button onClick={() => setShowForm(false)} className="text-sm font-semibold text-[#8A8A8A] hover:text-[#1A1A1A]">Cancelar</button>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-8">
-            <div className="space-y-5">
-              <h4 className="font-bold text-[#1A1A1A] border-b pb-2">Informações Principais</h4>
-              <FormField label="Nome da Atração *"><input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} className={inputCls} placeholder="Ex: Mirante da Serra" /></FormField>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField label="Tipo"><input value={form.tipo} onChange={(e) => setForm({ ...form, tipo: e.target.value })} className={inputCls} placeholder="Ex: Natureza, Museu..." /></FormField>
-                <FormField label="Preço de entrada (R$)"><input type="number" step="0.01" value={form.preco_entrada} onChange={(e) => setForm({ ...form, preco_entrada: parseFloat(e.target.value) })} className={inputCls} /></FormField>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField label="Ordem de Exibição">
-                  <input type="number" value={form.ordem} onChange={(e) => setForm({ ...form, ordem: parseInt(e.target.value) })} className={inputCls} placeholder="Ex: 1, 2, 3..." />
-                </FormField>
-                <FormField label="Visibilidade">
-                  <select value={String(form.ativo)} onChange={(e) => setForm({ ...form, ativo: e.target.value === 'true' })} className={inputCls}>
-                    <option value="true">Ativo / Público</option>
-                    <option value="false">Oculto</option>
-                  </select>
-                </FormField>
-              </div>
-              <FormField label="Descrição Detalhada"><textarea value={form.descricao || ""} onChange={(e) => setForm({ ...form, descricao: e.target.value })} rows={5} className={inputCls} placeholder="Descreva os encantos desta atração..." /></FormField>
-            </div>
-            
-            <div className="space-y-5">
-              <h4 className="font-bold text-[#1A1A1A] border-b pb-2">Localização e Mídia</h4>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField label="WhatsApp de Contato"><div className="relative"><Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8A8A8A]" /><input value={form.whatsapp || ""} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })} className={`${inputCls} pl-10`} placeholder="94 90000-0000" /></div></FormField>
-                <FormField label="Link Google Maps"><div className="relative"><MapPin size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8A8A8A]" /><input value={form.link_google_maps || ""} onChange={(e) => setForm({ ...form, link_google_maps: e.target.value })} className={`${inputCls} pl-10`} placeholder="https://maps..." /></div></FormField>
-              </div>
-              <FormField label="Fotografia de Capa (Principal)">
-                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-[#D1D9E6] bg-[#F0F4F8] text-[#8A8A8A] p-4 rounded-md cursor-pointer hover:border-[#0078D4] transition-colors">
-                  <input type="file" accept="image/*" className="hidden" onChange={(e) => setImagemFile(e.target.files?.[0] || null)} />
-                  <ImageIcon size={18} /> {imagemFile ? imagemFile.name : form.imagem_url ? "Trocar Capa Atual" : "Anexar Capa"}
-                </label>
-                {form.imagem_url && !imagemFile && <img src={form.imagem_url} alt="Capa atual" className="mt-3 h-24 w-full object-cover rounded-md border border-[#D1D9E6]" />}
-              </FormField>
-              <FormField label="Adicionar Imagens à Galeria">
-                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-[#D1D9E6] bg-[#F0F4F8] text-[#8A8A8A] p-4 rounded-md cursor-pointer hover:border-[#0078D4] transition-colors">
-                  <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => { if(e.target.files) setGaleriaFiles(Array.from(e.target.files)); }} />
-                  <ImageIcon size={18} /> {galeriaFiles.length > 0 ? `${galeriaFiles.length} ficheiros novos` : "Selecionar Múltiplas Fotos"}
-                </label>
-              </FormField>
-            </div>
-          </div>
-
-          <div className="mt-10 flex items-center justify-between pt-6 border-t border-[#D1D9E6]">
-            <span className="text-sm font-semibold text-[#0078D4]">{feedback}</span>
-            <button onClick={handleSave} disabled={saving} className="bg-[#0078D4] hover:bg-[#005A9E] text-white px-10 py-4 rounded-md font-semibold text-sm uppercase tracking-widest shadow-lg flex items-center gap-2 transition-all">
-              {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Publicar Atração
-            </button>
-          </div>
-        </div>
-      ) : (
-        loading ? <div className="py-12 flex justify-center"><Loader2 size={32} className="text-[#0078D4] animate-spin" /></div> : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {atracoes.map((a) => (
-              <div key={a.id} className="bg-white rounded-md border border-[#D1D9E6] p-4 flex flex-col hover:shadow-md transition-shadow relative">
-                <div className="absolute -top-3 -left-3 bg-[#0078D4] text-white w-8 h-8 flex items-center justify-center rounded-full font-semibold text-xs z-10 shadow-sm border-2 border-white">
-                  {a.ordem || 0}
-                </div>
-                <div className="relative w-full h-48 rounded-md overflow-hidden bg-[#F0F4F8] mb-4">
-                  <img src={a.imagem_url || "/placeholder.png"} alt={a.nome} className="object-cover w-full h-full" />
-                  <div className="absolute top-3 right-3 bg-white/90 backdrop-blur px-2 py-1 rounded text-[10px] font-semibold text-[#0078D4] shadow-sm uppercase">{a.tipo}</div>
-                </div>
-                <div className="px-2 pb-2 flex-1 flex flex-col">
-                  <h3 className={`${jakarta.className} text-xl font-bold text-[#1A1A1A] mb-1`}>{a.nome}</h3>
-                  <p className="text-xs font-semibold text-[#0078D4] mb-3">R$ {(Number(a.preco_entrada) || 0).toFixed(2)}</p>
-                  
-                  <div className="mt-auto flex items-center justify-between pt-4 border-t border-[#D1D9E6]">
-                    <button onClick={() => abrirFormEditar(a)} className="text-xs font-semibold text-[#0078D4] hover:underline">Editar Atração</button>
-                    <button onClick={() => handleDelete(a.id)} className="text-xs font-semibold text-[#D13438] hover:underline">Remover</button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )
-      )}
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// COMUNIDADES
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function TabComunidades() {
-  const [comunidades, setComunidades] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [editando, setEditando] = useState<any | null>(null);
-  const [form, setForm] = useState<any>({});
-  
-  const [imagemFile, setImagemFile] = useState<File | null>(null);
-  const [galeriaFiles, setGaleriaFiles] = useState<File[]>([]); 
-  const [pontos, setPontos] = useState<any[]>([]); 
-
-  const [saving, setSaving] = useState(false);
-  const [feedback, setFeedback] = useState("");
-
-  useEffect(() => { fetchComunidades(); }, []);
-
-  async function fetchComunidades() {
-    setLoading(true);
-    const { data } = await supabase.from("comunidades").select("*").order("ordem", { ascending: true, nullsFirst: false });
-    setComunidades(data || []);
-    setLoading(false);
-  }
-
-  function abrirFormNovo() {
-    setEditando(null); 
-    setForm({ titulo: "", descricao_curta: "", historia_texto: "", cultura_texto: "", ordem: 0, ativo: true });
-    setImagemFile(null); 
-    setGaleriaFiles([]);
-    setPontos([]);
-    setShowForm(true);
-  }
-
-  async function abrirFormEditar(c: any) {
-    setEditando(c); 
-    setForm({ ...c }); 
-    setImagemFile(null); 
-    setGaleriaFiles([]);
-    
-    const { data: ptData } = await supabase.from("comunidade_pontos").select("*").eq("comunidade_id", c.id).order("titulo");
-    setPontos(ptData || []);
-    setShowForm(true);
-  }
-
-  const addPonto = () => setPontos([...pontos, { id: null, titulo: "", tipo: "atração", link_destino: "", whatsapp: "", imagem_url: "", file: null }]);
-  const removePonto = (index: number) => {
-    const novos = [...pontos];
-    if (novos[index].id) { novos[index]._deleted = true; } 
-    else { novos.splice(index, 1); }
-    setPontos(novos);
-  };
-  const handlePontoChange = (index: number, field: string, value: any) => {
-    const novos = [...pontos]; novos[index] = { ...novos[index], [field]: value }; setPontos(novos);
-  };
-
-  async function handleSave() {
-    if (!form.titulo) { setFeedback("Título obrigatório."); return; }
-    setSaving(true); setFeedback("A processar...");
-    
-    let imagem_url = form.imagem_url;
-    
-    if (imagemFile) {
-      const ext = imagemFile.name.split(".").pop();
-      const path = `galeria/${Date.now()}.${ext}`;
-      const { error } = await supabase.storage.from("galeria").upload(path, imagemFile);
-      if (!error) {
-        const { data: pub } = supabase.storage.from("galeria").getPublicUrl(path);
-        imagem_url = pub.publicUrl;
-      }
-    }
-
-    let galeriaFinal = editando?.galeria || [];
-    if (galeriaFiles.length > 0) {
-      const novasUrls = [];
-      for (const file of galeriaFiles) {
-        const ext = file.name.split(".").pop();
-        const path = `galeria/com_gal_${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
-        const { error } = await supabase.storage.from("galeria").upload(path, file);
-        if (!error) {
-          const { data: pub } = supabase.storage.from("galeria").getPublicUrl(path);
-          novasUrls.push(pub.publicUrl);
-        }
-      }
-      galeriaFinal = [...galeriaFinal, ...novasUrls];
-    }
-    
-    const payload = { 
-      titulo: form.titulo, descricao_curta: form.descricao_curta, 
-      historia_texto: form.historia_texto, cultura_texto: form.cultura_texto,
-      ordem: form.ordem, ativo: form.ativo, imagem_url,
-      galeria: galeriaFinal.length > 0 ? galeriaFinal : null 
-    };
-
-    let comunidadeId = editando?.id;
-
-    if (editando) {
-      await supabase.from("comunidades").update(payload).eq("id", comunidadeId);
-    } else {
-      const { data, error } = await supabase.from("comunidades").insert(payload).select().single();
-      if (!error && data) comunidadeId = data.id;
-    }
-
-    if (comunidadeId) {
-      for (const pt of pontos) {
-        if (pt._deleted) {
-          await supabase.from("comunidade_pontos").delete().eq("id", pt.id);
-          continue;
-        }
-        if (!pt.titulo) continue; 
-        
-        let ptImgUrl = pt.imagem_url;
-        if (pt.file) {
-          const ext = pt.file.name.split(".").pop();
-          const path = `galeria/pt_${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
-          const { error } = await supabase.storage.from("galeria").upload(path, pt.file);
-          if (!error) {
-            const { data: pub } = supabase.storage.from("galeria").getPublicUrl(path);
-            ptImgUrl = pub.publicUrl;
-          }
-        }
-
-        const ptPayload = {
-          comunidade_id: comunidadeId, titulo: pt.titulo, tipo: pt.tipo, 
-          link_destino: pt.link_destino, whatsapp: pt.whatsapp, imagem_url: ptImgUrl
-        };
-
-        if (pt.id) await supabase.from("comunidade_pontos").update(ptPayload).eq("id", pt.id);
-        else await supabase.from("comunidade_pontos").insert(ptPayload);
-      }
-    }
-    
-    setFeedback("Comunidade salva com sucesso!");
-    setTimeout(() => { setShowForm(false); setSaving(false); fetchComunidades(); setFeedback(""); }, 2000);
-  }
-
-  async function handleDelete(id: string) {
-    if (!confirm("Remover esta comunidade? Todos os pontos associados também serão apagados.")) return;
-    await supabase.from("comunidade_pontos").delete().eq("comunidade_id", id);
-    await supabase.from("comunidades").delete().eq("id", id); 
-    fetchComunidades();
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className={`${jakarta.className} text-xl font-bold text-[#1A1A1A]`}>Gestão de Comunidades</h2>
-          <p className="text-xs text-[#8A8A8A] mt-1">{comunidades.length} comunidades no portal</p>
-        </div>
-        <button onClick={abrirFormNovo} className="bg-[#0078D4] hover:bg-[#005A9E] text-white font-semibold text-sm px-5 py-2.5 rounded-md transition shadow-md flex items-center gap-2">
-          <Plus size={16} /> Nova Comunidade
-        </button>
-      </div>
-
-      {showForm ? (
-        <div className="bg-white rounded-md p-8 shadow-lg border border-[#D1D9E6] animate-in fade-in slide-in-from-bottom-4">
-          <div className="flex items-center justify-between mb-8 border-b border-[#D1D9E6] pb-4">
-            <h3 className={`${jakarta.className} text-2xl font-bold text-[#1A1A1A] flex items-center gap-2`}><Compass className="text-[#DAA520]" /> {editando ? "Editar Comunidade" : "Nova Comunidade"}</h3>
-            <button onClick={() => setShowForm(false)} className="text-sm font-semibold text-[#8A8A8A] hover:text-[#1A1A1A]">Cancelar</button>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-8">
-            <div className="space-y-5">
-              <h4 className="font-bold text-[#1A1A1A] border-b pb-2">Identificação</h4>
-              <FormField label="Nome da Comunidade *"><input value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value })} className={inputCls} placeholder="Ex: Santa Cruz" /></FormField>
-              <FormField label="Descrição Curta (Resumo)"><textarea value={form.descricao_curta || ""} onChange={(e) => setForm({ ...form, descricao_curta: e.target.value })} rows={3} className={inputCls} /></FormField>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <FormField label="Ordem de Exibição"><input type="number" value={form.ordem} onChange={(e) => setForm({ ...form, ordem: parseInt(e.target.value) })} className={inputCls} /></FormField>
-                <FormField label="Status"><select value={String(form.ativo)} onChange={(e) => setForm({ ...form, ativo: e.target.value === 'true' })} className={inputCls}><option value="true">Público</option><option value="false">Oculto</option></select></FormField>
-              </div>
-
-              <FormField label="História da Comunidade"><textarea value={form.historia_texto || ""} onChange={(e) => setForm({ ...form, historia_texto: e.target.value })} rows={5} className={inputCls} /></FormField>
-              <FormField label="Cultura / Curiosidades"><textarea value={form.cultura_texto || ""} onChange={(e) => setForm({ ...form, cultura_texto: e.target.value })} rows={3} className={inputCls} /></FormField>
-            </div>
-            
-            <div className="space-y-5">
-              <h4 className="font-bold text-[#1A1A1A] border-b pb-2">Mídia Oficial</h4>
-              <FormField label="Fotografia de Capa (Principal)">
-                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-[#D1D9E6] bg-[#F0F4F8] text-[#8A8A8A] p-4 rounded-md cursor-pointer hover:border-[#0078D4] transition-colors">
-                  <input type="file" accept="image/*" className="hidden" onChange={(e) => setImagemFile(e.target.files?.[0] || null)} />
-                  <ImageIcon size={18} /> {imagemFile ? imagemFile.name : form.imagem_url ? "Trocar Capa Atual" : "Anexar Capa"}
-                </label>
-              </FormField>
-              <FormField label="Adicionar Imagens à Galeria">
-                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-[#D1D9E6] bg-[#F0F4F8] text-[#8A8A8A] p-4 rounded-md cursor-pointer hover:border-[#0078D4] transition-colors">
-                  <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => { if(e.target.files) setGaleriaFiles(Array.from(e.target.files)); }} />
-                  <ImageIcon size={18} /> {galeriaFiles.length > 0 ? `${galeriaFiles.length} ficheiros novos` : "Selecionar Fotos"}
-                </label>
-              </FormField>
-            </div>
-          </div>
-
-          <div className="mt-12 space-y-4">
-            <div className="flex items-center justify-between border-b pb-2">
-              <h4 className="font-bold text-[#1A1A1A]">Pontos da Comunidade (Atrações, Pousadas, etc.)</h4>
-              <button onClick={addPonto} className="text-xs font-semibold text-[#0078D4] flex items-center gap-1"><Plus size={14}/> Adicionar Ponto</button>
-            </div>
-            <div className="space-y-3">
-              {pontos.filter(p => !p._deleted).map((item, index) => (
-                <div key={index} className="flex flex-col md:flex-row gap-3 items-center bg-[#F0F4F8] p-4 rounded-md border border-[#D1D9E6]">
-                  <div className="w-full md:w-[25%]"><input type="text" value={item.titulo} onChange={e => handlePontoChange(index, 'titulo', e.target.value)} placeholder="Nome do Ponto" className={inputCls} /></div>
-                  <div className="w-full md:w-[15%]">
-                    <select value={item.tipo} onChange={e => handlePontoChange(index, 'tipo', e.target.value)} className={inputCls}>
-                      <option value="atração">Atração</option><option value="hospedagem">Hospedagem</option><option value="gastronomia">Gastronomia</option><option value="artesanato">Artesanato</option>
-                    </select>
-                  </div>
-                  <div className="w-full md:w-[20%]"><input type="text" value={item.whatsapp} onChange={e => handlePontoChange(index, 'whatsapp', e.target.value)} placeholder="WhatsApp" className={inputCls} /></div>
-                  <div className="w-full md:w-[20%]"><input type="text" value={item.link_destino} onChange={e => handlePontoChange(index, 'link_destino', e.target.value)} placeholder="Link / URL" className={inputCls} /></div>
-                  <div className="w-full md:w-[20%] flex items-center gap-2">
-                    <label className="flex-1 flex items-center justify-center gap-2 border border-[#D1D9E6] bg-white text-[#8A8A8A] py-2 rounded-md cursor-pointer text-xs font-semibold">
-                      <input type="file" accept="image/*" className="hidden" onChange={e => handlePontoChange(index, 'file', e.target.files?.[0] || null)} />
-                      <Upload size={14}/> {item.file ? "Pronto ✓" : (item.imagem_url ? "Tem foto ✓" : "Foto")}
-                    </label>
-                    <button onClick={() => removePonto(index)} className="p-2 bg-[#FDE7E9] text-[#D13438] rounded-md hover:bg-[#FDE7E9] border border-[#D13438]"><Trash2 size={16} /></button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-10 flex items-center justify-between pt-6 border-t border-[#D1D9E6]">
-            <span className="text-sm font-semibold text-[#0078D4]">{feedback}</span>
-            <button onClick={handleSave} disabled={saving} className="bg-[#0078D4] hover:bg-[#005A9E] text-white px-10 py-4 rounded-md font-semibold text-sm uppercase tracking-widest shadow-lg flex items-center gap-2 transition-all">
-              {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Guardar Comunidade
-            </button>
-          </div>
-        </div>
-      ) : (
-        loading ? <div className="py-12 flex justify-center"><Loader2 size={32} className="text-[#0078D4] animate-spin" /></div> : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {comunidades.map((c) => (
-              <div key={c.id} className="bg-white rounded-md border border-[#D1D9E6] p-4 flex flex-col hover:shadow-md transition-shadow relative">
-                <div className="absolute -top-3 -left-3 bg-[#0078D4] text-white w-8 h-8 flex items-center justify-center rounded-full font-semibold text-xs z-10 shadow-sm border-2 border-white">
-                  {c.ordem || 0}
-                </div>
-                <div className="relative w-full h-48 rounded-md overflow-hidden bg-[#F0F4F8] mb-4">
-                  <img src={c.imagem_url || "/placeholder.png"} alt={c.titulo} className="object-cover w-full h-full" />
-                </div>
-                <div className="px-2 pb-2 flex-1 flex flex-col">
-                  <h3 className={`${jakarta.className} text-xl font-bold text-[#1A1A1A] mb-1`}>{c.titulo}</h3>
-                  <p className="text-xs text-[#8A8A8A] line-clamp-2">{c.descricao_curta}</p>
-                  
-                  <div className="mt-auto flex items-center justify-between pt-4 border-t border-[#D1D9E6]">
-                    <button onClick={() => abrirFormEditar(c)} className="text-xs font-semibold text-[#0078D4] hover:underline">Editar Completo</button>
-                    <button onClick={() => handleDelete(c.id)} className="text-xs font-semibold text-[#D13438] hover:underline">Remover</button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )
-      )}
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// REUNIÕES COMTUR
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function TabReunioesComtur() {
-  const [reunioes, setReunioes] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [editando, setEditando] = useState<any | null>(null);
-  const [form, setForm] = useState<any>({});
-  
-  const [saving, setSaving] = useState(false);
-  const [feedback, setFeedback] = useState("");
-
-  useEffect(() => { fetchReunioes(); }, []);
-
-  async function fetchReunioes() {
-    setLoading(true);
-    const { data } = await supabase.from("reunioes_comtur").select("*").order("criado_em", { ascending: false });
-    setReunioes(data || []);
-    setLoading(false);
-  }
-
-  function abrirFormNovo() {
-    setEditando(null); 
-    setForm({ mes_ano: "", ordem_reuniao: "", data_reuniao: "", status: "Agendada" });
-    setShowForm(true);
-  }
-
-  function abrirFormEditar(r: any) {
-    setEditando(r); 
-    setForm({ ...r }); 
-    setShowForm(true);
-  }
-
-  async function handleSave() {
-    if (!form.mes_ano || !form.ordem_reuniao) { setFeedback("Mês/Ano e Ordem são obrigatórios."); return; }
-    setSaving(true);
-    
-    if (editando) await supabase.from("reunioes_comtur").update(form).eq("id", editando.id);
-    else await supabase.from("reunioes_comtur").insert(form);
-    
-    setFeedback("Reunião salva com sucesso!");
-    setTimeout(() => { setShowForm(false); setSaving(false); fetchReunioes(); setFeedback(""); }, 2000);
-  }
-
-  async function handleDelete(id: string) {
-    if (!confirm("Remover este registro da Reunião?")) return;
-    await supabase.from("reunioes_comtur").delete().eq("id", id); 
-    fetchReunioes();
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className={`${jakarta.className} text-xl font-bold text-[#1A1A1A]`}>Reuniões COMTUR</h2>
-          <p className="text-xs text-[#8A8A8A] mt-1">Gestão de transparência e pautas do Conselho Municipal de Turismo</p>
-        </div>
-        <button onClick={abrirFormNovo} className="bg-[#0078D4] hover:bg-[#005A9E] text-white font-semibold text-sm px-5 py-2.5 rounded-md transition shadow-md flex items-center gap-2">
-          <Plus size={16} /> Registar Reunião
-        </button>
-      </div>
-
-      {showForm ? (
-        <div className="bg-white rounded-md p-8 shadow-lg border border-[#D1D9E6] max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-4">
-          <div className="flex items-center justify-between mb-8 border-b border-[#D1D9E6] pb-4">
-            <h3 className={`${jakarta.className} text-xl font-bold text-[#1A1A1A] flex items-center gap-2`}><Users className="text-[#DAA520]" /> {editando ? "Editar Reunião" : "Nova Reunião"}</h3>
-            <button onClick={() => setShowForm(false)} className="text-sm font-semibold text-[#8A8A8A] hover:text-[#1A1A1A]">Cancelar</button>
-          </div>
-
-          <div className="space-y-5">
-            <FormField label="Mês / Ano da Referência *"><input value={form.mes_ano || ""} onChange={(e) => setForm({ ...form, mes_ano: e.target.value })} className={inputCls} placeholder="Ex: Janeiro 2026" /></FormField>
-            <FormField label="Ordem da Reunião *"><input value={form.ordem_reuniao || ""} onChange={(e) => setForm({ ...form, ordem_reuniao: e.target.value })} className={inputCls} placeholder="Ex: 1ª Reunião Ordinária" /></FormField>
-            <div className="grid grid-cols-2 gap-4">
-              <FormField label="Data da Reunião"><input type="date" value={form.data_reuniao || ""} onChange={(e) => setForm({ ...form, data_reuniao: e.target.value })} className={inputCls} /></FormField>
-              <FormField label="Status Atual">
-                <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} className={inputCls}>
-                  <option value="Agendada">Agendada</option><option value="Realizada">Realizada</option><option value="Cancelada">Cancelada</option>
-                </select>
-              </FormField>
-            </div>
-          </div>
-
-          <div className="mt-10 flex items-center justify-between pt-6 border-t border-[#D1D9E6]">
-            <span className="text-sm font-semibold text-[#0078D4]">{feedback}</span>
-            <button onClick={handleSave} disabled={saving} className="bg-[#0078D4] hover:bg-[#005A9E] text-white px-8 py-3 rounded-md font-semibold text-sm uppercase tracking-widest shadow-lg flex items-center gap-2 transition-all">
-              {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Salvar Registro
-            </button>
-          </div>
-        </div>
-      ) : (
-        loading ? <div className="py-12 flex justify-center"><Loader2 size={32} className="text-[#0078D4] animate-spin" /></div> : (
-          <div className="rounded-md border border-[#D1D9E6] overflow-hidden bg-white shadow-sm overflow-x-auto">
-            <table className="w-full text-sm min-w-[600px]">
-              <thead>
-                <tr className="border-b border-[#D1D9E6] bg-[#F0F4F8]">
-                  <Th>Mês / Ano</Th><Th>Ordem da Reunião</Th><Th>Data</Th><Th>Status</Th><Th className="text-right">Ações</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {reunioes.map((r) => (
-                  <tr key={r.id} className="border-b border-[#D1D9E6] hover:bg-[#F0F4F8] transition">
-                    <td className="px-4 py-3 font-semibold text-[#1A1A1A]">{r.mes_ano}</td>
-                    <td className="px-4 py-3 text-[#1A1A1A]">{r.ordem_reuniao}</td>
-                    <td className="px-4 py-3 text-[#1A1A1A]">{fmtData(r.data_reuniao)}</td>
-                    <td className="px-4 py-3"><span className={`px-2 py-1 rounded text-xs font-semibold ${r.status === 'Realizada' ? 'bg-[#E5F0FF] text-[#0078D4]' : r.status === 'Agendada' ? 'bg-[#E5F0FF] text-[#0078D4]' : 'bg-[#FDE7E9] text-[#D13438]'}`}>{r.status}</span></td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex justify-end gap-3">
-                         <button onClick={() => abrirFormEditar(r)} className="text-xs font-semibold text-[#0078D4] hover:underline">Editar</button>
-                         <button onClick={() => handleDelete(r.id)} className="text-xs font-semibold text-[#D13438] hover:underline">Apagar</button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {reunioes.length === 0 && (<tr><td colSpan={5} className="px-4 py-10 text-center text-[#8A8A8A]">Nenhum  do COMTUR.</td></tr>)}
-              </tbody>
-            </table>
-          </div>
-        )
-      )}
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// CENTRAL DE ADMINISTRAÇÃO DA CARTEIRA
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function TabEmissaoManual() {
-  const [busca, setBusca] = useState("");
-  const [resultados, setResultados] = useState<any[]>([]);
-  const [loadingBusca, setLoadingBusca] = useState(false);
-  
-  const [reemissaoId, setReemissaoId] = useState<string | null>(null);
-  const [novoEmail, setNovoEmail] = useState("");
-  const [metodoReemissao, setMetodoReemissao] = useState("dinheiro");
-  
-  const [loadingAcao, setLoadingAcao] = useState(false);
-  const [feedbackAcao, setFeedbackAcao] = useState("");
-  const [pixGerado, setPixGerado] = useState<{ qr: string, copiaCola: string, msg: string } | null>(null);
-
-  const [form, setForm] = useState({ nome: "", cpf: "", email: "", data_nascimento: "" });
-  const [foto, setFoto] = useState<File | null>(null);
-  const [metodoNovaEmissao, setMetodoNovaEmissao] = useState("dinheiro");
-  const [savingManual, setSavingManual] = useState(false);
-
-  const mascaraCPF = (valor: string) => {
-    return valor
-      .replace(/\D/g, '')
-      .replace(/(\d{3})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d{1,2})/, '$1-$2')
-      .replace(/(-\d{2})\d+?$/, '$1');
-  };
-
-  async function handleBuscar(e: React.FormEvent) {
-    e.preventDefault();
-    if (!busca.trim()) return;
-    
-    setLoadingBusca(true); setPixGerado(null); setFeedbackAcao(""); setReemissaoId(null);
-    
-    try {
-      const resp = await fetch(`https://sagaturismo-production.up.railway.app/api/v1/residentes/buscar?q=${encodeURIComponent(busca)}`);
-      if (!resp.ok) throw new Error("Falha na comunicação com o servidor.");
-      
-      const json = await resp.json();
-      setResultados(json.dados || []);
-      
-      if (!json.dados || json.dados.length === 0) {
-        setFeedbackAcao("Nenhum cidadão encontrado com esse Nome ou CPF.");
-      }
-    } catch (err: any) {
-      console.error(err);
-      setFeedbackAcao(`❌ Erro na busca: ${err.message}`);
-    } finally {
-      setLoadingBusca(false);
-    }
-  }
-
-  async function handleConfirmarReemissao(residente: any) {
-    if (!novoEmail) { alert("Insira o novo e-mail para envio."); return; }
-    if (!confirm(`Confirmar emissão de 2ª via para ${residente.nome_completo}?`)) return;
-
-    setLoadingAcao(true); setFeedbackAcao("A processar a 2ª Via..."); setPixGerado(null);
-
-    try {
-      const { error } = await supabase.from('rd_residentes').update({ email: novoEmail }).eq('id', residente.id);
-      if (error) throw error;
-
-      const reqBody = {
-        nome_cliente: residente.nome_completo,
-        cpf_cliente: residente.cpf,
-        email_cliente: novoEmail,
-        telefone_cliente: residente.telefone || "00000000000",
-        foto_url: residente.foto_url,
-        data_nascimento: residente.data_nascimento,
-        token_id: residente.id,
-        quantidade: 1,
-        is_reemissao: true
-      };
-
-      if (metodoReemissao === "dinheiro") {
-        const resp = await fetch('https://sagaturismo-production.up.railway.app/api/v1/pagamentos/carteira-gratuita', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(reqBody)
-        });
-        if (!resp.ok) throw new Error("Erro ao disparar o e-mail.");
-        setFeedbackAcao("✅ Pagamento em Dinheiro confirmado! A 2ª Via foi enviada por e-mail.");
-      } else {
-        const resp = await fetch('https://sagaturismo-production.up.railway.app/api/v1/pagamentos/carteira-bb', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(reqBody)
-        });
-        const data = await resp.json();
-        if (!resp.ok || !data.sucesso) throw new Error("Falha ao gerar PIX.");
-        setPixGerado({ qr: data.pix_qrcode_img, copiaCola: data.pix_copia_cola, msg: "PIX de R$ 5,00 gerado! O e-mail com a carteira será enviado automaticamente pelo banco." });
-        setFeedbackAcao("");
-      }
-      setReemissaoId(null);
-    } catch (err: any) {
-      setFeedbackAcao(`❌ Erro: ${err.message}`);
-    } finally {
-      setLoadingAcao(false);
-    }
-  }
-
-  async function handleEmitirManual(e: React.FormEvent) {
-    e.preventDefault();
-    if (!form.nome || !form.cpf || !form.email || !form.data_nascimento || !foto) {
-      alert("Preenche todos os campos e anexa a foto."); return;
-    }
-    if (!confirm(`Forçar criação de cidadão e gerar nova carteira para ${form.nome}?`)) return;
-
-    setSavingManual(true); setFeedbackAcao("A enviar fotografia para a galeria..."); setPixGerado(null);
-
-    try {
-      const ext = foto.name.split('.').pop();
-      const path = `residentes/carteira_manual_${form.cpf.replace(/\D/g, '')}_${Date.now()}.${ext}`;
-      
-      const { error: uploadError } = await supabase.storage.from('galeria').upload(path, foto, { upsert: true });
-      if (uploadError) throw new Error(uploadError.message);
-      
-      const { data: pubUrl } = supabase.storage.from('galeria').getPublicUrl(path);
-      const fotoUrlCompleta = pubUrl.publicUrl;
-      
-      setFeedbackAcao("A registar cidadão no sistema...");
-
-      const statusFinal = metodoNovaEmissao === "dinheiro" ? "ativo" : "aguardando_pagamento";
-
-      const respResidente = await fetch('https://sagaturismo-production.up.railway.app/api/v1/residentes/emissao-manual', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nome: form.nome, cpf: form.cpf, email: form.email, 
-          data_nascimento: form.data_nascimento, foto_url: fotoUrlCompleta,
-          status: statusFinal
-        })
-      });
-
-      if (!respResidente.ok) throw new Error("Erro ao registar cidadão no servidor.");
-      const dadosResidente = await respResidente.json();
-      const residenteId = dadosResidente.residente_id;
-
-      const reqBody = {
-        nome_cliente: form.nome, cpf_cliente: form.cpf, email_cliente: form.email,
-        telefone_cliente: "00000000000", foto_url: fotoUrlCompleta, 
-        data_nascimento: form.data_nascimento, token_id: residenteId, quantidade: 1,
-        is_reemissao: false
-      };
-
-      if (metodoNovaEmissao === "dinheiro") {
-        const respCarteira = await fetch('https://sagaturismo-production.up.railway.app/api/v1/pagamentos/carteira-gratuita', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(reqBody)
-        });
-        if (!respCarteira.ok) throw new Error("Erro no envio do e-mail.");
-        setFeedbackAcao("✅ Cidadão criado e carteira enviada (Pagamento em Dinheiro).");
-      } else {
-        const respCarteira = await fetch('https://sagaturismo-production.up.railway.app/api/v1/pagamentos/carteira-bb', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(reqBody)
-        });
-        const data = await respCarteira.json();
-        if (!respCarteira.ok) throw new Error("Falha ao gerar PIX.");
-        setPixGerado({ qr: data.pix_qrcode_img, copiaCola: data.pix_copia_cola, msg: "PIX de R$ 20,00 gerado! A carteira será enviada automaticamente após o pagamento." });
-        setFeedbackAcao("");
-      }
-
-      setForm({ nome: "", cpf: "", email: "", data_nascimento: "" });
-      setFoto(null);
-
-    } catch (err: any) {
-      console.error(err);
-      setFeedbackAcao(`❌ Erro Manual: ${err.message}`);
-    } finally {
-      setSavingManual(false);
-    }
-  }
-
-  return (
-    <div className="space-y-10">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className={`${jakarta.className} text-xl font-bold text-[#D13438] flex items-center gap-2`}><AlertCircle size={20} /> Central de Gestão & Emissão</h2>
-          <p className="text-xs text-[#8A8A8A] mt-1">Pesquise residentes para 2ª Via (R$ 5) ou emita novas carteiras do zero (R$ 20).</p>
-        </div>
-      </div>
-
-      {pixGerado && (
-        <div className="mb-6 p-6 border-2 border-[#0078D4] bg-[#E5F0FF] rounded-md flex flex-col items-center animate-in fade-in">
-          <h4 className="font-bold text-[#1A1A1A] mb-2">Cobrança PIX Gerada (Banco do Brasil)</h4>
-          <p className="text-xs text-[#1A1A1A] mb-4 text-center font-medium">{pixGerado.msg}</p>
-          <img src={pixGerado.qr} alt="QR Code PIX" className="w-48 h-48 rounded-md border-4 border-white shadow-sm mb-4" />
-          <div className="w-full max-w-md bg-white border border-[#D1D9E6] rounded-md p-3 flex gap-2">
-            <input type="text" value={pixGerado.copiaCola} readOnly className="flex-1 text-xs text-[#8A8A8A] bg-transparent outline-none truncate" />
-            <button onClick={() => { navigator.clipboard.writeText(pixGerado.copiaCola); alert("Copiado!"); }} className="text-xs font-semibold text-[#0078D4] hover:text-[#005A9E]">Copiar</button>
-          </div>
-          <button onClick={() => setPixGerado(null)} className="mt-4 text-xs font-semibold text-[#8A8A8A] hover:text-[#1A1A1A] underline">Fechar Janela PIX</button>
-        </div>
-      )}
-
-      <div className="bg-white rounded-md p-8 shadow-sm border border-[#D1D9E6]">
-        <h3 className={`${jakarta.className} text-lg font-bold text-[#1A1A1A] mb-4`}>🔍 Localizar Cidadão (Para 2ª Via)</h3>
-        <form onSubmit={handleBuscar} className="flex gap-4 mb-6">
-          <input 
-            type="text" 
-            value={busca} 
-            onChange={(e) => setBusca(mascaraCPF(e.target.value))}
-            placeholder="Digite o Nome ou CPF (000.000.000-00)..." 
-            className="flex-1 bg-white border border-[#D1D9E6] rounded-md px-4 py-3 text-sm focus:outline-none focus:border-[#0078D4] focus:ring-1 focus:ring-[#0078D4]" 
-          />
-          <button type="submit" disabled={loadingBusca} className="bg-[#0078D4] text-white px-8 rounded-md font-semibold text-sm transition-all hover:bg-[#005A9E] disabled:opacity-50">
-            {loadingBusca ? <Loader2 size={18} className="animate-spin mx-auto" /> : "Procurar"}
-          </button>
-        </form>
-
-        {feedbackAcao && !savingManual && (
-          <div className={`mb-6 p-4 rounded-md text-sm font-semibold text-center border ${feedbackAcao.includes('❌') ? 'bg-[#FDE7E9] text-[#D13438] border-[#D13438]' : 'bg-[#E5F0FF] text-[#0078D4] border-[#0078D4]'}`}>
-            {feedbackAcao}
-          </div>
-        )}
-
-        {resultados.length > 0 && (
-          <div className="border border-[#D1D9E6] rounded-md overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-[#F0F4F8] border-b border-[#D1D9E6] text-[#8A8A8A] font-semibold text-xs uppercase">
-                <tr><th className="p-4 text-left">Foto</th><th className="p-4 text-left">Dados do Cidadão</th><th className="p-4 text-left">Status</th><th className="p-4 text-right">Ação</th></tr>
-              </thead>
-              <tbody className="divide-y divide-[#D1D9E6]">
-                {resultados.map((res) => (
-                  <React.Fragment key={res.id}>
-                    <tr className="hover:bg-[#F0F4F8]">
-                      <td className="p-4">
-                        <div className="w-12 h-12 rounded-full overflow-hidden bg-[#F0F4F8] border border-[#D1D9E6]">
-                          {res.foto_url && res.foto_url.includes('http') ? (
-                            <img src={res.foto_url} alt="Foto" className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-[#8A8A8A] text-xs">Sem Link</div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <p className="font-semibold text-[#1A1A1A]">{res.nome_completo}</p>
-                        <p className="text-xs text-[#8A8A8A]">{res.cpf} • {res.email}</p>
-                      </td>
-                      <td className="p-4">
-                        <span className={`px-2 py-1 rounded text-[10px] uppercase font-semibold tracking-wider ${res.status === 'ativo' ? 'bg-[#E5F0FF] text-[#0078D4]' : 'bg-[#FFF8E5] text-[#DAA520]'}`}>{res.status}</span>
-                      </td>
-                      <td className="p-4 text-right">
-                        <button onClick={() => { setReemissaoId(reemissaoId === res.id ? null : res.id); setNovoEmail(res.email); }} className="text-xs bg-[#0078D4] hover:bg-[#005A9E] text-white font-semibold px-4 py-2 rounded-md transition-colors uppercase shadow-sm">
-                          {reemissaoId === res.id ? "Cancelar" : "Opções de 2ª Via"}
-                        </button>
-                      </td>
-                    </tr>
-                    
-                    {reemissaoId === res.id && (
-                      <tr className="bg-[#F0F4F8]">
-                        <td colSpan={4} className="p-6 border-b border-[#D1D9E6]">
-                          <div className="flex flex-col md:flex-row gap-4 items-end bg-white p-4 rounded-md border border-[#D1D9E6] shadow-sm">
-                            <FormField label="E-mail de Destino (Novo ou Atual)" className="flex-1">
-                              <input type="email" value={novoEmail} onChange={e => setNovoEmail(e.target.value)} className={inputCls} />
-                            </FormField>
-                            <FormField label="Recebimento da Taxa (R$ 5,00)" className="flex-1">
-                              <select value={metodoReemissao} onChange={e => setMetodoReemissao(e.target.value)} className={inputCls}>
-                                <option value="dinheiro">Em Dinheiro (Envia E-mail na hora)</option>
-                                <option value="pix">Pagamento via PIX (Gera QR Code)</option>
-                              </select>
-                            </FormField>
-                            <button onClick={() => handleConfirmarReemissao(res)} disabled={loadingAcao} className="bg-[#0078D4] hover:bg-[#005A9E] text-white px-6 py-2 rounded-md font-semibold text-xs uppercase tracking-widest shadow-md transition-all h-[38px] w-full md:w-auto">
-                              Confirmar & Enviar 2ª Via
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      <div className="flex items-center gap-4 text-[#D1D9E6]">
-        <div className="flex-1 h-px bg-[#D1D9E6]"></div><span className="text-xs font-semibold uppercase tracking-widest">OU</span><div className="flex-1 h-px bg-[#D1D9E6]"></div>
-      </div>
-
-      <div className="bg-white rounded-md p-8 shadow-sm border border-[#D1D9E6] max-w-3xl">
-        <div className="mb-6 border-b border-[#D1D9E6] pb-4">
-          <h3 className={`${jakarta.className} text-lg font-bold text-[#D13438]`}>Emissão de Nova Carteira (Do Zero)</h3>
-          <p className="text-xs text-[#8A8A8A] mt-1">Apenas para cidadãos sem registro ou acesso tecnológico.</p>
-        </div>
-
-        <form onSubmit={handleEmitirManual} className="space-y-5">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <FormField label="Nome Completo *"><input type="text" value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} className={inputCls} required /></FormField>
-            <FormField label="CPF *">
-              <input type="text" value={form.cpf} onChange={e => setForm({...form, cpf: mascaraCPF(e.target.value)})} className={inputCls} placeholder="000.000.000-00" required />
-            </FormField>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <FormField label="E-mail (Para onde vai o PDF) *"><input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} className={inputCls} required /></FormField>
-            <FormField label="Data de Nascimento *"><input type="date" value={form.data_nascimento} onChange={e => setForm({...form, data_nascimento: e.target.value})} className={inputCls} required /></FormField>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <FormField label="Foto do Cidadão (3x4) *">
-              <label className="flex items-center justify-center gap-2 border-2 border-dashed border-[#D1D9E6] bg-[#F0F4F8] text-[#8A8A8A] p-2.5 rounded-md cursor-pointer hover:border-[#0078D4] text-sm font-semibold transition-colors">
-                <input type="file" accept="image/*" className="hidden" onChange={e => setFoto(e.target.files?.[0] || null)} required />
-                <Upload size={16} /> {foto ? "Foto Carregada ✓" : "Anexar Fotografia"}
-              </label>
-            </FormField>
-            <FormField label="Recebimento da Taxa (R$ 20,00)">
-              <select value={metodoNovaEmissao} onChange={e => setMetodoNovaEmissao(e.target.value)} className={inputCls}>
-                <option value="dinheiro">Em Dinheiro (Emissão Imediata)</option>
-                <option value="pix">Pagamento via PIX (Gera QR Code)</option>
-              </select>
-            </FormField>
-          </div>
-
-          <div className="pt-8 border-t border-[#D1D9E6] flex items-center justify-between">
-            <span className="text-sm font-semibold text-[#0078D4]">{savingManual ? "A processar..." : feedbackAcao}</span>
-            <button type="submit" disabled={savingManual || loadingAcao} className="bg-[#D13438] hover:bg-[#D13438] text-white px-8 py-3.5 rounded-md font-semibold text-sm uppercase tracking-widest shadow-md flex items-center gap-2 transition-all disabled:opacity-50">
-              {savingManual ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle2 size={18} />} 
-              {metodoNovaEmissao === "dinheiro" ? "Registar & Emitir (Dinheiro)" : "Registar & Gerar PIX (R$ 20)"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// CENTRAL DE SUPORTE
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function TabSuporte() {
-  const [chamados, setChamados] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  
-  const [chamadoAberto, setChamadoAberto] = useState<any | null>(null);
-  const [resposta, setResposta] = useState("");
-  const [arquivoAdmin, setArquivoAdmin] = useState<File | null>(null);
-  const [statusAtual, setStatusAtual] = useState("");
-  
-  const [saving, setSaving] = useState(false);
-  const [feedback, setFeedback] = useState("");
-
-  useEffect(() => { fetchChamados(); }, []);
-
-  async function fetchChamados() {
-    setLoading(true);
-    const { data } = await supabase.from('suporte').select('*').order('criado_em', { ascending: false });
-    setChamados(data || []);
-    setLoading(false);
-  }
-
-  function abrirChamado(c: any) {
-    setChamadoAberto(c);
-    setStatusAtual(c.status);
-    setResposta("");
-    setArquivoAdmin(null);
-    setFeedback("");
-  }
-
-  async function handleResponder() {
-    if (!resposta && statusAtual === chamadoAberto.status) {
-      setFeedback("Escreva uma resposta ou mude o status para salvar.");
-      return;
-    }
-    
-    setSaving(true);
-    setFeedback("A enviar resposta...");
-
-    try {
-      let linkAnexoAdmin = null;
-
-      if (arquivoAdmin) {
-        const ext = arquivoAdmin.name.split('.').pop();
-        const path = `respostas_suporte/${chamadoAberto.protocolo}_${Date.now()}.${ext}`;
-        const { error } = await supabase.storage.from('galeria').upload(path, arquivoAdmin);
-        if (!error) {
-          const { data: pubUrl } = supabase.storage.from('galeria').getPublicUrl(path);
-          linkAnexoAdmin = pubUrl.publicUrl;
-        }
-      }
-
-      const { error: dbError } = await supabase.from('suporte').update({
-        status: statusAtual,
-        resposta_admin: resposta || chamadoAberto.resposta_admin
-      }).eq('id', chamadoAberto.id);
-
-      if (dbError) throw dbError;
-
-      if (resposta) {
-        const resp = await fetch('https://sagaturismo-production.up.railway.app/api/v1/suporte/responder', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: chamadoAberto.email,
-            nome: chamadoAberto.nome,
-            protocolo: chamadoAberto.protocolo,
-            resposta: resposta,
-            link_anexo: linkAnexoAdmin
-          })
-        });
-        if (!resp.ok) throw new Error("Falha ao disparar o e-mail.");
-      }
-
-      setFeedback("✅ Resposta enviada e status atualizado!");
-      setTimeout(() => { setChamadoAberto(null); fetchChamados(); }, 2000);
-
-    } catch (err: any) {
-      setFeedback(`❌ Erro: ${err.message}`);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className={`${jakarta.className} text-xl font-bold text-[#D13438] flex items-center gap-2`}><Headset size={20}/> Central de Suporte</h2>
-          <p className="text-xs text-[#8A8A8A] mt-1">Gira as queixas e dúvidas dos cidadãos.</p>
-        </div>
-        <span className="text-xs font-semibold uppercase tracking-wider bg-[#E5F0FF] text-[#0078D4] px-4 py-2 rounded-md border border-[#D1D9E6]">
-          Total: {chamados.length} chamados
-        </span>
-      </div>
-
-      {!chamadoAberto ? (
-        <div className="bg-white rounded-md shadow-sm border border-[#D1D9E6] overflow-hidden">
-          {loading ? (
-            <div className="py-16 flex justify-center"><Loader2 size={32} className="text-[#0078D4] animate-spin" /></div>
-          ) : (
-            <table className="w-full text-sm text-left">
-              <thead className="bg-[#F0F4F8] border-b border-[#D1D9E6] text-[#8A8A8A] font-semibold text-xs uppercase">
-                <tr><th className="p-4">Protocolo</th><th className="p-4">Cidadão</th><th className="p-4">Assunto</th><th className="p-4">Data</th><th className="p-4 text-center">Status</th></tr>
-              </thead>
-              <tbody className="divide-y divide-[#D1D9E6]">
-                {chamados.map((c) => (
-                  <tr key={c.id} onClick={() => abrirChamado(c)} className="hover:bg-[#E5F0FF] cursor-pointer transition-colors group">
-                    <td className="p-4 font-semibold text-[#1A1A1A] group-hover:text-[#0078D4]">{c.protocolo}</td>
-                    <td className="p-4"><p className="font-semibold text-[#1A1A1A]">{c.nome}</p><p className="text-xs text-[#8A8A8A]">{c.cpf} • {c.whatsapp || "Sem Tel"}</p></td>
-                    <td className="p-4 text-[#1A1A1A] line-clamp-1">{c.assunto}</td>
-                    <td className="p-4 text-[#8A8A8A]">{fmtDatetime(c.criado_em)}</td>
-                    <td className="p-4 text-center">
-                      <span className={`px-3 py-1.5 rounded-md text-[10px] uppercase font-semibold ${
-                        c.status === 'Concluído' ? 'bg-[#E5F0FF] text-[#0078D4]' : 
-                        c.status === 'Em andamento' ? 'bg-[#FFF8E5] text-[#DAA520]' : 'bg-[#FDE7E9] text-[#D13438]'
-                      }`}>{c.status}</span>
-                    </td>
-                  </tr>
-                ))}
-                {chamados.length === 0 && (<tr><td colSpan={5} className="p-10 text-center text-[#8A8A8A] font-medium">Nenhum chamado recebido.</td></tr>)}
-              </tbody>
-            </table>
-          )}
-        </div>
-      ) : (
-        <div className="bg-white rounded-md p-8 shadow-lg border border-[#D1D9E6]">
-          <div className="flex items-center justify-between mb-6 border-b border-[#D1D9E6] pb-4">
-            <h3 className={`${jakarta.className} text-xl font-bold text-[#1A1A1A] flex items-center gap-2`}><MessageSquare className="text-[#0078D4]" /> Protocolo: {chamadoAberto.protocolo}</h3>
-            <button onClick={() => setChamadoAberto(null)} className="text-sm font-semibold text-[#8A8A8A] hover:text-[#1A1A1A]">Voltar à Lista</button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-            <div className="bg-[#F0F4F8] p-6 rounded-md border border-[#D1D9E6]">
-              <h4 className="text-xs font-semibold text-[#8A8A8A] uppercase tracking-widest mb-4">Dados do Cidadão</h4>
-              <p className="font-semibold text-[#1A1A1A]">{chamadoAberto.nome}</p>
-              <p className="text-sm text-[#1A1A1A] mt-1">E-mail: {chamadoAberto.email}</p>
-              <p className="text-sm text-[#1A1A1A] mt-1">CPF: {chamadoAberto.cpf}</p>
-              <p className="text-sm text-[#1A1A1A] mt-1">WhatsApp: {chamadoAberto.whatsapp || "Não fornecido"}</p>
-              <p className="text-xs text-[#8A8A8A] mt-4">Enviado em: {fmtDatetime(chamadoAberto.criado_em)}</p>
-            </div>
-            <div className="bg-[#F0F4F8] p-6 rounded-md border border-[#D1D9E6]">
-              <h4 className="text-xs font-semibold text-[#8A8A8A] uppercase tracking-widest mb-4">Mensagem Original</h4>
-              <p className="font-semibold text-[#1A1A1A] text-sm mb-2">Assunto: {chamadoAberto.assunto}</p>
-              <p className="text-sm text-[#1A1A1A] whitespace-pre-wrap">{chamadoAberto.mensagem}</p>
-              {chamadoAberto.arquivo_url && (
-                <a href={chamadoAberto.arquivo_url} target="_blank" className="inline-flex items-center gap-2 mt-4 text-xs font-semibold text-[#0078D4] bg-[#E5F0FF] px-4 py-2 rounded-md hover:bg-[#D1D9E6] transition-colors">
-                  <FileText size={14} /> Ver Anexo do Cidadão
-                </a>
-              )}
-            </div>
-          </div>
-
-          <div className="border-t border-[#D1D9E6] pt-6 space-y-5">
-            <h4 className="text-lg font-bold text-[#0078D4]">Responder e Atualizar</h4>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              <div className="md:col-span-2">
-                <label className="block text-xs font-semibold text-[#1A1A1A] mb-1.5 uppercase tracking-wider">Escrever Resposta (Vai por E-mail)</label>
-                <textarea rows={4} value={resposta} onChange={e => setResposta(e.target.value)} className={inputCls} placeholder="Escreva a resposta ao utente..."></textarea>
-              </div>
-              <div className="space-y-5">
-                <div>
-                  <label className="block text-xs font-semibold text-[#1A1A1A] mb-1.5 uppercase tracking-wider">Mudar Status</label>
-                  <select value={statusAtual} onChange={e => setStatusAtual(e.target.value)} className={inputCls}>
-                    <option value="Aberto">🔴 Aberto</option>
-                    <option value="Em andamento">🟡 Em andamento</option>
-                    <option value="Concluído">🟢 Concluído</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-[#1A1A1A] mb-1.5 uppercase tracking-wider">Enviar PDF/Anexo</label>
-                  <label className="flex items-center justify-center gap-2 border border-[#D1D9E6] bg-white text-[#1A1A1A] p-2 rounded-md cursor-pointer hover:border-[#0078D4] text-xs font-semibold">
-                    <input type="file" className="hidden" onChange={e => setArquivoAdmin(e.target.files?.[0] || null)} />
-                    <UploadCloud size={14} /> {arquivoAdmin ? "Anexo Pronto ✓" : "Anexar Ficheiro"}
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-4 flex items-center justify-between">
-              <span className={`text-sm font-semibold ${feedback.includes('❌') ? 'text-[#D13438]' : 'text-[#0078D4]'}`}>{feedback}</span>
-              <button onClick={handleResponder} disabled={saving} className="bg-[#0078D4] hover:bg-[#005A9E] text-white px-8 py-3.5 rounded-md font-semibold text-xs uppercase tracking-widest shadow-md flex items-center gap-2 disabled:opacity-50 transition-all">
-                {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} Salvar & Enviar
-              </button>
-            </div>
-
-            {chamadoAberto.resposta_admin && (
-              <div className="mt-6 bg-[#E5F0FF] border border-[#D1D9E6] p-4 rounded-md">
-                <p className="text-xs font-semibold text-[#0078D4] uppercase tracking-widest mb-1">Última Resposta do Admin:</p>
-                <p className="text-sm text-[#1A1A1A] whitespace-pre-wrap">{chamadoAberto.resposta_admin}</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// BASE DE RESIDENTES
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function TabResidentes() {
-  const [residentes, setResidentes] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchResidentes();
-  }, []);
-
-  async function fetchResidentes() {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('rd_residentes')
-      .select('id, nome_completo, cpf, email, status')
-      .order('criado_at', { ascending: false });
-      
-    if (!error && data) {
-      setResidentes(data);
-    } else if (error) {
-      console.error("Erro ao carregar residentes:", error.message);
-    }
-    setLoading(false);
-  }
-
-  return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className={`${jakarta.className} text-xl font-bold text-[#D13438] flex items-center gap-2`}>
-            <Users size={20} /> Base de Residentes
-          </h2>
-          <p className="text-xs text-[#8A8A8A] mt-1">Listagem completa dos cidadãos registados na base de dados.</p>
-        </div>
-        <span className="text-xs font-semibold uppercase tracking-wider bg-[#FDE7E9] text-[#D13438] px-4 py-2 rounded-md border border-[#D1D9E6]">
-          Total: {residentes.length} registros
-        </span>
-      </div>
-
-      <div className="bg-white rounded-md shadow-sm border border-[#D1D9E6] overflow-hidden">
-        {loading ? (
-          <div className="py-16 flex justify-center">
-            <Loader2 size={32} className="text-[#D13438] animate-spin" />
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-[#F0F4F8] border-b border-[#D1D9E6] text-[#8A8A8A] font-semibold text-xs uppercase">
-                <tr>
-                  <th className="p-4 text-left">Nome Completo</th>
-                  <th className="p-4 text-left">CPF</th>
-                  <th className="p-4 text-left">E-mail</th>
-                  <th className="p-4 text-center">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#D1D9E6]">
-                {residentes.map((res) => (
-                  <tr key={res.id} className="hover:bg-[#F0F4F8] transition-colors">
-                    <td className="p-4 font-semibold text-[#1A1A1A]">{res.nome_completo}</td>
-                    <td className="p-4 text-[#1A1A1A] font-medium">{res.cpf}</td>
-                    <td className="p-4 text-[#8A8A8A]">{res.email}</td>
-                    <td className="p-4 text-center">
-                      <span className={`px-3 py-1.5 rounded-md text-[10px] uppercase font-semibold ${
-                        res.status === 'ativo' ? 'bg-[#E5F0FF] text-[#0078D4]' : 
-                        res.status === 'aguardando_pagamento' ? 'bg-[#FFF8E5] text-[#DAA520]' : 
-                        'bg-[#F0F4F8] text-[#8A8A8A]'
-                      }`}>
-                        {res.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-                {residentes.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="p-10 text-center text-[#8A8A8A] font-medium">
-                      Nenhum residente encontrado na base de dados.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    </div>
+    </>
   );
 }
