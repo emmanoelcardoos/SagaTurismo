@@ -4,54 +4,70 @@ import React, { useEffect, useState, useMemo } from "react";
 import { Plus_Jakarta_Sans, Inter } from "next/font/google";
 import { supabase } from "@/lib/supabase";
 import {
-  Users, Loader2, Sparkles, User, IdCard, Mail, Search, X,
-  Filter, Inbox, CheckCircle2, Clock, AlertTriangle, BadgeCheck,
-  Circle, Target, Layers, Users2, ShieldCheck, FileText,
+  Users, Loader2, User, IdCard, Mail, Search, X,
+  Inbox, CheckCircle2, Clock, BadgeCheck, Circle,
+  Layers, ChevronRight,
 } from "lucide-react";
 
-const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["600", "700", "800"] });
+const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["500", "600", "700", "800"] });
 const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
-// ─── CORES (paleta Azure/Microsoft) ───
-const AZUL = "#0078D4";
-const AZUL_ESCURO = "#005A9E";
-const AMBAR = "#DAA520";
-const AMBAR_LIGHT = "#FBBF24";
-const VERMELHO = "#D13438";
-const VERDE = "#168821";
-const VERDE_LIGHT = "#22C55E";
-const ROXO = "#7C3AED";
+// ─── PALETA ENTERPRISE ───
+const INK = "#0A0E14";
+const INK_2 = "#1F2937";
+const MUTED = "#6B7280";
+const SUBTLE = "#9CA3AF";
+const LINE = "#E5E7EB";
+const LINE_2 = "#F3F4F6";
+const BG = "#FBFBFC";
+const SURFACE = "#FFFFFF";
+const SUCCESS = "#059669";
+const WARNING = "#D97706";
+const DANGER = "#DC2626";
 
 const inputCls =
-  "w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl px-3.5 py-2.5 focus:outline-none focus:bg-white focus:border-[#0078D4] focus:ring-4 focus:ring-[#0078D4]/10 transition-all placeholder:text-slate-400";
+  "w-full bg-white text-[13.5px] rounded-md px-3 py-2.5 transition-[border-color,box-shadow] duration-150 placeholder:text-slate-400 focus:outline-none border disabled:opacity-50 disabled:cursor-not-allowed";
 
 // ─── ESTILO POR STATUS ───
-const STATUS_INFO: Record<
+const STATUS_MAP: Record<
   string,
-  { cor: string; gradient: string; icone: any; label: string }
+  { cor: string; bg: string; border: string; icone: any; label: string }
 > = {
   ativo: {
-    cor: AZUL,
-    gradient: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})`,
+    cor: SUCCESS,
+    bg: "#ECFDF5",
+    border: "#D1FAE5",
     icone: BadgeCheck,
     label: "Ativo",
   },
   aguardando_pagamento: {
-    cor: AMBAR,
-    gradient: `linear-gradient(135deg, ${AMBAR}, ${AMBAR_LIGHT})`,
+    cor: WARNING,
+    bg: "#FFFBEB",
+    border: "#FEF3C7",
     icone: Clock,
     label: "Aguardando pagamento",
   },
   inativo: {
-    cor: "#64748B",
-    gradient: `linear-gradient(135deg, #64748B, #94A3B8)`,
+    cor: MUTED,
+    bg: LINE_2,
+    border: LINE,
     icone: Circle,
     label: "Inativo",
   },
 };
 
 function getStatusInfo(status: string) {
-  return STATUS_INFO[status] || STATUS_INFO.inativo;
+  return STATUS_MAP[status] || STATUS_MAP.inativo;
+}
+
+function iniciaisDeNome(nome: string) {
+  return (nome || "?")
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase() || "?";
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -61,66 +77,79 @@ function getStatusInfo(status: string) {
 function GlobalStyles() {
   return (
     <style jsx global>{`
-      @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(8px); }
+      @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(4px); }
         to { opacity: 1; transform: translateY(0); }
       }
       @keyframes fadeIn {
         from { opacity: 0; }
         to { opacity: 1; }
       }
-      @keyframes pulseDot {
-        0%, 100% { opacity: 1; transform: scale(1); }
-        50% { opacity: 0.5; transform: scale(0.85); }
+      @keyframes shimmer {
+        0% { background-position: -200% 0; }
+        100% { background-position: 200% 0; }
       }
-      .anim-fade-up { animation: fadeInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; }
-      .anim-fade { animation: fadeIn 0.25s ease both; }
-      .pulse-dot { animation: pulseDot 1.8s ease-in-out infinite; }
-      .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
-      .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
-      .scrollbar-thin::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
-      .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+      .anim-fade-up { animation: fadeUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) both; }
+      .anim-fade { animation: fadeIn 0.2s ease both; }
+      .num { font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+      .skeleton {
+        background: linear-gradient(90deg, ${LINE_2} 0%, ${LINE} 50%, ${LINE_2} 100%);
+        background-size: 200% 100%;
+        animation: shimmer 1.4s infinite;
+      }
+      .scroll-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+      .scroll-thin::-webkit-scrollbar-track { background: transparent; }
+      .scroll-thin::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 3px; }
+      .scroll-thin::-webkit-scrollbar-thumb:hover { background: #9CA3AF; }
     `}</style>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════
-// SUB-COMPONENTES
+// ÁTOMOS
 // ═══════════════════════════════════════════════════════════════
 
-function StatusBadge({ status }: { status: string }) {
+function Panel({ children, className = "", noPad = false }: {
+  children: React.ReactNode;
+  className?: string;
+  noPad?: boolean;
+}) {
+  return (
+    <div className={`bg-white border rounded-lg overflow-hidden ${className}`} style={{ borderColor: LINE }}>
+      {noPad ? children : <div className="p-5">{children}</div>}
+    </div>
+  );
+}
+
+function StatusPill({ status }: { status: string }) {
   const info = getStatusInfo(status);
   const Icone = info.icone;
   return (
     <span
-      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest border"
+      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide"
       style={{
-        background: `${info.cor}10`,
+        background: info.bg,
         color: info.cor,
-        borderColor: `${info.cor}25`,
+        border: `1px solid ${info.border}`,
       }}
     >
-      <Icone size={10} />
+      <Icone size={9} />
       {info.label}
     </span>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PÁGINA PRINCIPAL
+// PÁGINA
 // ═══════════════════════════════════════════════════════════════
 
 export default function PortalResidentes() {
   const [residentes, setResidentes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
-  const [filtroStatus, setFiltroStatus] = useState<
-    "Todos" | "ativo" | "aguardando_pagamento"
-  >("Todos");
+  const [filtroStatus, setFiltroStatus] = useState<"Todos" | "ativo" | "aguardando_pagamento">("Todos");
 
-  useEffect(() => {
-    fetchResidentes();
-  }, []);
+  useEffect(() => { fetchResidentes(); }, []);
 
   async function fetchResidentes() {
     setLoading(true);
@@ -137,22 +166,16 @@ export default function PortalResidentes() {
     setLoading(false);
   }
 
-  // ─── CONTADORES ───
-  const contadores = useMemo(() => {
-    return {
-      total: residentes.length,
-      ativos: residentes.filter((r) => r.status === "ativo").length,
-      aguardando: residentes.filter((r) => r.status === "aguardando_pagamento")
-        .length,
-    };
-  }, [residentes]);
+  const contadores = useMemo(() => ({
+    total: residentes.length,
+    ativos: residentes.filter((r) => r.status === "ativo").length,
+    aguardando: residentes.filter((r) => r.status === "aguardando_pagamento").length,
+  }), [residentes]);
 
-  // ─── FILTRO ───
   const residentesFiltrados = useMemo(() => {
     const termo = busca.toLowerCase().trim();
     return residentes.filter((r) => {
-      const passaStatus =
-        filtroStatus === "Todos" || r.status === filtroStatus;
+      const passaStatus = filtroStatus === "Todos" || r.status === filtroStatus;
       const passaBusca =
         !termo ||
         r.nome_completo?.toLowerCase().includes(termo) ||
@@ -167,357 +190,324 @@ export default function PortalResidentes() {
   return (
     <>
       <GlobalStyles />
-      <div className={`${inter.className} space-y-6`}>
+      <div className={`${inter.className} space-y-4`}>
 
         {/* ═══════════════════════════════════════════════════════════ */}
-        {/* CABEÇALHO                                                   */}
+        {/* HEADER                                                      */}
         {/* ═══════════════════════════════════════════════════════════ */}
 
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 anim-fade-up">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 anim-fade-up">
           <div>
-            <div className="flex items-center gap-2 mb-1.5">
+            <div className="flex items-center gap-2 mb-1">
+              <span
+                className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.1em] px-1.5 py-0.5 rounded"
+                style={{ background: INK, color: "#FFF" }}
+              >
+                <Users size={9} strokeWidth={3} />
+                Base de dados
+              </span>
+              <span className="text-[11px]" style={{ color: MUTED }}>
+                {residentes.length} residente{residentes.length !== 1 ? "s" : ""} · {contadores.ativos} ativos
+              </span>
             </div>
-            <h1 className={`${jakarta.className} text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight`}>
-              Base de residentes
+            <h1
+              className={`${jakarta.className} text-[26px] font-bold tracking-tight`}
+              style={{ color: INK, letterSpacing: "-0.025em" }}
+            >
+              Residentes
             </h1>
-            <p className="text-sm text-slate-500 mt-1.5 flex items-center gap-2">
-              <Sparkles size={14} style={{ color: VERMELHO }} />
-              Listagem completa dos cidadãos registrados na base de dados.
+            <p className="text-[12.5px] mt-1" style={{ color: MUTED }}>
+              Listagem de cidadãos registrados na base de dados do portal.
             </p>
           </div>
 
-          {/* Badge de total */}
+          {/* Status da base */}
           <div
-            className="self-start sm:self-auto inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl border shadow-sm"
-            style={{
-              background: loading
-                ? "white"
-                : `linear-gradient(135deg, ${VERDE}08, ${VERDE}02)`,
-              borderColor: loading ? "#E2E8F0" : `${VERDE}30`,
-            }}
+            className="inline-flex items-center gap-2 h-9 px-3 rounded-md border self-start sm:self-auto"
+            style={{ borderColor: LINE, background: SURFACE }}
           >
-            {loading ? (
-              <Loader2 size={14} className="animate-spin" style={{ color: AZUL }} />
-            ) : (
-              <div className="relative">
-                <Users size={14} style={{ color: VERDE }} />
-                <span
-                  className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full pulse-dot"
-                  style={{ background: VERDE_LIGHT }}
-                />
-              </div>
-            )}
+            <Users size={12} style={{ color: INK }} />
             <span
-              className={`${jakarta.className} text-xs font-bold`}
-              style={{ color: loading ? "#64748B" : VERDE }}
+              className={`${jakarta.className} num text-[12px] font-bold`}
+              style={{ color: INK }}
             >
-              {loading
-                ? "Carregando..."
-                : `${residentes.length} residente${residentes.length !== 1 ? "s" : ""}`}
+              {contadores.total} total
             </span>
           </div>
         </div>
 
         {/* ═══════════════════════════════════════════════════════════ */}
-        {/* KPIs                                                        */}
+        {/* KPIs — strip horizontal                                     */}
         {/* ═══════════════════════════════════════════════════════════ */}
 
         {residentes.length > 0 && (
-          <div
-            className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 anim-fade-up"
-            style={{ animationDelay: "60ms" }}
-          >
-            {/* Total */}
-            <div className="relative bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all overflow-hidden group">
-              <div
-                className="absolute top-0 left-0 right-0 h-0.5"
-                style={{
-                  background: `linear-gradient(90deg, ${ROXO}, #A78BFA)`,
-                }}
-              />
-              <div className="flex items-center gap-2.5 mb-3">
+          <Panel noPad className="anim-fade-up">
+            <div className="grid grid-cols-3 divide-x" style={{ borderColor: LINE }}>
+              {[
+                { label: "Total", valor: contadores.total, unit: "registrados" },
+                { label: "Ativos", valor: contadores.ativos, unit: "carteiras emitidas" },
+                { label: "Aguardando", valor: contadores.aguardando, unit: "pendentes de pagamento" },
+              ].map((kpi) => (
                 <div
-                  className="w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0"
-                  style={{
-                    background: `linear-gradient(135deg, ${ROXO}, #A78BFA)`,
-                  }}
+                  key={kpi.label}
+                  className="px-4 py-3.5 hover:bg-[#FAFAFB] transition-colors"
+                  style={{ borderColor: LINE }}
                 >
-                  <Layers size={14} />
+                  <p
+                    className="text-[10.5px] font-semibold uppercase tracking-[0.08em]"
+                    style={{ color: MUTED }}
+                  >
+                    {kpi.label}
+                  </p>
+                  <p
+                    className={`${jakarta.className} num text-[26px] font-bold leading-none mt-2`}
+                    style={{ color: INK, letterSpacing: "-0.025em" }}
+                  >
+                    {kpi.valor}
+                  </p>
+                  <p className="text-[10.5px] mt-1.5" style={{ color: SUBTLE }}>
+                    {kpi.unit}
+                  </p>
                 </div>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 leading-tight">
-                  Total
-                </span>
-              </div>
-              <p
-                className={`${jakarta.className} text-3xl font-extrabold leading-none tracking-tight`}
-                style={{ color: ROXO }}
-              >
-                {contadores.total}
-              </p>
-              <p className="text-[10px] text-slate-400 mt-1.5 font-medium">
-                residentes registrados
-              </p>
+              ))}
             </div>
-
-            {/* Ativos */}
-            <div className="relative bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all overflow-hidden group">
-              <div
-                className="absolute top-0 left-0 right-0 h-0.5"
-                style={{
-                  background: `linear-gradient(90deg, ${AZUL}, ${AZUL_ESCURO})`,
-                }}
-              />
-              <div className="flex items-center gap-2.5 mb-3">
-                <div
-                  className="w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0"
-                  style={{
-                    background: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})`,
-                  }}
-                >
-                  <BadgeCheck size={14} />
-                </div>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 leading-tight">
-                  Ativos
-                </span>
-              </div>
-              <p
-                className={`${jakarta.className} text-3xl font-extrabold leading-none tracking-tight`}
-                style={{ color: contadores.ativos > 0 ? AZUL : "#94A3B8" }}
-              >
-                {contadores.ativos}
-              </p>
-              <p className="text-[10px] text-slate-400 mt-1.5 font-medium">
-                carteiras emitidas
-              </p>
-            </div>
-
-            {/* Aguardando */}
-            <div className="relative bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all overflow-hidden group">
-              <div
-                className="absolute top-0 left-0 right-0 h-0.5"
-                style={{
-                  background: `linear-gradient(90deg, ${AMBAR}, ${AMBAR_LIGHT})`,
-                }}
-              />
-              <div className="flex items-center gap-2.5 mb-3">
-                <div
-                  className="w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0"
-                  style={{
-                    background: `linear-gradient(135deg, ${AMBAR}, ${AMBAR_LIGHT})`,
-                  }}
-                >
-                  <Clock size={14} />
-                </div>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 leading-tight">
-                  Aguardando
-                </span>
-              </div>
-              <p
-                className={`${jakarta.className} text-3xl font-extrabold leading-none tracking-tight`}
-                style={{
-                  color: contadores.aguardando > 0 ? AMBAR : "#94A3B8",
-                }}
-              >
-                {contadores.aguardando}
-              </p>
-              <p className="text-[10px] text-slate-400 mt-1.5 font-medium">
-                pendentes de pagamento
-              </p>
-            </div>
-          </div>
+          </Panel>
         )}
 
         {/* ═══════════════════════════════════════════════════════════ */}
-        {/* BUSCA + FILTRO                                              */}
+        {/* FILTROS                                                     */}
         {/* ═══════════════════════════════════════════════════════════ */}
 
         {residentes.length > 0 && (
-          <div
-            className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm anim-fade-up"
-            style={{ animationDelay: "120ms" }}
-          >
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div className="flex items-center gap-2 min-w-0">
-                <div
-                  className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
-                  style={{ background: `${AZUL}10`, color: AZUL }}
-                >
-                  <Filter size={14} />
-                </div>
-                <p className="text-xs text-slate-500">
-                  Mostrando{" "}
-                  <strong className="text-slate-800 font-bold">
-                    {residentesFiltrados.length}
-                  </strong>{" "}
-                  de{" "}
-                  <strong className="text-slate-800 font-bold">
-                    {residentes.length}
-                  </strong>{" "}
-                  residente(s)
-                </p>
+          <Panel noPad className="anim-fade-up">
+            <div className="p-3 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <div className="relative flex-1">
+                <Search
+                  size={14}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                  style={{ color: SUBTLE }}
+                />
+                <input
+                  type="text"
+                  placeholder="Buscar por nome, CPF ou e-mail..."
+                  value={busca}
+                  onChange={(e) => setBusca(e.target.value)}
+                  className={`${inputCls} pl-9 pr-9`}
+                  style={{ borderColor: LINE }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = INK;
+                    e.currentTarget.style.boxShadow = `0 0 0 3px rgba(10,14,20,0.06)`;
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = LINE;
+                    e.currentTarget.style.boxShadow = "none";
+                  }}
+                />
+                {busca && (
+                  <button
+                    onClick={() => setBusca("")}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded flex items-center justify-center transition-colors"
+                    style={{ color: SUBTLE }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = LINE_2)}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                    aria-label="Limpar busca"
+                  >
+                    <X size={12} />
+                  </button>
+                )}
               </div>
 
-              <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
-                <select
-                  value={filtroStatus}
-                  onChange={(e) => setFiltroStatus(e.target.value as any)}
-                  className="bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl px-3 py-2.5 focus:outline-none focus:bg-white focus:border-[#0078D4] focus:ring-4 focus:ring-[#0078D4]/10 transition-all cursor-pointer"
-                >
-                  <option value="Todos">Todos os status</option>
-                  <option value="ativo">Ativos</option>
-                  <option value="aguardando_pagamento">Aguardando pagamento</option>
-                </select>
+              <select
+                value={filtroStatus}
+                onChange={(e) => setFiltroStatus(e.target.value as any)}
+                className="h-10 px-3 rounded-md text-[12.5px] font-medium border transition-colors cursor-pointer w-full sm:w-auto"
+                style={{ borderColor: LINE, color: INK, background: SURFACE }}
+              >
+                <option value="Todos">Todos os status</option>
+                <option value="ativo">Ativos</option>
+                <option value="aguardando_pagamento">Aguardando pagamento</option>
+              </select>
 
-                <div className="relative flex-1 sm:w-80">
-                  <Search
-                    size={14}
-                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Buscar nome, CPF ou e-mail..."
-                    value={busca}
-                    onChange={(e) => setBusca(e.target.value)}
-                    className={`${inputCls} pl-10 pr-9 text-xs py-2.5`}
-                  />
-                  {busca && (
-                    <button
-                      onClick={() => setBusca("")}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full hover:bg-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors"
-                    >
-                      <X size={11} />
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {temFiltro && (
-              <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-end">
+              {temFiltro && (
                 <button
                   onClick={() => {
                     setBusca("");
                     setFiltroStatus("Todos");
                   }}
-                  className="text-[11px] font-bold hover:underline transition-colors flex items-center gap-1"
-                  style={{ color: AZUL }}
+                  className="h-10 px-3 rounded-md text-[12px] font-semibold border transition-colors whitespace-nowrap"
+                  style={{ borderColor: LINE, color: INK_2, background: SURFACE }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = LINE_2)}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = SURFACE)}
                 >
-                  <X size={11} /> Limpar filtros
+                  Limpar
                 </button>
+              )}
+            </div>
+
+            {temFiltro && (
+              <div
+                className="px-4 py-2 border-t text-center"
+                style={{ borderColor: LINE, background: BG }}
+              >
+                <p className="text-[11px] num" style={{ color: MUTED }}>
+                  <strong style={{ color: INK }}>{residentesFiltrados.length}</strong> de{" "}
+                  <strong style={{ color: INK }}>{residentes.length}</strong> residentes
+                </p>
               </div>
             )}
-          </div>
+          </Panel>
         )}
 
         {/* ═══════════════════════════════════════════════════════════ */}
-        {/* LISTA                                                       */}
+        {/* TABELA                                                      */}
         {/* ═══════════════════════════════════════════════════════════ */}
 
         {loading ? (
-          <div className="bg-white border border-slate-200/80 rounded-2xl py-24 flex flex-col items-center gap-3 anim-fade">
-            <div
-              className="w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-sm"
-              style={{ background: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})` }}
-            >
-              <Loader2 size={22} className="animate-spin" />
+          <Panel noPad>
+            <div className="divide-y" style={{ borderColor: LINE_2 }}>
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="h-16 skeleton" />
+              ))}
             </div>
-            <p className="text-xs text-slate-400 font-medium">
-              Carregando residentes...
-            </p>
-          </div>
+          </Panel>
         ) : residentesFiltrados.length === 0 ? (
-          <div className="bg-white border border-slate-200/80 rounded-2xl py-20 text-center shadow-sm anim-fade">
-            <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm text-white"
-              style={{
-                background: temFiltro
-                  ? `linear-gradient(135deg, ${AMBAR}, ${AMBAR_LIGHT})`
-                  : `linear-gradient(135deg, ${VERMELHO}, #F87171)`,
-              }}
-            >
-              {temFiltro ? <Search size={28} /> : <Inbox size={28} />}
-            </div>
-            <h3 className={`${jakarta.className} text-lg font-bold text-slate-800 mb-1.5`}>
-              {temFiltro ? "Nenhum resultado" : "Nenhum residente registrado"}
-            </h3>
-            <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed mb-5">
-              {temFiltro
-                ? "Ajuste os filtros ou a busca para encontrar residentes."
-                : "Os cidadãos registrados aparecerão aqui."}
-            </p>
-            {temFiltro && (
-              <button
-                onClick={() => {
-                  setBusca("");
-                  setFiltroStatus("Todos");
-                }}
-                className={`${jakarta.className} text-[11px] font-bold px-4 py-2 rounded-xl text-white shadow-sm hover:shadow-md transition-all`}
-                style={{ background: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})` }}
+          <Panel noPad className="anim-fade">
+            <div className="py-16 text-center">
+              <div
+                className="w-11 h-11 rounded-lg mx-auto mb-3 flex items-center justify-center"
+                style={{ background: LINE_2, color: MUTED }}
               >
-                Limpar filtros
-              </button>
-            )}
-          </div>
+                {temFiltro ? <Search size={20} strokeWidth={2} /> : <Inbox size={20} strokeWidth={2} />}
+              </div>
+              <p className={`${jakarta.className} text-[13px] font-bold`} style={{ color: INK }}>
+                {temFiltro ? "Nenhum resultado" : "Nenhum residente registrado"}
+              </p>
+              <p className="text-[11.5px] mt-1 max-w-md mx-auto" style={{ color: MUTED }}>
+                {temFiltro
+                  ? "Ajuste os filtros ou a busca para encontrar residentes."
+                  : "Os cidadãos registrados aparecerão aqui."}
+              </p>
+              {temFiltro && (
+                <div className="mt-4">
+                  <button
+                    onClick={() => {
+                      setBusca("");
+                      setFiltroStatus("Todos");
+                    }}
+                    className="h-9 px-3 rounded-md text-[12.5px] font-semibold text-white transition-colors"
+                    style={{ background: INK }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = INK_2)}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = INK)}
+                  >
+                    Limpar filtros
+                  </button>
+                </div>
+              )}
+            </div>
+          </Panel>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-            {residentesFiltrados.map((res, idx) => {
-              const statusInfo = getStatusInfo(res.status);
-              const iniciais = (res.nome_completo || "?")
-                .split(" ")
-                .filter(Boolean)
-                .slice(0, 2)
-                .map((n: string) => n[0])
-                .join("")
-                .toUpperCase();
+          <Panel noPad className="anim-fade-up">
+            {/* Header da tabela */}
+            <div
+              className="hidden md:grid grid-cols-[40px_2fr_1fr_1.4fr_1fr_20px] items-center gap-4 px-5 py-2.5 border-b"
+              style={{ borderColor: LINE, background: BG }}
+            >
+              <span />
+              <span
+                className="text-[10.5px] font-semibold uppercase tracking-[0.08em]"
+                style={{ color: MUTED }}
+              >
+                Nome
+              </span>
+              <span
+                className="text-[10.5px] font-semibold uppercase tracking-[0.08em]"
+                style={{ color: MUTED }}
+              >
+                CPF
+              </span>
+              <span
+                className="text-[10.5px] font-semibold uppercase tracking-[0.08em]"
+                style={{ color: MUTED }}
+              >
+                E-mail
+              </span>
+              <span
+                className="text-[10.5px] font-semibold uppercase tracking-[0.08em]"
+                style={{ color: MUTED }}
+              >
+                Status
+              </span>
+              <span />
+            </div>
 
-              return (
-                <article
+            {/* Linhas */}
+            <div className="divide-y" style={{ borderColor: LINE_2 }}>
+              {residentesFiltrados.map((res, idx) => (
+                <div
                   key={res.id}
-                  style={{ animationDelay: `${180 + idx * 25}ms` }}
-                  className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 anim-fade-up group"
+                  style={{ animationDelay: `${idx * 15}ms` }}
+                  className="grid grid-cols-[40px_1fr_auto] md:grid-cols-[40px_2fr_1fr_1.4fr_1fr_20px] items-center gap-4 px-5 py-3 hover:bg-[#FAFAFB] transition-colors anim-fade-up group"
                 >
+                  {/* Avatar */}
                   <div
-                    className="h-0.5"
-                    style={{ background: statusInfo.gradient }}
-                  />
-
-                  <div className="p-4 flex items-center gap-4">
-                    {/* Avatar */}
-                    <div
-                      className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 text-sm font-bold text-white shadow-sm transition-transform group-hover:scale-105"
-                      style={{ background: statusInfo.gradient }}
-                    >
-                      {iniciais}
-                    </div>
-
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap mb-1.5">
-                        <StatusBadge status={res.status} />
-                      </div>
-
-                      <h3
-                        className={`${jakarta.className} text-sm font-bold text-slate-900 truncate mb-1.5`}
-                      >
-                        {res.nome_completo}
-                      </h3>
-
-                      <div className="space-y-1">
-                        <p className="text-[11px] text-slate-500 flex items-center gap-1.5 truncate">
-                          <IdCard size={10} className="text-slate-400 shrink-0" />
-                          <span className="font-mono">{res.cpf}</span>
-                        </p>
-                        <p className="text-[11px] text-slate-500 flex items-center gap-1.5 truncate">
-                          <Mail size={10} className="text-slate-400 shrink-0" />
-                          {res.email}
-                        </p>
-                      </div>
-                    </div>
+                    className="w-9 h-9 rounded-md flex items-center justify-center shrink-0 text-[11px] font-bold text-white"
+                    style={{ background: INK }}
+                  >
+                    {iniciaisDeNome(res.nome_completo)}
                   </div>
-                </article>
-              );
-            })}
-          </div>
+
+                  {/* Nome */}
+                  <div className="min-w-0">
+                    <p
+                      className={`${jakarta.className} text-[13.5px] font-bold leading-snug truncate`}
+                      style={{ color: INK }}
+                    >
+                      {res.nome_completo}
+                    </p>
+                    <p
+                      className="md:hidden text-[11px] truncate mt-0.5 num"
+                      style={{ color: MUTED }}
+                    >
+                      {res.cpf} · {res.email}
+                    </p>
+                  </div>
+
+                  {/* CPF */}
+                  <p
+                    className="hidden md:block text-[12.5px] font-medium num truncate"
+                    style={{ color: INK_2 }}
+                  >
+                    {res.cpf}
+                  </p>
+
+                  {/* Email */}
+                  <p
+                    className="hidden md:block text-[12.5px] font-medium truncate"
+                    style={{ color: MUTED }}
+                  >
+                    {res.email}
+                  </p>
+
+                  {/* Status */}
+                  <div className="hidden md:block">
+                    <StatusPill status={res.status} />
+                  </div>
+
+                  {/* Status mobile */}
+                  <div className="md:hidden">
+                    <StatusPill status={res.status} />
+                  </div>
+
+                  {/* Seta */}
+                  <ChevronRight
+                    size={14}
+                    className="hidden md:block shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                    style={{ color: SUBTLE }}
+                  />
+                </div>
+              ))}
+            </div>
+          </Panel>
         )}
       </div>
     </>

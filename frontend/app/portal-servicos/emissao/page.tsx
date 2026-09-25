@@ -4,30 +4,31 @@ import React, { useState } from "react";
 import { Plus_Jakarta_Sans, Inter } from "next/font/google";
 import { supabase } from "@/lib/supabase";
 import {
-  AlertCircle, Loader2, CheckCircle2, Upload, Sparkles, Search,
-  User, CreditCard, Mail, Calendar, ImageIcon, Camera, Copy,
-  X, QrCode, Wallet, Zap, Target, Filter, Inbox, ShieldAlert,
-  BadgeCheck, Clock, ArrowRight, Info, FileText, Hash, RefreshCw,
-  IdCard, Gift, Users, ChevronRight, Circle,
+  AlertCircle, Loader2, CheckCircle2, Upload, Search,
+  User, Mail, Calendar, Camera, Copy, X, QrCode, Wallet,
+  Info, RefreshCw, IdCard, Users, ShieldAlert,
+  BadgeCheck, Clock, Zap, Check, FileText,
 } from "lucide-react";
 
-const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["600", "700", "800"] });
+const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["500", "600", "700", "800"] });
 const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
-// ─── CORES (paleta Azure/Microsoft) ───
-const AZUL = "#0078D4";
-const AZUL_ESCURO = "#005A9E";
-const AMBAR = "#DAA520";
-const AMBAR_LIGHT = "#FBBF24";
-const VERMELHO = "#D13438";
-const VERDE = "#168821";
-const VERDE_LIGHT = "#22C55E";
-const ROXO = "#7C3AED";
+// ─── PALETA ENTERPRISE ───
+const INK = "#0A0E14";
+const INK_2 = "#1F2937";
+const MUTED = "#6B7280";
+const SUBTLE = "#9CA3AF";
+const LINE = "#E5E7EB";
+const LINE_2 = "#F3F4F6";
+const BG = "#FBFBFC";
+const SURFACE = "#FFFFFF";
+const ACCENT = "#2563EB";
+const SUCCESS = "#059669";
+const WARNING = "#D97706";
+const DANGER = "#DC2626";
 
 const inputCls =
-  "w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl px-3.5 py-2.5 focus:outline-none focus:bg-white focus:border-[#0078D4] focus:ring-4 focus:ring-[#0078D4]/10 transition-all placeholder:text-slate-400";
-const labelCls =
-  "flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2";
+  "w-full bg-white text-[13.5px] rounded-md px-3 py-2.5 transition-[border-color,box-shadow] duration-150 placeholder:text-slate-400 focus:outline-none border disabled:opacity-50 disabled:cursor-not-allowed";
 
 // ═══════════════════════════════════════════════════════════════
 // ESTILOS GLOBAIS
@@ -36,8 +37,8 @@ const labelCls =
 function GlobalStyles() {
   return (
     <style jsx global>{`
-      @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(8px); }
+      @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(4px); }
         to { opacity: 1; transform: translateY(0); }
       }
       @keyframes fadeIn {
@@ -45,37 +46,67 @@ function GlobalStyles() {
         to { opacity: 1; }
       }
       @keyframes scaleIn {
-        from { opacity: 0; transform: scale(0.97); }
+        from { opacity: 0; transform: scale(0.98); }
         to { opacity: 1; transform: scale(1); }
       }
-      @keyframes pulseDot {
-        0%, 100% { opacity: 1; transform: scale(1); }
-        50% { opacity: 0.5; transform: scale(0.85); }
-      }
-      .anim-fade-up { animation: fadeInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; }
-      .anim-fade { animation: fadeIn 0.25s ease both; }
-      .anim-scale { animation: scaleIn 0.2s ease both; }
-      .pulse-dot { animation: pulseDot 1.8s ease-in-out infinite; }
-      .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
-      .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
-      .scrollbar-thin::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
-      .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+      .anim-fade-up { animation: fadeUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) both; }
+      .anim-fade { animation: fadeIn 0.2s ease both; }
+      .anim-scale { animation: scaleIn 0.22s cubic-bezier(0.16, 1, 0.3, 1); }
+      .num { font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+      .scroll-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+      .scroll-thin::-webkit-scrollbar-track { background: transparent; }
+      .scroll-thin::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 3px; }
+      .scroll-thin::-webkit-scrollbar-thumb:hover { background: #9CA3AF; }
     `}</style>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════
-// SUB-COMPONENTES
+// ÁTOMOS
 // ═══════════════════════════════════════════════════════════════
 
-function FormField({
-  label,
-  icon,
-  required,
-  hint,
-  children,
-  className = "",
-}: {
+function Panel({ children, className = "", noPad = false }: {
+  children: React.ReactNode;
+  className?: string;
+  noPad?: boolean;
+}) {
+  return (
+    <div className={`bg-white border rounded-lg overflow-hidden ${className}`} style={{ borderColor: LINE }}>
+      {noPad ? children : <div className="p-5">{children}</div>}
+    </div>
+  );
+}
+
+function PanelHeader({ title, subtitle, action, badge }: {
+  title: string;
+  subtitle?: string;
+  action?: React.ReactNode;
+  badge?: React.ReactNode;
+}) {
+  return (
+    <div
+      className="px-5 py-3.5 flex items-center justify-between gap-3 border-b"
+      style={{ borderColor: LINE, background: BG }}
+    >
+      <div className="min-w-0">
+        <div className="flex items-center gap-2">
+          <h3 className={`${jakarta.className} text-[13px] font-bold`} style={{ color: INK }}>
+            {title}
+          </h3>
+          {badge}
+        </div>
+        {subtitle && (
+          <p className="text-[11.5px] mt-0.5" style={{ color: MUTED }}>
+            {subtitle}
+          </p>
+        )}
+      </div>
+      {action}
+    </div>
+  );
+}
+
+function FormField({ label, icon, required, hint, children, className = "" }: {
   label: string;
   icon?: React.ReactNode;
   required?: boolean;
@@ -85,15 +116,18 @@ function FormField({
 }) {
   return (
     <div className={className}>
-      <label className={labelCls}>
+      <label
+        className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] mb-1.5"
+        style={{ color: MUTED }}
+      >
         {icon}
         {label}
-        {required && <span style={{ color: VERMELHO }}>*</span>}
+        {required && <span style={{ color: DANGER }}>*</span>}
       </label>
       {children}
       {hint && (
-        <p className="text-[10px] text-slate-400 mt-1.5 leading-relaxed flex items-start gap-1.5">
-          <Info size={10} className="mt-0.5 shrink-0" />
+        <p className="text-[10.5px] mt-1.5 leading-relaxed flex items-start gap-1.5" style={{ color: SUBTLE }}>
+          <Info size={11} className="mt-0.5 shrink-0" />
           {hint}
         </p>
       )}
@@ -104,41 +138,37 @@ function FormField({
 function FeedbackInline({ feedback }: { feedback: string }) {
   if (!feedback) return null;
 
-  const isErro = feedback.toLowerCase().includes("erro") || feedback.includes("❌");
-  const isSucesso = feedback.toLowerCase().includes("sucesso") || feedback.includes("✅");
-  const cor = isErro ? VERMELHO : isSucesso ? VERDE : AZUL;
-  const gradient = isErro
-    ? `linear-gradient(135deg, ${VERMELHO}, #F87171)`
-    : isSucesso
-    ? `linear-gradient(135deg, ${VERDE}, ${VERDE_LIGHT})`
-    : `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})`;
-  const Icone = isErro ? AlertCircle : isSucesso ? CheckCircle2 : Loader2;
+  const isErro = feedback.toLowerCase().includes("erro");
+  const isSucesso = feedback.toLowerCase().includes("sucesso") || feedback.toLowerCase().includes("confirmado") || feedback.toLowerCase().includes("enviad");
+  const tone = isErro ? "error" : isSucesso ? "success" : "info";
+
+  const map = {
+    error: { c: DANGER, bg: "#FEF2F2", b: "#FEE2E2", Icon: AlertCircle },
+    success: { c: SUCCESS, bg: "#ECFDF5", b: "#D1FAE5", Icon: CheckCircle2 },
+    info: { c: ACCENT, bg: "#EFF6FF", b: "#DBEAFE", Icon: Loader2 },
+  }[tone];
+
+  const Icone = map.Icon;
+  const isSpinner = tone === "info";
 
   return (
     <div
-      className="rounded-2xl p-4 flex items-start gap-3 border-2 shadow-sm anim-fade-up"
-      style={{ background: `${cor}08`, borderColor: `${cor}30` }}
+      className="rounded-md p-3.5 flex items-start gap-2.5 border anim-fade"
+      style={{ background: map.bg, borderColor: map.b, color: map.c }}
     >
-      <div
-        className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-sm text-white"
-        style={{ background: gradient }}
-      >
-        <Icone size={15} className={!isErro && !isSucesso ? "animate-spin" : ""} />
-      </div>
-      <div className="flex-1 pt-0.5 min-w-0">
-        <p className="text-xs font-bold text-slate-800">
-          {isErro ? "Erro" : isSucesso ? "Sucesso" : "A processar"}
-        </p>
-        <p className="text-xs text-slate-600 mt-0.5 break-words leading-relaxed">
-          {feedback}
-        </p>
-      </div>
+      <Icone size={14} className={`shrink-0 mt-0.5 ${isSpinner ? "animate-spin" : ""}`} />
+      <p className="text-[12.5px] font-medium break-words">{textoLimpo(feedback)}</p>
     </div>
   );
 }
 
+// Remove emojis residuais de mensagens legadas
+function textoLimpo(s: string) {
+  return s.replace(/[✅❌⚠️🔒📧💳🎉✨]/g, "").trim();
+}
+
 // ═══════════════════════════════════════════════════════════════
-// PÁGINA PRINCIPAL
+// PÁGINA
 // ═══════════════════════════════════════════════════════════════
 
 export default function PortalEmissao() {
@@ -188,9 +218,7 @@ export default function PortalEmissao() {
 
     try {
       const resp = await fetch(
-        `https://sagaturismo-production.up.railway.app/api/v1/residentes/buscar?q=${encodeURIComponent(
-          busca
-        )}`
+        `https://sagaturismo-production.up.railway.app/api/v1/residentes/buscar?q=${encodeURIComponent(busca)}`
       );
       if (!resp.ok) throw new Error("Falha na comunicação com o servidor.");
 
@@ -213,11 +241,10 @@ export default function PortalEmissao() {
       alert("Insira o novo e-mail para envio.");
       return;
     }
-    if (!confirm(`Confirmar emissão de 2ª via para ${residente.nome_completo}?`))
-      return;
+    if (!confirm(`Confirmar emissão de 2ª via para ${residente.nome_completo}?`)) return;
 
     setLoadingAcao(true);
-    setFeedbackAcao("A processar a 2ª Via...");
+    setFeedbackAcao("Processando a 2ª via...");
     setPixGerado(null);
 
     try {
@@ -249,9 +276,7 @@ export default function PortalEmissao() {
           }
         );
         if (!resp.ok) throw new Error("Erro ao disparar o e-mail.");
-        setFeedbackAcao(
-          "Pagamento em Dinheiro confirmado! A 2ª Via foi enviada por e-mail."
-        );
+        setFeedbackAcao("Pagamento em dinheiro confirmado. A 2ª via foi enviada por e-mail.");
       } else {
         const resp = await fetch(
           "https://sagaturismo-production.up.railway.app/api/v1/pagamentos/carteira-bb",
@@ -266,7 +291,7 @@ export default function PortalEmissao() {
         setPixGerado({
           qr: data.pix_qrcode_img,
           copiaCola: data.pix_copia_cola,
-          msg: "PIX de R$ 5,00 gerado! O e-mail com a carteira será enviado automaticamente pelo banco após o pagamento.",
+          msg: "PIX de R$ 5,00 gerado. O e-mail com a carteira será enviado automaticamente após o pagamento.",
         });
         setFeedbackAcao("");
       }
@@ -284,19 +309,15 @@ export default function PortalEmissao() {
       alert("Preencha todos os campos e anexe a fotografia.");
       return;
     }
-    if (!confirm(`Forçar criação de cidadão e gerar nova carteira para ${form.nome}?`))
-      return;
+    if (!confirm(`Confirmar emissão de nova carteira para ${form.nome}?`)) return;
 
     setSavingManual(true);
-    setFeedbackAcao("A enviar fotografia para a galeria...");
+    setFeedbackAcao("Enviando fotografia...");
     setPixGerado(null);
 
     try {
       const ext = foto.name.split(".").pop();
-      const path = `residentes/carteira_manual_${form.cpf.replace(
-        /\D/g,
-        ""
-      )}_${Date.now()}.${ext}`;
+      const path = `residentes/carteira_manual_${form.cpf.replace(/\D/g, "")}_${Date.now()}.${ext}`;
 
       const { error: uploadError } = await supabase.storage
         .from("galeria")
@@ -306,10 +327,9 @@ export default function PortalEmissao() {
       const { data: pubUrl } = supabase.storage.from("galeria").getPublicUrl(path);
       const fotoUrlCompleta = pubUrl.publicUrl;
 
-      setFeedbackAcao("A registrar cidadão no sistema...");
+      setFeedbackAcao("Registrando cidadão...");
 
-      const statusFinal =
-        metodoNovaEmissao === "dinheiro" ? "ativo" : "aguardando_pagamento";
+      const statusFinal = metodoNovaEmissao === "dinheiro" ? "ativo" : "aguardando_pagamento";
 
       const respResidente = await fetch(
         "https://sagaturismo-production.up.railway.app/api/v1/residentes/emissao-manual",
@@ -327,8 +347,7 @@ export default function PortalEmissao() {
         }
       );
 
-      if (!respResidente.ok)
-        throw new Error("Erro ao registrar cidadão no servidor.");
+      if (!respResidente.ok) throw new Error("Erro ao registrar cidadão no servidor.");
       const dadosResidente = await respResidente.json();
       const residenteId = dadosResidente.residente_id;
 
@@ -354,9 +373,7 @@ export default function PortalEmissao() {
           }
         );
         if (!respCarteira.ok) throw new Error("Erro no envio do e-mail.");
-        setFeedbackAcao(
-          "Cidadão criado e carteira enviada (Pagamento em Dinheiro)."
-        );
+        setFeedbackAcao("Cidadão registrado. Carteira enviada por e-mail.");
       } else {
         const respCarteira = await fetch(
           "https://sagaturismo-production.up.railway.app/api/v1/pagamentos/carteira-bb",
@@ -371,7 +388,7 @@ export default function PortalEmissao() {
         setPixGerado({
           qr: data.pix_qrcode_img,
           copiaCola: data.pix_copia_cola,
-          msg: "PIX de R$ 20,00 gerado! A carteira será enviada automaticamente após o pagamento.",
+          msg: "PIX de R$ 20,00 gerado. A carteira será enviada automaticamente após o pagamento.",
         });
         setFeedbackAcao("");
       }
@@ -380,7 +397,7 @@ export default function PortalEmissao() {
       setFoto(null);
     } catch (err: any) {
       console.error(err);
-      setFeedbackAcao(`Erro Manual: ${err.message}`);
+      setFeedbackAcao(`Erro: ${err.message}`);
     } finally {
       setSavingManual(false);
     }
@@ -389,157 +406,181 @@ export default function PortalEmissao() {
   return (
     <>
       <GlobalStyles />
-      <div className={`${inter.className} space-y-8 anim-fade-up`}>
+      <div className={`${inter.className} space-y-4`}>
 
         {/* ═══════════════════════════════════════════════════════════ */}
-        {/* CABEÇALHO                                                   */}
+        {/* HEADER                                                      */}
         {/* ═══════════════════════════════════════════════════════════ */}
 
-        <div>
-          <div className="flex items-center gap-2 mb-1.5">
+        <div className="anim-fade-up">
+          <div className="flex items-center gap-2 mb-1">
+            <span
+              className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.1em] px-1.5 py-0.5 rounded"
+              style={{ background: INK, color: "#FFF" }}
+            >
+              <IdCard size={9} strokeWidth={3} />
+              Carteira
+            </span>
+            <span className="text-[11px]" style={{ color: MUTED }}>
+              2ª via · R$ 5,00 · Nova · R$ 20,00
+            </span>
           </div>
-          <h1 className={`${jakarta.className} text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight`}>
-            Central de gestão & emissão
+          <h1
+            className={`${jakarta.className} text-[26px] font-bold tracking-tight`}
+            style={{ color: INK, letterSpacing: "-0.025em" }}
+          >
+            Emissão de carteiras
           </h1>
-          <p className="text-sm text-slate-500 mt-1.5 flex items-center gap-2">
-            <Sparkles size={14} style={{ color: VERMELHO }} />
-            Pesquisa residentes para 2ª Via (R$ 5) ou emite novas carteiras do zero (R$ 20).
+          <p className="text-[12.5px] mt-1" style={{ color: MUTED }}>
+            Pesquise residentes para 2ª via ou emita novas carteiras manualmente.
           </p>
         </div>
 
         {/* ═══════════════════════════════════════════════════════════ */}
-        {/* CARD DE PIX GERADO                                          */}
+        {/* PIX MODAL                                                   */}
         {/* ═══════════════════════════════════════════════════════════ */}
 
         {pixGerado && (
-          <div
-            className="relative bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm max-w-2xl mx-auto anim-scale"
-          >
-            <div
-              className="h-1"
-              style={{ background: `linear-gradient(90deg, ${AZUL}, ${AZUL_ESCURO})` }}
+          <Panel noPad className="anim-scale max-w-2xl mx-auto">
+            <PanelHeader
+              title="Cobrança PIX gerada"
+              subtitle="Banco do Brasil · Pagamento instantâneo"
+              action={
+                <button
+                  onClick={() => setPixGerado(null)}
+                  className="w-8 h-8 rounded-md flex items-center justify-center transition-colors"
+                  style={{ color: SUBTLE }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = LINE_2)}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                  aria-label="Fechar"
+                >
+                  <X size={15} />
+                </button>
+              }
             />
 
-            <div
-              className="px-5 py-4 border-b border-slate-100 flex items-center gap-3"
-              style={{ background: `linear-gradient(135deg, ${AZUL}08, ${AZUL}02)` }}
-            >
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0"
-                style={{ background: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})` }}
-              >
-                <QrCode size={17} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className={`${jakarta.className} text-sm font-bold text-slate-800`}>
-                  Cobrança PIX gerada
-                </h3>
-                <p className="text-[11px] text-slate-500 mt-0.5">
-                  Banco do Brasil · Pagamento instantâneo
-                </p>
-              </div>
-              <button
-                onClick={() => setPixGerado(null)}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors shrink-0"
-                title="Fechar"
-              >
-                <X size={15} />
-              </button>
-            </div>
-
             <div className="p-6 flex flex-col items-center">
-              <p className="text-xs text-slate-600 text-center font-medium max-w-md mb-5 leading-relaxed">
+              <div
+                className="w-11 h-11 rounded-lg flex items-center justify-center mb-4"
+                style={{ background: LINE_2, color: INK }}
+              >
+                <QrCode size={20} strokeWidth={2} />
+              </div>
+
+              <p className="text-[12.5px] leading-relaxed max-w-md text-center mb-6" style={{ color: MUTED }}>
                 {pixGerado.msg}
               </p>
 
-              <img
-                src={pixGerado.qr}
-                alt="QR Code PIX"
-                className="w-52 h-52 rounded-2xl border-4 border-white shadow-md mb-5"
-              />
-
-              <div className="w-full max-w-md bg-slate-50 border border-slate-200 rounded-xl p-3 flex items-center gap-2">
-                <input
-                  type="text"
-                  value={pixGerado.copiaCola}
-                  readOnly
-                  className="flex-1 text-xs text-slate-500 bg-transparent outline-none truncate font-mono"
+              <div
+                className="p-3 rounded-md border mb-5"
+                style={{ borderColor: LINE, background: SURFACE }}
+              >
+                <img
+                  src={pixGerado.qr}
+                  alt="QR Code PIX"
+                  className="w-52 h-52 block"
                 />
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(pixGerado.copiaCola);
-                    alert("Código Copiado!");
-                  }}
-                  className={`${jakarta.className} text-white px-3.5 py-2 rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-all shadow-sm hover:shadow-md shrink-0`}
-                  style={{ background: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})` }}
+              </div>
+
+              <div className="w-full max-w-md">
+                <label
+                  className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] mb-1.5"
+                  style={{ color: MUTED }}
                 >
-                  <Copy size={11} /> Copiar
-                </button>
+                  <FileText size={10} />
+                  Código copia e cola
+                </label>
+                <div
+                  className="rounded-md border flex items-stretch overflow-hidden"
+                  style={{ borderColor: LINE, background: SURFACE }}
+                >
+                  <input
+                    type="text"
+                    value={pixGerado.copiaCola}
+                    readOnly
+                    className="flex-1 text-[11.5px] px-3 py-2.5 bg-transparent outline-none truncate font-mono"
+                    style={{ color: MUTED }}
+                  />
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(pixGerado.copiaCola);
+                      alert("Código copiado!");
+                    }}
+                    className="px-3.5 text-white text-[11.5px] font-semibold flex items-center gap-1.5 transition-colors shrink-0"
+                    style={{ background: INK }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = INK_2)}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = INK)}
+                  >
+                    <Copy size={11} />
+                    Copiar
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+          </Panel>
         )}
 
         {/* ═══════════════════════════════════════════════════════════ */}
-        {/* BLOCO 1: BUSCA E 2ª VIA                                     */}
+        {/* BLOCO 1 · BUSCA + 2ª VIA                                    */}
         {/* ═══════════════════════════════════════════════════════════ */}
 
-        <div className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm">
-          <div
-            className="h-0.5"
-            style={{ background: `linear-gradient(90deg, ${AZUL}, ${AZUL_ESCURO})` }}
+        <Panel noPad className="anim-fade-up">
+          <PanelHeader
+            title="Localizar cidadão"
+            subtitle="Pesquisa por nome ou CPF · 2ª via R$ 5,00"
+            badge={
+              <span
+                className="text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase tracking-wide"
+                style={{ background: LINE_2, color: MUTED, border: `1px solid ${LINE}` }}
+              >
+                <Search size={9} className="inline mr-1" />
+                Busca
+              </span>
+            }
           />
 
-          <div
-            className="px-5 py-4 border-b border-slate-100 flex items-center gap-3"
-            style={{ background: `linear-gradient(135deg, ${AZUL}06, ${AZUL}02)` }}
-          >
-            <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0"
-              style={{ background: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})` }}
-            >
-              <Search size={17} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className={`${jakarta.className} text-sm font-bold text-slate-800`}>
-                Localizar cidadão
-              </h3>
-              <p className="text-[11px] text-slate-500 mt-0.5">
-                Pesquisa por nome ou CPF para emissão de 2ª via (R$ 5,00)
-              </p>
-            </div>
-          </div>
-
           <div className="p-5 space-y-4">
-            <form onSubmit={handleBuscar} className="flex flex-col sm:flex-row gap-3">
+            <form onSubmit={handleBuscar} className="flex flex-col sm:flex-row gap-2">
               <div className="relative flex-1">
                 <Search
                   size={14}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                  style={{ color: SUBTLE }}
                 />
                 <input
                   type="text"
                   value={busca}
                   onChange={(e) => setBusca(mascaraCPF(e.target.value))}
-                  placeholder="Digite o Nome ou CPF (000.000.000-00)..."
-                  className={`${inputCls} pl-10`}
+                  placeholder="Nome ou CPF (000.000.000-00)..."
+                  className={`${inputCls} pl-9`}
+                  style={{ borderColor: LINE }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = INK;
+                    e.currentTarget.style.boxShadow = `0 0 0 3px rgba(10,14,20,0.06)`;
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = LINE;
+                    e.currentTarget.style.boxShadow = "none";
+                  }}
                 />
               </div>
               <button
                 type="submit"
                 disabled={loadingBusca}
-                className={`${jakarta.className} text-white px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-sm hover:shadow-md hover:-translate-y-0.5 disabled:hover:translate-y-0 shrink-0`}
-                style={{ background: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})` }}
+                className="h-10 px-3.5 rounded-md text-[12.5px] font-semibold flex items-center gap-2 text-white transition-colors disabled:opacity-50 shrink-0"
+                style={{ background: INK }}
+                onMouseEnter={(e) => !loadingBusca && (e.currentTarget.style.background = INK_2)}
+                onMouseLeave={(e) => !loadingBusca && (e.currentTarget.style.background = INK)}
               >
                 {loadingBusca ? (
                   <>
-                    <Loader2 size={14} className="animate-spin" />
-                    A procurar...
+                    <Loader2 size={13} className="animate-spin" />
+                    Buscando...
                   </>
                 ) : (
                   <>
-                    <Search size={14} />
-                    Procurar
+                    <Search size={13} />
+                    Buscar
                   </>
                 )}
               </button>
@@ -549,58 +590,71 @@ export default function PortalEmissao() {
 
             {/* Resultados */}
             {resultados.length > 0 && (
-              <div className="space-y-3 pt-2">
+              <div className="space-y-2 pt-2">
                 {resultados.map((res, idx) => {
                   const isAtivo = res.status === "ativo";
-                  const corStatus = isAtivo ? AZUL : AMBAR;
-                  const IconeStatus = isAtivo ? BadgeCheck : Clock;
+                  const tone = isAtivo ? "success" : "warning";
                   const expandido = reemissaoId === res.id;
 
                   return (
                     <article
                       key={res.id}
-                      style={{ animationDelay: `${idx * 30}ms` }}
-                      className="bg-slate-50/70 border border-slate-200/80 rounded-2xl overflow-hidden transition-all hover:bg-white hover:border-slate-300 anim-fade-up"
+                      style={{
+                        animationDelay: `${idx * 20}ms`,
+                        borderColor: LINE,
+                      }}
+                      className="bg-white border rounded-lg overflow-hidden anim-fade-up hover:border-slate-300 transition-colors"
                     >
-                      <div className="p-4 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                      <div className="p-3.5 flex items-center gap-3">
                         {/* Avatar */}
-                        <div className="relative shrink-0">
-                          <div className="w-14 h-14 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 shadow-sm">
-                            {res.foto_url && res.foto_url.includes("http") ? (
-                              <img
-                                src={res.foto_url}
-                                alt="Foto"
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <User size={22} className="text-slate-400" />
-                              </div>
-                            )}
-                          </div>
+                        <div
+                          className="w-11 h-11 rounded-md overflow-hidden shrink-0 border"
+                          style={{ borderColor: LINE, background: LINE_2 }}
+                        >
+                          {res.foto_url && res.foto_url.includes("http") ? (
+                            <img
+                              src={res.foto_url}
+                              alt="Foto"
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center" style={{ color: SUBTLE }}>
+                              <User size={18} strokeWidth={1.5} />
+                            </div>
+                          )}
                         </div>
 
                         {/* Info */}
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap mb-2">
-                            <span
-                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest border"
-                              style={{
-                                background: `${corStatus}10`,
-                                color: corStatus,
-                                borderColor: `${corStatus}25`,
-                              }}
-                            >
-                              <IconeStatus size={10} />
-                              {res.status}
-                            </span>
+                          <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                            {isAtivo ? (
+                              <span
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide"
+                                style={{ background: "#ECFDF5", color: SUCCESS, border: "1px solid #D1FAE5" }}
+                              >
+                                <BadgeCheck size={9} />
+                                Ativo
+                              </span>
+                            ) : (
+                              <span
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide"
+                                style={{ background: "#FFFBEB", color: WARNING, border: "1px solid #FEF3C7" }}
+                              >
+                                <Clock size={9} />
+                                {res.status}
+                              </span>
+                            )}
                           </div>
                           <h4
-                            className={`${jakarta.className} text-base font-bold text-slate-900 truncate mb-1`}
+                            className={`${jakarta.className} text-[13.5px] font-bold truncate`}
+                            style={{ color: INK }}
                           >
                             {res.nome_completo}
                           </h4>
-                          <div className="flex items-center gap-3 text-[11px] text-slate-500 flex-wrap">
+                          <div
+                            className="flex items-center gap-3 text-[11px] flex-wrap mt-0.5 num"
+                            style={{ color: SUBTLE }}
+                          >
                             <span className="flex items-center gap-1 font-mono">
                               <IdCard size={10} /> {res.cpf}
                             </span>
@@ -610,102 +664,121 @@ export default function PortalEmissao() {
                           </div>
                         </div>
 
-                        {/* Botão */}
+                        {/* Botão 2ª via */}
                         <button
                           onClick={() => {
                             setReemissaoId(expandido ? null : res.id);
                             setNovoEmail(res.email);
                           }}
-                          className={`${jakarta.className} text-white px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest flex items-center gap-2 transition-all shadow-sm hover:shadow-md shrink-0 w-full sm:w-auto justify-center`}
+                          className="h-8 px-2.5 rounded-md text-[11.5px] font-semibold flex items-center gap-1.5 transition-colors shrink-0"
                           style={{
-                            background: expandido
-                              ? "#64748B"
-                              : `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})`,
+                            background: expandido ? LINE_2 : INK,
+                            color: expandido ? INK : "#FFF",
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!expandido) e.currentTarget.style.background = INK_2;
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!expandido) e.currentTarget.style.background = INK;
                           }}
                         >
                           {expandido ? (
                             <>
-                              <X size={12} /> Cancelar
+                              <X size={12} />
+                              Cancelar
                             </>
                           ) : (
                             <>
-                              <RefreshCw size={12} /> 2ª via
+                              <RefreshCw size={12} />
+                              2ª via
                             </>
                           )}
                         </button>
                       </div>
 
-                      {/* Painel expansível de reemissão */}
+                      {/* Painel expansível */}
                       {expandido && (
-                        <div className="border-t border-slate-200 bg-white p-4 anim-fade-up">
-                          <div className="flex items-center gap-2 mb-4">
+                        <div
+                          className="border-t p-4 anim-fade-up"
+                          style={{ borderColor: LINE, background: BG }}
+                        >
+                          <div className="flex items-center gap-2 mb-3">
                             <div
-                              className="w-7 h-7 rounded-lg flex items-center justify-center text-white shadow-sm"
-                              style={{
-                                background: `linear-gradient(135deg, ${AMBAR}, ${AMBAR_LIGHT})`,
-                              }}
+                              className="w-6 h-6 rounded-md flex items-center justify-center"
+                              style={{ background: INK, color: "#FFF" }}
                             >
-                              <Gift size={12} />
+                              <RefreshCw size={11} strokeWidth={2.5} />
                             </div>
-                            <p className={`${jakarta.className} text-xs font-bold text-slate-700 uppercase tracking-widest`}>
-                              Configurações da 2ª via
+                            <p
+                              className={`${jakarta.className} text-[11px] font-bold uppercase tracking-[0.08em]`}
+                              style={{ color: MUTED }}
+                            >
+                              Configurações da 2ª via · R$ 5,00
                             </p>
                           </div>
 
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+                          <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
                             <FormField
                               label="E-mail de destino"
                               icon={<Mail size={10} />}
-                              className="md:col-span-1"
+                              className="md:col-span-5"
                             >
                               <input
                                 type="email"
                                 value={novoEmail}
                                 onChange={(e) => setNovoEmail(e.target.value)}
                                 className={inputCls}
+                                style={{ borderColor: LINE }}
+                                onFocus={(e) => {
+                                  e.currentTarget.style.borderColor = INK;
+                                  e.currentTarget.style.boxShadow = `0 0 0 3px rgba(10,14,20,0.06)`;
+                                }}
+                                onBlur={(e) => {
+                                  e.currentTarget.style.borderColor = LINE;
+                                  e.currentTarget.style.boxShadow = "none";
+                                }}
                                 placeholder="email@exemplo.com"
                               />
                             </FormField>
 
                             <FormField
-                              label="Recebimento da taxa"
+                              label="Método"
                               icon={<Wallet size={10} />}
-                              className="md:col-span-1"
+                              className="md:col-span-4"
                             >
                               <select
                                 value={metodoReemissao}
                                 onChange={(e) => setMetodoReemissao(e.target.value)}
                                 className={inputCls}
+                                style={{ borderColor: LINE }}
                               >
-                                <option value="dinheiro">
-                                  Dinheiro · envia e-mail imediato
-                                </option>
-                                <option value="pix">
-                                  PIX · gera QR Code (R$ 5)
-                                </option>
+                                <option value="dinheiro">Dinheiro · envio imediato</option>
+                                <option value="pix">PIX · gerar QR Code</option>
                               </select>
                             </FormField>
 
-                            <button
-                              onClick={() => handleConfirmarReemissao(res)}
-                              disabled={loadingAcao}
-                              className={`${jakarta.className} text-white px-5 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-sm hover:shadow-md hover:-translate-y-0.5 disabled:hover:translate-y-0 shrink-0`}
-                              style={{
-                                background: `linear-gradient(135deg, ${VERDE}, ${VERDE_LIGHT})`,
-                              }}
-                            >
-                              {loadingAcao ? (
-                                <>
-                                  <Loader2 size={12} className="animate-spin" />
-                                  A processar...
-                                </>
-                              ) : (
-                                <>
-                                  <CheckCircle2 size={12} />
-                                  Confirmar e enviar
-                                </>
-                              )}
-                            </button>
+                            <div className="md:col-span-3">
+                              <button
+                                onClick={() => handleConfirmarReemissao(res)}
+                                disabled={loadingAcao}
+                                className="w-full h-10 px-3 rounded-md text-[12.5px] font-semibold flex items-center justify-center gap-1.5 text-white transition-colors disabled:opacity-50"
+                                style={{ background: INK }}
+                                onMouseEnter={(e) => !loadingAcao && (e.currentTarget.style.background = INK_2)}
+                                onMouseLeave={(e) => !loadingAcao && (e.currentTarget.style.background = INK)}
+                              >
+                                {loadingAcao ? (
+                                  <>
+                                    <Loader2 size={12} className="animate-spin" />
+                                    Processando
+                                  </>
+                                ) : (
+                                  <>
+                                    <Check size={12} />
+                                    Confirmar
+                                  </>
+                                )}
+                              </button>
+                            </div>
                           </div>
                         </div>
                       )}
@@ -715,166 +788,152 @@ export default function PortalEmissao() {
               </div>
             )}
           </div>
-        </div>
+        </Panel>
 
         {/* ═══════════════════════════════════════════════════════════ */}
-        {/* DIVISOR "OU"                                                */}
+        {/* DIVISOR                                                     */}
         {/* ═══════════════════════════════════════════════════════════ */}
 
-        <div className="flex items-center gap-4">
-          <div className="flex-1 h-px bg-slate-200" />
+        <div className="flex items-center gap-3 anim-fade-up">
+          <div className="flex-1 h-px" style={{ background: LINE }} />
           <span
-            className={`${jakarta.className} text-[10px] font-bold uppercase tracking-widest text-slate-400 px-3 py-1 rounded-full bg-slate-100 border border-slate-200`}
+            className="text-[10.5px] font-semibold uppercase tracking-[0.1em] px-2.5 py-1 rounded-md"
+            style={{ color: MUTED, background: LINE_2, border: `1px solid ${LINE}` }}
           >
             ou
           </span>
-          <div className="flex-1 h-px bg-slate-200" />
+          <div className="flex-1 h-px" style={{ background: LINE }} />
         </div>
 
         {/* ═══════════════════════════════════════════════════════════ */}
-        {/* BLOCO 2: EMISSÃO MANUAL                                     */}
+        {/* BLOCO 2 · EMISSÃO MANUAL                                    */}
         {/* ═══════════════════════════════════════════════════════════ */}
 
-        <div className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm max-w-4xl mx-auto">
-          <div
-            className="h-0.5"
-            style={{ background: `linear-gradient(90deg, ${VERMELHO}, #F87171)` }}
+        <Panel noPad className="anim-fade-up max-w-4xl mx-auto">
+          <PanelHeader
+            title="Emissão manual de nova carteira"
+            subtitle="Apenas para cidadãos sem acesso tecnológico"
+            badge={
+              <span
+                className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase tracking-wide"
+                style={{ background: "#FFFBEB", color: WARNING, border: "1px solid #FEF3C7" }}
+              >
+                <ShieldAlert size={9} />
+                R$ 20,00
+              </span>
+            }
           />
-
-          <div
-            className="px-5 py-4 border-b border-slate-100 flex items-center gap-3"
-            style={{ background: `linear-gradient(135deg, ${VERMELHO}06, ${VERMELHO}02)` }}
-          >
-            <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0"
-              style={{ background: `linear-gradient(135deg, ${VERMELHO}, #F87171)` }}
-            >
-              <Zap size={17} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className={`${jakarta.className} text-sm font-bold text-slate-800`}>
-                Emissão de nova carteira
-              </h3>
-              <p className="text-[11px] text-slate-500 mt-0.5">
-                Apenas para cidadãos sem registro ou acesso tecnológico
-              </p>
-            </div>
-            <span
-              className="text-[10px] font-bold px-2.5 py-1 rounded-lg border whitespace-nowrap"
-              style={{
-                background: `${AMBAR}10`,
-                color: AMBAR,
-                borderColor: `${AMBAR}25`,
-              }}
-            >
-              <ShieldAlert size={10} className="inline mr-1" />
-              R$ 20,00
-            </span>
-          </div>
 
           {/* Aviso crítico */}
           <div
-            className="mx-5 mt-5 rounded-xl p-4 flex items-start gap-3 border"
-            style={{
-              background: `linear-gradient(135deg, ${AMBAR}08, ${AMBAR}02)`,
-              borderColor: `${AMBAR}25`,
-            }}
+            className="mx-5 mt-5 rounded-md p-3.5 flex items-start gap-3 border"
+            style={{ background: "#FFFBEB", borderColor: "#FEF3C7" }}
           >
             <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-white shadow-sm"
-              style={{ background: `linear-gradient(135deg, ${AMBAR}, ${AMBAR_LIGHT})` }}
+              className="w-8 h-8 rounded-md flex items-center justify-center shrink-0"
+              style={{ background: WARNING, color: "#FFF" }}
             >
               <Info size={14} />
             </div>
-            <div className="flex-1 pt-0.5">
-              <p className="text-xs font-bold text-slate-800">
+            <div className="flex-1">
+              <p className="text-[12px] font-semibold" style={{ color: INK }}>
                 Operação sensível
               </p>
-              <p className="text-[11px] text-slate-600 mt-0.5 leading-relaxed">
-                Esta ação <strong>cria um novo cidadão</strong> na base de dados e
-                gera uma carteira oficial. Confirma sempre os documentos físicos
-                antes de prosseguir.
+              <p className="text-[11.5px] mt-0.5 leading-relaxed" style={{ color: MUTED }}>
+                Esta ação <strong>cria um novo cidadão</strong> na base de dados e gera uma carteira oficial.
+                Confirme sempre os documentos físicos antes de prosseguir.
               </p>
             </div>
           </div>
 
-          <form onSubmit={handleEmitirManual} className="p-5 space-y-5">
+          <form onSubmit={handleEmitirManual} className="p-5 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                label="Nome completo"
-                icon={<User size={11} />}
-                required
-              >
+              <FormField label="Nome completo" icon={<User size={10} />} required>
                 <input
                   type="text"
                   value={form.nome}
                   onChange={(e) => setForm({ ...form, nome: e.target.value })}
                   className={inputCls}
+                  style={{ borderColor: LINE }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = INK;
+                    e.currentTarget.style.boxShadow = `0 0 0 3px rgba(10,14,20,0.06)`;
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = LINE;
+                    e.currentTarget.style.boxShadow = "none";
+                  }}
                   placeholder="Nome civil do cidadão"
                   required
                 />
               </FormField>
 
-              <FormField label="CPF" icon={<IdCard size={11} />} required>
+              <FormField label="CPF" icon={<IdCard size={10} />} required>
                 <input
                   type="text"
                   value={form.cpf}
-                  onChange={(e) =>
-                    setForm({ ...form, cpf: mascaraCPF(e.target.value) })
-                  }
-                  className={`${inputCls} font-mono`}
+                  onChange={(e) => setForm({ ...form, cpf: mascaraCPF(e.target.value) })}
+                  className={`${inputCls} font-mono num`}
+                  style={{ borderColor: LINE }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = INK;
+                    e.currentTarget.style.boxShadow = `0 0 0 3px rgba(10,14,20,0.06)`;
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = LINE;
+                    e.currentTarget.style.boxShadow = "none";
+                  }}
                   placeholder="000.000.000-00"
                   required
                 />
               </FormField>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                label="E-mail (para onde vai o PDF)"
-                icon={<Mail size={11} />}
-                required
-              >
+              <FormField label="E-mail" icon={<Mail size={10} />} required hint="Para onde o PDF será enviado.">
                 <input
                   type="email"
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                   className={inputCls}
-                  placeholder="cidadão@email.com"
+                  style={{ borderColor: LINE }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = INK;
+                    e.currentTarget.style.boxShadow = `0 0 0 3px rgba(10,14,20,0.06)`;
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = LINE;
+                    e.currentTarget.style.boxShadow = "none";
+                  }}
+                  placeholder="cidadao@email.com"
                   required
                 />
               </FormField>
 
-              <FormField
-                label="Data de nascimento"
-                icon={<Calendar size={11} />}
-                required
-              >
+              <FormField label="Data de nascimento" icon={<Calendar size={10} />} required>
                 <input
                   type="date"
                   value={form.data_nascimento}
-                  onChange={(e) =>
-                    setForm({ ...form, data_nascimento: e.target.value })
-                  }
+                  onChange={(e) => setForm({ ...form, data_nascimento: e.target.value })}
                   className={inputCls}
+                  style={{ borderColor: LINE }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = INK;
+                    e.currentTarget.style.boxShadow = `0 0 0 3px rgba(10,14,20,0.06)`;
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = LINE;
+                    e.currentTarget.style.boxShadow = "none";
+                  }}
                   required
                 />
               </FormField>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                label="Foto do cidadão (3x4)"
-                icon={<Camera size={11} />}
-                required
-              >
+              <FormField label="Foto 3x4" icon={<Camera size={10} />} required>
                 <label
-                  className="flex items-center justify-center gap-2.5 border-2 border-dashed rounded-xl p-4 cursor-pointer text-xs font-bold transition-all group"
+                  className="flex items-center justify-center gap-2 border-2 border-dashed rounded-md h-[42px] px-3 cursor-pointer text-[12px] font-semibold transition-colors"
                   style={{
-                    background: foto
-                      ? `linear-gradient(135deg, ${VERDE}06, ${VERDE}02)`
-                      : "#F8FAFC",
-                    borderColor: foto ? `${VERDE}50` : "#CBD5E1",
+                    background: foto ? "#ECFDF5" : SURFACE,
+                    borderColor: foto ? "#D1FAE5" : LINE,
+                    color: foto ? SUCCESS : MUTED,
                   }}
                 >
                   <input
@@ -884,79 +943,67 @@ export default function PortalEmissao() {
                     onChange={(e) => setFoto(e.target.files?.[0] || null)}
                     required
                   />
-                  <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-sm transition-transform group-hover:scale-105"
-                    style={{
-                      background: foto
-                        ? `linear-gradient(135deg, ${VERDE}, ${VERDE_LIGHT})`
-                        : `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})`,
-                    }}
-                  >
-                    {foto ? <CheckCircle2 size={16} /> : <Upload size={16} />}
-                  </div>
-                  <span
-                    className="truncate max-w-[200px]"
-                    style={{ color: foto ? VERDE : AZUL }}
-                  >
-                    {foto ? "Foto carregada" : "Anexar fotografia"}
-                  </span>
+                  {foto ? (
+                    <>
+                      <CheckCircle2 size={13} />
+                      <span className="truncate max-w-[200px]">{foto.name}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload size={13} />
+                      Anexar fotografia
+                    </>
+                  )}
                 </label>
               </FormField>
 
-              <FormField
-                label="Recebimento da taxa (R$ 20,00)"
-                icon={<Wallet size={11} />}
-              >
+              <FormField label="Método de recebimento" icon={<Wallet size={10} />}>
                 <select
                   value={metodoNovaEmissao}
                   onChange={(e) => setMetodoNovaEmissao(e.target.value)}
                   className={inputCls}
+                  style={{ borderColor: LINE }}
                 >
-                  <option value="dinheiro">
-                    Dinheiro · emissão imediata
-                  </option>
-                  <option value="pix">
-                    PIX · gera QR Code
-                  </option>
+                  <option value="dinheiro">Dinheiro · emissão imediata</option>
+                  <option value="pix">PIX · gerar QR Code</option>
                 </select>
               </FormField>
             </div>
 
-            {feedbackAcao && savingManual && (
-              <FeedbackInline feedback={feedbackAcao} />
-            )}
+            {feedbackAcao && savingManual && <FeedbackInline feedback={feedbackAcao} />}
 
-            <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div className="flex items-center gap-2 text-[11px] text-slate-500">
-                <ShieldAlert size={12} style={{ color: AMBAR }} />
+            <div
+              className="pt-4 border-t flex items-center justify-between gap-3 flex-wrap"
+              style={{ borderColor: LINE }}
+            >
+              <p className="text-[11.5px] flex items-center gap-1.5" style={{ color: MUTED }}>
+                <ShieldAlert size={12} style={{ color: WARNING }} />
                 Confirma que os documentos foram verificados?
-              </div>
+              </p>
 
               <button
                 type="submit"
                 disabled={savingManual || loadingAcao}
-                className={`${jakarta.className} text-white px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest flex items-center gap-2 transition-all disabled:opacity-50 shadow-sm hover:shadow-md hover:-translate-y-0.5 disabled:hover:translate-y-0 shrink-0`}
-                style={{
-                  background: `linear-gradient(135deg, ${VERMELHO}, #F87171)`,
-                }}
+                className="h-10 px-4 rounded-md text-[12.5px] font-semibold flex items-center gap-2 text-white transition-colors disabled:opacity-50 shrink-0"
+                style={{ background: INK }}
+                onMouseEnter={(e) => !savingManual && !loadingAcao && (e.currentTarget.style.background = INK_2)}
+                onMouseLeave={(e) => !savingManual && !loadingAcao && (e.currentTarget.style.background = INK)}
               >
                 {savingManual ? (
                   <>
-                    <Loader2 size={14} className="animate-spin" />
-                    A processar...
+                    <Loader2 size={13} className="animate-spin" />
+                    Processando...
                   </>
                 ) : (
                   <>
-                    <CheckCircle2 size={14} />
-                    {metodoNovaEmissao === "dinheiro"
-                      ? "Registrar e emitir"
-                      : "Registrar e gerar PIX"}
+                    <CheckCircle2 size={13} />
+                    {metodoNovaEmissao === "dinheiro" ? "Registrar e emitir" : "Registrar e gerar PIX"}
                   </>
                 )}
               </button>
             </div>
           </form>
-        </div>
+        </Panel>
       </div>
     </>
   );

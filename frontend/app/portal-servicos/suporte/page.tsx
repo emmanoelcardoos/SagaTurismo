@@ -4,30 +4,32 @@ import React, { useEffect, useState, useMemo } from "react";
 import { Plus_Jakarta_Sans, Inter } from "next/font/google";
 import { supabase } from "@/lib/supabase";
 import {
-  Headset, Loader2, MessageSquare, FileText, Save, UploadCloud,
-  Sparkles, ArrowLeft, User, Mail, Phone, IdCard, Calendar,
-  ExternalLink, Inbox, Search, X, Filter, Clock, CheckCircle2,
-  AlertTriangle, Info, Hash, Send, Paperclip, CheckCircle,
-  Circle, Target, Layers, Headphones, MessageCircle,
+  Loader2, MessageSquare, FileText, Save, UploadCloud,
+  ArrowLeft, User, Mail, Phone, IdCard, Calendar,
+  ExternalLink, Inbox, Search, X, Clock, CheckCircle2,
+  AlertTriangle, Info, Send, Paperclip, CheckCircle,
+  Circle, Target, Headset, ArrowRight,
 } from "lucide-react";
 
-const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["600", "700", "800"] });
+const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["500", "600", "700", "800"] });
 const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
-// ─── CORES (paleta Azure/Microsoft) ───
-const AZUL = "#0078D4";
-const AZUL_ESCURO = "#005A9E";
-const AMBAR = "#DAA520";
-const AMBAR_LIGHT = "#FBBF24";
-const VERMELHO = "#D13438";
-const VERDE = "#168821";
-const VERDE_LIGHT = "#22C55E";
-const ROXO = "#7C3AED";
+// ─── PALETA ENTERPRISE ───
+const INK = "#0A0E14";
+const INK_2 = "#1F2937";
+const MUTED = "#6B7280";
+const SUBTLE = "#9CA3AF";
+const LINE = "#E5E7EB";
+const LINE_2 = "#F3F4F6";
+const BG = "#FBFBFC";
+const SURFACE = "#FFFFFF";
+const ACCENT = "#2563EB";
+const SUCCESS = "#059669";
+const WARNING = "#D97706";
+const DANGER = "#DC2626";
 
 const inputCls =
-  "w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl px-3.5 py-2.5 focus:outline-none focus:bg-white focus:border-[#0078D4] focus:ring-4 focus:ring-[#0078D4]/10 transition-all placeholder:text-slate-400";
-const labelCls =
-  "flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2";
+  "w-full bg-white text-[13.5px] rounded-md px-3 py-2.5 transition-[border-color,box-shadow] duration-150 placeholder:text-slate-400 focus:outline-none border disabled:opacity-50 disabled:cursor-not-allowed";
 
 function fmtDatetime(iso: string) {
   if (!iso) return "—";
@@ -39,36 +41,56 @@ function fmtDatetime(iso: string) {
   );
 }
 
+function tempoRelativo(iso: string) {
+  if (!iso) return "—";
+  try {
+    const d = new Date(iso);
+    const agora = new Date();
+    const diffMs = agora.getTime() - d.getTime();
+    const diffMin = Math.floor(diffMs / 60000);
+    if (diffMin < 1) return "agora";
+    if (diffMin < 60) return `há ${diffMin}min`;
+    const diffH = Math.floor(diffMin / 60);
+    if (diffH < 24) return `há ${diffH}h`;
+    const diffD = Math.floor(diffH / 24);
+    if (diffD === 1) return "ontem";
+    if (diffD < 7) return `há ${diffD}d`;
+    return fmtDatetime(iso);
+  } catch {
+    return "—";
+  }
+}
+
 // ─── ESTILO POR STATUS ───
-const STATUS_INFO: Record<
+const STATUS_MAP: Record<
   string,
-  { cor: string; gradient: string; icone: any; label: string; emoji: string }
+  { cor: string; bg: string; border: string; icone: any; label: string }
 > = {
   Aberto: {
-    cor: VERMELHO,
-    gradient: `linear-gradient(135deg, ${VERMELHO}, #F87171)`,
+    cor: DANGER,
+    bg: "#FEF2F2",
+    border: "#FEE2E2",
     icone: Circle,
     label: "Aberto",
-    emoji: "🔴",
   },
   "Em andamento": {
-    cor: AMBAR,
-    gradient: `linear-gradient(135deg, ${AMBAR}, ${AMBAR_LIGHT})`,
+    cor: WARNING,
+    bg: "#FFFBEB",
+    border: "#FEF3C7",
     icone: Clock,
     label: "Em andamento",
-    emoji: "🟡",
   },
   Concluído: {
-    cor: VERDE,
-    gradient: `linear-gradient(135deg, ${VERDE}, ${VERDE_LIGHT})`,
+    cor: SUCCESS,
+    bg: "#ECFDF5",
+    border: "#D1FAE5",
     icone: CheckCircle2,
     label: "Concluído",
-    emoji: "🟢",
   },
 };
 
 function getStatusInfo(status: string) {
-  return STATUS_INFO[status] || STATUS_INFO.Aberto;
+  return STATUS_MAP[status] || STATUS_MAP.Aberto;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -78,8 +100,8 @@ function getStatusInfo(status: string) {
 function GlobalStyles() {
   return (
     <style jsx global>{`
-      @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(8px); }
+      @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(4px); }
         to { opacity: 1; transform: translateY(0); }
       }
       @keyframes fadeIn {
@@ -88,36 +110,87 @@ function GlobalStyles() {
       }
       @keyframes pulseDot {
         0%, 100% { opacity: 1; transform: scale(1); }
-        50% { opacity: 0.5; transform: scale(0.85); }
+        50% { opacity: 0.4; transform: scale(0.85); }
       }
-      .anim-fade-up { animation: fadeInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; }
-      .anim-fade { animation: fadeIn 0.25s ease both; }
-      .pulse-dot { animation: pulseDot 1.8s ease-in-out infinite; }
-      .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
-      .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
-      .scrollbar-thin::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
-      .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+      @keyframes shimmer {
+        0% { background-position: -200% 0; }
+        100% { background-position: 200% 0; }
+      }
+      .anim-fade-up { animation: fadeUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) both; }
+      .anim-fade { animation: fadeIn 0.2s ease both; }
+      .num { font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+      .dot-pulse { animation: pulseDot 2s ease-in-out infinite; }
+      .skeleton {
+        background: linear-gradient(90deg, ${LINE_2} 0%, ${LINE} 50%, ${LINE_2} 100%);
+        background-size: 200% 100%;
+        animation: shimmer 1.4s infinite;
+      }
+      .scroll-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+      .scroll-thin::-webkit-scrollbar-track { background: transparent; }
+      .scroll-thin::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 3px; }
+      .scroll-thin::-webkit-scrollbar-thumb:hover { background: #9CA3AF; }
     `}</style>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════
-// SUB-COMPONENTES
+// ÁTOMOS
 // ═══════════════════════════════════════════════════════════════
 
-function StatusBadge({ status }: { status: string }) {
+function Panel({ children, className = "", noPad = false }: {
+  children: React.ReactNode;
+  className?: string;
+  noPad?: boolean;
+}) {
+  return (
+    <div className={`bg-white border rounded-lg overflow-hidden ${className}`} style={{ borderColor: LINE }}>
+      {noPad ? children : <div className="p-5">{children}</div>}
+    </div>
+  );
+}
+
+function PanelHeader({ title, subtitle, action, badge }: {
+  title: string;
+  subtitle?: string;
+  action?: React.ReactNode;
+  badge?: React.ReactNode;
+}) {
+  return (
+    <div
+      className="px-5 py-3.5 flex items-center justify-between gap-3 border-b"
+      style={{ borderColor: LINE, background: BG }}
+    >
+      <div className="min-w-0">
+        <div className="flex items-center gap-2">
+          <h3 className={`${jakarta.className} text-[13px] font-bold`} style={{ color: INK }}>
+            {title}
+          </h3>
+          {badge}
+        </div>
+        {subtitle && (
+          <p className="text-[11.5px] mt-0.5" style={{ color: MUTED }}>
+            {subtitle}
+          </p>
+        )}
+      </div>
+      {action}
+    </div>
+  );
+}
+
+function StatusPill({ status }: { status: string }) {
   const info = getStatusInfo(status);
   const Icone = info.icone;
   return (
     <span
-      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest border"
+      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide"
       style={{
-        background: `${info.cor}10`,
+        background: info.bg,
         color: info.cor,
-        borderColor: `${info.cor}25`,
+        border: `1px solid ${info.border}`,
       }}
     >
-      <Icone size={10} />
+      <Icone size={9} />
       {info.label}
     </span>
   );
@@ -126,50 +199,42 @@ function StatusBadge({ status }: { status: string }) {
 function FeedbackInline({ feedback }: { feedback: string }) {
   if (!feedback) return null;
 
-  const isErro = feedback.toLowerCase().includes("erro") || feedback.includes("❌");
-  const isSucesso = feedback.toLowerCase().includes("sucesso") || feedback.includes("✅");
-  const cor = isErro ? VERMELHO : isSucesso ? VERDE : AZUL;
-  const gradient = isErro
-    ? `linear-gradient(135deg, ${VERMELHO}, #F87171)`
-    : isSucesso
-    ? `linear-gradient(135deg, ${VERDE}, ${VERDE_LIGHT})`
-    : `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})`;
-  const Icone = isErro ? AlertTriangle : isSucesso ? CheckCircle2 : Loader2;
+  const isErro = feedback.toLowerCase().includes("erro");
+  const isSucesso =
+    feedback.toLowerCase().includes("sucesso") ||
+    feedback.toLowerCase().includes("enviada") ||
+    feedback.toLowerCase().includes("atualizado");
+  const tone = isErro ? "error" : isSucesso ? "success" : "info";
+
+  const map = {
+    error: { c: DANGER, bg: "#FEF2F2", b: "#FEE2E2", Icon: AlertTriangle },
+    success: { c: SUCCESS, bg: "#ECFDF5", b: "#D1FAE5", Icon: CheckCircle2 },
+    info: { c: ACCENT, bg: "#EFF6FF", b: "#DBEAFE", Icon: Loader2 },
+  }[tone];
+
+  const Icone = map.Icon;
+  const isSpinner = tone === "info";
 
   return (
     <div
-      className="rounded-2xl p-4 flex items-start gap-3 border-2 shadow-sm anim-fade-up"
-      style={{ background: `${cor}08`, borderColor: `${cor}30` }}
+      className="rounded-md p-3.5 flex items-start gap-2.5 border anim-fade"
+      style={{ background: map.bg, borderColor: map.b, color: map.c }}
     >
-      <div
-        className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-sm text-white"
-        style={{ background: gradient }}
-      >
-        <Icone size={15} className={!isErro && !isSucesso ? "animate-spin" : ""} />
-      </div>
-      <div className="flex-1 pt-0.5 min-w-0">
-        <p className="text-xs font-bold text-slate-800">
-          {isErro ? "Erro" : isSucesso ? "Sucesso" : "A processar"}
-        </p>
-        <p className="text-xs text-slate-600 mt-0.5 break-words leading-relaxed">
-          {feedback}
-        </p>
-      </div>
+      <Icone size={14} className={`shrink-0 mt-0.5 ${isSpinner ? "animate-spin" : ""}`} />
+      <p className="text-[12.5px] font-medium break-words">{feedback}</p>
     </div>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PÁGINA PRINCIPAL
+// PÁGINA
 // ═══════════════════════════════════════════════════════════════
 
 export default function PortalSuporte() {
   const [chamados, setChamados] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
-  const [filtroStatus, setFiltroStatus] = useState<
-    "Todos" | "Aberto" | "Em andamento" | "Concluído"
-  >("Todos");
+  const [filtroStatus, setFiltroStatus] = useState<"Todos" | "Aberto" | "Em andamento" | "Concluído">("Todos");
 
   const [chamadoAberto, setChamadoAberto] = useState<any | null>(null);
   const [resposta, setResposta] = useState("");
@@ -179,9 +244,7 @@ export default function PortalSuporte() {
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState("");
 
-  useEffect(() => {
-    fetchChamados();
-  }, []);
+  useEffect(() => { fetchChamados(); }, []);
 
   async function fetchChamados() {
     setLoading(true);
@@ -220,9 +283,7 @@ export default function PortalSuporte() {
           .from("galeria")
           .upload(path, arquivoAdmin);
         if (!error) {
-          const { data: pubUrl } = supabase.storage
-            .from("galeria")
-            .getPublicUrl(path);
+          const { data: pubUrl } = supabase.storage.from("galeria").getPublicUrl(path);
           linkAnexoAdmin = pubUrl.publicUrl;
         }
       }
@@ -255,11 +316,11 @@ export default function PortalSuporte() {
         if (!resp.ok) throw new Error("Falha ao disparar o e-mail.");
       }
 
-      setFeedback("Resposta enviada e status atualizado!");
+      setFeedback("Resposta enviada e status atualizado.");
       setTimeout(() => {
         setChamadoAberto(null);
         fetchChamados();
-      }, 2000);
+      }, 1500);
     } catch (err: any) {
       setFeedback(`Erro: ${err.message}`);
     } finally {
@@ -267,22 +328,17 @@ export default function PortalSuporte() {
     }
   }
 
-  // ─── CONTADORES ───
-  const contadores = useMemo(() => {
-    return {
-      total: chamados.length,
-      abertos: chamados.filter((c) => c.status === "Aberto").length,
-      andamento: chamados.filter((c) => c.status === "Em andamento").length,
-      concluidos: chamados.filter((c) => c.status === "Concluído").length,
-    };
-  }, [chamados]);
+  const contadores = useMemo(() => ({
+    total: chamados.length,
+    abertos: chamados.filter((c) => c.status === "Aberto").length,
+    andamento: chamados.filter((c) => c.status === "Em andamento").length,
+    concluidos: chamados.filter((c) => c.status === "Concluído").length,
+  }), [chamados]);
 
-  // ─── FILTRO ───
   const chamadosFiltrados = useMemo(() => {
     const termo = busca.toLowerCase().trim();
     return chamados.filter((c) => {
-      const passaStatus =
-        filtroStatus === "Todos" || c.status === filtroStatus;
+      const passaStatus = filtroStatus === "Todos" || c.status === filtroStatus;
       const passaBusca =
         !termo ||
         c.protocolo?.toLowerCase().includes(termo) ||
@@ -295,695 +351,621 @@ export default function PortalSuporte() {
   const temFiltro = busca || filtroStatus !== "Todos";
 
   // ═══════════════════════════════════════════════════════════════
-  // VISTA: DETALHE DO CHAMADO
+  // VISTA: DETALHE
   // ═══════════════════════════════════════════════════════════════
 
   if (chamadoAberto) {
-    const statusInfo = getStatusInfo(chamadoAberto.status);
-
     return (
       <>
         <GlobalStyles />
-        <div className={`${inter.className} space-y-5 pb-6 anim-fade-up`}>
+        <div className={`${inter.className} space-y-4`}>
 
-          {/* Cabeçalho */}
-          <div className="flex items-center gap-3">
+          {/* Header */}
+          <div className="flex items-center gap-3 anim-fade-up">
             <button
               onClick={() => setChamadoAberto(null)}
-              className="w-10 h-10 bg-white border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all shadow-sm shrink-0 flex items-center justify-center group"
+              className="w-9 h-9 rounded-md flex items-center justify-center transition-colors shrink-0 border"
+              style={{ borderColor: LINE, color: MUTED, background: SURFACE }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = LINE_2;
+                e.currentTarget.style.color = INK;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = SURFACE;
+                e.currentTarget.style.color = MUTED;
+              }}
+              aria-label="Voltar"
             >
-              <ArrowLeft size={18} className="group-hover:-translate-x-0.5 transition-transform" />
+              <ArrowLeft size={16} />
             </button>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 mb-1">
-              </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1
-                  className={`${jakarta.className} text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight font-mono`}
+                <span
+                  className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.1em] px-1.5 py-0.5 rounded"
+                  style={{ background: INK, color: "#FFF" }}
                 >
-                  {chamadoAberto.protocolo}
-                </h1>
-                <StatusBadge status={chamadoAberto.status} />
+                  <Headset size={9} strokeWidth={3} />
+                  Ticket
+                </span>
+                <StatusPill status={chamadoAberto.status} />
               </div>
-              <p className="text-xs text-slate-500 mt-1 flex items-center gap-1.5">
-                <Calendar size={11} /> Enviado em {fmtDatetime(chamadoAberto.criado_em)}
+              <h1
+                className={`${jakarta.className} text-[22px] font-bold tracking-tight truncate font-mono`}
+                style={{ color: INK, letterSpacing: "-0.02em" }}
+              >
+                {chamadoAberto.protocolo}
+              </h1>
+              <p className="text-[11.5px] mt-0.5 flex items-center gap-1.5 num" style={{ color: MUTED }}>
+                <Calendar size={10} />
+                Enviado em {fmtDatetime(chamadoAberto.criado_em)}
               </p>
             </div>
           </div>
 
-          {/* Grid: Cidadão + Mensagem */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Card do Cidadão */}
-            <div className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm">
-              <div
-                className="h-0.5"
-                style={{ background: `linear-gradient(90deg, ${AZUL}, ${AZUL_ESCURO})` }}
-              />
-              <div
-                className="px-5 py-4 border-b border-slate-100 flex items-center gap-3"
-                style={{ background: `linear-gradient(135deg, ${AZUL}06, ${AZUL}02)` }}
-              >
-                <div
-                  className="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0"
-                  style={{ background: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})` }}
-                >
-                  <User size={15} />
-                </div>
-                <div className="min-w-0">
-                  <h3 className={`${jakarta.className} text-sm font-bold text-slate-800`}>
-                    Dados do cidadão
-                  </h3>
-                  <p className="text-[11px] text-slate-500 mt-0.5">
-                    Informações do requerente
-                  </p>
-                </div>
-              </div>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
 
-              <div className="p-5 space-y-4">
-                <div className="flex items-center gap-3">
+            {/* Coluna principal — mensagem + resposta */}
+            <div className="lg:col-span-8 space-y-4">
+
+              {/* Mensagem original */}
+              <Panel noPad className="anim-fade-up">
+                <PanelHeader
+                  title="Mensagem original"
+                  subtitle={`Assunto: ${chamadoAberto.assunto}`}
+                />
+                <div className="p-5 space-y-4">
                   <div
-                    className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 text-sm font-bold text-white shadow-sm"
-                    style={{ background: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})` }}
+                    className="rounded-md p-4 text-[13px] leading-relaxed whitespace-pre-wrap max-h-64 overflow-y-auto scroll-thin"
+                    style={{ background: BG, border: `1px solid ${LINE}`, color: INK_2 }}
                   >
-                    {chamadoAberto.nome
-                      ?.split(" ")
-                      .filter(Boolean)
-                      .slice(0, 2)
-                      .map((n: string) => n[0])
-                      .join("")
-                      .toUpperCase() || "?"}
+                    {chamadoAberto.mensagem}
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-bold text-slate-800 truncate">
-                      {chamadoAberto.nome || "—"}
+
+                  {chamadoAberto.arquivo_url && (
+                    <a
+                      href={chamadoAberto.arquivo_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-2 text-[12.5px] font-semibold h-9 px-3 rounded-md border transition-colors"
+                      style={{ background: SURFACE, borderColor: LINE, color: INK }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = LINE_2)}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = SURFACE)}
+                    >
+                      <Paperclip size={13} />
+                      Ver anexo do cidadão
+                      <ExternalLink size={11} style={{ color: SUBTLE }} />
+                    </a>
+                  )}
+                </div>
+              </Panel>
+
+              {/* Resposta admin anterior */}
+              {chamadoAberto.resposta_admin && (
+                <Panel noPad className="anim-fade-up">
+                  <PanelHeader
+                    title="Última resposta do admin"
+                    subtitle="Registrada no histórico do chamado"
+                  />
+                  <div className="p-5">
+                    <div
+                      className="rounded-md p-4 text-[13px] leading-relaxed whitespace-pre-wrap"
+                      style={{ background: "#EFF6FF", border: "1px solid #DBEAFE", color: INK_2 }}
+                    >
+                      {chamadoAberto.resposta_admin}
+                    </div>
+                  </div>
+                </Panel>
+              )}
+
+              {/* Painel de resposta */}
+              <Panel noPad className="anim-fade-up">
+                <PanelHeader
+                  title="Responder ao cidadão"
+                  subtitle="A resposta será enviada por e-mail"
+                  badge={
+                    <span
+                      className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase tracking-wide"
+                      style={{ background: LINE_2, color: MUTED, border: `1px solid ${LINE}` }}
+                    >
+                      <Send size={9} />
+                      E-mail
+                    </span>
+                  }
+                />
+                <div className="p-5 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="md:col-span-2">
+                      <label
+                        className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] mb-1.5"
+                        style={{ color: MUTED }}
+                      >
+                        <MessageSquare size={10} />
+                        Resposta
+                      </label>
+                      <textarea
+                        rows={6}
+                        value={resposta}
+                        onChange={(e) => setResposta(e.target.value)}
+                        className={`${inputCls} resize-y min-h-[140px]`}
+                        style={{ borderColor: LINE }}
+                        onFocus={(e) => {
+                          e.currentTarget.style.borderColor = INK;
+                          e.currentTarget.style.boxShadow = `0 0 0 3px rgba(10,14,20,0.06)`;
+                        }}
+                        onBlur={(e) => {
+                          e.currentTarget.style.borderColor = LINE;
+                          e.currentTarget.style.boxShadow = "none";
+                        }}
+                        placeholder="Escreva a resposta ao cidadão..."
+                      />
+                    </div>
+
+                    <div className="space-y-4">
+                      <div>
+                        <label
+                          className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] mb-1.5"
+                          style={{ color: MUTED }}
+                        >
+                          <Target size={10} />
+                          Status
+                        </label>
+                        <select
+                          value={statusAtual}
+                          onChange={(e) => setStatusAtual(e.target.value)}
+                          className={inputCls}
+                          style={{ borderColor: LINE }}
+                        >
+                          <option value="Aberto">Aberto</option>
+                          <option value="Em andamento">Em andamento</option>
+                          <option value="Concluído">Concluído</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label
+                          className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] mb-1.5"
+                          style={{ color: MUTED }}
+                        >
+                          <Paperclip size={10} />
+                          Anexo
+                        </label>
+                        <label
+                          className="flex items-center justify-center gap-1.5 border-2 border-dashed rounded-md h-[42px] px-3 cursor-pointer text-[11.5px] font-semibold transition-colors"
+                          style={{
+                            background: arquivoAdmin ? "#ECFDF5" : SURFACE,
+                            borderColor: arquivoAdmin ? "#D1FAE5" : LINE,
+                            color: arquivoAdmin ? SUCCESS : MUTED,
+                          }}
+                        >
+                          <input
+                            type="file"
+                            className="hidden"
+                            onChange={(e) => setArquivoAdmin(e.target.files?.[0] || null)}
+                          />
+                          {arquivoAdmin ? (
+                            <>
+                              <CheckCircle size={13} />
+                              Pronto
+                            </>
+                          ) : (
+                            <>
+                              <UploadCloud size={13} />
+                              Anexar
+                            </>
+                          )}
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  {feedback && <FeedbackInline feedback={feedback} />}
+
+                  <div
+                    className="pt-4 border-t flex items-center justify-between gap-3 flex-wrap"
+                    style={{ borderColor: LINE }}
+                  >
+                    <p className="text-[11.5px] flex items-center gap-1.5" style={{ color: MUTED }}>
+                      <Info size={12} />
+                      O cidadão receberá a resposta no e-mail cadastrado.
                     </p>
-                    <p className="text-[11px] text-slate-500 mt-0.5">Requerente</p>
+                    <button
+                      onClick={handleResponder}
+                      disabled={saving}
+                      className="h-10 px-4 rounded-md text-[12.5px] font-semibold flex items-center gap-2 text-white transition-colors disabled:opacity-50 shrink-0"
+                      style={{ background: INK }}
+                      onMouseEnter={(e) => !saving && (e.currentTarget.style.background = INK_2)}
+                      onMouseLeave={(e) => !saving && (e.currentTarget.style.background = INK)}
+                    >
+                      {saving ? (
+                        <>
+                          <Loader2 size={13} className="animate-spin" />
+                          Enviando...
+                        </>
+                      ) : (
+                        <>
+                          <Save size={13} />
+                          Salvar e enviar
+                        </>
+                      )}
+                    </button>
                   </div>
                 </div>
+              </Panel>
+            </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
-                  <div className="flex items-start gap-2.5">
+            {/* Lateral — cidadão */}
+            <div className="lg:col-span-4 space-y-4">
+              <Panel noPad className="anim-fade-up">
+                <PanelHeader title="Cidadão" subtitle="Dados do requerente" />
+
+                <div className="p-5 space-y-4">
+                  {/* Avatar + nome */}
+                  <div className="flex items-center gap-3">
                     <div
-                      className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-                      style={{ background: `${AZUL}10`, color: AZUL }}
+                      className="w-11 h-11 rounded-md flex items-center justify-center shrink-0 text-[12px] font-bold text-white"
+                      style={{ background: INK }}
                     >
-                      <IdCard size={12} />
+                      {chamadoAberto.nome
+                        ?.split(" ")
+                        .filter(Boolean)
+                        .slice(0, 2)
+                        .map((n: string) => n[0])
+                        .join("")
+                        .toUpperCase() || "?"}
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[13.5px] font-bold truncate" style={{ color: INK }}>
+                        {chamadoAberto.nome || "—"}
+                      </p>
+                      <p className="text-[11px] mt-0.5" style={{ color: SUBTLE }}>
+                        Requerente
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Info detalhada */}
+                  <div className="pt-4 border-t space-y-3" style={{ borderColor: LINE_2 }}>
+                    <div>
+                      <p className="text-[10.5px] font-semibold uppercase tracking-[0.08em]" style={{ color: MUTED }}>
                         CPF
                       </p>
-                      <p className="text-xs font-semibold text-slate-800 font-mono mt-0.5 truncate">
+                      <p className="text-[12.5px] font-semibold num mt-0.5 font-mono" style={{ color: INK }}>
                         {chamadoAberto.cpf || "—"}
                       </p>
                     </div>
-                  </div>
-                  <div className="flex items-start gap-2.5">
-                    <div
-                      className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-                      style={{ background: `${AZUL}10`, color: AZUL }}
-                    >
-                      <Phone size={12} />
+
+                    <div>
+                      <p className="text-[10.5px] font-semibold uppercase tracking-[0.08em]" style={{ color: MUTED }}>
+                        E-mail
+                      </p>
+                      <p className="text-[12.5px] font-semibold mt-0.5 truncate" style={{ color: INK }}>
+                        {chamadoAberto.email || "—"}
+                      </p>
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+
+                    <div>
+                      <p className="text-[10.5px] font-semibold uppercase tracking-[0.08em]" style={{ color: MUTED }}>
                         WhatsApp
                       </p>
-                      <p className="text-xs font-semibold text-slate-800 mt-0.5 truncate">
+                      <p className="text-[12.5px] font-semibold num mt-0.5" style={{ color: INK }}>
                         {chamadoAberto.whatsapp || "Não fornecido"}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-start gap-2.5 sm:col-span-2">
-                    <div
-                      className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-                      style={{ background: `${AZUL}10`, color: AZUL }}
-                    >
-                      <Mail size={12} />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                        E-mail
-                      </p>
-                      <p className="text-xs font-semibold text-slate-800 mt-0.5 truncate">
-                        {chamadoAberto.email || "—"}
-                      </p>
-                    </div>
-                  </div>
                 </div>
-              </div>
-            </div>
-
-            {/* Card da Mensagem */}
-            <div className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm">
-              <div
-                className="h-0.5"
-                style={{ background: `linear-gradient(90deg, ${ROXO}, #A78BFA)` }}
-              />
-              <div
-                className="px-5 py-4 border-b border-slate-100 flex items-center gap-3"
-                style={{ background: `linear-gradient(135deg, ${ROXO}06, ${ROXO}02)` }}
-              >
-                <div
-                  className="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0"
-                  style={{ background: `linear-gradient(135deg, ${ROXO}, #A78BFA)` }}
-                >
-                  <FileText size={15} />
-                </div>
-                <div className="min-w-0">
-                  <h3 className={`${jakarta.className} text-sm font-bold text-slate-800`}>
-                    Mensagem original
-                  </h3>
-                  <p className="text-[11px] text-slate-500 mt-0.5">
-                    Assunto: {chamadoAberto.assunto}
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-5 space-y-4">
-                <div
-                  className="rounded-xl p-4 border whitespace-pre-wrap text-sm text-slate-700 leading-relaxed max-h-56 overflow-y-auto scrollbar-thin"
-                  style={{
-                    background: `linear-gradient(135deg, ${ROXO}05, ${ROXO}01)`,
-                    borderColor: `${ROXO}20`,
-                  }}
-                >
-                  {chamadoAberto.mensagem}
-                </div>
-
-                {chamadoAberto.arquivo_url && (
-                  <a
-                    href={chamadoAberto.arquivo_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-2 text-xs font-bold px-3.5 py-2.5 rounded-xl transition-all shadow-sm hover:shadow-md"
-                    style={{ background: `${AZUL}10`, color: AZUL }}
-                  >
-                    <Paperclip size={13} /> Ver anexo do cidadão
-                    <ExternalLink size={11} />
-                  </a>
-                )}
-              </div>
+              </Panel>
             </div>
           </div>
-
-          {/* Painel de resposta */}
-          <div className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm">
-            <div
-              className="h-0.5"
-              style={{ background: `linear-gradient(90deg, ${VERDE}, ${VERDE_LIGHT})` }}
-            />
-            <div
-              className="px-5 py-4 border-b border-slate-100 flex items-center gap-3"
-              style={{ background: `linear-gradient(135deg, ${VERDE}06, ${VERDE}02)` }}
-            >
-              <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0"
-                style={{ background: `linear-gradient(135deg, ${VERDE}, ${VERDE_LIGHT})` }}
-              >
-                <Send size={15} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <h3 className={`${jakarta.className} text-sm font-bold text-slate-800`}>
-                  Responder e atualizar
-                </h3>
-                <p className="text-[11px] text-slate-500 mt-0.5">
-                  A resposta será enviada por e-mail ao cidadão
-                </p>
-              </div>
-            </div>
-
-            <div className="p-5 space-y-5">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="md:col-span-2">
-                  <label className={labelCls}>
-                    <MessageCircle size={11} /> Escrever resposta
-                  </label>
-                  <textarea
-                    rows={5}
-                    value={resposta}
-                    onChange={(e) => setResposta(e.target.value)}
-                    className={`${inputCls} resize-y min-h-[130px]`}
-                    placeholder="Escreva a resposta ao cidadão..."
-                  />
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className={labelCls}>
-                      <Target size={11} /> Mudar status
-                    </label>
-                    <select
-                      value={statusAtual}
-                      onChange={(e) => setStatusAtual(e.target.value)}
-                      className={inputCls}
-                    >
-                      <option value="Aberto">🔴 Aberto</option>
-                      <option value="Em andamento">🟡 Em andamento</option>
-                      <option value="Concluído">🟢 Concluído</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className={labelCls}>
-                      <Paperclip size={11} /> Enviar PDF/anexo
-                    </label>
-                    <label
-                      className="flex items-center justify-center gap-2 border-2 border-dashed rounded-xl px-3 py-2.5 cursor-pointer text-[11px] font-bold transition-all group"
-                      style={{
-                        background: arquivoAdmin
-                          ? `linear-gradient(135deg, ${VERDE}06, ${VERDE}02)`
-                          : "#F8FAFC",
-                        borderColor: arquivoAdmin ? `${VERDE}50` : "#CBD5E1",
-                        color: arquivoAdmin ? VERDE : AZUL,
-                      }}
-                    >
-                      <input
-                        type="file"
-                        className="hidden"
-                        onChange={(e) =>
-                          setArquivoAdmin(e.target.files?.[0] || null)
-                        }
-                      />
-                      {arquivoAdmin ? (
-                        <>
-                          <CheckCircle size={13} /> Anexo pronto
-                        </>
-                      ) : (
-                        <>
-                          <UploadCloud size={13} /> Anexar arquivo
-                        </>
-                      )}
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              {feedback && <FeedbackInline feedback={feedback} />}
-
-              <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div className="flex items-center gap-2 text-[11px] text-slate-500">
-                  <Info size={12} style={{ color: AZUL }} />
-                  O cidadão receberá a resposta no e-mail cadastrado.
-                </div>
-
-                <button
-                  onClick={handleResponder}
-                  disabled={saving}
-                  className={`${jakarta.className} text-white px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest flex items-center gap-2 transition-all disabled:opacity-50 shadow-sm hover:shadow-md hover:-translate-y-0.5 disabled:hover:translate-y-0 shrink-0`}
-                  style={{ background: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})` }}
-                >
-                  {saving ? (
-                    <>
-                      <Loader2 size={14} className="animate-spin" />
-                      Enviando...
-                    </>
-                  ) : (
-                    <>
-                      <Save size={14} />
-                      Salvar e enviar
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Última resposta do admin */}
-          {chamadoAberto.resposta_admin && (
-            <div
-              className="rounded-2xl border-2 p-5 anim-fade-up"
-              style={{
-                background: `linear-gradient(135deg, ${AZUL}06, ${AZUL}02)`,
-                borderColor: `${AZUL}25`,
-              }}
-            >
-              <div className="flex items-center gap-2 mb-3">
-                <div
-                  className="w-7 h-7 rounded-lg flex items-center justify-center text-white shadow-sm"
-                  style={{ background: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})` }}
-                >
-                  <CheckCircle2 size={12} />
-                </div>
-                <p className={`${jakarta.className} text-xs font-bold text-slate-700 uppercase tracking-widest`}>
-                  Última resposta do admin
-                </p>
-              </div>
-              <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
-                {chamadoAberto.resposta_admin}
-              </p>
-            </div>
-          )}
         </div>
       </>
     );
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // VISTA: LISTA
+  // LISTA
   // ═══════════════════════════════════════════════════════════════
 
   return (
     <>
       <GlobalStyles />
-      <div className={`${inter.className} space-y-6`}>
+      <div className={`${inter.className} space-y-4`}>
 
-        {/* Cabeçalho */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 anim-fade-up">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 anim-fade-up">
           <div>
-            <div className="flex items-center gap-2 mb-1.5">
+            <div className="flex items-center gap-2 mb-1">
+              <span
+                className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.1em] px-1.5 py-0.5 rounded"
+                style={{ background: INK, color: "#FFF" }}
+              >
+                <Headset size={9} strokeWidth={3} />
+                Atendimento
+              </span>
+              <span className="text-[11px]" style={{ color: MUTED }}>
+                {chamados.length} chamado{chamados.length !== 1 ? "s" : ""}
+              </span>
             </div>
-            <h1 className={`${jakarta.className} text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight`}>
-              Central de suporte
+            <h1
+              className={`${jakarta.className} text-[26px] font-bold tracking-tight`}
+              style={{ color: INK, letterSpacing: "-0.025em" }}
+            >
+              Suporte ao cidadão
             </h1>
-            <p className="text-sm text-slate-500 mt-1.5 flex items-center gap-2">
-              <Sparkles size={14} style={{ color: VERMELHO }} />
-              Gerencie as queixas e dúvidas dos cidadãos.
+            <p className="text-[12.5px] mt-1" style={{ color: MUTED }}>
+              Gerencie queixas e dúvidas recebidas pelo portal.
             </p>
           </div>
 
-          {/* Badge de total */}
+          {/* Status da fila */}
           <div
-            className="self-start sm:self-auto inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl border shadow-sm"
-            style={{
-              background: loading
-                ? "white"
-                : `linear-gradient(135deg, ${AZUL}08, ${AZUL}02)`,
-              borderColor: loading ? "#E2E8F0" : `${AZUL}30`,
-            }}
+            className="inline-flex items-center gap-2 h-9 px-3 rounded-md border self-start sm:self-auto"
+            style={{ borderColor: LINE, background: SURFACE }}
           >
-            {loading ? (
-              <Loader2 size={14} className="animate-spin" style={{ color: AZUL }} />
-            ) : (
-              <div className="relative">
-                <Headphones size={14} style={{ color: AZUL }} />
+            {contadores.abertos > 0 ? (
+              <>
+                <div className="relative">
+                  <Circle size={12} className="fill-current" style={{ color: DANGER }} />
+                  <span
+                    className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full dot-pulse"
+                    style={{ background: DANGER }}
+                  />
+                </div>
                 <span
-                  className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full pulse-dot"
-                  style={{ background: VERDE_LIGHT }}
-                />
-              </div>
+                  className={`${jakarta.className} num text-[12px] font-bold`}
+                  style={{ color: INK }}
+                >
+                  {contadores.abertos} aberto{contadores.abertos !== 1 ? "s" : ""}
+                </span>
+              </>
+            ) : (
+              <>
+                <CheckCircle2 size={12} style={{ color: SUCCESS }} />
+                <span className={`${jakarta.className} text-[12px] font-bold`} style={{ color: INK }}>
+                  Fila limpa
+                </span>
+              </>
             )}
-            <span
-              className={`${jakarta.className} text-xs font-bold`}
-              style={{ color: loading ? "#64748B" : AZUL }}
-            >
-              {loading
-                ? "Carregando..."
-                : `${chamados.length} chamado${chamados.length !== 1 ? "s" : ""}`}
-            </span>
           </div>
         </div>
 
-        {/* KPIs */}
+        {/* KPIs — strip horizontal */}
         {chamados.length > 0 && (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 anim-fade-up" style={{ animationDelay: "60ms" }}>
-            {/* Total */}
-            <div className="relative bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all overflow-hidden group">
-              <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: `linear-gradient(90deg, ${ROXO}, #A78BFA)` }} />
-              <div className="flex items-center gap-2.5 mb-3">
+          <Panel noPad className="anim-fade-up">
+            <div className="grid grid-cols-2 md:grid-cols-4 divide-x" style={{ borderColor: LINE }}>
+              {[
+                { label: "Total", valor: contadores.total, unit: "chamados", accent: false },
+                { label: "Abertos", valor: contadores.abertos, unit: "aguardando", accent: contadores.abertos > 0 },
+                { label: "Em andamento", valor: contadores.andamento, unit: "em curso", accent: false },
+                { label: "Concluídos", valor: contadores.concluidos, unit: "resolvidos", accent: false },
+              ].map((kpi) => (
                 <div
-                  className="w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0"
-                  style={{ background: `linear-gradient(135deg, ${ROXO}, #A78BFA)` }}
+                  key={kpi.label}
+                  className="px-4 py-3.5 hover:bg-[#FAFAFB] transition-colors"
+                  style={{ borderColor: LINE }}
                 >
-                  <Layers size={14} />
+                  <p
+                    className="text-[10.5px] font-semibold uppercase tracking-[0.08em]"
+                    style={{ color: MUTED }}
+                  >
+                    {kpi.label}
+                  </p>
+                  <p
+                    className={`${jakarta.className} num text-[26px] font-bold leading-none mt-2`}
+                    style={{ color: INK, letterSpacing: "-0.025em" }}
+                  >
+                    {kpi.valor}
+                  </p>
+                  <p className="text-[10.5px] mt-1.5" style={{ color: SUBTLE }}>
+                    {kpi.unit}
+                  </p>
                 </div>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 leading-tight">
-                  Total
-                </span>
-              </div>
-              <p className={`${jakarta.className} text-3xl font-extrabold leading-none tracking-tight`} style={{ color: ROXO }}>
-                {contadores.total}
-              </p>
-              <p className="text-[10px] text-slate-400 mt-1.5 font-medium">
-                chamados recebidos
-              </p>
+              ))}
             </div>
-
-            {/* Abertos */}
-            <div className="relative bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all overflow-hidden group">
-              <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: `linear-gradient(90deg, ${VERMELHO}, #F87171)` }} />
-              <div className="flex items-center gap-2.5 mb-3">
-                <div
-                  className="w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0"
-                  style={{ background: `linear-gradient(135deg, ${VERMELHO}, #F87171)` }}
-                >
-                  <Circle size={14} />
-                </div>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 leading-tight">
-                  Abertos
-                </span>
-              </div>
-              <p className={`${jakarta.className} text-3xl font-extrabold leading-none tracking-tight`} style={{ color: contadores.abertos > 0 ? VERMELHO : "#94A3B8" }}>
-                {contadores.abertos}
-              </p>
-              <p className="text-[10px] text-slate-400 mt-1.5 font-medium">
-                aguardando resposta
-              </p>
-            </div>
-
-            {/* Em andamento */}
-            <div className="relative bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all overflow-hidden group">
-              <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: `linear-gradient(90deg, ${AMBAR}, ${AMBAR_LIGHT})` }} />
-              <div className="flex items-center gap-2.5 mb-3">
-                <div
-                  className="w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0"
-                  style={{ background: `linear-gradient(135deg, ${AMBAR}, ${AMBAR_LIGHT})` }}
-                >
-                  <Clock size={14} />
-                </div>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 leading-tight">
-                  Em andamento
-                </span>
-              </div>
-              <p className={`${jakarta.className} text-3xl font-extrabold leading-none tracking-tight`} style={{ color: contadores.andamento > 0 ? AMBAR : "#94A3B8" }}>
-                {contadores.andamento}
-              </p>
-              <p className="text-[10px] text-slate-400 mt-1.5 font-medium">
-                em atendimento
-              </p>
-            </div>
-
-            {/* Concluídos */}
-            <div className="relative bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all overflow-hidden group">
-              <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: `linear-gradient(90deg, ${VERDE}, ${VERDE_LIGHT})` }} />
-              <div className="flex items-center gap-2.5 mb-3">
-                <div
-                  className="w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0"
-                  style={{ background: `linear-gradient(135deg, ${VERDE}, ${VERDE_LIGHT})` }}
-                >
-                  <CheckCircle2 size={14} />
-                </div>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 leading-tight">
-                  Concluídos
-                </span>
-              </div>
-              <p className={`${jakarta.className} text-3xl font-extrabold leading-none tracking-tight`} style={{ color: contadores.concluidos > 0 ? VERDE : "#94A3B8" }}>
-                {contadores.concluidos}
-              </p>
-              <p className="text-[10px] text-slate-400 mt-1.5 font-medium">
-                resolvidos
-              </p>
-            </div>
-          </div>
+          </Panel>
         )}
 
-        {/* Busca + Filtro */}
+        {/* Filtros */}
         {chamados.length > 0 && (
-          <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm anim-fade-up" style={{ animationDelay: "120ms" }}>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div className="flex items-center gap-2 min-w-0">
-                <div
-                  className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
-                  style={{ background: `${AZUL}10`, color: AZUL }}
-                >
-                  <Filter size={14} />
-                </div>
-                <p className="text-xs text-slate-500">
-                  Mostrando{" "}
-                  <strong className="text-slate-800 font-bold">
-                    {chamadosFiltrados.length}
-                  </strong>{" "}
-                  de{" "}
-                  <strong className="text-slate-800 font-bold">
-                    {chamados.length}
-                  </strong>{" "}
-                  chamado(s)
-                </p>
+          <Panel noPad className="anim-fade-up">
+            <div className="p-3 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <div className="relative flex-1">
+                <Search
+                  size={14}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                  style={{ color: SUBTLE }}
+                />
+                <input
+                  type="text"
+                  placeholder="Buscar por protocolo, nome ou assunto..."
+                  value={busca}
+                  onChange={(e) => setBusca(e.target.value)}
+                  className={`${inputCls} pl-9 pr-9`}
+                  style={{ borderColor: LINE }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = INK;
+                    e.currentTarget.style.boxShadow = `0 0 0 3px rgba(10,14,20,0.06)`;
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = LINE;
+                    e.currentTarget.style.boxShadow = "none";
+                  }}
+                />
+                {busca && (
+                  <button
+                    onClick={() => setBusca("")}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded flex items-center justify-center transition-colors"
+                    style={{ color: SUBTLE }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = LINE_2)}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                    aria-label="Limpar busca"
+                  >
+                    <X size={12} />
+                  </button>
+                )}
               </div>
 
-              <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
-                <select
-                  value={filtroStatus}
-                  onChange={(e) => setFiltroStatus(e.target.value as any)}
-                  className="bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl px-3 py-2.5 focus:outline-none focus:bg-white focus:border-[#0078D4] focus:ring-4 focus:ring-[#0078D4]/10 transition-all cursor-pointer"
-                >
-                  <option value="Todos">Todos os status</option>
-                  <option value="Aberto">🔴 Abertos</option>
-                  <option value="Em andamento">🟡 Em andamento</option>
-                  <option value="Concluído">🟢 Concluídos</option>
-                </select>
+              <select
+                value={filtroStatus}
+                onChange={(e) => setFiltroStatus(e.target.value as any)}
+                className="h-10 px-3 rounded-md text-[12.5px] font-medium border transition-colors cursor-pointer w-full sm:w-auto"
+                style={{ borderColor: LINE, color: INK, background: SURFACE }}
+              >
+                <option value="Todos">Todos os status</option>
+                <option value="Aberto">Abertos</option>
+                <option value="Em andamento">Em andamento</option>
+                <option value="Concluído">Concluídos</option>
+              </select>
 
-                <div className="relative flex-1 sm:w-72">
-                  <Search
-                    size={14}
-                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Buscar protocolo, nome ou assunto..."
-                    value={busca}
-                    onChange={(e) => setBusca(e.target.value)}
-                    className={`${inputCls} pl-10 pr-9 text-xs py-2.5`}
-                  />
-                  {busca && (
-                    <button
-                      onClick={() => setBusca("")}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full hover:bg-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors"
-                    >
-                      <X size={11} />
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {temFiltro && (
-              <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-end">
+              {temFiltro && (
                 <button
                   onClick={() => {
                     setBusca("");
                     setFiltroStatus("Todos");
                   }}
-                  className="text-[11px] font-bold hover:underline transition-colors flex items-center gap-1"
-                  style={{ color: AZUL }}
+                  className="h-10 px-3 rounded-md text-[12px] font-semibold border transition-colors whitespace-nowrap"
+                  style={{ borderColor: LINE, color: INK_2, background: SURFACE }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = LINE_2)}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = SURFACE)}
                 >
-                  <X size={11} /> Limpar filtros
+                  Limpar
                 </button>
+              )}
+            </div>
+
+            {temFiltro && (
+              <div
+                className="px-4 py-2 border-t text-center"
+                style={{ borderColor: LINE, background: BG }}
+              >
+                <p className="text-[11px] num" style={{ color: MUTED }}>
+                  <strong style={{ color: INK }}>{chamadosFiltrados.length}</strong> de{" "}
+                  <strong style={{ color: INK }}>{chamados.length}</strong> chamados
+                </p>
               </div>
             )}
-          </div>
+          </Panel>
         )}
 
         {/* Lista */}
         {loading ? (
-          <div className="bg-white border border-slate-200/80 rounded-2xl py-24 flex flex-col items-center gap-3 anim-fade">
-            <div
-              className="w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-sm"
-              style={{ background: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})` }}
-            >
-              <Loader2 size={22} className="animate-spin" />
+          <Panel noPad>
+            <div className="divide-y" style={{ borderColor: LINE_2 }}>
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="h-20 skeleton" />
+              ))}
             </div>
-            <p className="text-xs text-slate-400 font-medium">
-              Carregando chamados...
-            </p>
-          </div>
+          </Panel>
         ) : chamadosFiltrados.length === 0 ? (
-          <div className="bg-white border border-slate-200/80 rounded-2xl py-20 text-center shadow-sm anim-fade">
-            <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm text-white"
-              style={{
-                background: temFiltro
-                  ? `linear-gradient(135deg, ${AMBAR}, ${AMBAR_LIGHT})`
-                  : `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})`,
-              }}
-            >
-              {temFiltro ? <Search size={28} /> : <Inbox size={28} />}
-            </div>
-            <h3 className={`${jakarta.className} text-lg font-bold text-slate-800 mb-1.5`}>
-              {temFiltro ? "Nenhum resultado" : "Nenhum chamado recebido"}
-            </h3>
-            <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed mb-5">
-              {temFiltro
-                ? "Ajuste os filtros ou a busca para encontrar chamados."
-                : "Os chamados dos cidadãos aparecerão aqui."}
-            </p>
-            {temFiltro && (
-              <button
-                onClick={() => {
-                  setBusca("");
-                  setFiltroStatus("Todos");
-                }}
-                className={`${jakarta.className} text-[11px] font-bold px-4 py-2 rounded-xl text-white shadow-sm hover:shadow-md transition-all`}
-                style={{ background: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})` }}
+          <Panel noPad className="anim-fade">
+            <div className="py-16 text-center">
+              <div
+                className="w-11 h-11 rounded-lg mx-auto mb-3 flex items-center justify-center"
+                style={{ background: LINE_2, color: MUTED }}
               >
-                Limpar filtros
-              </button>
-            )}
-          </div>
+                {temFiltro ? <Search size={20} strokeWidth={2} /> : <Inbox size={20} strokeWidth={2} />}
+              </div>
+              <p className={`${jakarta.className} text-[13px] font-bold`} style={{ color: INK }}>
+                {temFiltro ? "Nenhum resultado" : "Nenhum chamado recebido"}
+              </p>
+              <p className="text-[11.5px] mt-1 max-w-md mx-auto" style={{ color: MUTED }}>
+                {temFiltro
+                  ? "Ajuste os filtros ou a busca para encontrar chamados."
+                  : "Os chamados dos cidadãos aparecerão aqui."}
+              </p>
+              {temFiltro && (
+                <div className="mt-4">
+                  <button
+                    onClick={() => {
+                      setBusca("");
+                      setFiltroStatus("Todos");
+                    }}
+                    className="h-9 px-3 rounded-md text-[12.5px] font-semibold text-white transition-colors"
+                    style={{ background: INK }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = INK_2)}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = INK)}
+                  >
+                    Limpar filtros
+                  </button>
+                </div>
+              )}
+            </div>
+          </Panel>
         ) : (
-          <div className="space-y-3">
-            {chamadosFiltrados.map((c, idx) => {
-              const statusInfo = getStatusInfo(c.status);
-              const iniciais = (c.nome || "?")
-                .split(" ")
-                .filter(Boolean)
-                .slice(0, 2)
-                .map((n: string) => n[0])
-                .join("")
-                .toUpperCase();
+          <Panel noPad className="anim-fade-up">
+            <div className="divide-y" style={{ borderColor: LINE_2 }}>
+              {chamadosFiltrados.map((c, idx) => {
+                const info = getStatusInfo(c.status);
+                const iniciais = (c.nome || "?")
+                  .split(" ")
+                  .filter(Boolean)
+                  .slice(0, 2)
+                  .map((n: string) => n[0])
+                  .join("")
+                  .toUpperCase();
 
-              return (
-                <article
-                  key={c.id}
-                  onClick={() => abrirChamado(c)}
-                  style={{ animationDelay: `${180 + idx * 25}ms` }}
-                  className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 anim-fade-up cursor-pointer group"
-                >
-                  <div className="h-0.5" style={{ background: statusInfo.gradient }} />
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() => abrirChamado(c)}
+                    style={{ animationDelay: `${idx * 15}ms` }}
+                    className="relative w-full text-left grid grid-cols-[auto_1fr_auto] items-center gap-4 px-5 py-3.5 hover:bg-[#FAFAFB] transition-colors anim-fade-up group"
+                  >
+                    {/* Faixa lateral de status */}
+                    <span
+                      className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-10 rounded-r"
+                      style={{ background: info.cor }}
+                    />
 
-                  <div className="p-4 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
                     {/* Avatar */}
                     <div
-                      className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 text-sm font-bold text-white shadow-sm transition-transform group-hover:scale-105"
-                      style={{ background: statusInfo.gradient }}
+                      className="w-10 h-10 rounded-md flex items-center justify-center shrink-0 text-[12px] font-bold text-white"
+                      style={{ background: INK }}
                     >
                       {iniciais}
                     </div>
 
                     {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap mb-2">
-                        <span className="font-mono font-bold text-slate-800 text-xs">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                        <span className="text-[11px] font-mono font-bold num" style={{ color: INK }}>
                           {c.protocolo}
                         </span>
-                        <StatusBadge status={c.status} />
+                        <StatusPill status={c.status} />
                       </div>
 
-                      <h3 className={`${jakarta.className} text-sm font-bold text-slate-900 truncate mb-1`}>
+                      <p
+                        className={`${jakarta.className} text-[13.5px] font-bold leading-snug truncate`}
+                        style={{ color: INK }}
+                      >
                         {c.assunto}
-                      </h3>
+                      </p>
 
-                      <div className="flex items-center gap-3 text-[11px] text-slate-500 flex-wrap">
-                        <span className="flex items-center gap-1.5">
-                          <User size={10} className="text-slate-400" />
+                      <div
+                        className="flex items-center gap-3 text-[11px] mt-0.5 num flex-wrap"
+                        style={{ color: SUBTLE }}
+                      >
+                        <span className="flex items-center gap-1">
+                          <User size={10} />
                           {c.nome}
                         </span>
-                        <span className="flex items-center gap-1.5">
-                          <IdCard size={10} className="text-slate-400" />
-                          {c.cpf}
-                        </span>
-                        <span className="flex items-center gap-1.5">
-                          <Calendar size={10} className="text-slate-400" />
-                          {fmtDatetime(c.criado_em)}
+                        <span className="flex items-center gap-1">
+                          <Clock size={10} />
+                          {tempoRelativo(c.criado_em)}
                         </span>
                       </div>
                     </div>
 
-                    {/* Ícone de acesso */}
-                    <div
-                      className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all group-hover:translate-x-0.5"
-                      style={{
-                        background: `${statusInfo.cor}10`,
-                        color: statusInfo.cor,
-                      }}
-                    >
-                      <MessageSquare size={15} />
-                    </div>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
+                    {/* Seta */}
+                    <ArrowRight
+                      size={15}
+                      className="shrink-0 transition-all group-hover:translate-x-0.5"
+                      style={{ color: SUBTLE }}
+                    />
+                  </button>
+                );
+              })}
+            </div>
+          </Panel>
         )}
       </div>
     </>

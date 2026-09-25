@@ -7,140 +7,249 @@ import Link from "next/link";
 import {
   Calendar as CalendarIcon, Clock, MapPin, Building2, Utensils,
   Briefcase, Loader2, Sparkles, ArrowRight, Inbox, TrendingUp,
-  Target, Compass, Coffee, Users, Users2, Headset, MessageSquare,
-  Mail, BadgeCheck, Activity, Layers, Eye, ChevronRight, Zap,
-  AlertTriangle, CheckCircle2, Circle, BarChart3, PieChart,
-  FileText, Notebook, PlusCircle, Star,
+  Compass, Users, Headset, Mail, BadgeCheck, Activity,
+  FileText, Notebook, Plus, RefreshCw, ArrowUpRight, ArrowDownRight,
+  Circle, ChevronRight, Zap, Layers, Filter, CheckCircle2
 } from "lucide-react";
 
-const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["600", "700", "800"] });
+const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["500", "600", "700", "800"] });
 const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
-// ─── CORES (paleta Azure/Microsoft) ───
-const AZUL = "#0078D4";
-const AZUL_ESCURO = "#005A9E";
-const AMBAR = "#DAA520";
-const AMBAR_LIGHT = "#FBBF24";
-const VERMELHO = "#D13438";
-const VERDE = "#168821";
-const VERDE_LIGHT = "#22C55E";
-const ROXO = "#7C3AED";
+// ─── PALETA ENTERPRISE (sóbria, funcional) ───
+const INK = "#0A0E14";           // preto dominante
+const INK_2 = "#1F2937";         // cinza escuro
+const MUTED = "#6B7280";         // cinza médio
+const SUBTLE = "#9CA3AF";        // cinza claro
+const LINE = "#E5E7EB";          // borda neutra
+const LINE_2 = "#F3F4F6";        // borda suave
+const BG = "#FBFBFC";            // fundo quase branco
+const SURFACE = "#FFFFFF";
+const BRAND = "#0F172A";         // azul-preto (marca)
+const ACCENT = "#2563EB";        // azul sinal
+const SUCCESS = "#059669";
+const WARNING = "#D97706";
+const DANGER = "#DC2626";
 
 // ═══════════════════════════════════════════════════════════════
-// ESTILOS GLOBAIS
+// ESTILOS
 // ═══════════════════════════════════════════════════════════════
 
 function GlobalStyles() {
   return (
     <style jsx global>{`
-      @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(8px); }
+      @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(4px); }
         to { opacity: 1; transform: translateY(0); }
       }
-      @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.35; }
       }
-      @keyframes pulseDot {
-        0%, 100% { opacity: 1; transform: scale(1); }
-        50% { opacity: 0.5; transform: scale(0.85); }
-      }
-      @keyframes growBar {
+      @keyframes barGrow {
         from { transform: scaleY(0); }
         to { transform: scaleY(1); }
       }
-      .anim-fade-up { animation: fadeInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; }
-      .anim-fade { animation: fadeIn 0.25s ease both; }
-      .pulse-dot { animation: pulseDot 1.8s ease-in-out infinite; }
-      .grow-bar { animation: growBar 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; transform-origin: bottom; }
-      .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
-      .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
-      .scrollbar-thin::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
-      .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+      @keyframes shimmer {
+        0% { background-position: -200% 0; }
+        100% { background-position: 200% 0; }
+      }
+      .fade-up { animation: fadeUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) both; }
+      .dot-pulse { animation: pulse 2s ease-in-out infinite; }
+      .bar-grow { animation: barGrow 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; transform-origin: bottom; }
+      .skeleton {
+        background: linear-gradient(90deg, ${LINE_2} 0%, ${LINE} 50%, ${LINE_2} 100%);
+        background-size: 200% 100%;
+        animation: shimmer 1.4s infinite;
+      }
+      .num { font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+      .scroll-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+      .scroll-thin::-webkit-scrollbar-track { background: transparent; }
+      .scroll-thin::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 3px; }
+      .scroll-thin::-webkit-scrollbar-thumb:hover { background: #9CA3AF; }
     `}</style>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════
-// SUB-COMPONENTES
+// ÁTOMOS DE DESIGN
 // ═══════════════════════════════════════════════════════════════
 
-function StatCard({
-  titulo,
-  valor,
-  subtitulo,
-  cor,
-  gradient,
-  icone,
+/**
+ * Painel — container base com borda rígida 1px.
+ * Substitui os antigos "cards" com sombra e radius.
+ */
+function Panel({
+  children,
+  className = "",
+  noPad = false,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  noPad?: boolean;
+}) {
+  return (
+    <div
+      className={`bg-white border rounded-lg overflow-hidden ${className}`}
+      style={{ borderColor: LINE }}
+    >
+      {noPad ? children : <div className="p-5">{children}</div>}
+    </div>
+  );
+}
+
+/**
+ * PanelHeader — cabeçalho de um painel. Linha divisória, título à esquerda, ação à direita.
+ */
+function PanelHeader({
+  title,
+  subtitle,
+  action,
+  badge,
+}: {
+  title: string;
+  subtitle?: string;
+  action?: React.ReactNode;
+  badge?: React.ReactNode;
+}) {
+  return (
+    <div
+      className="px-5 py-3.5 flex items-center justify-between gap-3 border-b"
+      style={{ borderColor: LINE, background: BG }}
+    >
+      <div className="min-w-0">
+        <div className="flex items-center gap-2">
+          <h3 className={`${jakarta.className} text-[13px] font-bold`} style={{ color: INK }}>
+            {title}
+          </h3>
+          {badge}
+        </div>
+        {subtitle && (
+          <p className="text-[11.5px] mt-0.5" style={{ color: MUTED }}>
+            {subtitle}
+          </p>
+        )}
+      </div>
+      {action}
+    </div>
+  );
+}
+
+/**
+ * Metric — bloco de métrica. Sem ícone decorativo. Número enorme. Delta opcional.
+ */
+function Metric({
+  label,
+  value,
+  unit,
+  delta,
+  deltaDir,
   href,
   delay = 0,
 }: {
-  titulo: string;
-  valor: number;
-  subtitulo: string;
-  cor: string;
-  gradient: string;
-  icone: React.ReactNode;
+  label: string;
+  value: number | string;
+  unit?: string;
+  delta?: string;
+  deltaDir?: "up" | "down";
   href?: string;
   delay?: number;
 }) {
-  const content = (
-    <>
-      <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: gradient }} />
-      <div
-        className="absolute -top-12 -right-12 w-24 h-24 rounded-full opacity-0 group-hover:opacity-20 transition-opacity duration-500 blur-2xl"
-        style={{ background: cor }}
-      />
-      <div className="relative flex items-center gap-2.5 mb-3">
-        <div
-          className="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0 transition-transform group-hover:scale-105"
-          style={{ background: gradient }}
+  const inner = (
+    <div
+      className="relative px-4 py-3.5 hover:bg-[#FAFAFB] transition-colors group"
+      style={{ animationDelay: `${delay}ms` }}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <span
+          className="text-[10.5px] font-semibold uppercase tracking-[0.08em]"
+          style={{ color: MUTED, letterSpacing: "0.08em" }}
         >
-          {icone}
-        </div>
-        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 leading-tight">
-          {titulo}
+          {label}
         </span>
-      </div>
-      <p
-        className={`${jakarta.className} relative text-3xl font-extrabold leading-none tracking-tight`}
-        style={{ color: valor > 0 ? cor : "#94A3B8" }}
-      >
-        {valor}
-      </p>
-      <p className="relative text-[10px] text-slate-400 mt-2 font-medium">
-        {subtitulo}
-      </p>
-      {href && (
-        <div className="relative mt-3 pt-3 border-t border-slate-100 flex items-center justify-between">
-          <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: cor }}>
-            Gerir
+        {delta && (
+          <span
+            className="inline-flex items-center gap-0.5 text-[10.5px] font-semibold num"
+            style={{
+              color: deltaDir === "up" ? SUCCESS : deltaDir === "down" ? DANGER : MUTED,
+            }}
+          >
+            {deltaDir === "up" ? (
+              <ArrowUpRight size={11} strokeWidth={2.5} />
+            ) : (
+              <ArrowDownRight size={11} strokeWidth={2.5} />
+            )}
+            {delta}
           </span>
-          <ChevronRight
-            size={13}
-            className="group-hover:translate-x-0.5 transition-transform"
-            style={{ color: cor }}
-          />
-        </div>
+        )}
+      </div>
+
+      <div className="mt-2 flex items-baseline gap-1">
+        <span
+          className={`${jakarta.className} num text-[28px] font-bold leading-none`}
+          style={{ color: INK }}
+        >
+          {value}
+        </span>
+        {unit && (
+          <span className="text-[11px] font-medium" style={{ color: SUBTLE }}>
+            {unit}
+          </span>
+        )}
+      </div>
+
+      {href && (
+        <span
+          className="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity"
+          style={{ color: SUBTLE }}
+        >
+          <ChevronRight size={14} />
+        </span>
       )}
-    </>
+    </div>
   );
 
-  const Wrapper: any = href ? Link : "div";
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className="block fade-up border-r last:border-r-0"
+        style={{ borderColor: LINE }}
+      >
+        {inner}
+      </Link>
+    );
+  }
+  return (
+    <div className="fade-up border-r last:border-r-0" style={{ borderColor: LINE }}>
+      {inner}
+    </div>
+  );
+}
+
+/**
+ * StatusPill — estado em pílula discreta.
+ */
+function StatusPill({ children, tone }: { children: React.ReactNode; tone: "danger" | "warning" | "success" | "neutral" }) {
+  const map = {
+    danger: { c: DANGER, bg: "#FEF2F2", b: "#FEE2E2" },
+    warning: { c: WARNING, bg: "#FFFBEB", b: "#FEF3C7" },
+    success: { c: SUCCESS, bg: "#ECFDF5", b: "#D1FAE5" },
+    neutral: { c: MUTED, bg: LINE_2, b: LINE },
+  }[tone];
 
   return (
-    <Wrapper
-      {...(href ? { href } : {})}
-      style={{ animationDelay: `${delay}ms` }}
-      className="relative bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 overflow-hidden group anim-fade-up block"
+    <span
+      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide"
+      style={{ background: map.bg, color: map.c, border: `1px solid ${map.b}` }}
     >
-      {content}
-    </Wrapper>
+      <Circle size={5} className="fill-current" />
+      {children}
+    </span>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PÁGINA
+// PAGE
 // ═══════════════════════════════════════════════════════════════
 
 export default function PortalDashboard() {
@@ -149,78 +258,54 @@ export default function PortalDashboard() {
   const [suportes, setSuportes] = useState<any[]>([]);
   const [residentesSemana, setResidentesSemana] = useState<any[]>([]);
   const [stats, setStats] = useState({
-    atracoes: 0,
-    hoteis: 0,
-    restaurantes: 0,
-    agencias: 0,
-    comunidades: 0,
-    eventos: 0,
-    blog: 0,
-    guias: 0,
-    residentes: 0,
-    residentesAtivos: 0,
-    newsletter: 0,
+    atracoes: 0, hoteis: 0, restaurantes: 0, agencias: 0,
+    comunidades: 0, eventos: 0, blog: 0, guias: 0,
+    residentes: 0, residentesAtivos: 0, newsletter: 0,
   });
   const [suporteStats, setSuporteStats] = useState({
-    total: 0,
-    abertos: 0,
-    andamento: 0,
-    concluidos: 0,
+    total: 0, abertos: 0, andamento: 0, concluidos: 0,
   });
-
   const [agora, setAgora] = useState(new Date());
 
   useEffect(() => {
     carregarDashboard();
-
-    // Atualiza a hora a cada 60s
     const interval = setInterval(() => setAgora(new Date()), 60000);
     return () => clearInterval(interval);
   }, []);
 
   async function carregarDashboard() {
     setLoading(true);
-
     const hoje = new Date();
     const daquiA7Dias = new Date();
     daquiA7Dias.setDate(hoje.getDate() + 7);
     const hojeIso = hoje.toISOString().split("T")[0];
     const daquiA7DiasIso = daquiA7Dias.toISOString().split("T")[0];
 
-    // Eventos próximos 7 dias
     const { data: eventosData } = await supabase
       .from("eventos")
       .select("titulo, data, local")
       .gte("data", hojeIso)
       .lte("data", daquiA7DiasIso)
       .order("data", { ascending: true });
-
     setEventos(eventosData || []);
 
-    // Suportes em aberto
     const { data: suportesData } = await supabase
       .from("suporte")
       .select("id, protocolo, nome, assunto, status, criado_em")
       .neq("status", "Concluído")
       .order("criado_em", { ascending: false })
-      .limit(5);
-
+      .limit(6);
     setSuportes(suportesData || []);
 
-    // Residentes da última semana (para o gráfico)
     const seteDiasAtras = new Date();
     seteDiasAtras.setDate(hoje.getDate() - 6);
-    const seteDiasIso = seteDiasAtras.toISOString();
-
     const { data: residentesData } = await supabase
       .from("rd_residentes")
       .select("id, status, criado_at")
-      .gte("criado_at", seteDiasIso)
+      .gte("criado_at", seteDiasAtras.toISOString())
       .order("criado_at", { ascending: true });
-
     setResidentesSemana(residentesData || []);
 
-    // ─── CONTAGENS ───
     const counts = await Promise.all([
       supabase.from("atracoes").select("*", { count: "exact", head: true }),
       supabase.from("hoteis").select("*", { count: "exact", head: true }),
@@ -231,10 +316,7 @@ export default function PortalDashboard() {
       supabase.from("blog").select("*", { count: "exact", head: true }),
       supabase.from("guias_turisticos").select("*", { count: "exact", head: true }),
       supabase.from("rd_residentes").select("*", { count: "exact", head: true }),
-      supabase
-        .from("rd_residentes")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "ativo"),
+      supabase.from("rd_residentes").select("*", { count: "exact", head: true }).eq("status", "ativo"),
       supabase.from("newsletter_inscritos").select("*", { count: "exact", head: true }),
     ]);
 
@@ -252,69 +334,70 @@ export default function PortalDashboard() {
       newsletter: counts[10].count || 0,
     });
 
-    // ─── SUPORTE STATS ───
-    const { data: suporteTotal } = await supabase
-      .from("suporte")
-      .select("status");
-    const allSuporte = suporteTotal || [];
-
+    const { data: suporteTotal } = await supabase.from("suporte").select("status");
+    const all = suporteTotal || [];
     setSuporteStats({
-      total: allSuporte.length,
-      abertos: allSuporte.filter((s) => s.status === "Aberto").length,
-      andamento: allSuporte.filter((s) => s.status === "Em andamento").length,
-      concluidos: allSuporte.filter((s) => s.status === "Concluído").length,
+      total: all.length,
+      abertos: all.filter((s) => s.status === "Aberto").length,
+      andamento: all.filter((s) => s.status === "Em andamento").length,
+      concluidos: all.filter((s) => s.status === "Concluído").length,
     });
 
     setLoading(false);
   }
 
-  // ─── GRÁFICO: últimos 7 dias de residentes ───
-  const graficoResidentes = useMemo(() => {
+  const grafico = useMemo(() => {
     const dias: any[] = [];
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
       const iso = d.toISOString().split("T")[0];
       const label = d.toLocaleDateString("pt-BR", { weekday: "short" }).slice(0, 3);
-
-      const total = residentesSemana.filter(
-        (r) => r.criado_at?.split("T")[0] === iso
-      ).length;
+      const total = residentesSemana.filter((r) => r.criado_at?.split("T")[0] === iso).length;
       const ativos = residentesSemana.filter(
         (r) => r.criado_at?.split("T")[0] === iso && r.status === "ativo"
       ).length;
-
       dias.push({ label, iso, total, ativos });
     }
     const max = Math.max(...dias.map((d) => d.total), 1);
-    return { dias, max };
+    const totalSemana = dias.reduce((a, d) => a + d.total, 0);
+    const ativosSemana = dias.reduce((a, d) => a + d.ativos, 0);
+    return { dias, max, totalSemana, ativosSemana };
   }, [residentesSemana]);
 
   const dataFormatada = agora.toLocaleDateString("pt-BR", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
+    weekday: "long", day: "numeric", month: "long",
   });
   const horaFormatada = agora.toLocaleTimeString("pt-BR", {
-    hour: "2-digit",
-    minute: "2-digit",
+    hour: "2-digit", minute: "2-digit",
   });
+
+  const taxaAtivacao = stats.residentes > 0
+    ? Math.round((stats.residentesAtivos / stats.residentes) * 100)
+    : 0;
+  const taxaSuporte = suporteStats.total > 0
+    ? Math.round((suporteStats.concluidos / suporteStats.total) * 100)
+    : 0;
+  const suporteAberto = suporteStats.abertos + suporteStats.andamento;
 
   // ─── LOADING ───
   if (loading) {
     return (
       <>
         <GlobalStyles />
-        <div className="py-24 flex flex-col items-center justify-center gap-3">
-          <div
-            className="w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-sm"
-            style={{ background: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})` }}
-          >
-            <Loader2 size={22} className="animate-spin" />
+        <div className={`${inter.className} space-y-4`}>
+          <div className="h-7 w-48 rounded skeleton" />
+          <div className="border rounded-lg overflow-hidden" style={{ borderColor: LINE }}>
+            <div className="grid grid-cols-2 md:grid-cols-5">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="h-24 skeleton border-r" style={{ borderColor: LINE }} />
+              ))}
+            </div>
           </div>
-          <p className="text-xs text-slate-400 font-medium">
-            A carregar painel geral...
-          </p>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="lg:col-span-2 h-72 rounded-lg skeleton" />
+            <div className="h-72 rounded-lg skeleton" />
+          </div>
         </div>
       </>
     );
@@ -323,477 +406,375 @@ export default function PortalDashboard() {
   return (
     <>
       <GlobalStyles />
-      <div className={`${inter.className} space-y-6`}>
+      <div className={`${inter.className} space-y-4`}>
 
         {/* ═══════════════════════════════════════════════════════════ */}
-        {/* CABEÇALHO                                                   */}
+        {/* HEADER — linha única densa                                   */}
         {/* ═══════════════════════════════════════════════════════════ */}
 
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 anim-fade-up">
+        <div className="flex items-end justify-between gap-4 fade-up">
           <div>
-            <h1 className={`${jakarta.className} text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight`}>
+            <div className="flex items-center gap-2 mb-1">
+              <span
+                className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.1em] px-1.5 py-0.5 rounded"
+                style={{ background: INK, color: "#FFF" }}
+              >
+                <Activity size={9} strokeWidth={3} />
+                Painel
+              </span>
+              <span className="text-[11px]" style={{ color: MUTED }}>
+                {horaFormatada} · {dataFormatada}
+              </span>
+            </div>
+            <h1
+              className={`${jakarta.className} text-[26px] font-bold tracking-tight`}
+              style={{ color: INK, letterSpacing: "-0.025em" }}
+            >
               Visão geral
             </h1>
-            <p className="text-sm text-slate-500 mt-1.5 flex items-center gap-2">
-              <Compass size={14} style={{ color: AZUL }} />
-              Estado consolidado do portal — conteúdo, agenda e atendimento.
-            </p>
           </div>
 
-          {/* Data/hora */}
-          <div
-            className="self-start sm:self-auto inline-flex items-center gap-3 px-4 py-2.5 rounded-xl border shadow-sm"
-            style={{
-              background: `linear-gradient(135deg, ${AZUL}06, ${AZUL}02)`,
-              borderColor: `${AZUL}20`,
-            }}
-          >
-            <div className="relative">
-              <Clock size={15} style={{ color: AZUL }} />
-              <span
-                className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full pulse-dot"
-                style={{ background: VERDE_LIGHT }}
-              />
-            </div>
-            <div className="flex flex-col leading-tight">
-              <span className={`${jakarta.className} text-sm font-bold text-slate-800`}>
-                {horaFormatada}
-              </span>
-              <span className="text-[10px] text-slate-500 capitalize">
-                {dataFormatada}
-              </span>
-            </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={carregarDashboard}
+              className="h-8 px-3 rounded-md text-[12px] font-semibold flex items-center gap-1.5 transition-colors border"
+              style={{ borderColor: LINE, color: INK_2, background: "#FFF" }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = BG)}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "#FFF")}
+            >
+              <RefreshCw size={12} strokeWidth={2.5} />
+              Atualizar
+            </button>
+            <Link
+              href="/portal-servicos/noticias"
+              className="h-8 px-3 rounded-md text-[12px] font-semibold flex items-center gap-1.5 text-white transition-colors"
+              style={{ background: INK }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = INK_2)}
+              onMouseLeave={(e) => (e.currentTarget.style.background = INK)}
+            >
+              <Plus size={13} strokeWidth={3} />
+              Nova matéria
+            </Link>
           </div>
         </div>
 
         {/* ═══════════════════════════════════════════════════════════ */}
-        {/* KPIs PRINCIPAIS (Turismo & Trade)                          */}
+        {/* BENTO PRINCIPAL — KPIs agrupados em painéis compactos       */}
         {/* ═══════════════════════════════════════════════════════════ */}
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
-          <StatCard
-            titulo="Atrativos"
-            valor={stats.atracoes}
-            subtitulo="pontos turísticos"
-            cor={AZUL}
-            gradient={`linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})`}
-            icone={<MapPin size={15} />}
-            href="/portal-servicos/atracoes"
-            delay={0}
-          />
-          <StatCard
-            titulo="Hotéis"
-            valor={stats.hoteis}
-            subtitulo="alojamentos registrados"
-            cor={AMBAR}
-            gradient={`linear-gradient(135deg, ${AMBAR}, ${AMBAR_LIGHT})`}
-            icone={<Building2 size={15} />}
-            href="/portal-servicos/hoteis"
-            delay={60}
-          />
-          <StatCard
-            titulo="Restaurantes"
-            valor={stats.restaurantes}
-            subtitulo="gastronomia local"
-            cor={VERDE}
-            gradient={`linear-gradient(135deg, ${VERDE}, ${VERDE_LIGHT})`}
-            icone={<Utensils size={15} />}
-            href="/portal-servicos/gastronomia"
-            delay={120}
-          />
-          <StatCard
-            titulo="Agências"
-            valor={stats.agencias}
-            subtitulo="operadores turísticos"
-            cor={VERMELHO}
-            gradient={`linear-gradient(135deg, ${VERMELHO}, #F87171)`}
-            icone={<Briefcase size={15} />}
-            href="/portal-servicos/agencias"
-            delay={180}
-          />
-        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 fade-up" style={{ animationDelay: "40ms" }}>
 
-        {/* ═══════════════════════════════════════════════════════════ */}
-        {/* KPIs SECUNDÁRIOS (Conteúdo + Serviços)                     */}
-        {/* ═══════════════════════════════════════════════════════════ */}
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
-          <StatCard
-            titulo="Comunidades"
-            valor={stats.comunidades}
-            subtitulo="registros no portal"
-            cor={ROXO}
-            gradient={`linear-gradient(135deg, ${ROXO}, #A78BFA)`}
-            icone={<Users size={15} />}
-            href="/portal-servicos/comunidades"
-            delay={0}
-          />
-          <StatCard
-            titulo="Eventos"
-            valor={stats.eventos}
-            subtitulo="no calendário municipal"
-            cor={AMBAR}
-            gradient={`linear-gradient(135deg, ${AMBAR}, ${AMBAR_LIGHT})`}
-            icone={<CalendarIcon size={15} />}
-            href="/portal-servicos/eventos"
-            delay={60}
-          />
-          <StatCard
-            titulo="Blog / Notícias"
-            valor={stats.blog}
-            subtitulo="matérias publicadas"
-            cor={AZUL}
-            gradient={`linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})`}
-            icone={<FileText size={15} />}
-            href="/portal-servicos/noticias"
-            delay={120}
-          />
-          <StatCard
-            titulo="Guias PDF"
-            valor={stats.guias}
-            subtitulo="materiais digitais"
-            cor="#0284C7"
-            gradient={`linear-gradient(135deg, #0284C7, #38BDF8)`}
-            icone={<Notebook size={15} />}
-            href="/portal-servicos/aplicativo"
-            delay={180}
-          />
-        </div>
-
-        {/* ═══════════════════════════════════════════════════════════ */}
-        {/* KPIs DE SERVIÇOS CRÍTICOS (Residentes + Suporte + Newsletter) */}
-        {/* ═══════════════════════════════════════════════════════════ */}
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-
-          {/* Residentes Ativos */}
-          <Link
-            href="/portal-servicos/residentes"
-            className="relative bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 anim-fade-up group block"
-          >
-            <div className="h-0.5" style={{ background: `linear-gradient(90deg, ${AZUL}, ${AZUL_ESCURO})` }} />
-
-            <div className="p-5">
-              <div className="flex items-start justify-between gap-3 mb-4">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div
-                    className="w-11 h-11 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0 transition-transform group-hover:scale-105"
-                    style={{ background: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})` }}
+          {/* Turismo & Trade — 5 métricas em linha */}
+          <div className="lg:col-span-8">
+            <Panel noPad>
+              <PanelHeader
+                title="Inventário turístico"
+                subtitle="Recursos ativos no portal"
+                badge={
+                  <span
+                    className="text-[10px] font-semibold px-1.5 py-0.5 rounded num"
+                    style={{ background: LINE_2, color: MUTED }}
                   >
-                    <BadgeCheck size={18} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                      Residentes
-                    </p>
-                    <p className={`${jakarta.className} text-sm font-bold text-slate-800 mt-0.5`}>
-                      Carteiras ativas
-                    </p>
-                  </div>
-                </div>
-                <ChevronRight
-                  size={16}
-                  className="text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all shrink-0 mt-1"
-                />
+                    {stats.atracoes + stats.hoteis + stats.restaurantes + stats.agencias + stats.comunidades}
+                  </span>
+                }
+              />
+              <div className="grid grid-cols-2 md:grid-cols-5">
+                <Metric label="Atrativos" value={stats.atracoes} href="/portal-servicos/atracoes" />
+                <Metric label="Hotéis" value={stats.hoteis} href="/portal-servicos/hoteis" />
+                <Metric label="Restaurantes" value={stats.restaurantes} href="/portal-servicos/gastronomia" />
+                <Metric label="Agências" value={stats.agencias} href="/portal-servicos/agencias" />
+                <Metric label="Comunidades" value={stats.comunidades} href="/portal-servicos/comunidades" />
               </div>
+            </Panel>
+          </div>
 
+          {/* Conteúdo — 3 métricas */}
+          <div className="lg:col-span-4">
+            <Panel noPad>
+              <PanelHeader
+                title="Conteúdo publicado"
+                subtitle="Publicações digitais"
+              />
+              <div className="grid grid-cols-3">
+                <Metric label="Blog" value={stats.blog} href="/portal-servicos/noticias" />
+                <Metric label="Eventos" value={stats.eventos} href="/portal-servicos/eventos" />
+                <Metric label="Guias" value={stats.guias} href="/portal-servicos/aplicativo" />
+              </div>
+            </Panel>
+          </div>
+        </div>
+
+        {/* ═══════════════════════════════════════════════════════════ */}
+        {/* SERVIÇOS CRÍTICOS — 3 painéis com progresso                 */}
+        {/* ═══════════════════════════════════════════════════════════ */}
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 fade-up" style={{ animationDelay: "80ms" }}>
+
+          {/* Residentes */}
+          <Panel noPad>
+            <PanelHeader
+              title="Residentes"
+              subtitle="Carteiras emitidas"
+              action={
+                <Link
+                  href="/portal-servicos/residentes"
+                  className="text-[11px] font-semibold flex items-center gap-0.5 transition-opacity hover:opacity-70"
+                  style={{ color: INK }}
+                >
+                  Gerir
+                  <ChevronRight size={12} strokeWidth={2.5} />
+                </Link>
+              }
+            />
+            <div className="p-5">
               <div className="flex items-baseline gap-2">
-                <p
-                  className={`${jakarta.className} text-4xl font-extrabold leading-none tracking-tight`}
-                  style={{ color: AZUL }}
+                <span
+                  className={`${jakarta.className} num text-[40px] font-bold leading-none`}
+                  style={{ color: INK, letterSpacing: "-0.03em" }}
                 >
                   {stats.residentesAtivos}
-                </p>
-                <span className="text-xs font-bold text-slate-400">
-                  / {stats.residentes} total
+                </span>
+                <span className="text-[13px] font-medium num" style={{ color: SUBTLE }}>
+                  / {stats.residentes}
                 </span>
               </div>
+              <p className="text-[11.5px] mt-1" style={{ color: MUTED }}>
+                carteiras ativas de {stats.residentes} emitidas
+              </p>
 
-              {/* Barra de progresso */}
-              <div className="mt-4 pt-4 border-t border-slate-100">
+              <div className="mt-4 pt-4 border-t" style={{ borderColor: LINE_2 }}>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                  <span className="text-[10.5px] font-semibold uppercase tracking-[0.08em]" style={{ color: MUTED }}>
                     Taxa de ativação
                   </span>
-                  <span className={`${jakarta.className} text-[11px] font-bold`} style={{ color: AZUL }}>
-                    {stats.residentes > 0
-                      ? Math.round((stats.residentesAtivos / stats.residentes) * 100)
-                      : 0}
-                    %
+                  <span className={`${jakarta.className} num text-[12px] font-bold`} style={{ color: INK }}>
+                    {taxaAtivacao}%
                   </span>
                 </div>
-                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div className="h-1 rounded-full overflow-hidden" style={{ background: LINE_2 }}>
                   <div
                     className="h-full rounded-full transition-all duration-700"
-                    style={{
-                      width: `${
-                        stats.residentes > 0
-                          ? (stats.residentesAtivos / stats.residentes) * 100
-                          : 0
-                      }%`,
-                      background: `linear-gradient(90deg, ${AZUL}, ${AZUL_ESCURO})`,
-                    }}
+                    style={{ width: `${taxaAtivacao}%`, background: INK }}
                   />
                 </div>
               </div>
             </div>
-          </Link>
+          </Panel>
 
-          {/* Suporte em aberto */}
-          <Link
-            href="/portal-servicos/suporte"
-            className="relative bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 anim-fade-up group block"
-            style={{ animationDelay: "60ms" }}
-          >
-            <div className="h-0.5" style={{ background: `linear-gradient(90deg, ${VERMELHO}, #F87171)` }} />
-
-            <div className="p-5">
-              <div className="flex items-start justify-between gap-3 mb-4">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div
-                    className="w-11 h-11 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0 transition-transform group-hover:scale-105"
-                    style={{ background: `linear-gradient(135deg, ${VERMELHO}, #F87171)` }}
-                  >
-                    <Headset size={18} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                      Suporte
-                    </p>
-                    <p className={`${jakarta.className} text-sm font-bold text-slate-800 mt-0.5`}>
-                      Chamados em aberto
-                    </p>
-                  </div>
-                </div>
-                <ChevronRight
-                  size={16}
-                  className="text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all shrink-0 mt-1"
-                />
-              </div>
-
-              <div className="flex items-baseline gap-2">
-                <p
-                  className={`${jakarta.className} text-4xl font-extrabold leading-none tracking-tight`}
-                  style={{
-                    color:
-                      suporteStats.abertos + suporteStats.andamento > 0
-                        ? VERMELHO
-                        : "#94A3B8",
-                  }}
+          {/* Suporte */}
+          <Panel noPad>
+            <PanelHeader
+              title="Suporte"
+              subtitle="Fila de atendimento"
+              action={
+                <Link
+                  href="/portal-servicos/suporte"
+                  className="text-[11px] font-semibold flex items-center gap-0.5 transition-opacity hover:opacity-70"
+                  style={{ color: INK }}
                 >
-                  {suporteStats.abertos + suporteStats.andamento}
-                </p>
-                <span className="text-xs font-bold text-slate-400">
-                  / {suporteStats.total} total
+                  Gerir
+                  <ChevronRight size={12} strokeWidth={2.5} />
+                </Link>
+              }
+            />
+            <div className="p-5">
+              <div className="flex items-baseline gap-2">
+                <span
+                  className={`${jakarta.className} num text-[40px] font-bold leading-none`}
+                  style={{ color: suporteAberto > 0 ? INK : SUBTLE, letterSpacing: "-0.03em" }}
+                >
+                  {suporteAberto}
+                </span>
+                <span className="text-[13px] font-medium num" style={{ color: SUBTLE }}>
+                  / {suporteStats.total}
                 </span>
               </div>
+              <p className="text-[11.5px] mt-1" style={{ color: MUTED }}>
+                chamados ativos de {suporteStats.total} totais
+              </p>
 
-              {/* Distribuição por status */}
-              <div className="mt-4 pt-4 border-t border-slate-100 space-y-2">
-                <div className="flex items-center justify-between text-[11px]">
-                  <span className="flex items-center gap-1.5 text-slate-500">
-                    <Circle size={8} style={{ color: VERMELHO }} className="fill-current" />
+              <div className="mt-4 pt-4 border-t space-y-2" style={{ borderColor: LINE_2 }}>
+                <div className="flex items-center justify-between text-[11.5px]">
+                  <span className="flex items-center gap-1.5 font-medium" style={{ color: MUTED }}>
+                    <Circle size={6} className="fill-current" style={{ color: DANGER }} />
                     Abertos
                   </span>
-                  <span className={`${jakarta.className} font-bold`} style={{ color: VERMELHO }}>
+                  <span className={`${jakarta.className} num font-bold`} style={{ color: INK }}>
                     {suporteStats.abertos}
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-[11px]">
-                  <span className="flex items-center gap-1.5 text-slate-500">
-                    <Circle size={8} style={{ color: AMBAR }} className="fill-current" />
-                    Em andamento
+                <div className="flex items-center justify-between text-[11.5px]">
+                  <span className="flex items-center gap-1.5 font-medium" style={{ color: MUTED }}>
+                    <Circle size={6} className="fill-current" style={{ color: WARNING }} />
+                    Em curso
                   </span>
-                  <span className={`${jakarta.className} font-bold`} style={{ color: AMBAR }}>
+                  <span className={`${jakarta.className} num font-bold`} style={{ color: INK }}>
                     {suporteStats.andamento}
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-[11px]">
-                  <span className="flex items-center gap-1.5 text-slate-500">
-                    <Circle size={8} style={{ color: VERDE }} className="fill-current" />
+                <div className="flex items-center justify-between text-[11.5px]">
+                  <span className="flex items-center gap-1.5 font-medium" style={{ color: MUTED }}>
+                    <Circle size={6} className="fill-current" style={{ color: SUCCESS }} />
                     Concluídos
                   </span>
-                  <span className={`${jakarta.className} font-bold`} style={{ color: VERDE }}>
+                  <span className={`${jakarta.className} num font-bold`} style={{ color: INK }}>
                     {suporteStats.concluidos}
                   </span>
                 </div>
               </div>
             </div>
-          </Link>
+          </Panel>
 
           {/* Newsletter */}
-          <Link
-            href="/portal-servicos/newsletter"
-            className="relative bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 anim-fade-up group block"
-            style={{ animationDelay: "120ms" }}
-          >
-            <div className="h-0.5" style={{ background: `linear-gradient(90deg, ${AMBAR}, ${AMBAR_LIGHT})` }} />
-
+          <Panel noPad>
+            <PanelHeader
+              title="Newsletter"
+              subtitle="Base de subscritores"
+              action={
+                <Link
+                  href="/portal-servicos/newsletter"
+                  className="text-[11px] font-semibold flex items-center gap-0.5 transition-opacity hover:opacity-70"
+                  style={{ color: INK }}
+                >
+                  Gerir
+                  <ChevronRight size={12} strokeWidth={2.5} />
+                </Link>
+              }
+            />
             <div className="p-5">
-              <div className="flex items-start justify-between gap-3 mb-4">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div
-                    className="w-11 h-11 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0 transition-transform group-hover:scale-105"
-                    style={{ background: `linear-gradient(135deg, ${AMBAR}, ${AMBAR_LIGHT})` }}
-                  >
-                    <Mail size={18} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                      Newsletter
-                    </p>
-                    <p className={`${jakarta.className} text-sm font-bold text-slate-800 mt-0.5`}>
-                      Inscritos na base
-                    </p>
-                  </div>
-                </div>
-                <ChevronRight
-                  size={16}
-                  className="text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all shrink-0 mt-1"
-                />
+              <div className="flex items-baseline gap-2">
+                <span
+                  className={`${jakarta.className} num text-[40px] font-bold leading-none`}
+                  style={{ color: INK, letterSpacing: "-0.03em" }}
+                >
+                  {stats.newsletter}
+                </span>
               </div>
-
-              <p
-                className={`${jakarta.className} text-4xl font-extrabold leading-none tracking-tight`}
-                style={{ color: stats.newsletter > 0 ? AMBAR : "#94A3B8" }}
-              >
-                {stats.newsletter}
-              </p>
-
-              <p className="text-[10px] text-slate-400 mt-2 font-medium">
+              <p className="text-[11.5px] mt-1" style={{ color: MUTED }}>
                 emails capturados
               </p>
 
-              <div className="mt-4 pt-4 border-t border-slate-100">
-                <p className="text-[11px] text-slate-500 leading-relaxed flex items-start gap-1.5">
-                  <Sparkles size={11} style={{ color: AMBAR }} className="mt-0.5 shrink-0" />
-                  Prontos para receber campanhas por e-mail
-                </p>
+              <div className="mt-4 pt-4 border-t" style={{ borderColor: LINE_2 }}>
+                <div className="flex items-start gap-2 text-[11.5px] leading-relaxed" style={{ color: MUTED }}>
+                  <Sparkles size={12} className="mt-0.5 shrink-0" style={{ color: SUBTLE }} />
+                  <span>Prontos para receber campanhas segmentadas</span>
+                </div>
+                <Link
+                  href="/portal-servicos/newsletter"
+                  className="mt-3 inline-flex items-center gap-1 text-[11.5px] font-semibold transition-opacity hover:opacity-70"
+                  style={{ color: INK }}
+                >
+                  Compor campanha
+                  <ArrowRight size={12} strokeWidth={2.5} />
+                </Link>
               </div>
             </div>
-          </Link>
+          </Panel>
         </div>
 
         {/* ═══════════════════════════════════════════════════════════ */}
-        {/* GRELHA PRINCIPAL: Gráfico + Fila                            */}
+        {/* GRÁFICO + FILA DE SUPORTE                                    */}
         {/* ═══════════════════════════════════════════════════════════ */}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 fade-up" style={{ animationDelay: "120ms" }}>
 
-          {/* Gráfico: últimos 7 dias */
-          }
-          <div className="lg:col-span-2">
-            <div
-              className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm anim-fade-up"
-              style={{ animationDelay: "180ms" }}
-            >
-              <div className="h-0.5" style={{ background: `linear-gradient(90deg, ${AZUL}, ${AZUL_ESCURO})` }} />
+          {/* Gráfico */}
+          <div className="lg:col-span-8">
+            <Panel noPad>
+              <PanelHeader
+                title="Novos registos de residentes"
+                subtitle="Atividade diária nos últimos 7 dias"
+                badge={
+                  <span
+                    className="text-[10px] font-semibold px-1.5 py-0.5 rounded num"
+                    style={{ background: LINE_2, color: MUTED }}
+                  >
+                    7d
+                  </span>
+                }
+                action={
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <div className={`${jakarta.className} num text-[14px] font-bold leading-none`} style={{ color: INK }}>
+                        {grafico.totalSemana}
+                      </div>
+                      <div className="text-[10px] font-semibold uppercase tracking-wider mt-0.5" style={{ color: SUBTLE }}>
+                        registos
+                      </div>
+                    </div>
+                    <div className="w-px h-7" style={{ background: LINE }} />
+                    <div className="text-right">
+                      <div className={`${jakarta.className} num text-[14px] font-bold leading-none`} style={{ color: SUCCESS }}>
+                        {grafico.ativosSemana}
+                      </div>
+                      <div className="text-[10px] font-semibold uppercase tracking-wider mt-0.5" style={{ color: SUBTLE }}>
+                        ativos
+                      </div>
+                    </div>
+                  </div>
+                }
+              />
 
-              {/* Header */}
-              <div
-                className="px-5 py-4 border-b border-slate-100 flex items-center gap-3"
-                style={{ background: `linear-gradient(135deg, ${AZUL}06, ${AZUL}02)` }}
-              >
-                <div
-                  className="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0"
-                  style={{ background: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})` }}
-                >
-                  <BarChart3 size={15} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className={`${jakarta.className} text-sm font-bold text-slate-800 flex items-center gap-2 flex-wrap`}>
-                    Novos registros de residentes
-                    <span
-                      className="text-[10px] font-bold px-2 py-0.5 rounded-full border"
-                      style={{
-                        background: `${AZUL}10`,
-                        color: AZUL,
-                        borderColor: `${AZUL}25`,
-                      }}
-                    >
-                      Últimos 7 dias
-                    </span>
-                  </h3>
-                  <p className="text-[11px] text-slate-500 mt-0.5">
-                    Total de novos cidadãos por dia · {residentesSemana.length} na semana
-                  </p>
-                </div>
-              </div>
-
-              {/* Gráfico */}
               <div className="p-5">
                 {residentesSemana.length === 0 ? (
-                  <div className="py-12 text-center">
+                  <div className="py-14 text-center">
                     <div
-                      className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-sm text-white"
-                      style={{
-                        background: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})`,
-                      }}
+                      className="w-11 h-11 rounded-lg mx-auto mb-3 flex items-center justify-center"
+                      style={{ background: LINE_2, color: MUTED }}
                     >
-                      <TrendingUp size={24} />
+                      <TrendingUp size={20} strokeWidth={2} />
                     </div>
-                    <p className={`${jakarta.className} text-sm font-bold text-slate-700 mb-1`}>
+                    <p className={`${jakarta.className} text-[13px] font-bold`} style={{ color: INK }}>
                       Sem atividade esta semana
                     </p>
-                    <p className="text-[11px] text-slate-500">
-                      Nenhum residente se registrou nos últimos 7 dias.
+                    <p className="text-[11.5px] mt-1" style={{ color: MUTED }}>
+                      Nenhum residente se registou nos últimos 7 dias.
                     </p>
                   </div>
                 ) : (
-                  <div>
-                    <div className="h-56 flex items-end gap-2 sm:gap-3">
-                      {graficoResidentes.dias.map((dia, idx) => {
-                        const altura = (dia.total / graficoResidentes.max) * 100;
-                        const alturaAtivos = (dia.ativos / graficoResidentes.max) * 100;
+                  <>
+                    <div className="h-44 flex items-end gap-1.5">
+                      {grafico.dias.map((dia, idx) => {
+                        const h = (dia.total / grafico.max) * 100;
+                        const hA = dia.total > 0 ? (dia.ativos / dia.total) * 100 : 0;
                         return (
-                          <div
-                            key={dia.iso}
-                            className="flex-1 flex flex-col items-center gap-2 group"
-                          >
-                            {/* Barra */}
-                            <div className="w-full relative flex flex-col justify-end h-40">
+                          <div key={dia.iso} className="flex-1 flex flex-col items-center gap-2 group">
+                            <div className="w-full relative flex flex-col justify-end h-36">
                               {dia.total > 0 ? (
-                                <>
-                                  {/* Barra total */}
-                                  <div
-                                    className="w-full rounded-t-lg relative grow-bar"
-                                    style={{
-                                      height: `${Math.max(altura, 8)}%`,
-                                      background: `linear-gradient(180deg, ${AZUL}, ${AZUL_ESCURO})`,
-                                      animationDelay: `${idx * 60}ms`,
-                                      boxShadow: `0 2px 8px ${AZUL}30`,
-                                    }}
+                                <div
+                                  className="w-full rounded-sm relative bar-grow"
+                                  style={{
+                                    height: `${Math.max(h, 6)}%`,
+                                    background: INK,
+                                    animationDelay: `${idx * 50}ms`,
+                                  }}
+                                >
+                                  <span
+                                    className={`${jakarta.className} num absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] font-bold`}
+                                    style={{ color: INK }}
                                   >
-                                    <span
-                                      className={`${jakarta.className} absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold`}
-                                      style={{ color: AZUL }}
-                                    >
-                                      {dia.total}
-                                    </span>
-                                    {/* Barra ativos (overlay) */}
-                                    {dia.ativos > 0 && (
-                                      <div
-                                        className="absolute bottom-0 left-0 right-0 rounded-t-lg grow-bar"
-                                        style={{
-                                          height: `${
-                                            dia.total > 0
-                                              ? (dia.ativos / dia.total) * 100
-                                              : 0
-                                          }%`,
-                                          background: `linear-gradient(180deg, ${VERDE}, ${VERDE_LIGHT})`,
-                                          animationDelay: `${idx * 60 + 100}ms`,
-                                        }}
-                                      />
-                                    )}
-                                  </div>
-                                </>
+                                    {dia.total}
+                                  </span>
+                                  {dia.ativos > 0 && (
+                                    <div
+                                      className="absolute bottom-0 left-0 right-0 rounded-sm bar-grow"
+                                      style={{
+                                        height: `${hA}%`,
+                                        background: SUCCESS,
+                                        animationDelay: `${idx * 50 + 80}ms`,
+                                      }}
+                                    />
+                                  )}
+                                </div>
                               ) : (
-                                <div className="w-full h-1 rounded-t-lg bg-slate-100" />
+                                <div className="w-full h-[2px] rounded-sm" style={{ background: LINE }} />
                               )}
                             </div>
-
-                            {/* Label */}
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                            <span
+                              className="text-[10px] font-semibold uppercase tracking-wider"
+                              style={{ color: MUTED }}
+                            >
                               {dia.label}
                             </span>
                           </div>
@@ -801,124 +782,84 @@ export default function PortalDashboard() {
                       })}
                     </div>
 
-                    {/* Legenda */}
-                    <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-center gap-5 flex-wrap">
+                    <div
+                      className="mt-5 pt-4 border-t flex items-center gap-5 flex-wrap"
+                      style={{ borderColor: LINE_2 }}
+                    >
                       <div className="flex items-center gap-2">
-                        <div
-                          className="w-3 h-3 rounded"
-                          style={{
-                            background: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})`,
-                          }}
-                        />
-                        <span className="text-[11px] font-bold text-slate-600">
-                          Total de novos registros
+                        <div className="w-2.5 h-2.5 rounded-sm" style={{ background: INK }} />
+                        <span className="text-[11px] font-medium" style={{ color: MUTED }}>
+                          Total de registos
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <div
-                          className="w-3 h-3 rounded"
-                          style={{
-                            background: `linear-gradient(135deg, ${VERDE}, ${VERDE_LIGHT})`,
-                          }}
-                        />
-                        <span className="text-[11px] font-bold text-slate-600">
-                          Já ativados (pagos)
+                        <div className="w-2.5 h-2.5 rounded-sm" style={{ background: SUCCESS }} />
+                        <span className="text-[11px] font-medium" style={{ color: MUTED }}>
+                          Ativados
                         </span>
                       </div>
                     </div>
-                  </div>
+                  </>
                 )}
               </div>
-            </div>
+            </Panel>
           </div>
 
-          {/* Fila de Suporte em Aberto */}
-          <div>
-            <div
-              className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm h-full anim-fade-up"
-              style={{ animationDelay: "240ms" }}
-            >
-              <div className="h-0.5" style={{ background: `linear-gradient(90deg, ${VERMELHO}, #F87171)` }} />
-
-              {/* Header */}
-              <div
-                className="px-5 py-4 border-b border-slate-100 flex items-center gap-3"
-                style={{ background: `linear-gradient(135deg, ${VERMELHO}06, ${VERMELHO}02)` }}
-              >
-                <div
-                  className="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0"
-                  style={{ background: `linear-gradient(135deg, ${VERMELHO}, #F87171)` }}
-                >
-                  <Headset size={15} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className={`${jakarta.className} text-sm font-bold text-slate-800`}>
-                    Suportes abertos
-                  </h3>
-                  <p className="text-[11px] text-slate-500 mt-0.5">
-                    Aguardando resposta
-                  </p>
-                </div>
-                <Link
-                  href="/portal-servicos/suporte"
-                  className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-lg transition-colors shrink-0"
-                  style={{ color: VERMELHO, background: `${VERMELHO}10` }}
-                >
-                  Ver todos
-                </Link>
-              </div>
-
-              {/* Lista */}
-              {suportes.length === 0 ? (
-                <div className="py-12 px-6 text-center">
-                  <div
-                    className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-sm text-white"
-                    style={{
-                      background: `linear-gradient(135deg, ${VERDE}, ${VERDE_LIGHT})`,
-                    }}
+          {/* Fila de suporte */}
+          <div className="lg:col-span-4">
+            <Panel noPad className="h-full flex flex-col">
+              <PanelHeader
+                title="Fila de suporte"
+                subtitle={`${suportes.length} pendentes`}
+                action={
+                  <Link
+                    href="/portal-servicos/suporte"
+                    className="text-[11px] font-semibold flex items-center gap-0.5 transition-opacity hover:opacity-70"
+                    style={{ color: INK }}
                   >
-                    <CheckCircle2 size={24} />
+                    Ver todos
+                    <ChevronRight size={12} strokeWidth={2.5} />
+                  </Link>
+                }
+              />
+
+              {suportes.length === 0 ? (
+                <div className="py-14 px-6 text-center flex-1 flex flex-col items-center justify-center">
+                  <div
+                    className="w-11 h-11 rounded-lg mx-auto mb-3 flex items-center justify-center"
+                    style={{ background: "#ECFDF5", color: SUCCESS }}
+                  >
+                    <CheckCircle2 size={20} strokeWidth={2} />
                   </div>
-                  <p className={`${jakarta.className} text-sm font-bold text-slate-700 mb-1`}>
+                  <p className={`${jakarta.className} text-[13px] font-bold`} style={{ color: INK }}>
                     Fila limpa
                   </p>
-                  <p className="text-[11px] text-slate-500 leading-relaxed">
-                    Nenhum suporte em aberto neste momento.
+                  <p className="text-[11.5px] mt-1" style={{ color: MUTED }}>
+                    Nenhum chamado pendente.
                   </p>
                 </div>
               ) : (
-                <div className="p-3 space-y-2 max-h-[420px] overflow-y-auto scrollbar-thin">
+                <div className="divide-y flex-1 overflow-y-auto scroll-thin" style={{ borderColor: LINE_2 }}>
                   {suportes.map((s, idx) => {
-                    const isAberto = s.status === "Aberto";
-                    const cor = isAberto ? VERMELHO : AMBAR;
+                    const tone = s.status === "Aberto" ? "danger" : "warning";
                     return (
                       <Link
                         key={s.id}
                         href="/portal-servicos/suporte"
-                        style={{ animationDelay: `${300 + idx * 40}ms` }}
-                        className="block p-3 bg-slate-50/70 hover:bg-white border border-slate-200/60 hover:border-slate-300 rounded-xl transition-all hover:shadow-sm group anim-fade-up"
+                        className="block px-4 py-3 hover:bg-[#FAFAFB] transition-colors group"
+                        style={{ animationDelay: `${idx * 30}ms` }}
                       >
-                        <div className="flex items-center gap-2 mb-2">
-                          <span
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest border"
-                            style={{
-                              background: `${cor}10`,
-                              color: cor,
-                              borderColor: `${cor}25`,
-                            }}
-                          >
-                            <Circle size={7} className="fill-current" />
-                            {s.status}
-                          </span>
-                          <span className="text-[10px] font-mono text-slate-400 truncate">
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <StatusPill tone={tone as any}>{s.status}</StatusPill>
+                          <span className="text-[10px] font-mono num truncate" style={{ color: SUBTLE }}>
                             {s.protocolo}
                           </span>
                         </div>
-                        <p className="text-xs font-bold text-slate-800 truncate mb-1">
+                        <p className="text-[12.5px] font-semibold truncate" style={{ color: INK }}>
                           {s.assunto}
                         </p>
-                        <p className="text-[10px] text-slate-500 truncate flex items-center gap-1">
-                          <Users size={9} />
+                        <p className="text-[11px] truncate flex items-center gap-1 mt-0.5" style={{ color: MUTED }}>
+                          <Users size={10} />
                           {s.nome}
                         </p>
                       </Link>
@@ -926,207 +867,146 @@ export default function PortalDashboard() {
                   })}
                 </div>
               )}
-            </div>
+            </Panel>
           </div>
         </div>
 
         {/* ═══════════════════════════════════════════════════════════ */}
-        {/* PRÓXIMOS EVENTOS                                            */}
+        {/* AGENDA                                                       */}
         {/* ═══════════════════════════════════════════════════════════ */}
 
-        <div
-          className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm max-w-3xl mx-auto anim-fade-up"
-          style={{ animationDelay: "300ms" }}
-        >
-          <div className="h-0.5" style={{ background: `linear-gradient(90deg, ${AMBAR}, ${AMBAR_LIGHT})` }} />
-
-          {/* Header */}
-          <div
-            className="px-5 py-4 border-b border-slate-100 flex items-center gap-3"
-            style={{ background: `linear-gradient(135deg, ${AMBAR}06, ${AMBAR}02)` }}
-          >
-            <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0"
-              style={{ background: `linear-gradient(135deg, ${AMBAR}, ${AMBAR_LIGHT})` }}
-            >
-              <CalendarIcon size={15} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className={`${jakarta.className} text-sm font-bold text-slate-800 flex items-center gap-2 flex-wrap`}>
-                Eventos municipais
-                <span
-                  className="text-[10px] font-bold px-2 py-0.5 rounded-full border"
-                  style={{
-                    background: `${AMBAR}10`,
-                    color: AMBAR,
-                    borderColor: `${AMBAR}25`,
-                  }}
+        <div className="fade-up" style={{ animationDelay: "160ms" }}>
+          <Panel noPad>
+            <PanelHeader
+              title="Agenda municipal"
+              subtitle={`${eventos.length} eventos nos próximos 7 dias`}
+              action={
+                <Link
+                  href="/portal-servicos/eventos"
+                  className="text-[11px] font-semibold flex items-center gap-0.5 transition-opacity hover:opacity-70"
+                  style={{ color: INK }}
                 >
-                  Próximos 7 dias
-                </span>
-              </h3>
-              <p className="text-[11px] text-slate-500 mt-0.5">
-                Agenda cultural e institucional do município
-              </p>
-            </div>
-          </div>
+                  Ver agenda
+                  <ChevronRight size={12} strokeWidth={2.5} />
+                </Link>
+              }
+            />
 
-          {/* Lista */}
-          {eventos.length === 0 ? (
-            <div className="py-16 text-center anim-fade">
-              <div
-                className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm text-white"
-                style={{
-                  background: `linear-gradient(135deg, ${AMBAR}, ${AMBAR_LIGHT})`,
-                }}
-              >
-                <Inbox size={28} />
+            {eventos.length === 0 ? (
+              <div className="py-14 text-center">
+                <div
+                  className="w-11 h-11 rounded-lg mx-auto mb-3 flex items-center justify-center"
+                  style={{ background: LINE_2, color: MUTED }}
+                >
+                  <Inbox size={20} strokeWidth={2} />
+                </div>
+                <p className={`${jakarta.className} text-[13px] font-bold`} style={{ color: INK }}>
+                  Agenda livre
+                </p>
+                <p className="text-[11.5px] mt-1" style={{ color: MUTED }}>
+                  Nenhum evento programado para esta semana.
+                </p>
               </div>
-              <h3 className={`${jakarta.className} text-lg font-bold text-slate-800 mb-1.5`}>
-                Agenda livre
-              </h3>
-              <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
-                Não há eventos programados para esta semana.
-              </p>
-            </div>
-          ) : (
-            <div className="p-4 space-y-2.5">
-              {eventos.map((ev, idx) => {
-                const [, , dia] = ev.data.split("-");
-                const nomeMes = new Date(ev.data)
-                  .toLocaleString("pt-BR", { month: "short" })
-                  .replace(".", "");
-
-                return (
-                  <div
-                    key={idx}
-                    style={{ animationDelay: `${360 + idx * 40}ms` }}
-                    className="flex items-center gap-4 p-4 bg-slate-50/70 hover:bg-white border border-slate-200/60 hover:border-slate-300 rounded-xl transition-all hover:shadow-sm anim-fade-up group"
-                  >
-                    {/* Data destacada */}
-                    <div
-                      className="w-14 h-14 rounded-xl flex flex-col items-center justify-center shrink-0 text-white shadow-sm transition-transform group-hover:scale-105"
-                      style={{
-                        background: `linear-gradient(135deg, ${AMBAR}, ${AMBAR_LIGHT})`,
-                      }}
+            ) : (
+              <div className="divide-y" style={{ borderColor: LINE_2 }}>
+                {eventos.map((ev, idx) => {
+                  const [, , dia] = ev.data.split("-");
+                  const mes = new Date(ev.data)
+                    .toLocaleString("pt-BR", { month: "short" })
+                    .replace(".", "")
+                    .toUpperCase();
+                  return (
+                    <Link
+                      key={idx}
+                      href="/portal-servicos/eventos"
+                      className="grid grid-cols-[auto_1fr_auto] items-center gap-4 px-5 py-3.5 hover:bg-[#FAFAFB] transition-colors group"
+                      style={{ animationDelay: `${idx * 30}ms` }}
                     >
-                      <span className="text-[9px] font-bold uppercase tracking-widest text-white/80 leading-none mb-1">
-                        {nomeMes}
-                      </span>
-                      <span
-                        className={`${jakarta.className} text-xl font-extrabold leading-none`}
+                      {/* Data */}
+                      <div
+                        className="w-12 h-12 rounded-md flex flex-col items-center justify-center shrink-0"
+                        style={{ background: INK, color: "#FFF" }}
                       >
-                        {dia}
-                      </span>
-                    </div>
+                        <span className="text-[9px] font-bold tracking-wider leading-none mb-0.5 opacity-70">
+                          {mes}
+                        </span>
+                        <span className={`${jakarta.className} num text-[15px] font-bold leading-none`}>
+                          {dia}
+                        </span>
+                      </div>
 
-                    {/* Info */}
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold text-slate-800 truncate">
-                        {ev.titulo}
-                      </p>
-                      <p className="text-xs text-slate-500 font-medium flex items-center gap-1.5 mt-1.5 truncate">
-                        <MapPin size={12} className="shrink-0 text-slate-400" />
-                        <span className="truncate">{ev.local}</span>
-                      </p>
-                    </div>
+                      <div className="min-w-0">
+                        <p className="text-[13px] font-semibold truncate" style={{ color: INK }}>
+                          {ev.titulo}
+                        </p>
+                        <p className="text-[11.5px] flex items-center gap-1.5 mt-0.5 truncate" style={{ color: MUTED }}>
+                          <MapPin size={11} className="shrink-0" />
+                          <span className="truncate">{ev.local}</span>
+                        </p>
+                      </div>
 
-                    {/* Ícone indicativo */}
+                      <ArrowRight
+                        size={15}
+                        className="shrink-0 transition-all group-hover:translate-x-0.5"
+                        style={{ color: SUBTLE }}
+                      />
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </Panel>
+        </div>
+
+        {/* ═══════════════════════════════════════════════════════════ */}
+        {/* AÇÕES RÁPIDAS — barra horizontal compacta                    */}
+        {/* ═══════════════════════════════════════════════════════════ */}
+
+        <div className="fade-up" style={{ animationDelay: "200ms" }}>
+          <Panel noPad>
+            <PanelHeader title="Ações rápidas" subtitle="Fluxos mais frequentes" />
+            <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-y md:divide-y-0" style={{ borderColor: LINE_2 }}>
+              {[
+                { href: "/portal-servicos/noticias", label: "Nova matéria", hint: "Publicar no blog", icon: FileText },
+                { href: "/portal-servicos/eventos", label: "Novo evento", hint: "Adicionar à agenda", icon: CalendarIcon },
+                { href: "/portal-servicos/atracoes", label: "Novo atrativo", hint: "Vitrine turística", icon: MapPin },
+                { href: "/portal-servicos/emissao", label: "Emitir carteira", hint: "Registo de residente", icon: BadgeCheck },
+              ].map((a, i) => {
+                const Icon = a.icon;
+                return (
+                  <Link
+                    key={a.href}
+                    href={a.href}
+                    className="group p-4 flex items-center gap-3 hover:bg-[#FAFAFB] transition-colors"
+                    style={{ borderColor: LINE_2, animationDelay: `${i * 30}ms` }}
+                  >
                     <div
-                      className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-slate-400 group-hover:text-[#DAA520] group-hover:bg-[#DAA520]/08 transition-colors"
+                      className="w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-colors"
+                      style={{ background: LINE_2, color: INK_2 }}
                     >
-                      <ArrowRight size={15} />
+                      <Icon size={14} strokeWidth={2.2} />
                     </div>
-                  </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[12.5px] font-semibold truncate" style={{ color: INK }}>
+                        {a.label}
+                      </p>
+                      <p className="text-[11px] truncate" style={{ color: MUTED }}>
+                        {a.hint}
+                      </p>
+                    </div>
+                    <Plus
+                      size={13}
+                      strokeWidth={2.5}
+                      className="shrink-0 transition-colors"
+                      style={{ color: SUBTLE }}
+                    />
+                  </Link>
                 );
               })}
             </div>
-          )}
+          </Panel>
         </div>
 
-        {/* ═══════════════════════════════════════════════════════════ */}
-        {/* ATALHOS RÁPIDOS                                             */}
-        {/* ═══════════════════════════════════════════════════════════ */}
-
-        <div className="anim-fade-up" style={{ animationDelay: "360ms" }}>
-          <div className="flex items-center gap-2 mb-4">
-            <div
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-white shadow-sm"
-              style={{ background: `linear-gradient(135deg, ${ROXO}, #A78BFA)` }}
-            >
-              <Zap size={13} />
-            </div>
-            <h2 className={`${jakarta.className} text-sm font-bold text-slate-800 uppercase tracking-widest`}>
-              Atalhos rápidos
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {[
-              {
-                href: "/portal-servicos/noticias",
-                label: "Nova matéria",
-                descricao: "Publicar no blog",
-                icone: FileText,
-                gradient: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})`,
-              },
-              {
-                href: "/portal-servicos/eventos",
-                label: "Novo evento",
-                descricao: "Adicionar à agenda",
-                icone: CalendarIcon,
-                gradient: `linear-gradient(135deg, ${AMBAR}, ${AMBAR_LIGHT})`,
-              },
-              {
-                href: "/portal-servicos/atracoes",
-                label: "Novo atrativo",
-                descricao: "Vitrine turística",
-                icone: MapPin,
-                gradient: `linear-gradient(135deg, ${VERDE}, ${VERDE_LIGHT})`,
-              },
-              {
-                href: "/portal-servicos/emissao",
-                label: "Emitir carteira",
-                descricao: "Registro de residente",
-                icone: BadgeCheck,
-                gradient: `linear-gradient(135deg, ${VERMELHO}, #F87171)`,
-              },
-            ].map((atalho, idx) => {
-              const Icone = atalho.icone;
-              return (
-                <Link
-                  key={atalho.href}
-                  href={atalho.href}
-                  style={{ animationDelay: `${420 + idx * 40}ms` }}
-                  className="relative bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 group anim-fade-up block overflow-hidden"
-                >
-                  <div
-                    className="absolute -top-8 -right-8 w-20 h-20 rounded-full opacity-0 group-hover:opacity-15 transition-opacity duration-500 blur-2xl"
-                    style={{ background: atalho.gradient }}
-                  />
-                  <div className="relative flex items-center gap-3 mb-3">
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0 transition-transform group-hover:scale-105"
-                      style={{ background: atalho.gradient }}
-                    >
-                      <Icone size={16} />
-                    </div>
-                    <PlusCircle
-                      size={14}
-                      className="ml-auto text-slate-300 group-hover:text-slate-600 transition-colors shrink-0"
-                    />
-                  </div>
-                  <p className={`${jakarta.className} relative text-xs font-bold text-slate-800`}>
-                    {atalho.label}
-                  </p>
-                  <p className="relative text-[10px] text-slate-500 mt-0.5">
-                    {atalho.descricao}
-                  </p>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
       </div>
     </>
   );

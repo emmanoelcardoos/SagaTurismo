@@ -8,13 +8,13 @@ import {
   Sparkles, ArrowLeft, Tag, Calendar, User, Eye, EyeOff,
   Star, Code2, PenLine, FileText, CheckCircle2, AlertTriangle,
   Inbox, Filter, Search, X, Pencil, Trash2, Hash, Camera,
+  MoreHorizontal, ExternalLink, Clock,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import "react-quill/dist/quill.snow.css";
 import katex from "katex";
 import "katex/dist/katex.min.css";
 
-// Configuração do KaTeX para fórmulas matemáticas no editor
 if (typeof window !== "undefined") {
   window.katex = katex;
 }
@@ -22,9 +22,9 @@ if (typeof window !== "undefined") {
 const ReactQuill = dynamic(() => import("react-quill"), {
   ssr: false,
   loading: () => (
-    <div className="p-4 flex items-center gap-2 text-xs text-slate-500">
+    <div className="p-4 flex items-center gap-2 text-xs" style={{ color: "#6B7280" }}>
       <Loader2 size={14} className="animate-spin" />
-      A carregar editor de texto...
+      A carregar editor...
     </div>
   ),
 });
@@ -41,23 +41,25 @@ const quillModules = {
   ],
 };
 
-const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["600", "700", "800"] });
+const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["500", "600", "700", "800"] });
 const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
-// ─── CORES (paleta Azure/Microsoft do portal) ───
-const AZUL = "#0078D4";
-const AZUL_ESCURO = "#005A9E";
-const AZUL_CLARO = "#E5F1FB";
-const AMBAR = "#DAA520";
-const AMBAR_LIGHT = "#FBBF24";
-const VERMELHO = "#D13438";
-const VERDE = "#168821";
-const VERDE_LIGHT = "#22C55E";
+// ─── PALETA ENTERPRISE ───
+const INK = "#0A0E14";
+const INK_2 = "#1F2937";
+const MUTED = "#6B7280";
+const SUBTLE = "#9CA3AF";
+const LINE = "#E5E7EB";
+const LINE_2 = "#F3F4F6";
+const BG = "#FBFBFC";
+const SURFACE = "#FFFFFF";
+const ACCENT = "#2563EB";
+const SUCCESS = "#059669";
+const WARNING = "#D97706";
+const DANGER = "#DC2626";
 
 const inputCls =
-  "w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl px-3.5 py-2.5 focus:outline-none focus:bg-white focus:border-[#0078D4] focus:ring-4 focus:ring-[#0078D4]/10 transition-all placeholder:text-slate-400";
-const labelCls =
-  "flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2";
+  "w-full bg-white text-[13.5px] rounded-md px-3 py-2.5 transition-[border-color,box-shadow] duration-150 placeholder:text-slate-400 focus:outline-none border";
 
 function fmtData(iso: string) {
   if (!iso) return "—";
@@ -106,27 +108,27 @@ interface BlogPost {
 function GlobalStyles() {
   return (
     <style jsx global>{`
-      @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(8px); }
+      @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(4px); }
         to { opacity: 1; transform: translateY(0); }
       }
       @keyframes fadeIn {
         from { opacity: 0; }
         to { opacity: 1; }
       }
-      .anim-fade-up { animation: fadeInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; }
-      .anim-fade { animation: fadeIn 0.25s ease both; }
-      .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
-      .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
-      .scrollbar-thin::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
-      .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+      .anim-fade-up { animation: fadeUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) both; }
+      .anim-fade { animation: fadeIn 0.2s ease both; }
+      .num { font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+      .scroll-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+      .scroll-thin::-webkit-scrollbar-track { background: transparent; }
+      .scroll-thin::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 3px; }
+      .scroll-thin::-webkit-scrollbar-thumb:hover { background: #9CA3AF; }
 
-      /* Editor Quill ajustes */
+      /* Editor Quill — minimalista, mesma paleta do sistema */
       .ql-toolbar.ql-snow {
         border: none !important;
-        border-bottom: 1px solid #E2E8F0 !important;
-        background: #F8FAFC;
-        border-radius: 12px 12px 0 0;
+        border-bottom: 1px solid ${LINE} !important;
+        background: ${LINE_2};
         padding: 8px !important;
       }
       .ql-container.ql-snow {
@@ -145,21 +147,75 @@ function GlobalStyles() {
         font-style: normal !important;
         left: 16px !important;
       }
+      .ql-snow .ql-stroke { stroke: #6B7280 !important; }
+      .ql-snow .ql-fill { fill: #6B7280 !important; }
+      .ql-snow .ql-picker { color: #6B7280 !important; }
+      .ql-snow .ql-picker-options {
+        border-color: ${LINE} !important;
+        border-radius: 6px !important;
+        box-shadow: 0 4px 16px rgba(15,23,42,0.08) !important;
+      }
+      .ql-snow.ql-toolbar button:hover .ql-stroke,
+      .ql-snow.ql-toolbar button.ql-active .ql-stroke {
+        stroke: ${INK} !important;
+      }
+      .ql-snow.ql-toolbar button:hover .ql-fill,
+      .ql-snow.ql-toolbar button.ql-active .ql-fill {
+        fill: ${INK} !important;
+      }
     `}</style>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════
-// SUB-COMPONENTES
+// ÁTOMOS
 // ═══════════════════════════════════════════════════════════════
 
+function Panel({ children, className = "", noPad = false }: {
+  children: React.ReactNode;
+  className?: string;
+  noPad?: boolean;
+}) {
+  return (
+    <div className={`bg-white border rounded-lg overflow-hidden ${className}`} style={{ borderColor: LINE }}>
+      {noPad ? children : <div className="p-5">{children}</div>}
+    </div>
+  );
+}
+
+function PanelHeader({
+  title, subtitle, action, badge,
+}: {
+  title: string;
+  subtitle?: string;
+  action?: React.ReactNode;
+  badge?: React.ReactNode;
+}) {
+  return (
+    <div
+      className="px-5 py-3.5 flex items-center justify-between gap-3 border-b"
+      style={{ borderColor: LINE, background: BG }}
+    >
+      <div className="min-w-0">
+        <div className="flex items-center gap-2">
+          <h3 className={`${jakarta.className} text-[13px] font-bold`} style={{ color: INK }}>
+            {title}
+          </h3>
+          {badge}
+        </div>
+        {subtitle && (
+          <p className="text-[11.5px] mt-0.5" style={{ color: MUTED }}>
+            {subtitle}
+          </p>
+        )}
+      </div>
+      {action}
+    </div>
+  );
+}
+
 function FormField({
-  label,
-  icon,
-  required,
-  hint,
-  children,
-  className = "",
+  label, icon, required, hint, children, className = "",
 }: {
   label: string;
   icon?: React.ReactNode;
@@ -170,54 +226,43 @@ function FormField({
 }) {
   return (
     <div className={className}>
-      <label className={labelCls}>
+      <label
+        className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] mb-1.5"
+        style={{ color: MUTED }}
+      >
         {icon}
         {label}
-        {required && <span style={{ color: VERMELHO }}>*</span>}
+        {required && <span style={{ color: DANGER }}>*</span>}
       </label>
       {children}
       {hint && (
-        <p className="text-[10px] text-slate-400 mt-1.5 leading-relaxed">{hint}</p>
+        <p className="text-[10.5px] mt-1.5 leading-relaxed" style={{ color: SUBTLE }}>
+          {hint}
+        </p>
       )}
     </div>
   );
 }
 
-function StatusBadge({ ativo }: { ativo: boolean }) {
-  const cor = ativo ? AZUL : "#64748B";
+function StatusPill({ tone, children }: { tone: "success" | "danger" | "warning" | "neutral"; children: React.ReactNode }) {
+  const map = {
+    success: { c: SUCCESS, bg: "#ECFDF5", b: "#D1FAE5" },
+    danger: { c: DANGER, bg: "#FEF2F2", b: "#FEE2E2" },
+    warning: { c: WARNING, bg: "#FFFBEB", b: "#FEF3C7" },
+    neutral: { c: MUTED, bg: LINE_2, b: LINE },
+  }[tone];
   return (
     <span
-      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest border"
-      style={{ background: `${cor}10`, color: cor, borderColor: `${cor}25` }}
+      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide"
+      style={{ background: map.bg, color: map.c, border: `1px solid ${map.b}` }}
     >
-      {ativo ? <Eye size={10} /> : <EyeOff size={10} />}
-      {ativo ? "Público" : "Oculto"}
-    </span>
-  );
-}
-
-function CategoriaBadge({ categoria }: { categoria: string }) {
-  const cores: Record<string, string> = {
-    Turismo: AZUL,
-    Eventos: AMBAR,
-    Cultura: "#7C3AED",
-    Natureza: VERDE,
-    Notícias: VERMELHO,
-  };
-  const cor = cores[categoria] || AZUL;
-  return (
-    <span
-      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest border"
-      style={{ background: `${cor}10`, color: cor, borderColor: `${cor}25` }}
-    >
-      <Tag size={10} />
-      {categoria}
+      {children}
     </span>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PÁGINA PRINCIPAL
+// PAGE
 // ═══════════════════════════════════════════════════════════════
 
 export default function PortalBlog() {
@@ -313,7 +358,7 @@ export default function PortalBlog() {
       setSaving(false);
       fetchPosts();
       setFeedback("");
-    }, 2000);
+    }, 1500);
   }
 
   async function handleDelete(id: string) {
@@ -322,7 +367,6 @@ export default function PortalBlog() {
     fetchPosts();
   }
 
-  // ─── FILTRO ───
   const filtrados = posts.filter((p) => {
     if (!busca) return true;
     const termo = busca.toLowerCase();
@@ -334,91 +378,118 @@ export default function PortalBlog() {
   });
 
   // ═══════════════════════════════════════════════════════════════
-  // VISTA: FORMULÁRIO
+  // FORMULÁRIO (modo edição)
   // ═══════════════════════════════════════════════════════════════
 
   if (showForm) {
     return (
       <>
         <GlobalStyles />
-        <div className={`${inter.className} space-y-5 pb-6`}>
+        <div className={`${inter.className} space-y-4`}>
 
-          {/* Cabeçalho */}
+          {/* Header do form */}
           <div className="flex items-center gap-3 anim-fade-up">
             <button
               onClick={() => setShowForm(false)}
-              className="w-10 h-10 bg-white border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all shadow-sm shrink-0 flex items-center justify-center group"
+              className="w-9 h-9 rounded-md flex items-center justify-center transition-colors shrink-0 border"
+              style={{ borderColor: LINE, color: MUTED, background: SURFACE }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = LINE_2;
+                e.currentTarget.style.color = INK;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = SURFACE;
+                e.currentTarget.style.color = MUTED;
+              }}
+              aria-label="Voltar"
             >
-              <ArrowLeft size={18} className="group-hover:-translate-x-0.5 transition-transform" />
+              <ArrowLeft size={16} />
             </button>
+
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 mb-1">
-                <div
-                  className="w-6 h-6 rounded-lg flex items-center justify-center text-white shadow-sm"
-                  style={{ background: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})` }}
+                <span
+                  className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.1em] px-1.5 py-0.5 rounded"
+                  style={{ background: INK, color: "#FFF" }}
                 >
-                  <PenLine size={12} />
-                </div>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                  {editando ? "Editar artigo" : "Novo artigo"}
+                  <PenLine size={9} strokeWidth={3} />
+                  {editando ? "Editar" : "Novo"}
+                </span>
+                <span className="text-[11px]" style={{ color: MUTED }}>
+                  {editando ? `Última alteração em ${tempoRelativo(editando.data_publicacao)}` : "Rascunho"}
                 </span>
               </div>
-              <h1 className={`${jakarta.className} text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight truncate`}>
-                {editando ? editando.titulo : "Escrever novo artigo"}
+              <h1
+                className={`${jakarta.className} text-[22px] font-bold tracking-tight truncate`}
+                style={{ color: INK, letterSpacing: "-0.02em" }}
+              >
+                {editando ? editando.titulo : "Novo artigo"}
               </h1>
-              <p className="text-xs text-slate-500 mt-1">
-                Preenche os dados, escreve o conteúdo e publica no portal.
-              </p>
+            </div>
+
+            {/* Ações no topo */}
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={() => setShowForm(false)}
+                className="hidden sm:inline-flex h-9 px-3 rounded-md text-[12.5px] font-semibold items-center border transition-colors"
+                style={{ borderColor: LINE, color: INK_2, background: SURFACE }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = LINE_2)}
+                onMouseLeave={(e) => (e.currentTarget.style.background = SURFACE)}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="h-9 px-3.5 rounded-md text-[12.5px] font-semibold flex items-center gap-2 text-white transition-colors disabled:opacity-50"
+                style={{ background: INK }}
+                onMouseEnter={(e) => !saving && (e.currentTarget.style.background = INK_2)}
+                onMouseLeave={(e) => !saving && (e.currentTarget.style.background = INK)}
+              >
+                {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+                {saving ? "A guardar..." : editando ? "Guardar" : "Publicar"}
+              </button>
             </div>
           </div>
 
-          {/* Formulário principal */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          {/* Grid principal */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
 
-            {/* Coluna 1: Editor principal */}
-            <div className="lg:col-span-2 space-y-4">
-              <div
-                className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm anim-fade-up"
-                style={{ animationDelay: "60ms" }}
-              >
-                <div className="h-0.5" style={{ background: `linear-gradient(90deg, ${AZUL}, ${AZUL_ESCURO})` }} />
-                <div
-                  className="px-5 py-4 border-b border-slate-100 flex items-center gap-3"
-                  style={{ background: `linear-gradient(135deg, ${AZUL}04, ${AZUL}01)` }}
-                >
-                  <div
-                    className="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0"
-                    style={{ background: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})` }}
-                  >
-                    <Newspaper size={15} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h3 className={`${jakarta.className} text-sm font-bold text-slate-800`}>
-                      Conteúdo do artigo
-                    </h3>
-                    <p className="text-[11px] text-slate-500 mt-0.5">
-                      Título, resumo e corpo editorial
-                    </p>
-                  </div>
-                </div>
+            {/* Coluna principal */}
+            <div className="lg:col-span-8 space-y-4">
 
-                <div className="p-5 space-y-5">
+              {/* Conteúdo */}
+              <Panel noPad className="anim-fade-up">
+                <PanelHeader
+                  title="Conteúdo"
+                  subtitle="Título, resumo e corpo editorial"
+                />
+                <div className="p-5 space-y-4">
                   <FormField
-                    label="Título da notícia / artigo"
-                    icon={<FileText size={11} />}
+                    label="Título"
+                    icon={<FileText size={10} />}
                     required
                   >
                     <input
                       value={form.titulo}
                       onChange={(e) => setForm({ ...form, titulo: e.target.value })}
                       className={inputCls}
+                      style={{ borderColor: LINE }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor = INK;
+                        e.currentTarget.style.boxShadow = `0 0 0 3px rgba(10,14,20,0.06)`;
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor = LINE;
+                        e.currentTarget.style.boxShadow = "none";
+                      }}
                       placeholder="Ex: Novo roteiro turístico descoberto..."
                     />
                   </FormField>
 
                   <FormField
-                    label="Resumo breve"
-                    icon={<FileText size={11} />}
+                    label="Resumo"
+                    icon={<FileText size={10} />}
                     hint="Aparece nos cartões e listagens do portal público."
                   >
                     <textarea
@@ -426,47 +497,66 @@ export default function PortalBlog() {
                       onChange={(e) => setForm({ ...form, resumo: e.target.value })}
                       rows={2}
                       className={`${inputCls} resize-none`}
+                      style={{ borderColor: LINE }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor = INK;
+                        e.currentTarget.style.boxShadow = `0 0 0 3px rgba(10,14,20,0.06)`;
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor = LINE;
+                        e.currentTarget.style.boxShadow = "none";
+                      }}
                       placeholder="Uma breve frase sobre o artigo"
                     />
                   </FormField>
 
-                  {/* Toggle editor */}
+                  {/* Editor */}
                   <div>
-                    <div className="flex items-center justify-between mb-2.5">
-                      <label className={labelCls} style={{ marginBottom: 0 }}>
-                        <FileText size={11} /> Conteúdo completo{" "}
-                        <span style={{ color: VERMELHO }}>*</span>
+                    <div className="flex items-center justify-between mb-2">
+                      <label
+                        className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em]"
+                        style={{ color: MUTED }}
+                      >
+                        <FileText size={10} /> Corpo do artigo <span style={{ color: DANGER }}>*</span>
                       </label>
 
-                      <div className="bg-slate-100 rounded-xl p-1 flex items-center gap-0.5">
+                      <div
+                        className="flex items-center gap-0.5 p-0.5 rounded-md"
+                        style={{ background: LINE_2 }}
+                      >
                         <button
                           type="button"
                           onClick={() => setModoEditor("visual")}
-                          className={`text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
-                            modoEditor === "visual"
-                              ? "bg-white text-[#0078D4] shadow-sm"
-                              : "text-slate-500 hover:text-slate-700"
-                          }`}
+                          className="text-[10.5px] font-semibold uppercase tracking-wide px-2 py-1 rounded transition-colors flex items-center gap-1"
+                          style={{
+                            background: modoEditor === "visual" ? SURFACE : "transparent",
+                            color: modoEditor === "visual" ? INK : MUTED,
+                            boxShadow: modoEditor === "visual" ? "0 1px 2px rgba(15,23,42,0.06)" : "none",
+                          }}
                         >
-                          <Eye size={11} />
+                          <Eye size={10} strokeWidth={2.5} />
                           Visual
                         </button>
                         <button
                           type="button"
                           onClick={() => setModoEditor("codigo")}
-                          className={`text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
-                            modoEditor === "codigo"
-                              ? "bg-white text-[#0078D4] shadow-sm"
-                              : "text-slate-500 hover:text-slate-700"
-                          }`}
+                          className="text-[10.5px] font-semibold uppercase tracking-wide px-2 py-1 rounded transition-colors flex items-center gap-1"
+                          style={{
+                            background: modoEditor === "codigo" ? SURFACE : "transparent",
+                            color: modoEditor === "codigo" ? INK : MUTED,
+                            boxShadow: modoEditor === "codigo" ? "0 1px 2px rgba(15,23,42,0.06)" : "none",
+                          }}
                         >
-                          <Code2 size={11} />
-                          HTML + LaTeX
+                          <Code2 size={10} strokeWidth={2.5} />
+                          HTML
                         </button>
                       </div>
                     </div>
 
-                    <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
+                    <div
+                      className="border rounded-md overflow-hidden bg-white"
+                      style={{ borderColor: LINE }}
+                    >
                       {modoEditor === "visual" ? (
                         <ReactQuill
                           theme="snow"
@@ -478,102 +568,101 @@ export default function PortalBlog() {
                       ) : (
                         <textarea
                           value={form.conteudo || ""}
-                          onChange={(e) =>
-                            setForm({ ...form, conteudo: e.target.value })
-                          }
-                          className="w-full h-[450px] p-4 bg-slate-900 text-blue-100 font-mono text-xs focus:outline-none scrollbar-thin"
+                          onChange={(e) => setForm({ ...form, conteudo: e.target.value })}
+                          className="w-full h-[450px] p-4 text-[12.5px] focus:outline-none scroll-thin font-mono"
+                          style={{ background: INK, color: "#E2E8F0", border: "none" }}
                           placeholder="<p>Insere aqui o HTML ou marcações LaTeX...</p>"
                         />
                       )}
                     </div>
                   </div>
                 </div>
-              </div>
+              </Panel>
             </div>
 
-            {/* Coluna 2: Detalhes laterais */}
-            <div className="space-y-4">
+            {/* Coluna lateral */}
+            <div className="lg:col-span-4 space-y-4">
 
-              {/* Detalhes e publicação */}
-              <div
-                className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm anim-fade-up"
-                style={{ animationDelay: "120ms" }}
-              >
-                <div className="h-0.5" style={{ background: `linear-gradient(90deg, ${AMBAR}, ${AMBAR_LIGHT})` }} />
-                <div
-                  className="px-5 py-4 border-b border-slate-100 flex items-center gap-3"
-                  style={{ background: `linear-gradient(135deg, ${AMBAR}06, ${AMBAR}02)` }}
-                >
-                  <div
-                    className="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0"
-                    style={{ background: `linear-gradient(135deg, ${AMBAR}, ${AMBAR_LIGHT})` }}
-                  >
-                    <Sparkles size={15} />
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className={`${jakarta.className} text-sm font-bold text-slate-800`}>
-                      Detalhes & publicação
-                    </h3>
-                    <p className="text-[11px] text-slate-500 mt-0.5">
-                      Autoria, categoria e visibilidade
-                    </p>
-                  </div>
-                </div>
-
+              {/* Publicação */}
+              <Panel noPad className="anim-fade-up" >
+                <PanelHeader
+                  title="Publicação"
+                  subtitle="Autoria e visibilidade"
+                />
                 <div className="p-5 space-y-4">
-                  <FormField label="Autor" icon={<User size={11} />}>
+                  <FormField label="Autor" icon={<User size={10} />}>
                     <input
                       value={form.autor || ""}
                       onChange={(e) => setForm({ ...form, autor: e.target.value })}
                       className={inputCls}
-                      placeholder="Ex: Redação, Nome..."
+                      style={{ borderColor: LINE }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor = INK;
+                        e.currentTarget.style.boxShadow = `0 0 0 3px rgba(10,14,20,0.06)`;
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor = LINE;
+                        e.currentTarget.style.boxShadow = "none";
+                      }}
+                      placeholder="Ex: Redação"
                     />
                   </FormField>
 
-                  <FormField label="Categoria" icon={<Tag size={11} />}>
+                  <FormField label="Categoria" icon={<Tag size={10} />}>
                     <input
                       value={form.categoria || ""}
                       onChange={(e) => setForm({ ...form, categoria: e.target.value })}
                       className={inputCls}
-                      placeholder="Ex: Turismo, Eventos..."
+                      style={{ borderColor: LINE }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor = INK;
+                        e.currentTarget.style.boxShadow = `0 0 0 3px rgba(10,14,20,0.06)`;
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor = LINE;
+                        e.currentTarget.style.boxShadow = "none";
+                      }}
+                      placeholder="Ex: Turismo"
                     />
                   </FormField>
 
-                  <FormField
-                    label="Data de publicação"
-                    icon={<Calendar size={11} />}
-                    required
-                  >
+                  <FormField label="Data de publicação" icon={<Calendar size={10} />} required>
                     <input
                       type="date"
                       value={form.data_publicacao}
-                      onChange={(e) =>
-                        setForm({ ...form, data_publicacao: e.target.value })
-                      }
+                      onChange={(e) => setForm({ ...form, data_publicacao: e.target.value })}
                       className={inputCls}
+                      style={{ borderColor: LINE }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor = INK;
+                        e.currentTarget.style.boxShadow = `0 0 0 3px rgba(10,14,20,0.06)`;
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor = LINE;
+                        e.currentTarget.style.boxShadow = "none";
+                      }}
                     />
                   </FormField>
 
                   <div className="grid grid-cols-2 gap-3">
-                    <FormField label="Visibilidade" icon={<Eye size={11} />}>
+                    <FormField label="Visibilidade" icon={<Eye size={10} />}>
                       <select
                         value={String(form.ativo)}
-                        onChange={(e) =>
-                          setForm({ ...form, ativo: e.target.value === "true" })
-                        }
+                        onChange={(e) => setForm({ ...form, ativo: e.target.value === "true" })}
                         className={inputCls}
+                        style={{ borderColor: LINE }}
                       >
                         <option value="true">Público</option>
                         <option value="false">Oculto</option>
                       </select>
                     </FormField>
-                    <FormField label="Destaque" icon={<Star size={11} />}>
+
+                    <FormField label="Destaque" icon={<Star size={10} />}>
                       <select
                         value={String(form.destaque)}
-                        onChange={(e) =>
-                          setForm({ ...form, destaque: e.target.value === "true" })
-                        }
+                        onChange={(e) => setForm({ ...form, destaque: e.target.value === "true" })}
                         className={inputCls}
+                        style={{ borderColor: LINE }}
                       >
                         <option value="false">Não</option>
                         <option value="true">Sim</option>
@@ -581,84 +670,56 @@ export default function PortalBlog() {
                     </FormField>
                   </div>
                 </div>
-              </div>
+              </Panel>
 
-              {/* Imagem de capa */}
-              <div
-                className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm anim-fade-up"
-                style={{ animationDelay: "180ms" }}
-              >
-                <div className="h-0.5" style={{ background: `linear-gradient(90deg, ${VERDE}, ${VERDE_LIGHT})` }} />
-                <div
-                  className="px-5 py-4 border-b border-slate-100 flex items-center gap-3"
-                  style={{ background: `linear-gradient(135deg, ${VERDE}06, ${VERDE}02)` }}
-                >
-                  <div
-                    className="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0"
-                    style={{ background: `linear-gradient(135deg, ${VERDE}, ${VERDE_LIGHT})` }}
-                  >
-                    <Camera size={15} />
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className={`${jakarta.className} text-sm font-bold text-slate-800`}>
-                      Imagem de capa
-                    </h3>
-                    <p className="text-[11px] text-slate-500 mt-0.5">
-                      Visual principal do artigo
-                    </p>
-                  </div>
-                </div>
-
+              {/* Imagem */}
+              <Panel noPad className="anim-fade-up">
+                <PanelHeader
+                  title="Imagem de capa"
+                  subtitle="Visual principal"
+                />
                 <div className="p-5 space-y-4">
-                  <FormField label="Ficheiro de imagem" icon={<ImageIcon size={11} />}>
+                  <FormField label="Ficheiro" icon={<ImageIcon size={10} />}>
                     <label
-                      className="flex flex-col items-center justify-center gap-2.5 border-2 border-dashed rounded-xl p-5 cursor-pointer text-xs font-bold transition-all group"
+                      className="flex flex-col items-center justify-center gap-2 border-2 border-dashed rounded-md p-5 cursor-pointer text-[12px] font-semibold transition-colors group"
                       style={{
-                        background: imagemFile
-                          ? `linear-gradient(135deg, ${VERDE}06, ${VERDE}02)`
-                          : "#F8FAFC",
-                        borderColor: imagemFile ? `${VERDE}50` : "#CBD5E1",
+                        background: imagemFile ? "#ECFDF5" : BG,
+                        borderColor: imagemFile ? `${SUCCESS}50` : LINE,
+                        color: imagemFile ? SUCCESS : MUTED,
                       }}
                     >
                       <input
                         type="file"
                         accept="image/*"
                         className="hidden"
-                        onChange={(e) =>
-                          setImagemFile(e.target.files?.[0] || null)
-                        }
+                        onChange={(e) => setImagemFile(e.target.files?.[0] || null)}
                       />
                       <div
-                        className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-sm transition-transform group-hover:scale-105"
+                        className="w-8 h-8 rounded-md flex items-center justify-center"
                         style={{
-                          background: imagemFile
-                            ? `linear-gradient(135deg, ${VERDE}, ${VERDE_LIGHT})`
-                            : `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})`,
+                          background: imagemFile ? SUCCESS : LINE_2,
+                          color: imagemFile ? "#FFF" : MUTED,
                         }}
                       >
-                        {imagemFile ? (
-                          <CheckCircle2 size={16} />
-                        ) : (
-                          <ImageIcon size={16} />
-                        )}
+                        {imagemFile ? <CheckCircle2 size={14} /> : <ImageIcon size={14} />}
                       </div>
-                      <span
-                        className="truncate max-w-[180px] text-center"
-                        style={{ color: imagemFile ? VERDE : AZUL }}
-                      >
+                      <span className="truncate max-w-[180px] text-center">
                         {imagemFile
                           ? imagemFile.name
                           : form.imagem_url
-                          ? "Trocar imagem atual"
+                          ? "Trocar imagem"
                           : "Anexar imagem"}
                       </span>
                     </label>
 
                     {form.imagem_url && !imagemFile && (
-                      <div className="mt-3 rounded-xl overflow-hidden border border-slate-200 shadow-sm">
+                      <div
+                        className="mt-3 rounded-md overflow-hidden border"
+                        style={{ borderColor: LINE }}
+                      >
                         <img
                           src={form.imagem_url}
-                          alt="Capa atual"
+                          alt="Capa"
                           className="w-full h-32 object-cover"
                         />
                       </div>
@@ -667,77 +728,47 @@ export default function PortalBlog() {
 
                   <FormField
                     label="Legenda / créditos"
-                    icon={<FileText size={11} />}
-                    hint="Aparece sob a imagem no portal público."
+                    icon={<FileText size={10} />}
                   >
                     <input
                       value={form.legenda_imagem_capa || ""}
-                      onChange={(e) =>
-                        setForm({
-                          ...form,
-                          legenda_imagem_capa: e.target.value,
-                        })
-                      }
+                      onChange={(e) => setForm({ ...form, legenda_imagem_capa: e.target.value })}
                       className={inputCls}
+                      style={{ borderColor: LINE }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor = INK;
+                        e.currentTarget.style.boxShadow = `0 0 0 3px rgba(10,14,20,0.06)`;
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor = LINE;
+                        e.currentTarget.style.boxShadow = "none";
+                      }}
                       placeholder="Ex: Foto por João Silva"
                     />
                   </FormField>
                 </div>
-              </div>
+              </Panel>
 
               {/* Feedback */}
               {feedback && (
                 <div
-                  className="rounded-2xl p-4 flex items-start gap-3 border-2 shadow-sm anim-fade-up"
+                  className="rounded-lg border p-3.5 flex items-start gap-3 anim-fade-up"
                   style={{
-                    background: feedback.toLowerCase().includes("erro")
-                      ? `linear-gradient(135deg, ${VERMELHO}08, ${VERMELHO}02)`
-                      : `linear-gradient(135deg, ${AZUL}08, ${AZUL}02)`,
-                    borderColor: feedback.toLowerCase().includes("erro")
-                      ? `${VERMELHO}30`
-                      : `${AZUL}30`,
+                    background: feedback.toLowerCase().includes("obrigat")
+                      ? "#FEF2F2"
+                      : "#ECFDF5",
+                    borderColor: feedback.toLowerCase().includes("obrigat") ? "#FEE2E2" : "#D1FAE5",
+                    color: feedback.toLowerCase().includes("obrigat") ? DANGER : SUCCESS,
                   }}
                 >
-                  <div
-                    className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-white shadow-sm"
-                    style={{
-                      background: feedback.toLowerCase().includes("erro")
-                        ? `linear-gradient(135deg, ${VERMELHO}, #F87171)`
-                        : `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})`,
-                    }}
-                  >
-                    {feedback.toLowerCase().includes("erro") ? (
-                      <AlertTriangle size={15} />
-                    ) : (
-                      <CheckCircle2 size={15} />
-                    )}
-                  </div>
-                  <p className="text-xs font-bold text-slate-700 pt-2">
-                    {feedback}
-                  </p>
+                  {feedback.toLowerCase().includes("obrigat") ? (
+                    <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+                  ) : (
+                    <CheckCircle2 size={14} className="shrink-0 mt-0.5" />
+                  )}
+                  <p className="text-[12.5px] font-medium">{feedback}</p>
                 </div>
               )}
-
-              {/* Botão guardar */}
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className={`${jakarta.className} w-full text-white font-bold text-xs uppercase tracking-widest rounded-xl py-4 flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-sm hover:shadow-md hover:-translate-y-0.5 disabled:hover:translate-y-0`}
-                style={{
-                  background: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})`,
-                }}
-              >
-                {saving ? (
-                  <Loader2 size={15} className="animate-spin" />
-                ) : (
-                  <Save size={15} />
-                )}
-                {saving
-                  ? "A guardar..."
-                  : editando
-                  ? "Atualizar artigo"
-                  : "Publicar artigo"}
-              </button>
             </div>
           </div>
         </div>
@@ -746,232 +777,323 @@ export default function PortalBlog() {
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // VISTA: LISTA
+  // LISTA
   // ═══════════════════════════════════════════════════════════════
 
   return (
     <>
       <GlobalStyles />
-      <div className={`${inter.className} space-y-5`}>
+      <div className={`${inter.className} space-y-4`}>
 
-        {/* Cabeçalho */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 anim-fade-up">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 anim-fade-up">
           <div>
-            <h1 className={`${jakarta.className} text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight`}>
-              Gestão do blog
+            <div className="flex items-center gap-2 mb-1">
+              <span
+                className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.1em] px-1.5 py-0.5 rounded"
+                style={{ background: INK, color: "#FFF" }}
+              >
+                <Newspaper size={9} strokeWidth={3} />
+                Conteúdo
+              </span>
+              <span className="text-[11px]" style={{ color: MUTED }}>
+                {posts.length} artigo{posts.length !== 1 ? "s" : ""} · {posts.filter((p) => p.ativo).length} público{posts.filter((p) => p.ativo).length !== 1 ? "s" : ""}
+              </span>
+            </div>
+            <h1
+              className={`${jakarta.className} text-[26px] font-bold tracking-tight`}
+              style={{ color: INK, letterSpacing: "-0.025em" }}
+            >
+              Blog
             </h1>
-            <p className="text-sm text-slate-500 mt-1.5 flex items-center gap-2">
-              <Sparkles size={14} style={{ color: AMBAR }} />
-              {posts.length} artigo{posts.length !== 1 ? "s" : ""} no blog do portal
-            </p>
           </div>
 
-          <button
-            onClick={abrirFormNovo}
-            className={`${jakarta.className} self-start sm:self-auto text-white px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5`}
-            style={{ background: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})` }}
-          >
-            <Plus size={14} /> Novo artigo
-          </button>
+          <div className="flex items-center gap-2">
+            <a
+              href="/blog"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden sm:inline-flex h-9 px-3 rounded-md text-[12.5px] font-semibold items-center gap-1.5 border transition-colors"
+              style={{ borderColor: LINE, color: INK_2, background: SURFACE }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = LINE_2)}
+              onMouseLeave={(e) => (e.currentTarget.style.background = SURFACE)}
+            >
+              Ver público
+              <ExternalLink size={12} />
+            </a>
+            <button
+              onClick={abrirFormNovo}
+              className="h-9 px-3.5 rounded-md text-[12.5px] font-semibold flex items-center gap-1.5 text-white transition-colors"
+              style={{ background: INK }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = INK_2)}
+              onMouseLeave={(e) => (e.currentTarget.style.background = INK)}
+            >
+              <Plus size={14} strokeWidth={3} />
+              Novo artigo
+            </button>
+          </div>
         </div>
 
         {/* Busca */}
         {posts.length > 0 && (
-          <div
-            className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm anim-fade-up"
-            style={{ animationDelay: "60ms" }}
-          >
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div className="flex items-center gap-2 min-w-0">
-                <div
-                  className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
-                  style={{ background: `${AZUL}10`, color: AZUL }}
-                >
-                  <Filter size={14} />
-                </div>
-                <p className="text-xs text-slate-500">
-                  A mostrar{" "}
-                  <strong className="text-slate-800 font-bold">{filtrados.length}</strong> de{" "}
-                  <strong className="text-slate-800 font-bold">{posts.length}</strong> artigo(s)
-                </p>
-              </div>
-
-              <div className="relative w-full sm:w-80">
+          <Panel noPad className="anim-fade-up">
+            <div className="p-3 flex items-center gap-3">
+              <div className="relative flex-1">
                 <Search
                   size={14}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                  style={{ color: SUBTLE }}
                 />
                 <input
                   type="text"
                   placeholder="Buscar por título, resumo ou categoria..."
                   value={busca}
                   onChange={(e) => setBusca(e.target.value)}
-                  className={`${inputCls} pl-10 pr-9`}
+                  className={`${inputCls} pl-9 pr-9`}
+                  style={{ borderColor: LINE }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = INK;
+                    e.currentTarget.style.boxShadow = `0 0 0 3px rgba(10,14,20,0.06)`;
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = LINE;
+                    e.currentTarget.style.boxShadow = "none";
+                  }}
                 />
                 {busca && (
                   <button
                     onClick={() => setBusca("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full hover:bg-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded flex items-center justify-center transition-colors"
+                    style={{ color: SUBTLE }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = LINE_2)}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                    aria-label="Limpar busca"
                   >
-                    <X size={11} />
+                    <X size={12} />
                   </button>
                 )}
               </div>
+
+              {busca && (
+                <span
+                  className="text-[11.5px] font-semibold num whitespace-nowrap"
+                  style={{ color: MUTED }}
+                >
+                  {filtrados.length} de {posts.length}
+                </span>
+              )}
             </div>
-          </div>
+          </Panel>
         )}
 
         {/* Lista */}
         {loading ? (
-          <div className="bg-white border border-slate-200/80 rounded-2xl py-24 flex flex-col items-center gap-3 anim-fade">
-            <div
-              className="w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-sm"
-              style={{ background: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})` }}
-            >
-              <Loader2 size={22} className="animate-spin" />
-            </div>
-            <p className="text-xs text-slate-400 font-medium">A carregar artigos...</p>
+          <div className="space-y-2">
+            {[1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                className="h-24 rounded-lg"
+                style={{
+                  background: `linear-gradient(90deg, ${LINE_2} 0%, ${LINE} 50%, ${LINE_2} 100%)`,
+                  backgroundSize: "200% 100%",
+                  animation: "fadeIn 0.3s ease",
+                }}
+              />
+            ))}
           </div>
         ) : filtrados.length === 0 ? (
-          <div className="bg-white border border-slate-200/80 rounded-2xl py-20 text-center shadow-sm anim-fade">
-            <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm text-white"
-              style={{
-                background: busca
-                  ? `linear-gradient(135deg, ${AMBAR}, ${AMBAR_LIGHT})`
-                  : `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})`,
-              }}
-            >
-              {busca ? <Search size={28} /> : <Inbox size={28} />}
+          <Panel noPad className="anim-fade">
+            <div className="py-16 text-center">
+              <div
+                className="w-11 h-11 rounded-lg mx-auto mb-3 flex items-center justify-center"
+                style={{ background: LINE_2, color: MUTED }}
+              >
+                {busca ? <Search size={20} strokeWidth={2} /> : <Inbox size={20} strokeWidth={2} />}
+              </div>
+              <p className={`${jakarta.className} text-[13px] font-bold`} style={{ color: INK }}>
+                {busca ? "Nenhum resultado" : "Nenhum artigo ainda"}
+              </p>
+              <p className="text-[11.5px] mt-1 max-w-md mx-auto" style={{ color: MUTED }}>
+                {busca
+                  ? "Ajusta a pesquisa para encontrar artigos."
+                  : "Cria o primeiro artigo para aparecer no blog do portal."}
+              </p>
+              <div className="mt-4">
+                {busca ? (
+                  <button
+                    onClick={() => setBusca("")}
+                    className="h-9 px-3 rounded-md text-[12.5px] font-semibold text-white transition-colors"
+                    style={{ background: INK }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = INK_2)}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = INK)}
+                  >
+                    Limpar pesquisa
+                  </button>
+                ) : (
+                  <button
+                    onClick={abrirFormNovo}
+                    className="h-9 px-3.5 rounded-md text-[12.5px] font-semibold inline-flex items-center gap-1.5 text-white transition-colors"
+                    style={{ background: INK }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = INK_2)}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = INK)}
+                  >
+                    <Plus size={14} strokeWidth={3} /> Novo artigo
+                  </button>
+                )}
+              </div>
             </div>
-            <h3 className={`${jakarta.className} text-lg font-bold text-slate-800 mb-1.5`}>
-              {busca ? "Nenhum resultado" : "Nenhum artigo publicado"}
-            </h3>
-            <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed mb-5">
-              {busca
-                ? "Ajusta a pesquisa para encontrares artigos."
-                : "Cria o primeiro artigo para aparecer no blog do portal."}
-            </p>
-            {busca ? (
-              <button
-                onClick={() => setBusca("")}
-                className={`${jakarta.className} text-[11px] font-bold px-4 py-2 rounded-xl text-white shadow-sm hover:shadow-md transition-all`}
-                style={{ background: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})` }}
-              >
-                Limpar pesquisa
-              </button>
-            ) : (
-              <button
-                onClick={abrirFormNovo}
-                className={`${jakarta.className} text-white px-4 py-2.5 rounded-xl text-xs font-bold inline-flex items-center gap-2 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5`}
-                style={{ background: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})` }}
-              >
-                <Plus size={14} /> Novo artigo
-              </button>
-            )}
-          </div>
+          </Panel>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {filtrados.map((post, idx) => (
               <article
                 key={post.id}
-                style={{ animationDelay: `${120 + idx * 30}ms` }}
-                className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300 anim-fade-up"
+                style={{ animationDelay: `${idx * 20}ms` }}
+                className="bg-white border rounded-lg overflow-hidden hover:border-slate-300 transition-colors anim-fade-up group"
               >
-                <div
-                  className="h-0.5"
-                  style={{
-                    background: post.destaque
-                      ? `linear-gradient(90deg, ${AMBAR}, ${AMBAR_LIGHT})`
-                      : `linear-gradient(90deg, ${AZUL}, ${AZUL_ESCURO})`,
-                  }}
-                />
-                <div className="p-4 flex flex-col sm:flex-row gap-4">
-                  {/* Thumb */}
-                  <div className="w-full sm:w-40 h-32 sm:h-24 rounded-xl overflow-hidden shrink-0 shadow-sm border border-slate-200/60 bg-slate-100">
-                    {post.imagem_url ? (
-                      <img
-                        src={post.imagem_url}
-                        alt={post.titulo}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div
-                        className="w-full h-full flex items-center justify-center text-white"
-                        style={{
-                          background: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})`,
-                        }}
-                      >
-                        <Newspaper size={24} className="opacity-40" />
-                      </div>
-                    )}
-                  </div>
+                {/* Faixa lateral esquerda conforme estado */}
+                <div className="flex items-stretch">
+                  {/* Indicador de destaque */}
+                  <div
+                    className="w-1 shrink-0"
+                    style={{
+                      background: post.destaque ? WARNING : "transparent",
+                    }}
+                  />
 
-                  {/* Conteúdo */}
-                  <div className="flex-1 min-w-0 flex flex-col">
-                    <div className="flex items-center gap-2 flex-wrap mb-2">
-                      {post.destaque && (
-                        <span
-                          className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md border"
-                          style={{
-                            background: `${AMBAR}10`,
-                            color: AMBAR,
-                            borderColor: `${AMBAR}25`,
-                          }}
+                  <div className="flex-1 p-3.5 flex flex-col sm:flex-row gap-4 min-w-0">
+                    {/* Thumb */}
+                    <div
+                      className="w-full sm:w-36 h-32 sm:h-20 rounded-md overflow-hidden shrink-0 border"
+                      style={{ borderColor: LINE, background: LINE_2 }}
+                    >
+                      {post.imagem_url ? (
+                        <img
+                          src={post.imagem_url}
+                          alt={post.titulo}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div
+                          className="w-full h-full flex items-center justify-center"
+                          style={{ color: SUBTLE }}
                         >
-                          <Star size={9} className="fill-current" /> Destaque
-                        </span>
+                          <Newspaper size={20} strokeWidth={1.5} />
+                        </div>
                       )}
-                      {post.categoria && <CategoriaBadge categoria={post.categoria} />}
-                      <StatusBadge ativo={post.ativo} />
                     </div>
 
-                    <h3 className={`${jakarta.className} text-sm font-bold text-slate-900 line-clamp-2 mb-1.5 leading-snug`}>
-                      {post.titulo}
-                    </h3>
+                    {/* Conteúdo */}
+                    <div className="flex-1 min-w-0 flex flex-col">
+                      {/* Badges */}
+                      <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
+                        <StatusPill tone={post.ativo ? "success" : "neutral"}>
+                          {post.ativo ? <Eye size={8} /> : <EyeOff size={8} />}
+                          {post.ativo ? "Público" : "Oculto"}
+                        </StatusPill>
+                        {post.destaque && (
+                          <StatusPill tone="warning">
+                            <Star size={8} className="fill-current" />
+                            Destaque
+                          </StatusPill>
+                        )}
+                        {post.categoria && (
+                          <span
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide"
+                            style={{ background: LINE_2, color: MUTED, border: `1px solid ${LINE}` }}
+                          >
+                            <Tag size={8} />
+                            {post.categoria}
+                          </span>
+                        )}
+                      </div>
 
-                    {post.resumo && (
-                      <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed mb-2">
-                        {post.resumo}
-                      </p>
-                    )}
+                      <h3
+                        className={`${jakarta.className} text-[13.5px] font-bold leading-snug line-clamp-2 mb-1`}
+                        style={{ color: INK }}
+                      >
+                        {post.titulo}
+                      </h3>
 
-                    <div className="flex items-center gap-3 text-[10px] text-slate-400 flex-wrap mt-auto">
-                      <span className="flex items-center gap-1">
-                        <User size={10} /> {post.autor || "Redação"}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Calendar size={10} /> {fmtData(post.data_publicacao)}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Hash size={10} /> {tempoRelativo(post.data_publicacao)}
-                      </span>
+                      {post.resumo && (
+                        <p
+                          className="text-[11.5px] line-clamp-2 leading-relaxed mb-2"
+                          style={{ color: MUTED }}
+                        >
+                          {post.resumo}
+                        </p>
+                      )}
+
+                      <div
+                        className="flex items-center gap-3 text-[10.5px] flex-wrap mt-auto num"
+                        style={{ color: SUBTLE }}
+                      >
+                        <span className="flex items-center gap-1">
+                          <User size={10} />
+                          {post.autor || "Redação"}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Calendar size={10} />
+                          {fmtData(post.data_publicacao)}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Clock size={10} />
+                          {tempoRelativo(post.data_publicacao)}
+                        </span>
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Ações */}
-                  <div className="flex sm:flex-col gap-1.5 shrink-0 self-end sm:self-center">
-                    <button
-                      onClick={() => toggleAtivo(post.id, post.ativo)}
-                      className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-[#0078D4] hover:bg-[#0078D4]/10 transition-colors"
-                      title={post.ativo ? "Ocultar" : "Publicar"}
-                    >
-                      {post.ativo ? <Eye size={15} /> : <EyeOff size={15} />}
-                    </button>
-                    <button
-                      onClick={() => abrirFormEditar(post)}
-                      className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-[#0078D4] hover:bg-[#0078D4]/10 transition-colors"
-                      title="Editar"
-                    >
-                      <Pencil size={14} />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(post.id)}
-                      className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-[#D13438] hover:bg-red-50 transition-colors"
-                      title="Apagar"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    {/* Ações */}
+                    <div className="flex sm:flex-col gap-1 shrink-0 self-end sm:self-center">
+                      <button
+                        onClick={() => toggleAtivo(post.id, post.ativo)}
+                        className="w-8 h-8 rounded-md flex items-center justify-center transition-colors"
+                        style={{ color: SUBTLE }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = LINE_2;
+                          e.currentTarget.style.color = INK;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = "transparent";
+                          e.currentTarget.style.color = SUBTLE;
+                        }}
+                        title={post.ativo ? "Ocultar" : "Publicar"}
+                      >
+                        {post.ativo ? <Eye size={14} /> : <EyeOff size={14} />}
+                      </button>
+                      <button
+                        onClick={() => abrirFormEditar(post)}
+                        className="w-8 h-8 rounded-md flex items-center justify-center transition-colors"
+                        style={{ color: SUBTLE }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = LINE_2;
+                          e.currentTarget.style.color = INK;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = "transparent";
+                          e.currentTarget.style.color = SUBTLE;
+                        }}
+                        title="Editar"
+                      >
+                        <Pencil size={13} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(post.id)}
+                        className="w-8 h-8 rounded-md flex items-center justify-center transition-colors"
+                        style={{ color: SUBTLE }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = "#FEF2F2";
+                          e.currentTarget.style.color = DANGER;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = "transparent";
+                          e.currentTarget.style.color = SUBTLE;
+                        }}
+                        title="Apagar"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </article>

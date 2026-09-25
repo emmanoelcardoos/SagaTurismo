@@ -5,29 +5,31 @@ import { Plus_Jakarta_Sans, Inter } from "next/font/google";
 import { supabase } from "@/lib/supabase";
 import {
   Briefcase, Plus, Loader2, Save, Phone, Upload, Trash2,
-  Sparkles, ArrowLeft, FileText, Camera, Layers, Eye, EyeOff,
-  Pencil, Inbox, Search, X, Filter, Tag, CheckCircle2,
-  AlertTriangle, Hash, AtSign, MapPin, ShieldCheck, Target,
-  Award, Star, ExternalLink, MessageCircle, ListChecks,
+  ArrowLeft, FileText, Camera, Layers, Eye, EyeOff,
+  Pencil, Inbox, Search, X, Tag, CheckCircle2,
+  AlertTriangle, AtSign, MapPin, Award, Target, ExternalLink,
+  Images, MessageCircle,
 } from "lucide-react";
 
-const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["600", "700", "800"] });
+const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["500", "600", "700", "800"] });
 const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
-// ─── CORES (paleta Azure/Microsoft do portal) ───
-const AZUL = "#0078D4";
-const AZUL_ESCURO = "#005A9E";
-const AMBAR = "#DAA520";
-const AMBAR_LIGHT = "#FBBF24";
-const VERMELHO = "#D13438";
-const VERDE = "#168821";
-const VERDE_LIGHT = "#22C55E";
-const ROXO = "#7C3AED";
+// ─── PALETA ENTERPRISE ───
+const INK = "#0A0E14";
+const INK_2 = "#1F2937";
+const MUTED = "#6B7280";
+const SUBTLE = "#9CA3AF";
+const LINE = "#E5E7EB";
+const LINE_2 = "#F3F4F6";
+const BG = "#FBFBFC";
+const SURFACE = "#FFFFFF";
+const ACCENT = "#2563EB";
+const SUCCESS = "#059669";
+const WARNING = "#D97706";
+const DANGER = "#DC2626";
 
 const inputCls =
-  "w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl px-3.5 py-2.5 focus:outline-none focus:bg-white focus:border-[#0078D4] focus:ring-4 focus:ring-[#0078D4]/10 transition-all placeholder:text-slate-400";
-const labelCls =
-  "flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2";
+  "w-full bg-white text-[13.5px] rounded-md px-3 py-2.5 transition-[border-color,box-shadow] duration-150 placeholder:text-slate-400 focus:outline-none border";
 
 // ═══════════════════════════════════════════════════════════════
 // ESTILOS GLOBAIS
@@ -36,36 +38,80 @@ const labelCls =
 function GlobalStyles() {
   return (
     <style jsx global>{`
-      @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(8px); }
+      @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(4px); }
         to { opacity: 1; transform: translateY(0); }
       }
       @keyframes fadeIn {
         from { opacity: 0; }
         to { opacity: 1; }
       }
-      .anim-fade-up { animation: fadeInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; }
-      .anim-fade { animation: fadeIn 0.25s ease both; }
-      .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
-      .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
-      .scrollbar-thin::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
-      .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+      @keyframes shimmer {
+        0% { background-position: -200% 0; }
+        100% { background-position: 200% 0; }
+      }
+      .anim-fade-up { animation: fadeUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) both; }
+      .anim-fade { animation: fadeIn 0.2s ease both; }
+      .num { font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+      .skeleton {
+        background: linear-gradient(90deg, ${LINE_2} 0%, ${LINE} 50%, ${LINE_2} 100%);
+        background-size: 200% 100%;
+        animation: shimmer 1.4s infinite;
+      }
+      .scroll-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+      .scroll-thin::-webkit-scrollbar-track { background: transparent; }
+      .scroll-thin::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 3px; }
+      .scroll-thin::-webkit-scrollbar-thumb:hover { background: #9CA3AF; }
     `}</style>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════
-// SUB-COMPONENTES
+// ÁTOMOS
 // ═══════════════════════════════════════════════════════════════
 
-function FormField({
-  label,
-  icon,
-  required,
-  hint,
-  children,
-  className = "",
-}: {
+function Panel({ children, className = "", noPad = false }: {
+  children: React.ReactNode;
+  className?: string;
+  noPad?: boolean;
+}) {
+  return (
+    <div className={`bg-white border rounded-lg overflow-hidden ${className}`} style={{ borderColor: LINE }}>
+      {noPad ? children : <div className="p-5">{children}</div>}
+    </div>
+  );
+}
+
+function PanelHeader({ title, subtitle, action, badge }: {
+  title: string;
+  subtitle?: string;
+  action?: React.ReactNode;
+  badge?: React.ReactNode;
+}) {
+  return (
+    <div
+      className="px-5 py-3.5 flex items-center justify-between gap-3 border-b"
+      style={{ borderColor: LINE, background: BG }}
+    >
+      <div className="min-w-0">
+        <div className="flex items-center gap-2">
+          <h3 className={`${jakarta.className} text-[13px] font-bold`} style={{ color: INK }}>
+            {title}
+          </h3>
+          {badge}
+        </div>
+        {subtitle && (
+          <p className="text-[11.5px] mt-0.5" style={{ color: MUTED }}>
+            {subtitle}
+          </p>
+        )}
+      </div>
+      {action}
+    </div>
+  );
+}
+
+function FormField({ label, icon, required, hint, children, className = "" }: {
   label: string;
   icon?: React.ReactNode;
   required?: boolean;
@@ -75,34 +121,44 @@ function FormField({
 }) {
   return (
     <div className={className}>
-      <label className={labelCls}>
+      <label
+        className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] mb-1.5"
+        style={{ color: MUTED }}
+      >
         {icon}
         {label}
-        {required && <span style={{ color: VERMELHO }}>*</span>}
+        {required && <span style={{ color: DANGER }}>*</span>}
       </label>
       {children}
       {hint && (
-        <p className="text-[10px] text-slate-400 mt-1.5 leading-relaxed">{hint}</p>
+        <p className="text-[10.5px] mt-1.5 leading-relaxed" style={{ color: SUBTLE }}>
+          {hint}
+        </p>
       )}
     </div>
   );
 }
 
-function StatusBadge({ ativo }: { ativo: boolean }) {
-  const cor = ativo ? AZUL : "#64748B";
+function StatusPill({ tone, children }: { tone: "success" | "danger" | "warning" | "neutral" | "info"; children: React.ReactNode }) {
+  const map = {
+    success: { c: SUCCESS, bg: "#ECFDF5", b: "#D1FAE5" },
+    danger: { c: DANGER, bg: "#FEF2F2", b: "#FEE2E2" },
+    warning: { c: WARNING, bg: "#FFFBEB", b: "#FEF3C7" },
+    neutral: { c: MUTED, bg: LINE_2, b: LINE },
+    info: { c: ACCENT, bg: "#EFF6FF", b: "#DBEAFE" },
+  }[tone];
   return (
     <span
-      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest border"
-      style={{ background: `${cor}10`, color: cor, borderColor: `${cor}25` }}
+      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide"
+      style={{ background: map.bg, color: map.c, border: `1px solid ${map.b}` }}
     >
-      {ativo ? <Eye size={10} /> : <EyeOff size={10} />}
-      {ativo ? "Público" : "Oculto"}
+      {children}
     </span>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PÁGINA PRINCIPAL
+// PÁGINA
 // ═══════════════════════════════════════════════════════════════
 
 export default function PortalAgencias() {
@@ -129,7 +185,6 @@ export default function PortalAgencias() {
   const [capaFile, setCapaFile] = useState<File | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [galeriaFiles, setGaleriaFiles] = useState<File[]>([]);
-
   const [especialidades, setEspecialidades] = useState<any[]>([
     { nome: "", file: null, imagem_url: "" },
   ]);
@@ -178,11 +233,9 @@ export default function PortalAgencias() {
     setGaleriaFiles([]);
     setFeedback("");
 
-    let espParsed = [];
+    let espParsed: any[] = [];
     if (typeof ag.especialidades === "string") {
-      try {
-        espParsed = JSON.parse(ag.especialidades);
-      } catch (e) {}
+      try { espParsed = JSON.parse(ag.especialidades); } catch (e) {}
     } else if (Array.isArray(ag.especialidades)) {
       espParsed = ag.especialidades;
     }
@@ -212,9 +265,7 @@ export default function PortalAgencias() {
 
   async function uploadImagem(file: File, pasta: string): Promise<string | null> {
     const ext = file.name.split(".").pop();
-    const path = `${pasta}/${Date.now()}_${Math.random()
-      .toString(36)
-      .substring(7)}.${ext}`;
+    const path = `${pasta}/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
     const { error } = await supabase.storage.from("agencias").upload(path, file);
     if (error) return null;
     const { data } = supabase.storage.from("agencias").getPublicUrl(path);
@@ -227,7 +278,7 @@ export default function PortalAgencias() {
       return;
     }
     setSaving(true);
-    setFeedback("A processar ficheiros...");
+    setFeedback("Enviando arquivos...");
 
     try {
       let capa_url = editando?.capa_url || null;
@@ -257,7 +308,7 @@ export default function PortalAgencias() {
         espLimpos.push({ nome: esp.nome, imagem_url: espUrl });
       }
 
-      setFeedback("A guardar perfil...");
+      setFeedback("Salvando perfil...");
       const payload = {
         ...form,
         capa_url,
@@ -269,12 +320,12 @@ export default function PortalAgencias() {
       if (editando) await supabase.from("agencias").update(payload).eq("id", editando.id);
       else await supabase.from("agencias").insert([payload]);
 
-      setFeedback("Agência salva com sucesso!");
+      setFeedback("Agência salva com sucesso.");
       setTimeout(() => {
         setShowForm(false);
         setFeedback("");
         fetchAgencias();
-      }, 2000);
+      }, 1500);
     } catch (err: any) {
       setFeedback("Erro ao salvar: " + err.message);
     } finally {
@@ -288,7 +339,6 @@ export default function PortalAgencias() {
     fetchAgencias();
   }
 
-  // ─── FILTRO ───
   const agenciasFiltradas = agencias.filter((a) => {
     if (!busca) return true;
     const termo = busca.toLowerCase();
@@ -300,289 +350,519 @@ export default function PortalAgencias() {
     );
   });
 
+  const especialidadesValidas = especialidades.filter((e) => e.nome.trim());
+
   // ═══════════════════════════════════════════════════════════════
-  // VISTA: FORMULÁRIO
+  // FORMULÁRIO
   // ═══════════════════════════════════════════════════════════════
 
   if (showForm) {
     return (
       <>
         <GlobalStyles />
-        <div className={`${inter.className} space-y-5 pb-6 anim-fade-up`}>
+        <div className={`${inter.className} space-y-4`}>
 
-          {/* Cabeçalho */}
-          <div className="flex items-center gap-3">
+          {/* Header */}
+          <div className="flex items-center gap-3 anim-fade-up">
             <button
               onClick={() => setShowForm(false)}
-              className="w-10 h-10 bg-white border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all shadow-sm shrink-0 flex items-center justify-center group"
+              className="w-9 h-9 rounded-md flex items-center justify-center transition-colors shrink-0 border"
+              style={{ borderColor: LINE, color: MUTED, background: SURFACE }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = LINE_2;
+                e.currentTarget.style.color = INK;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = SURFACE;
+                e.currentTarget.style.color = MUTED;
+              }}
+              aria-label="Voltar"
             >
-              <ArrowLeft size={18} className="group-hover:-translate-x-0.5 transition-transform" />
+              <ArrowLeft size={16} />
             </button>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 mb-1">
+                <span
+                  className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.1em] px-1.5 py-0.5 rounded"
+                  style={{ background: INK, color: "#FFF" }}
+                >
+                  <Briefcase size={9} strokeWidth={3} />
+                  {editando ? "Editar" : "Nova"}
+                </span>
+                <span className="text-[11px]" style={{ color: MUTED }}>
+                  {editando ? (editando.cadastur || "Sem Cadastur") : "Rascunho"}
+                </span>
               </div>
               <h1
-                className={`${jakarta.className} text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight truncate`}
+                className={`${jakarta.className} text-[22px] font-bold tracking-tight truncate`}
+                style={{ color: INK, letterSpacing: "-0.02em" }}
               >
-                {editando ? editando.nome : "Registro de agência"}
+                {editando ? editando.nome : "Nova agência"}
               </h1>
-              <p className="text-xs text-slate-500 mt-1">
-                Preenche a identificação, contactos e especialidades da agência.
-              </p>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={() => setShowForm(false)}
+                className="hidden sm:inline-flex h-9 px-3 rounded-md text-[12.5px] font-semibold items-center border transition-colors"
+                style={{ borderColor: LINE, color: INK_2, background: SURFACE }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = LINE_2)}
+                onMouseLeave={(e) => (e.currentTarget.style.background = SURFACE)}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSalvar}
+                disabled={saving}
+                className="h-9 px-3.5 rounded-md text-[12.5px] font-semibold flex items-center gap-2 text-white transition-colors disabled:opacity-50"
+                style={{ background: INK }}
+                onMouseEnter={(e) => !saving && (e.currentTarget.style.background = INK_2)}
+                onMouseLeave={(e) => !saving && (e.currentTarget.style.background = INK)}
+              >
+                {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+                {saving ? "Salvando..." : editando ? "Salvar" : "Registrar"}
+              </button>
             </div>
           </div>
 
-          {/* Bloco 1: Informações + Contactos */}
-          <div className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm">
-            <div className="h-0.5" style={{ background: `linear-gradient(90deg, ${AZUL}, ${AZUL_ESCURO})` }} />
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
 
-            <div className="p-5 grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-6">
-              {/* Coluna 1: Informações da Empresa */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-                  <div
-                    className="w-7 h-7 rounded-lg flex items-center justify-center text-white shadow-sm"
-                    style={{ background: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})` }}
-                  >
-                    <FileText size={12} />
-                  </div>
-                  <h4 className={`${jakarta.className} text-sm font-bold text-slate-700`}>
-                    Informações da empresa
-                  </h4>
-                </div>
+            {/* Coluna principal */}
+            <div className="lg:col-span-8 space-y-4">
 
-                <FormField label="Nome da agência" icon={<Briefcase size={11} />} required>
-                  <input
-                    type="text"
-                    value={form.nome}
-                    onChange={(e) => setForm({ ...form, nome: e.target.value })}
-                    className={inputCls}
-                    placeholder="Ex: SagaTur Turismo"
-                  />
-                </FormField>
-
-                <FormField
-                  label="Cadastur (registro)"
-                  icon={<Award size={11} />}
-                  hint="Registro oficial do Ministério do Turismo."
-                >
-                  <input
-                    type="text"
-                    value={form.cadastur}
-                    onChange={(e) => setForm({ ...form, cadastur: e.target.value })}
-                    className={inputCls}
-                    placeholder="XX.XXXXXX.XX-X"
-                  />
-                </FormField>
-
-                <FormField
-                  label="Resumo (aparece no cartão)"
-                  icon={<FileText size={11} />}
-                >
-                  <textarea
-                    rows={2}
-                    value={form.descricao_curta}
-                    onChange={(e) =>
-                      setForm({ ...form, descricao_curta: e.target.value })
-                    }
-                    className={`${inputCls} resize-y min-h-[70px]`}
-                    placeholder="Uma frase sobre a agência..."
-                  />
-                </FormField>
-
-                <FormField
-                  label="História / sobre a agência"
-                  icon={<FileText size={11} />}
-                >
-                  <textarea
-                    rows={5}
-                    value={form.sobre}
-                    onChange={(e) => setForm({ ...form, sobre: e.target.value })}
-                    className={`${inputCls} resize-y min-h-[130px]`}
-                    placeholder="Descreve a agência, a sua história e serviços..."
-                  />
-                </FormField>
-              </div>
-
-              {/* Coluna 2: Contactos & Identidade Visual */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-                  <div
-                    className="w-7 h-7 rounded-lg flex items-center justify-center text-white shadow-sm"
-                    style={{ background: `linear-gradient(135deg, ${VERDE}, ${VERDE_LIGHT})` }}
-                  >
-                    <Phone size={12} />
-                  </div>
-                  <h4 className={`${jakarta.className} text-sm font-bold text-slate-700`}>
-                    Contactos e identidade visual
-                  </h4>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <FormField label="WhatsApp" icon={<Phone size={11} />}>
-                    <div className="relative">
-                      <Phone
-                        size={14}
-                        className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-                      />
-                      <input
-                        type="text"
-                        value={form.whatsapp}
-                        onChange={(e) =>
-                          setForm({ ...form, whatsapp: e.target.value })
-                        }
-                        className={`${inputCls} pl-10`}
-                        placeholder="94 90000-0000"
-                      />
-                    </div>
-                  </FormField>
-                  <FormField label="Instagram" icon={<AtSign size={11} />}>
-                    <div className="relative">
-                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">
-                        @
-                      </span>
-                      <input
-                        type="text"
-                        value={form.instagram}
-                        onChange={(e) =>
-                          setForm({ ...form, instagram: e.target.value })
-                        }
-                        className={`${inputCls} pl-9`}
-                        placeholder="sagatur"
-                      />
-                    </div>
-                  </FormField>
-                </div>
-
-                <FormField label="Endereço físico" icon={<MapPin size={11} />}>
-                  <div className="relative">
-                    <MapPin
-                      size={14}
-                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+              <Panel noPad className="anim-fade-up">
+                <PanelHeader title="Identificação" subtitle="Nome, Cadastur e descrição" />
+                <div className="p-5 space-y-4">
+                  <FormField label="Nome da agência" icon={<Briefcase size={10} />} required>
+                    <input
+                      type="text"
+                      value={form.nome}
+                      onChange={(e) => setForm({ ...form, nome: e.target.value })}
+                      className={inputCls}
+                      style={{ borderColor: LINE }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor = INK;
+                        e.currentTarget.style.boxShadow = `0 0 0 3px rgba(10,14,20,0.06)`;
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor = LINE;
+                        e.currentTarget.style.boxShadow = "none";
+                      }}
+                      placeholder="Ex: SagaTur Turismo"
                     />
+                  </FormField>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <FormField
+                      label="Cadastur"
+                      icon={<Award size={10} />}
+                      hint="Registro oficial do Ministério do Turismo."
+                    >
+                      <input
+                        type="text"
+                        value={form.cadastur}
+                        onChange={(e) => setForm({ ...form, cadastur: e.target.value })}
+                        className={inputCls}
+                        style={{ borderColor: LINE }}
+                        onFocus={(e) => {
+                          e.currentTarget.style.borderColor = INK;
+                          e.currentTarget.style.boxShadow = `0 0 0 3px rgba(10,14,20,0.06)`;
+                        }}
+                        onBlur={(e) => {
+                          e.currentTarget.style.borderColor = LINE;
+                          e.currentTarget.style.boxShadow = "none";
+                        }}
+                        placeholder="XX.XXXXXX.XX-X"
+                      />
+                    </FormField>
+
+                    <FormField
+                      label="Resumo do cartão"
+                      icon={<FileText size={10} />}
+                      hint="Uma frase que aparece nos cards."
+                    >
+                      <input
+                        type="text"
+                        value={form.descricao_curta}
+                        onChange={(e) => setForm({ ...form, descricao_curta: e.target.value })}
+                        className={inputCls}
+                        style={{ borderColor: LINE }}
+                        onFocus={(e) => {
+                          e.currentTarget.style.borderColor = INK;
+                          e.currentTarget.style.boxShadow = `0 0 0 3px rgba(10,14,20,0.06)`;
+                        }}
+                        onBlur={(e) => {
+                          e.currentTarget.style.borderColor = LINE;
+                          e.currentTarget.style.boxShadow = "none";
+                        }}
+                        placeholder="Ex: Especialistas em turismo de aventura"
+                      />
+                    </FormField>
+                  </div>
+
+                  <FormField label="Sobre a agência" icon={<FileText size={10} />}>
+                    <textarea
+                      rows={5}
+                      value={form.sobre}
+                      onChange={(e) => setForm({ ...form, sobre: e.target.value })}
+                      className={`${inputCls} resize-y min-h-[130px]`}
+                      style={{ borderColor: LINE }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor = INK;
+                        e.currentTarget.style.boxShadow = `0 0 0 3px rgba(10,14,20,0.06)`;
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor = LINE;
+                        e.currentTarget.style.boxShadow = "none";
+                      }}
+                      placeholder="História, missão, diferenciais..."
+                    />
+                  </FormField>
+                </div>
+              </Panel>
+
+              <Panel noPad className="anim-fade-up">
+                <PanelHeader title="Contato" subtitle="WhatsApp, Instagram e endereço" />
+                <div className="p-5 grid grid-cols-2 gap-4">
+                  <FormField label="WhatsApp" icon={<Phone size={10} />}>
+                    <input
+                      type="text"
+                      value={form.whatsapp}
+                      onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
+                      className={inputCls}
+                      style={{ borderColor: LINE }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor = INK;
+                        e.currentTarget.style.boxShadow = `0 0 0 3px rgba(10,14,20,0.06)`;
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor = LINE;
+                        e.currentTarget.style.boxShadow = "none";
+                      }}
+                      placeholder="94 90000-0000"
+                    />
+                  </FormField>
+
+                  <FormField label="Instagram" icon={<AtSign size={10} />}>
+                    <input
+                      type="text"
+                      value={form.instagram}
+                      onChange={(e) => setForm({ ...form, instagram: e.target.value })}
+                      className={inputCls}
+                      style={{ borderColor: LINE }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor = INK;
+                        e.currentTarget.style.boxShadow = `0 0 0 3px rgba(10,14,20,0.06)`;
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor = LINE;
+                        e.currentTarget.style.boxShadow = "none";
+                      }}
+                      placeholder="sagatur"
+                    />
+                  </FormField>
+
+                  <FormField label="Endereço" icon={<MapPin size={10} />} className="col-span-2">
                     <input
                       type="text"
                       value={form.endereco}
-                      onChange={(e) =>
-                        setForm({ ...form, endereco: e.target.value })
-                      }
-                      className={`${inputCls} pl-10`}
+                      onChange={(e) => setForm({ ...form, endereco: e.target.value })}
+                      className={inputCls}
+                      style={{ borderColor: LINE }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor = INK;
+                        e.currentTarget.style.boxShadow = `0 0 0 3px rgba(10,14,20,0.06)`;
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor = LINE;
+                        e.currentTarget.style.boxShadow = "none";
+                      }}
                       placeholder="Rua, número, bairro..."
                     />
-                  </div>
-                </FormField>
-
-                <FormField
-                  label="Visibilidade"
-                  icon={<Eye size={11} />}
-                  hint="Se oculto, não aparece no diretório público."
-                >
-                  <select
-                    value={String(form.ativo)}
-                    onChange={(e) =>
-                      setForm({ ...form, ativo: e.target.value === "true" })
-                    }
-                    className={inputCls}
-                  >
-                    <option value="true">Público (Ativo)</option>
-                    <option value="false">Oculto</option>
-                  </select>
-                </FormField>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <FormField label="Logotipo" icon={<ImageIcon size={11} />}>
-                    <label
-                      className="flex flex-col items-center justify-center gap-2 border-2 border-dashed rounded-xl p-4 cursor-pointer text-[11px] font-bold transition-all group"
-                      style={{
-                        background: logoFile
-                          ? `linear-gradient(135deg, ${VERDE}06, ${VERDE}02)`
-                          : "#F8FAFC",
-                        borderColor: logoFile ? `${VERDE}50` : "#CBD5E1",
-                      }}
-                    >
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => setLogoFile(e.target.files?.[0] || null)}
-                      />
-                      <div
-                        className="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm transition-transform group-hover:scale-105"
-                        style={{
-                          background: logoFile
-                            ? `linear-gradient(135deg, ${VERDE}, ${VERDE_LIGHT})`
-                            : `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})`,
-                        }}
-                      >
-                        {logoFile ? <CheckCircle2 size={14} /> : <Camera size={14} />}
-                      </div>
-                      <span
-                        className="truncate max-w-full text-center"
-                        style={{ color: logoFile ? VERDE : AZUL }}
-                      >
-                        {logoFile
-                          ? "Pronto ✓"
-                          : editando?.logo_url
-                          ? "Substituir"
-                          : "Anexar logo"}
-                      </span>
-                    </label>
-                  </FormField>
-
-                  <FormField label="Capa do perfil" icon={<ImageIcon size={11} />}>
-                    <label
-                      className="flex flex-col items-center justify-center gap-2 border-2 border-dashed rounded-xl p-4 cursor-pointer text-[11px] font-bold transition-all group"
-                      style={{
-                        background: capaFile
-                          ? `linear-gradient(135deg, ${VERDE}06, ${VERDE}02)`
-                          : "#F8FAFC",
-                        borderColor: capaFile ? `${VERDE}50` : "#CBD5E1",
-                      }}
-                    >
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => setCapaFile(e.target.files?.[0] || null)}
-                      />
-                      <div
-                        className="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm transition-transform group-hover:scale-105"
-                        style={{
-                          background: capaFile
-                            ? `linear-gradient(135deg, ${VERDE}, ${VERDE_LIGHT})`
-                            : `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})`,
-                        }}
-                      >
-                        {capaFile ? <CheckCircle2 size={14} /> : <Camera size={14} />}
-                      </div>
-                      <span
-                        className="truncate max-w-full text-center"
-                        style={{ color: capaFile ? VERDE : AZUL }}
-                      >
-                        {capaFile
-                          ? "Pronto ✓"
-                          : editando?.capa_url
-                          ? "Substituir"
-                          : "Anexar capa"}
-                      </span>
-                    </label>
                   </FormField>
                 </div>
+              </Panel>
 
-                <FormField
-                  label="Galeria de fotos"
-                  icon={<Layers size={11} />}
-                  hint="Aparecem em carrossel na página interna."
-                >
+              {/* Especialidades */}
+              <Panel noPad className="anim-fade-up">
+                <PanelHeader
+                  title="Especialidades"
+                  subtitle="Pacotes, serviços ou nichos"
+                  badge={
+                    especialidadesValidas.length > 0 ? (
+                      <span
+                        className="text-[10px] font-semibold px-1.5 py-0.5 rounded num"
+                        style={{ background: LINE_2, color: MUTED }}
+                      >
+                        {especialidadesValidas.length}
+                      </span>
+                    ) : null
+                  }
+                  action={
+                    <button
+                      onClick={addEsp}
+                      className="h-8 px-2.5 rounded-md text-[12px] font-semibold flex items-center gap-1.5 text-white transition-colors"
+                      style={{ background: INK }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = INK_2)}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = INK)}
+                    >
+                      <Plus size={12} strokeWidth={3} />
+                      Adicionar
+                    </button>
+                  }
+                />
+
+                {especialidades.length === 0 ||
+                (especialidades.length === 1 && !especialidades[0].nome.trim()) ? (
+                  <div className="py-12 px-6 text-center">
+                    <div
+                      className="w-11 h-11 rounded-lg mx-auto mb-3 flex items-center justify-center"
+                      style={{ background: LINE_2, color: MUTED }}
+                    >
+                      <Target size={20} strokeWidth={2} />
+                    </div>
+                    <p className={`${jakarta.className} text-[13px] font-bold`} style={{ color: INK }}>
+                      Sem especialidades ainda
+                    </p>
+                    <p className="text-[11.5px] mt-1 max-w-md mx-auto" style={{ color: MUTED }}>
+                      Adiciona pacotes ou nichos em que a agência é especialista.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="divide-y" style={{ borderColor: LINE_2 }}>
+                    {especialidades.map((item, index) => (
+                      <div key={index} className="p-4 anim-fade-up" style={{ animationDelay: `${index * 20}ms` }}>
+                        <div className="flex items-center justify-between gap-3 mb-3">
+                          <div className="flex items-center gap-2.5">
+                            <div
+                              className="w-7 h-7 rounded-md flex items-center justify-center text-[11px] font-bold num shrink-0"
+                              style={{ background: LINE_2, color: INK }}
+                            >
+                              {index + 1}
+                            </div>
+                            <span
+                              className="text-[10.5px] font-semibold uppercase tracking-[0.08em]"
+                              style={{ color: MUTED }}
+                            >
+                              Especialidade {index + 1}
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => removeEsp(index)}
+                            className="w-8 h-8 rounded-md flex items-center justify-center transition-colors shrink-0"
+                            style={{ color: SUBTLE }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = "#FEF2F2";
+                              e.currentTarget.style.color = DANGER;
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = "transparent";
+                              e.currentTarget.style.color = SUBTLE;
+                            }}
+                            title="Remover especialidade"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+                          <FormField
+                            label="Nome do serviço"
+                            icon={<Tag size={10} />}
+                            className="md:col-span-4"
+                          >
+                            <input
+                              type="text"
+                              value={item.nome}
+                              onChange={(e) => handleEspChange(index, "nome", e.target.value)}
+                              placeholder="Ex: Trilhas, Pacotes, Turismo de aventura..."
+                              className={inputCls}
+                              style={{ borderColor: LINE }}
+                              onFocus={(e) => {
+                                e.currentTarget.style.borderColor = INK;
+                                e.currentTarget.style.boxShadow = `0 0 0 3px rgba(10,14,20,0.06)`;
+                              }}
+                              onBlur={(e) => {
+                                e.currentTarget.style.borderColor = LINE;
+                                e.currentTarget.style.boxShadow = "none";
+                              }}
+                            />
+                          </FormField>
+
+                          <FormField
+                            label="Foto"
+                            icon={<Camera size={10} />}
+                            className="md:col-span-2"
+                          >
+                            <label
+                              className="flex items-center justify-center gap-1.5 border-2 border-dashed rounded-md h-[42px] cursor-pointer text-[11.5px] font-semibold transition-colors w-full"
+                              style={{
+                                background: item.file || item.imagem_url ? "#ECFDF5" : SURFACE,
+                                borderColor: item.file || item.imagem_url ? "#D1FAE5" : LINE,
+                                color: item.file || item.imagem_url ? SUCCESS : MUTED,
+                              }}
+                              title={item.file?.name || item.imagem_url || "Anexar foto"}
+                            >
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(e) =>
+                                  handleEspChange(index, "file", e.target.files?.[0] || null)
+                                }
+                              />
+                              {item.file || item.imagem_url ? (
+                                <>
+                                  <CheckCircle2 size={13} />
+                                  <span className="hidden sm:inline">Anexada</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Upload size={13} />
+                                  <span className="hidden sm:inline">Anexar</span>
+                                </>
+                              )}
+                            </label>
+                          </FormField>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Panel>
+            </div>
+
+            {/* Lateral */}
+            <div className="lg:col-span-4 space-y-4">
+
+              <Panel noPad className="anim-fade-up">
+                <PanelHeader title="Publicação" subtitle="Visibilidade no diretório" />
+                <div className="p-5">
+                  <FormField
+                    label="Estado"
+                    icon={<Eye size={10} />}
+                    hint="Oculto não aparece no diretório público."
+                  >
+                    <select
+                      value={String(form.ativo)}
+                      onChange={(e) => setForm({ ...form, ativo: e.target.value === "true" })}
+                      className={inputCls}
+                      style={{ borderColor: LINE }}
+                    >
+                      <option value="true">Público (Ativo)</option>
+                      <option value="false">Oculto</option>
+                    </select>
+                  </FormField>
+                </div>
+              </Panel>
+
+              <Panel noPad className="anim-fade-up">
+                <PanelHeader title="Logotipo" subtitle="Avatar circular" />
+                <div className="p-5">
                   <label
-                    className="flex flex-col items-center justify-center gap-2 border-2 border-dashed rounded-xl p-4 cursor-pointer text-[11px] font-bold transition-all group"
+                    className="flex flex-col items-center justify-center gap-2 border-2 border-dashed rounded-md p-5 cursor-pointer text-[12px] font-semibold transition-colors"
                     style={{
-                      background:
-                        galeriaFiles.length > 0
-                          ? `linear-gradient(135deg, ${VERDE}06, ${VERDE}02)`
-                          : "#F8FAFC",
-                      borderColor:
-                        galeriaFiles.length > 0 ? `${VERDE}50` : "#CBD5E1",
+                      background: logoFile ? "#ECFDF5" : BG,
+                      borderColor: logoFile ? `${SUCCESS}50` : LINE,
+                      color: logoFile ? SUCCESS : MUTED,
+                    }}
+                  >
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => setLogoFile(e.target.files?.[0] || null)}
+                    />
+                    <div
+                      className="w-8 h-8 rounded-md flex items-center justify-center"
+                      style={{
+                        background: logoFile ? SUCCESS : LINE_2,
+                        color: logoFile ? "#FFF" : MUTED,
+                      }}
+                    >
+                      {logoFile ? <CheckCircle2 size={14} /> : <Camera size={14} />}
+                    </div>
+                    <span className="truncate max-w-[200px] text-center">
+                      {logoFile
+                        ? logoFile.name
+                        : editando?.logo_url
+                        ? "Substituir logo"
+                        : "Anexar logo"}
+                    </span>
+                  </label>
+
+                  {editando?.logo_url && !logoFile && (
+                    <div className="mt-3 flex justify-center">
+                      <div
+                        className="w-24 h-24 rounded-full overflow-hidden border-2"
+                        style={{ borderColor: LINE }}
+                      >
+                        <img src={editando.logo_url} alt="Logo" className="w-full h-full object-cover" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </Panel>
+
+              <Panel noPad className="anim-fade-up">
+                <PanelHeader title="Capa do perfil" subtitle="Imagem de fundo" />
+                <div className="p-5">
+                  <label
+                    className="flex flex-col items-center justify-center gap-2 border-2 border-dashed rounded-md p-5 cursor-pointer text-[12px] font-semibold transition-colors"
+                    style={{
+                      background: capaFile ? "#ECFDF5" : BG,
+                      borderColor: capaFile ? `${SUCCESS}50` : LINE,
+                      color: capaFile ? SUCCESS : MUTED,
+                    }}
+                  >
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => setCapaFile(e.target.files?.[0] || null)}
+                    />
+                    <div
+                      className="w-8 h-8 rounded-md flex items-center justify-center"
+                      style={{
+                        background: capaFile ? SUCCESS : LINE_2,
+                        color: capaFile ? "#FFF" : MUTED,
+                      }}
+                    >
+                      {capaFile ? <CheckCircle2 size={14} /> : <Camera size={14} />}
+                    </div>
+                    <span className="truncate max-w-[200px] text-center">
+                      {capaFile
+                        ? capaFile.name
+                        : editando?.capa_url
+                        ? "Substituir capa"
+                        : "Anexar capa"}
+                    </span>
+                  </label>
+
+                  {editando?.capa_url && !capaFile && (
+                    <div className="mt-3 rounded-md overflow-hidden border" style={{ borderColor: LINE }}>
+                      <img src={editando.capa_url} alt="Capa" className="w-full h-32 object-cover" />
+                    </div>
+                  )}
+                </div>
+              </Panel>
+
+              <Panel noPad className="anim-fade-up">
+                <PanelHeader
+                  title="Galeria"
+                  subtitle={
+                    editando?.galeria && editando.galeria.length > 0
+                      ? `${editando.galeria.length} imagens existentes`
+                      : "Sem imagens ainda"
+                  }
+                />
+                <div className="p-5">
+                  <label
+                    className="flex flex-col items-center justify-center gap-2 border-2 border-dashed rounded-md p-5 cursor-pointer text-[12px] font-semibold transition-colors"
+                    style={{
+                      background: galeriaFiles.length > 0 ? "#ECFDF5" : BG,
+                      borderColor: galeriaFiles.length > 0 ? `${SUCCESS}50` : LINE,
+                      color: galeriaFiles.length > 0 ? SUCCESS : MUTED,
                     }}
                   >
                     <input
@@ -591,243 +871,81 @@ export default function PortalAgencias() {
                       multiple
                       className="hidden"
                       onChange={(e) => {
-                        if (e.target.files)
-                          setGaleriaFiles(Array.from(e.target.files));
+                        if (e.target.files) setGaleriaFiles(Array.from(e.target.files));
                       }}
                     />
                     <div
-                      className="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm transition-transform group-hover:scale-105"
+                      className="w-8 h-8 rounded-md flex items-center justify-center"
                       style={{
-                        background:
-                          galeriaFiles.length > 0
-                            ? `linear-gradient(135deg, ${VERDE}, ${VERDE_LIGHT})`
-                            : `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})`,
+                        background: galeriaFiles.length > 0 ? SUCCESS : LINE_2,
+                        color: galeriaFiles.length > 0 ? "#FFF" : MUTED,
                       }}
                     >
-                      {galeriaFiles.length > 0 ? (
-                        <CheckCircle2 size={14} />
-                      ) : (
-                        <Layers size={14} />
-                      )}
+                      {galeriaFiles.length > 0 ? <CheckCircle2 size={14} /> : <Images size={14} />}
                     </div>
-                    <span
-                      className="truncate max-w-full text-center"
-                      style={{ color: galeriaFiles.length > 0 ? VERDE : AZUL }}
-                    >
+                    <span className="truncate max-w-[200px] text-center">
                       {galeriaFiles.length > 0
                         ? `${galeriaFiles.length} imagens novas`
-                        : "Selecionar fotos"}
+                        : "Adicionar fotos"}
                     </span>
                   </label>
-                </FormField>
-              </div>
-            </div>
-          </div>
 
-          {/* Bloco 2: Especialidades */}
-          <div className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm">
-            <div className="h-0.5" style={{ background: `linear-gradient(90deg, ${AMBAR}, ${AMBAR_LIGHT})` }} />
-
-            <div
-              className="px-5 py-4 border-b border-slate-100 flex items-center gap-3"
-              style={{ background: `linear-gradient(135deg, ${AMBAR}04, ${AMBAR}01)` }}
-            >
-              <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0"
-                style={{ background: `linear-gradient(135deg, ${AMBAR}, ${AMBAR_LIGHT})` }}
-              >
-                <Target size={15} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className={`${jakarta.className} text-sm font-bold text-slate-800 flex items-center gap-2 flex-wrap`}>
-                  Especialidades da agência
-                  {especialidades.filter((e) => e.nome.trim()).length > 0 && (
-                    <span
-                      className="text-[10px] font-bold px-2 py-0.5 rounded-full border"
-                      style={{
-                        background: `${AMBAR}10`,
-                        color: AMBAR,
-                        borderColor: `${AMBAR}25`,
-                      }}
-                    >
-                      {especialidades.filter((e) => e.nome.trim()).length}
-                    </span>
-                  )}
-                </h3>
-                <p className="text-[11px] text-slate-500 mt-0.5">
-                  Pacotes, serviços ou nichos em que a agência é especialista
-                </p>
-              </div>
-              <button
-                onClick={addEsp}
-                className={`${jakarta.className} text-white px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest flex items-center gap-1.5 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 shrink-0`}
-                style={{ background: `linear-gradient(135deg, ${AMBAR}, ${AMBAR_LIGHT})` }}
-              >
-                <Plus size={13} /> Adicionar
-              </button>
-            </div>
-
-            <div className="p-5">
-              {especialidades.filter((e) => e.nome.trim()).length === 0 &&
-              especialidades.length <= 1 &&
-              !especialidades[0]?.nome ? (
-                <div className="py-10 text-center border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center gap-3">
-                  <div
-                    className="w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-sm"
-                    style={{
-                      background: `linear-gradient(135deg, ${AMBAR}, ${AMBAR_LIGHT})`,
-                    }}
-                  >
-                    <Target size={24} />
-                  </div>
-                  <div>
-                    <p className={`${jakarta.className} text-sm font-bold text-slate-700`}>
-                      Sem especialidades ainda
-                    </p>
-                    <p className="text-[11px] text-slate-500 mt-1 max-w-[300px] mx-auto">
-                      Adiciona pacotes ou nichos em que a agência é especialista.
-                    </p>
-                  </div>
-                </div>
-              ) : null}
-
-              <div className="space-y-3">
-                {especialidades.map((item, index) => (
-                  <div
-                    key={index}
-                    style={{ animationDelay: `${index * 30}ms` }}
-                    className="bg-slate-50/70 border border-slate-200/80 rounded-xl p-4 hover:bg-white hover:border-slate-300 transition-all anim-fade-up"
-                  >
-                    <div className="flex items-center justify-between gap-3 mb-3">
-                      <div className="flex items-center gap-2.5 min-w-0">
+                  {editando?.galeria && editando.galeria.length > 0 && galeriaFiles.length === 0 && (
+                    <div className="mt-3 grid grid-cols-3 gap-1.5">
+                      {editando.galeria.slice(0, 6).map((url: string, i: number) => (
                         <div
-                          className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white shadow-sm shrink-0"
-                          style={{
-                            background: `linear-gradient(135deg, ${AMBAR}, ${AMBAR_LIGHT})`,
-                          }}
+                          key={i}
+                          className="aspect-square rounded overflow-hidden border"
+                          style={{ borderColor: LINE }}
                         >
-                          {index + 1}
+                          <img src={url} alt="" className="w-full h-full object-cover" />
                         </div>
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 truncate">
-                          Especialidade {index + 1}
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => removeEsp(index)}
-                        className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-[#D13438] hover:bg-red-50 transition-colors shrink-0"
-                        title="Remover especialidade"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <FormField label="Nome" icon={<Tag size={10} />}>
-                        <input
-                          type="text"
-                          value={item.nome}
-                          onChange={(e) =>
-                            handleEspChange(index, "nome", e.target.value)
-                          }
-                          placeholder="Ex: Trilhas, Pacotes amazónicos..."
-                          className={inputCls}
-                        />
-                      </FormField>
-
-                      <FormField label="Fotografia (opcional)" icon={<Camera size={10} />}>
-                        <label
-                          className="flex items-center justify-center gap-2 border-2 border-dashed rounded-xl px-3 py-2.5 cursor-pointer text-[11px] font-bold transition-all w-full"
-                          style={{
-                            background:
-                              item.file || item.imagem_url
-                                ? `linear-gradient(135deg, ${VERDE}06, ${VERDE}02)`
-                                : "white",
-                            borderColor:
-                              item.file || item.imagem_url
-                                ? `${VERDE}40`
-                                : "#CBD5E1",
-                            color:
-                              item.file || item.imagem_url ? VERDE : AZUL,
-                          }}
+                      ))}
+                      {editando.galeria.length > 6 && (
+                        <div
+                          className="aspect-square rounded flex items-center justify-center text-[11px] font-semibold num"
+                          style={{ background: LINE_2, color: MUTED, border: `1px solid ${LINE}` }}
                         >
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={(e) =>
-                              handleEspChange(
-                                index,
-                                "file",
-                                e.target.files?.[0] || null
-                              )
-                            }
-                          />
-                          {item.file ? (
-                            <>
-                              <CheckCircle2 size={13} /> Foto pronta
-                            </>
-                          ) : item.imagem_url ? (
-                            <>
-                              <CheckCircle2 size={13} /> Tem foto
-                            </>
-                          ) : (
-                            <>
-                              <Upload size={13} /> Anexar foto
-                            </>
-                          )}
-                        </label>
-                      </FormField>
+                          +{editando.galeria.length - 6}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+                  )}
+                </div>
+              </Panel>
 
-          {/* Footer */}
-          <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            {feedback && (
-              <p
-                className="text-xs font-bold flex items-center gap-2"
-                style={{
-                  color:
-                    feedback.toLowerCase().includes("obrigat") ||
-                    feedback.toLowerCase().includes("erro")
-                      ? VERMELHO
-                      : feedback.toLowerCase().includes("sucesso")
-                      ? VERDE
-                      : AZUL,
-                }}
-              >
-                {feedback.toLowerCase().includes("obrigat") ||
-                feedback.toLowerCase().includes("erro") ? (
-                  <AlertTriangle size={13} />
-                ) : feedback.toLowerCase().includes("sucesso") ? (
-                  <CheckCircle2 size={13} />
-                ) : (
-                  <Loader2 size={13} className="animate-spin" />
-                )}
-                {feedback}
-              </p>
-            )}
-
-            <button
-              onClick={handleSalvar}
-              disabled={saving}
-              className={`${jakarta.className} sm:ml-auto text-white px-5 py-3 rounded-xl font-bold text-xs uppercase tracking-widest flex items-center gap-2 transition-all disabled:opacity-50 shadow-sm hover:shadow-md hover:-translate-y-0.5 disabled:hover:translate-y-0 shrink-0`}
-              style={{ background: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})` }}
-            >
-              {saving ? (
-                <Loader2 size={14} className="animate-spin" />
-              ) : (
-                <Save size={14} />
+              {feedback && (
+                <div
+                  className="rounded-lg border p-3.5 flex items-start gap-3 anim-fade-up"
+                  style={{
+                    background: feedback.toLowerCase().includes("obrigat") || feedback.toLowerCase().includes("erro")
+                      ? "#FEF2F2"
+                      : feedback.toLowerCase().includes("sucesso") || feedback.toLowerCase().includes("salva")
+                      ? "#ECFDF5"
+                      : "#EFF6FF",
+                    borderColor: feedback.toLowerCase().includes("obrigat") || feedback.toLowerCase().includes("erro")
+                      ? "#FEE2E2"
+                      : feedback.toLowerCase().includes("sucesso") || feedback.toLowerCase().includes("salva")
+                      ? "#D1FAE5"
+                      : "#DBEAFE",
+                    color: feedback.toLowerCase().includes("obrigat") || feedback.toLowerCase().includes("erro")
+                      ? DANGER
+                      : feedback.toLowerCase().includes("sucesso") || feedback.toLowerCase().includes("salva")
+                      ? SUCCESS
+                      : ACCENT,
+                  }}
+                >
+                  {feedback.toLowerCase().includes("obrigat") || feedback.toLowerCase().includes("erro") ? (
+                    <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+                  ) : feedback.toLowerCase().includes("sucesso") || feedback.toLowerCase().includes("salva") ? (
+                    <CheckCircle2 size={14} className="shrink-0 mt-0.5" />
+                  ) : (
+                    <Loader2 size={14} className="shrink-0 mt-0.5 animate-spin" />
+                  )}
+                  <p className="text-[12.5px] font-medium">{feedback}</p>
+                </div>
               )}
-              {saving
-                ? "A guardar..."
-                : editando
-                ? "Guardar alterações"
-                : "Registrar agência"}
-            </button>
+            </div>
           </div>
         </div>
       </>
@@ -835,307 +953,389 @@ export default function PortalAgencias() {
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // VISTA: LISTA (DIRETÓRIO)
+  // LISTA (DIRETÓRIO)
   // ═══════════════════════════════════════════════════════════════
 
   return (
     <>
       <GlobalStyles />
-      <div className={`${inter.className} space-y-6`}>
+      <div className={`${inter.className} space-y-4`}>
 
-        {/* Cabeçalho */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 anim-fade-up">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 anim-fade-up">
           <div>
-            <h1 className={`${jakarta.className} text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight`}>
-              Diretório de agências
+            <div className="flex items-center gap-2 mb-1">
+              <span
+                className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.1em] px-1.5 py-0.5 rounded"
+                style={{ background: INK, color: "#FFF" }}
+              >
+                <Briefcase size={9} strokeWidth={3} />
+                Diretório
+              </span>
+              <span className="text-[11px]" style={{ color: MUTED }}>
+                {agencias.length} agência{agencias.length !== 1 ? "s" : ""} · {agencias.filter((a) => a.ativo).length} pública{agencias.filter((a) => a.ativo).length !== 1 ? "s" : ""}
+              </span>
+            </div>
+            <h1
+              className={`${jakarta.className} text-[26px] font-bold tracking-tight`}
+              style={{ color: INK, letterSpacing: "-0.025em" }}
+            >
+              Agências
             </h1>
-            <p className="text-sm text-slate-500 mt-1.5 flex items-center gap-2">
-              <Sparkles size={14} style={{ color: AMBAR }} />
-              {agencias.length} agência{agencias.length !== 1 ? "s" : ""} registrada
-              {agencias.length !== 1 ? "s" : ""}
+            <p className="text-[12.5px] mt-1" style={{ color: MUTED }}>
+              Registro de agências de turismo cadastradas no portal.
             </p>
           </div>
 
-          <button
-            onClick={abrirNovo}
-            className={`${jakarta.className} self-start sm:self-auto text-white px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5`}
-            style={{ background: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})` }}
-          >
-            <Plus size={14} /> Nova agência
-          </button>
+          <div className="flex items-center gap-2">
+            <a
+              href="/agencias"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden sm:inline-flex h-9 px-3 rounded-md text-[12.5px] font-semibold items-center gap-1.5 border transition-colors"
+              style={{ borderColor: LINE, color: INK_2, background: SURFACE }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = LINE_2)}
+              onMouseLeave={(e) => (e.currentTarget.style.background = SURFACE)}
+            >
+              Ver público
+              <ExternalLink size={12} />
+            </a>
+            <button
+              onClick={abrirNovo}
+              className="h-9 px-3.5 rounded-md text-[12.5px] font-semibold flex items-center gap-1.5 text-white transition-colors"
+              style={{ background: INK }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = INK_2)}
+              onMouseLeave={(e) => (e.currentTarget.style.background = INK)}
+            >
+              <Plus size={14} strokeWidth={3} />
+              Nova agência
+            </button>
+          </div>
         </div>
 
         {/* Busca */}
         {agencias.length > 0 && (
-          <div
-            className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm anim-fade-up"
-            style={{ animationDelay: "60ms" }}
-          >
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div className="flex items-center gap-2 min-w-0">
-                <div
-                  className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
-                  style={{ background: `${AZUL}10`, color: AZUL }}
-                >
-                  <Filter size={14} />
-                </div>
-                <p className="text-xs text-slate-500">
-                  A mostrar{" "}
-                  <strong className="text-slate-800 font-bold">
-                    {agenciasFiltradas.length}
-                  </strong>{" "}
-                  de{" "}
-                  <strong className="text-slate-800 font-bold">{agencias.length}</strong>{" "}
-                  agência(s)
-                </p>
-              </div>
-
-              <div className="relative w-full sm:w-80">
+          <Panel noPad className="anim-fade-up">
+            <div className="p-3 flex items-center gap-3">
+              <div className="relative flex-1">
                 <Search
                   size={14}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                  style={{ color: SUBTLE }}
                 />
                 <input
                   type="text"
-                  placeholder="Buscar nome, Cadastur ou endereço..."
+                  placeholder="Buscar por nome, Cadastur ou endereço..."
                   value={busca}
                   onChange={(e) => setBusca(e.target.value)}
-                  className={`${inputCls} pl-10 pr-9`}
+                  className={`${inputCls} pl-9 pr-9`}
+                  style={{ borderColor: LINE }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = INK;
+                    e.currentTarget.style.boxShadow = `0 0 0 3px rgba(10,14,20,0.06)`;
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = LINE;
+                    e.currentTarget.style.boxShadow = "none";
+                  }}
                 />
                 {busca && (
                   <button
                     onClick={() => setBusca("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full hover:bg-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded flex items-center justify-center transition-colors"
+                    style={{ color: SUBTLE }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = LINE_2)}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                    aria-label="Limpar busca"
                   >
-                    <X size={11} />
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+
+              {busca && (
+                <span
+                  className="text-[11.5px] font-semibold num whitespace-nowrap"
+                  style={{ color: MUTED }}
+                >
+                  {agenciasFiltradas.length} de {agencias.length}
+                </span>
+              )}
+            </div>
+          </Panel>
+        )}
+
+        {/* Grid */}
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+              <div key={i} className="rounded-lg overflow-hidden border p-5" style={{ borderColor: LINE }}>
+                <div className="flex justify-center mb-3">
+                  <div className="w-20 h-20 rounded-full skeleton" />
+                </div>
+                <div className="space-y-2">
+                  <div className="h-4 w-3/4 mx-auto rounded skeleton" />
+                  <div className="h-3 w-1/2 mx-auto rounded skeleton" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : agenciasFiltradas.length === 0 ? (
+          <Panel noPad className="anim-fade">
+            <div className="py-16 text-center">
+              <div
+                className="w-11 h-11 rounded-lg mx-auto mb-3 flex items-center justify-center"
+                style={{ background: LINE_2, color: MUTED }}
+              >
+                {busca ? <Search size={20} strokeWidth={2} /> : <Inbox size={20} strokeWidth={2} />}
+              </div>
+              <p className={`${jakarta.className} text-[13px] font-bold`} style={{ color: INK }}>
+                {busca ? "Nenhum resultado" : "Nenhuma agência ainda"}
+              </p>
+              <p className="text-[11.5px] mt-1 max-w-md mx-auto" style={{ color: MUTED }}>
+                {busca
+                  ? "Ajusta a busca para encontrar agências."
+                  : "Registre a primeira agência para aparecer no diretório."}
+              </p>
+              <div className="mt-4">
+                {busca ? (
+                  <button
+                    onClick={() => setBusca("")}
+                    className="h-9 px-3 rounded-md text-[12.5px] font-semibold text-white transition-colors"
+                    style={{ background: INK }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = INK_2)}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = INK)}
+                  >
+                    Limpar busca
+                  </button>
+                ) : (
+                  <button
+                    onClick={abrirNovo}
+                    className="h-9 px-3.5 rounded-md text-[12.5px] font-semibold inline-flex items-center gap-1.5 text-white transition-colors"
+                    style={{ background: INK }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = INK_2)}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = INK)}
+                  >
+                    <Plus size={14} strokeWidth={3} /> Nova agência
                   </button>
                 )}
               </div>
             </div>
-          </div>
-        )}
-
-        {/* Lista */}
-        {loading ? (
-          <div className="bg-white border border-slate-200/80 rounded-2xl py-24 flex flex-col items-center gap-3 anim-fade">
-            <div
-              className="w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-sm"
-              style={{ background: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})` }}
-            >
-              <Loader2 size={22} className="animate-spin" />
-            </div>
-            <p className="text-xs text-slate-400 font-medium">A carregar agências...</p>
-          </div>
-        ) : agenciasFiltradas.length === 0 ? (
-          <div className="bg-white border border-slate-200/80 rounded-2xl py-20 text-center shadow-sm anim-fade">
-            <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm text-white"
-              style={{
-                background: busca
-                  ? `linear-gradient(135deg, ${AMBAR}, ${AMBAR_LIGHT})`
-                  : `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})`,
-              }}
-            >
-              {busca ? <Search size={28} /> : <Inbox size={28} />}
-            </div>
-            <h3 className={`${jakarta.className} text-lg font-bold text-slate-800 mb-1.5`}>
-              {busca ? "Nenhum resultado" : "Nenhuma agência registrada"}
-            </h3>
-            <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed mb-5">
-              {busca
-                ? "Ajusta a pesquisa para encontrares agências."
-                : "Registra a primeira agência para aparecer no diretório do portal."}
-            </p>
-            {busca ? (
-              <button
-                onClick={() => setBusca("")}
-                className={`${jakarta.className} text-[11px] font-bold px-4 py-2 rounded-xl text-white shadow-sm hover:shadow-md transition-all`}
-                style={{ background: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})` }}
-              >
-                Limpar pesquisa
-              </button>
-            ) : (
-              <button
-                onClick={abrirNovo}
-                className={`${jakarta.className} text-white px-4 py-2.5 rounded-xl text-xs font-bold inline-flex items-center gap-2 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5`}
-                style={{ background: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})` }}
-              >
-                <Plus size={14} /> Nova agência
-              </button>
-            )}
-          </div>
+          </Panel>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {agenciasFiltradas.map((ag, idx) => (
-              <article
-                key={ag.id}
-                style={{ animationDelay: `${120 + idx * 30}ms` }}
-                className={`relative bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 anim-fade-up group flex flex-col ${
-                  !ag.ativo ? "opacity-70" : ""
-                }`}
-              >
-                {/* Barra gradiente */}
-                <div
-                  className="h-0.5"
-                  style={{
-                    background: ag.ativo
-                      ? `linear-gradient(90deg, ${AZUL}, ${AZUL_ESCURO})`
-                      : `linear-gradient(90deg, #64748B, #94A3B8)`,
-                  }}
-                />
+            {agenciasFiltradas.map((ag, idx) => {
+              const temEspecialidades =
+                ag.especialidades &&
+                Array.isArray(ag.especialidades) &&
+                ag.especialidades.length > 0;
 
-                <div className="p-5 flex flex-col flex-1 items-center text-center">
-                  {/* Avatar circular (logo) */}
-                  <div className="relative mb-3">
-                    <div
-                      className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-md flex items-center justify-center shrink-0 transition-transform group-hover:scale-105"
-                      style={{
-                        background: ag.logo_url
-                          ? "#F1F5F9"
-                          : `linear-gradient(135deg, ${AMBAR}, ${AMBAR_LIGHT})`,
-                      }}
-                    >
-                      {ag.logo_url ? (
+              return (
+                <article
+                  key={ag.id}
+                  style={{
+                    borderColor: LINE,
+                    animationDelay: `${idx * 20}ms`,
+                  }}
+                  className={`bg-white border rounded-lg overflow-hidden hover:border-slate-300 transition-colors anim-fade-up group flex flex-col ${!ag.ativo ? "opacity-70" : ""}`}
+                >
+                  {/* Faixa lateral em vez de topo */}
+                  <div className="relative">
+                    {/* Capa */}
+                    <div className="h-20 overflow-hidden" style={{ background: LINE_2 }}>
+                      {ag.capa_url ? (
                         <img
-                          src={ag.logo_url}
-                          alt={ag.nome}
-                          className="w-full h-full object-cover"
+                          src={ag.capa_url}
+                          alt=""
+                          className="w-full h-full object-cover opacity-90"
                         />
                       ) : (
-                        <Briefcase size={32} className="text-white opacity-60" />
+                        <div
+                          className="w-full h-full"
+                          style={{ background: INK }}
+                        />
                       )}
                     </div>
 
-                    {/* Badge Cadastur */}
-                    {ag.cadastur && (
+                    {/* Logo circular sobreposto */}
+                    <div className="absolute left-1/2 -translate-x-1/2" style={{ bottom: -32 }}>
                       <div
-                        className="absolute -bottom-1 left-1/2 -translate-x-1/2 inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest border whitespace-nowrap shadow-sm"
+                        className="w-16 h-16 rounded-full overflow-hidden border-2 flex items-center justify-center shrink-0"
                         style={{
-                          background: `linear-gradient(135deg, ${VERDE}, ${VERDE_LIGHT})`,
-                          color: "white",
-                          borderColor: "white",
+                          background: ag.logo_url ? LINE_2 : INK,
+                          borderColor: SURFACE,
+                          boxShadow: "0 2px 8px rgba(15,23,42,0.08)",
                         }}
                       >
-                        <Award size={9} /> Cadastur
+                        {ag.logo_url ? (
+                          <img
+                            src={ag.logo_url}
+                            alt={ag.nome}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <Briefcase size={22} className="text-white opacity-90" strokeWidth={1.5} />
+                        )}
                       </div>
-                    )}
+                    </div>
+
+                    {/* Estado (topo direito) */}
+                    <div className="absolute top-2 right-2">
+                      {ag.ativo ? (
+                        <StatusPill tone="success">
+                          <Eye size={8} />
+                        </StatusPill>
+                      ) : (
+                        <StatusPill tone="neutral">
+                          <EyeOff size={8} />
+                        </StatusPill>
+                      )}
+                    </div>
                   </div>
 
-                  {/* Nome */}
-                  <h3
-                    className={`${jakarta.className} text-sm font-bold text-slate-900 line-clamp-2 leading-snug mt-2 mb-1`}
-                  >
-                    {ag.nome}
-                  </h3>
+                  {/* Corpo */}
+                  <div className="pt-10 pb-4 px-4 flex flex-col flex-1 items-center text-center">
+                    <h3
+                      className={`${jakarta.className} text-[14px] font-bold leading-snug line-clamp-2 mb-1`}
+                      style={{ color: INK }}
+                    >
+                      {ag.nome}
+                    </h3>
 
-                  {/* Cadastur ou "Turismo Legal" */}
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">
-                    {ag.cadastur || "Turismo Legal"}
-                  </p>
-
-                  {/* Descrição */}
-                  {ag.descricao_curta && (
-                    <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed mb-3 min-h-[32px]">
-                      {ag.descricao_curta}
-                    </p>
-                  )}
-
-                  {/* Badges */}
-                  <div className="flex items-center gap-1.5 flex-wrap justify-center mb-3">
-                    <StatusBadge ativo={ag.ativo} />
-                    {ag.especialidades &&
-                      Array.isArray(ag.especialidades) &&
-                      ag.especialidades.length > 0 && (
-                        <span
-                          className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md border"
-                          style={{
-                            background: `${AMBAR}10`,
-                            color: AMBAR,
-                            borderColor: `${AMBAR}25`,
-                          }}
-                        >
-                          <Target size={9} /> {ag.especialidades.length}
+                    {/* Cadastur ou "Turismo Legal" */}
+                    <div className="flex items-center gap-1.5 mb-2">
+                      {ag.cadastur ? (
+                        <>
+                          <Award size={10} style={{ color: SUCCESS }} />
+                          <span className="text-[10px] num font-semibold" style={{ color: MUTED }}>
+                            {ag.cadastur}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-[10px] uppercase tracking-wide font-semibold" style={{ color: SUBTLE }}>
+                          Sem Cadastur
                         </span>
                       )}
-                  </div>
+                    </div>
 
-                  {/* CTA WhatsApp */}
-                  {ag.whatsapp && (
-                    <a
-                      href={`https://wa.me/55${ag.whatsapp.replace(/\D/g, "")}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={`${jakarta.className} w-full inline-flex items-center justify-center gap-1.5 text-white px-3 py-2 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all shadow-sm hover:shadow-md mb-3`}
-                      style={{
-                        background: `linear-gradient(135deg, ${VERDE}, ${VERDE_LIGHT})`,
-                      }}
+                    {ag.descricao_curta && (
+                      <p
+                        className="text-[11.5px] line-clamp-2 leading-relaxed mb-3 min-h-[32px]"
+                        style={{ color: MUTED }}
+                      >
+                        {ag.descricao_curta}
+                      </p>
+                    )}
+
+                    {/* Tags info */}
+                    <div className="flex items-center gap-1.5 flex-wrap justify-center mb-3">
+                      {temEspecialidades && (
+                        <span
+                          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide"
+                          style={{ background: LINE_2, color: MUTED, border: `1px solid ${LINE}` }}
+                        >
+                          <Target size={8} />
+                          {ag.especialidades.length}
+                        </span>
+                      )}
+                      {ag.galeria && ag.galeria.length > 0 && (
+                        <span
+                          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide num"
+                          style={{ background: LINE_2, color: MUTED, border: `1px solid ${LINE}` }}
+                        >
+                          <Images size={8} />
+                          {ag.galeria.length}
+                        </span>
+                      )}
+                      {ag.instagram && (
+                        <span
+                          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold tracking-wide truncate max-w-[90px]"
+                          style={{ background: LINE_2, color: MUTED, border: `1px solid ${LINE}` }}
+                          title={`@${ag.instagram}`}
+                        >
+                          <AtSign size={8} />
+                          <span className="truncate">{ag.instagram}</span>
+                        </span>
+                      )}
+                    </div>
+
+                    {/* CTA WhatsApp */}
+                    {ag.whatsapp && (
+                      <a
+                        href={`https://wa.me/258${ag.whatsapp.replace(/\D/g, "")}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full inline-flex items-center justify-center gap-1.5 h-8 rounded-md text-[11.5px] font-semibold transition-colors mb-3"
+                        style={{ background: LINE_2, color: INK }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = "#ECFDF5")}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = LINE_2)}
+                      >
+                        <MessageCircle size={12} />
+                        Contatar via WhatsApp
+                      </a>
+                    )}
+
+                    {/* Ações */}
+                    <div
+                      className="mt-auto w-full pt-3 border-t flex items-center justify-center gap-0.5"
+                      style={{ borderColor: LINE_2 }}
                     >
-                      <MessageCircle size={12} /> Contactar
-                    </a>
-                  )}
-
-                  {/* Ações */}
-                  <div className="mt-auto w-full pt-3 border-t border-slate-100 flex items-center justify-between">
-                    <div className="flex items-center gap-1">
                       <button
                         onClick={() => toggleAtivo(ag.id, ag.ativo)}
-                        className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-[#0078D4] hover:bg-[#0078D4]/10 transition-colors"
+                        className="w-8 h-8 rounded-md flex items-center justify-center transition-colors"
+                        style={{ color: SUBTLE }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = LINE_2;
+                          e.currentTarget.style.color = INK;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = "transparent";
+                          e.currentTarget.style.color = SUBTLE;
+                        }}
                         title={ag.ativo ? "Ocultar" : "Publicar"}
                       >
-                        {ag.ativo ? <Eye size={14} /> : <EyeOff size={14} />}
+                        {ag.ativo ? <Eye size={13} /> : <EyeOff size={13} />}
                       </button>
                       <button
                         onClick={() => abrirEditar(ag)}
-                        className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-[#0078D4] hover:bg-[#0078D4]/10 transition-colors"
+                        className="w-8 h-8 rounded-md flex items-center justify-center transition-colors"
+                        style={{ color: SUBTLE }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = LINE_2;
+                          e.currentTarget.style.color = INK;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = "transparent";
+                          e.currentTarget.style.color = SUBTLE;
+                        }}
                         title="Editar"
                       >
                         <Pencil size={13} />
                       </button>
                       <button
                         onClick={() => handleDelete(ag.id)}
-                        className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-[#D13438] hover:bg-red-50 transition-colors"
+                        className="w-8 h-8 rounded-md flex items-center justify-center transition-colors"
+                        style={{ color: SUBTLE }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = "#FEF2F2";
+                          e.currentTarget.style.color = DANGER;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = "transparent";
+                          e.currentTarget.style.color = SUBTLE;
+                        }}
                         title="Remover"
                       >
                         <Trash2 size={13} />
                       </button>
                     </div>
-
-                    {ag.instagram && (
-                      <span
-                        className="text-[10px] font-bold flex items-center gap-1 truncate max-w-[100px]"
-                        style={{ color: AZUL }}
-                        title={`@${ag.instagram}`}
-                      >
-                        <AtSign size={10} /> {ag.instagram}
-                      </span>
-                    )}
                   </div>
-                </div>
-              </article>
-            ))}
+                </article>
+              );
+            })}
           </div>
         )}
       </div>
     </>
-  );
-}
-
-// ─── Ícone "ImageIcon" (evita import extra) ───
-function ImageIcon({ size = 14 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
-      <circle cx="9" cy="9" r="2" />
-      <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
-    </svg>
   );
 }

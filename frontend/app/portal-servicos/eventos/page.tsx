@@ -7,33 +7,41 @@ import {
   Calendar as CalendarIcon, AlertCircle, CheckCircle2, FileSpreadsheet,
   Plus, Loader2, Save, Image as ImageIcon, MapPin, Sparkles,
   Upload, ArrowLeft, Tag, Clock, Hash, Star, Pencil, Trash2,
-  Inbox, Filter, Search, X, FileText, User, Target, Compass,
-  RefreshCw, Layers, ChevronRight, Camera, Wallet,
+  Inbox, Search, X, FileText, RefreshCw, Camera, Wallet,
+  ExternalLink, MoreHorizontal, Filter, Copy, Eye,
 } from "lucide-react";
 
-const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["600", "700", "800"] });
+const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["500", "600", "700", "800"] });
 const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
-// ─── CORES (paleta Azure/Microsoft do portal) ───
-const AZUL = "#0078D4";
-const AZUL_ESCURO = "#005A9E";
-const AZUL_CLARO = "#E5F1FB";
-const AMBAR = "#DAA520";
-const AMBAR_LIGHT = "#FBBF24";
-const VERMELHO = "#D13438";
-const VERDE = "#168821";
-const VERDE_LIGHT = "#22C55E";
-const ROXO = "#7C3AED";
+// ─── PALETA ENTERPRISE ───
+const INK = "#0A0E14";
+const INK_2 = "#1F2937";
+const MUTED = "#6B7280";
+const SUBTLE = "#9CA3AF";
+const LINE = "#E5E7EB";
+const LINE_2 = "#F3F4F6";
+const BG = "#FBFBFC";
+const SURFACE = "#FFFFFF";
+const ACCENT = "#2563EB";
+const SUCCESS = "#059669";
+const WARNING = "#D97706";
+const DANGER = "#DC2626";
 
 const inputCls =
-  "w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl px-3.5 py-2.5 focus:outline-none focus:bg-white focus:border-[#0078D4] focus:ring-4 focus:ring-[#0078D4]/10 transition-all placeholder:text-slate-400";
-const labelCls =
-  "flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2";
+  "w-full bg-white text-[13.5px] rounded-md px-3 py-2.5 transition-[border-color,box-shadow] duration-150 placeholder:text-slate-400 focus:outline-none border";
 
 function fmtData(iso: string) {
   if (!iso) return "—";
   const [y, m, d] = iso.split("-");
   return `${d}/${m}/${y}`;
+}
+
+function fmtDataCurta(iso: string) {
+  if (!iso) return { dia: "—", mes: "—" };
+  const [, m, d] = iso.split("-");
+  const meses = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+  return { dia: d, mes: meses[parseInt(m) - 1] };
 }
 
 interface Evento {
@@ -60,50 +68,80 @@ interface Evento {
 function GlobalStyles() {
   return (
     <style jsx global>{`
-      @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(8px); }
+      @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(4px); }
         to { opacity: 1; transform: translateY(0); }
       }
       @keyframes fadeIn {
         from { opacity: 0; }
         to { opacity: 1; }
       }
-      @keyframes pulseDot {
-        0%, 100% { opacity: 1; transform: scale(1); }
-        50% { opacity: 0.5; transform: scale(0.85); }
-      }
       @keyframes shimmer {
         0% { background-position: -200% 0; }
         100% { background-position: 200% 0; }
       }
-      .anim-fade-up { animation: fadeInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; }
-      .anim-fade { animation: fadeIn 0.25s ease both; }
-      .pulse-dot { animation: pulseDot 1.8s ease-in-out infinite; }
-      .skeleton-shimmer {
-        background: linear-gradient(90deg, #F1F5F9 0%, #E2E8F0 50%, #F1F5F9 100%);
+      .anim-fade-up { animation: fadeUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) both; }
+      .anim-fade { animation: fadeIn 0.2s ease both; }
+      .num { font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+      .skeleton {
+        background: linear-gradient(90deg, ${LINE_2} 0%, ${LINE} 50%, ${LINE_2} 100%);
         background-size: 200% 100%;
-        animation: shimmer 1.5s ease-in-out infinite;
+        animation: shimmer 1.4s infinite;
       }
-      .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
-      .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
-      .scrollbar-thin::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
-      .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+      .scroll-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+      .scroll-thin::-webkit-scrollbar-track { background: transparent; }
+      .scroll-thin::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 3px; }
+      .scroll-thin::-webkit-scrollbar-thumb:hover { background: #9CA3AF; }
     `}</style>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════
-// SUB-COMPONENTES
+// ÁTOMOS
 // ═══════════════════════════════════════════════════════════════
 
-function FormField({
-  label,
-  icon,
-  required,
-  hint,
-  children,
-  className = "",
-}: {
+function Panel({ children, className = "", noPad = false }: {
+  children: React.ReactNode;
+  className?: string;
+  noPad?: boolean;
+}) {
+  return (
+    <div className={`bg-white border rounded-lg overflow-hidden ${className}`} style={{ borderColor: LINE }}>
+      {noPad ? children : <div className="p-5">{children}</div>}
+    </div>
+  );
+}
+
+function PanelHeader({ title, subtitle, action, badge }: {
+  title: string;
+  subtitle?: string;
+  action?: React.ReactNode;
+  badge?: React.ReactNode;
+}) {
+  return (
+    <div
+      className="px-5 py-3.5 flex items-center justify-between gap-3 border-b"
+      style={{ borderColor: LINE, background: BG }}
+    >
+      <div className="min-w-0">
+        <div className="flex items-center gap-2">
+          <h3 className={`${jakarta.className} text-[13px] font-bold`} style={{ color: INK }}>
+            {title}
+          </h3>
+          {badge}
+        </div>
+        {subtitle && (
+          <p className="text-[11.5px] mt-0.5" style={{ color: MUTED }}>
+            {subtitle}
+          </p>
+        )}
+      </div>
+      {action}
+    </div>
+  );
+}
+
+function FormField({ label, icon, required, hint, children, className = "" }: {
   label: string;
   icon?: React.ReactNode;
   required?: boolean;
@@ -113,91 +151,72 @@ function FormField({
 }) {
   return (
     <div className={className}>
-      <label className={labelCls}>
+      <label
+        className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] mb-1.5"
+        style={{ color: MUTED }}
+      >
         {icon}
         {label}
-        {required && <span style={{ color: VERMELHO }}>*</span>}
+        {required && <span style={{ color: DANGER }}>*</span>}
       </label>
       {children}
       {hint && (
-        <p className="text-[10px] text-slate-400 mt-1.5 leading-relaxed">{hint}</p>
+        <p className="text-[10.5px] mt-1.5 leading-relaxed" style={{ color: SUBTLE }}>
+          {hint}
+        </p>
       )}
     </div>
   );
 }
 
-function Skeleton({ rows }: { rows: number }) {
-  return (
-    <div className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm">
-      {Array.from({ length: rows }).map((_, i) => (
-        <div
-          key={i}
-          className="h-16 skeleton-shimmer border-b border-slate-100 last:border-b-0"
-        />
-      ))}
-    </div>
-  );
-}
-
-function CategoriaBadge({ categoria }: { categoria: string }) {
-  const cores: Record<string, string> = {
-    Cultura: ROXO,
-    Música: "#EC4899",
-    Esporte: VERDE,
-    Gastronomia: AMBAR,
-    Turismo: AZUL,
-    "Artes Visuais": "#0891B2",
-  };
-  const cor = cores[categoria] || AZUL;
+function StatusPill({ tone, children }: { tone: "success" | "danger" | "warning" | "neutral" | "info"; children: React.ReactNode }) {
+  const map = {
+    success: { c: SUCCESS, bg: "#ECFDF5", b: "#D1FAE5" },
+    danger: { c: DANGER, bg: "#FEF2F2", b: "#FEE2E2" },
+    warning: { c: WARNING, bg: "#FFFBEB", b: "#FEF3C7" },
+    neutral: { c: MUTED, bg: LINE_2, b: LINE },
+    info: { c: ACCENT, bg: "#EFF6FF", b: "#DBEAFE" },
+  }[tone];
   return (
     <span
-      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest border"
-      style={{ background: `${cor}10`, color: cor, borderColor: `${cor}25` }}
+      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide"
+      style={{ background: map.bg, color: map.c, border: `1px solid ${map.b}` }}
     >
-      <Tag size={10} />
-      {categoria || "Geral"}
+      {children}
     </span>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PÁGINA PRINCIPAL
+// PAGE
 // ═══════════════════════════════════════════════════════════════
 
 export default function PortalEventos() {
-  const [fase, setFase] = useState<
-    "inicio" | "preview" | "salvando" | "sucesso" | "manual"
-  >("inicio");
+  const [fase, setFase] = useState<"inicio" | "preview" | "salvando" | "sucesso" | "manual">("inicio");
   const [eventosList, setEventosList] = useState<Evento[]>([]);
   const [loadingList, setLoadingList] = useState(true);
   const [busca, setBusca] = useState("");
+  const [filtroCat, setFiltroCat] = useState<string>("");
 
   const [eventosPreview, setEventosPreview] = useState<any[]>([]);
   const [imagensMap, setImagensMap] = useState<{ [key: number]: File }>({});
   const [feedback, setFeedback] = useState("");
 
   const [editando, setEditando] = useState<Evento | null>(null);
-  const [formManual, setFormManual] = useState<any>({
-    destaque: false,
-    categoria: "Cultura",
-  });
+  const [formManual, setFormManual] = useState<any>({ destaque: false, categoria: "Cultura" });
   const [imagemManual, setImagemManual] = useState<File | null>(null);
   const [savingManual, setSavingManual] = useState(false);
 
-  useEffect(() => {
-    fetchEventos();
-  }, []);
+  useEffect(() => { fetchEventos(); }, []);
 
   async function fetchEventos() {
     setLoadingList(true);
     const hoje = new Date().toISOString().split("T")[0];
-
     const { data } = await supabase
       .from("eventos")
       .select("*")
       .gte("data", hoje)
       .order("data", { ascending: true });
-
     setEventosList(data || []);
     setLoadingList(false);
   }
@@ -211,7 +230,6 @@ export default function PortalEventos() {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = (event) => {
       const text = event.target?.result as string;
@@ -226,14 +244,11 @@ export default function PortalEventos() {
       alert("O ficheiro parece estar vazio ou sem os cabeçalhos.");
       return;
     }
-
     const cabecalhos = linhas[0].toLowerCase().split(",").map((c) => c.trim());
     const eventosLidos = [];
-
     for (let i = 1; i < linhas.length; i++) {
       const valores = linhas[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
       const evento: any = {};
-
       cabecalhos.forEach((cabecalho, index) => {
         let valor = valores[index] ? valores[index].trim() : "";
         if (valor.startsWith('"') && valor.endsWith('"')) {
@@ -241,7 +256,6 @@ export default function PortalEventos() {
         }
         evento[cabecalho] = valor;
       });
-
       if (evento.titulo) {
         eventosLidos.push({ ...evento, destaque: false, data: evento.data || null });
       }
@@ -256,52 +270,43 @@ export default function PortalEventos() {
 
   const handleSalvarTudo = async () => {
     setFase("salvando");
-    setFeedback("A iniciar a sincronização com a base de dados...");
+    setFeedback("A iniciar sincronização...");
     let sucessos = 0;
 
     for (let i = 0; i < eventosPreview.length; i++) {
       const evento = eventosPreview[i];
       const imagemFile = imagensMap[i];
       let imagem_url = "";
-
       try {
-        setFeedback(
-          `A processar o evento: ${evento.titulo} (${i + 1}/${eventosPreview.length})...`
-        );
+        setFeedback(`A processar ${i + 1} de ${eventosPreview.length}: ${evento.titulo}`);
         if (imagemFile) {
           const ext = imagemFile.name.split(".").pop();
           const nomeFicheiro = `evento_${Date.now()}_${i}.${ext}`;
           const { error: uploadErr } = await supabase.storage
-            .from("eventos")
-            .upload(nomeFicheiro, imagemFile);
+            .from("eventos").upload(nomeFicheiro, imagemFile);
           if (!uploadErr) {
-            const { data: pubUrl } = supabase.storage
-              .from("eventos")
-              .getPublicUrl(nomeFicheiro);
+            const { data: pubUrl } = supabase.storage.from("eventos").getPublicUrl(nomeFicheiro);
             imagem_url = pubUrl.publicUrl;
           }
         }
-        const { error: dbError } = await supabase.from("eventos").insert([
-          {
-            titulo: evento.titulo,
-            subtitulo: evento.subtitulo || null,
-            descricao: evento.descricao || null,
-            data: evento.data || null,
-            horario: evento.horario || null,
-            local: evento.local || null,
-            categoria: evento.categoria || "Cultura",
-            preco: evento.preco || null,
-            imagem_url: imagem_url || null,
-            destaque: false,
-          },
-        ]);
-        if (dbError) console.error(`Erro ao salvar ${evento.titulo}:`, dbError);
-        else sucessos++;
+        const { error: dbError } = await supabase.from("eventos").insert([{
+          titulo: evento.titulo,
+          subtitulo: evento.subtitulo || null,
+          descricao: evento.descricao || null,
+          data: evento.data || null,
+          horario: evento.horario || null,
+          local: evento.local || null,
+          categoria: evento.categoria || "Cultura",
+          preco: evento.preco || null,
+          imagem_url: imagem_url || null,
+          destaque: false,
+        }]);
+        if (!dbError) sucessos++;
       } catch (err) {
-        console.error(`Falha fatal no evento ${evento.titulo}:`, err);
+        console.error(`Falha: ${evento.titulo}`, err);
       }
     }
-    setFeedback(`${sucessos} de ${eventosPreview.length} eventos foram guardados com sucesso!`);
+    setFeedback(`${sucessos} de ${eventosPreview.length} eventos guardados com sucesso.`);
     setFase("sucesso");
   };
 
@@ -342,26 +347,20 @@ export default function PortalEventos() {
     }
     setSavingManual(true);
     setFeedback("A guardar evento...");
-
     try {
       let imagem_url = formManual.imagem_url;
-
       if (imagemManual) {
         const ext = imagemManual.name.split(".").pop();
         const nomeFicheiro = `evento_manual_${Date.now()}.${ext}`;
         const { error: uploadErr } = await supabase.storage
-          .from("eventos")
-          .upload(nomeFicheiro, imagemManual);
+          .from("eventos").upload(nomeFicheiro, imagemManual);
         if (!uploadErr) {
-          const { data: pubUrl } = supabase.storage
-            .from("eventos")
-            .getPublicUrl(nomeFicheiro);
+          const { data: pubUrl } = supabase.storage.from("eventos").getPublicUrl(nomeFicheiro);
           imagem_url = pubUrl.publicUrl;
         } else {
           throw new Error("Erro ao fazer upload do cartaz.");
         }
       }
-
       const payload = {
         titulo: formManual.titulo,
         subtitulo: formManual.subtitulo || null,
@@ -377,23 +376,16 @@ export default function PortalEventos() {
         imagem_url: imagem_url || null,
         destaque: String(formManual.destaque) === "true",
       };
-
       let erroBd;
-
       if (editando) {
-        const { error } = await supabase
-          .from("eventos")
-          .update(payload)
-          .eq("id", editando.id);
+        const { error } = await supabase.from("eventos").update(payload).eq("id", editando.id);
         erroBd = error;
       } else {
         const { error } = await supabase.from("eventos").insert([payload]);
         erroBd = error;
       }
-
       if (erroBd) throw new Error(erroBd.message);
-
-      setFeedback(editando ? "Evento atualizado com sucesso!" : "Evento publicado com sucesso!");
+      setFeedback(editando ? "Evento atualizado." : "Evento publicado.");
       setFase("sucesso");
     } catch (err: any) {
       setFeedback(`Erro: ${err.message}`);
@@ -411,46 +403,90 @@ export default function PortalEventos() {
     fetchEventos();
   };
 
-  // ─── FILTRO ───
+  // ─── FILTROS ───
+  const categoriasUnicas = Array.from(new Set(eventosList.map((e) => e.categoria).filter(Boolean)));
   const eventosFiltrados = eventosList.filter((ev) => {
-    if (!busca) return true;
     const termo = busca.toLowerCase();
-    return (
+    const passaBusca =
+      !busca ||
       ev.titulo?.toLowerCase().includes(termo) ||
       ev.local?.toLowerCase().includes(termo) ||
-      ev.categoria?.toLowerCase().includes(termo)
-    );
+      ev.categoria?.toLowerCase().includes(termo);
+    const passaCat = !filtroCat || ev.categoria === filtroCat;
+    return passaBusca && passaCat;
   });
 
   return (
     <>
       <GlobalStyles />
-      <div className={`${inter.className} space-y-6`}>
+      <div className={`${inter.className} space-y-4`}>
 
         {/* ═══════════════════════════════════════════════════════════ */}
-        {/* CABEÇALHO                                                   */}
+        {/* HEADER                                                      */}
         {/* ═══════════════════════════════════════════════════════════ */}
 
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 anim-fade-up">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 anim-fade-up">
           <div>
-            <h1 className={`${jakarta.className} text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight`}>
-              Gestão de eventos
+            <div className="flex items-center gap-2 mb-1">
+              <span
+                className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.1em] px-1.5 py-0.5 rounded"
+                style={{ background: INK, color: "#FFF" }}
+              >
+                <CalendarIcon size={9} strokeWidth={3} />
+                Agenda
+              </span>
+              <span className="text-[11px]" style={{ color: MUTED }}>
+                {eventosList.length} evento{eventosList.length !== 1 ? "s" : ""} futuros
+              </span>
+            </div>
+            <h1
+              className={`${jakarta.className} text-[26px] font-bold tracking-tight`}
+              style={{ color: INK, letterSpacing: "-0.025em" }}
+            >
+              Eventos
             </h1>
-            <p className="text-sm text-slate-500 mt-1.5 flex items-center gap-2">
-              <Sparkles size={14} style={{ color: AMBAR }} />
-              Ferramenta exclusiva da Prefeitura para o calendário da cidade.
+            <p className="text-[12.5px] mt-1" style={{ color: MUTED }}>
+              Gestão do calendário municipal — importação em lote ou cadastro individual.
             </p>
           </div>
 
-          {fase !== "inicio" && (
-            <button
-              onClick={resetar}
-              className={`${jakarta.className} self-start sm:self-auto text-xs font-bold text-slate-600 hover:text-white flex items-center gap-2 bg-white hover:bg-slate-900 px-4 py-2.5 rounded-xl border border-slate-200 hover:border-slate-900 shadow-sm hover:shadow-md transition-all group`}
-            >
-              <ArrowLeft size={13} className="group-hover:-translate-x-0.5 transition-transform" />
-              Cancelar e voltar
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {fase === "inicio" ? (
+              <>
+                <label
+                  className="h-9 px-3 rounded-md text-[12.5px] font-semibold flex items-center gap-1.5 border cursor-pointer transition-colors"
+                  style={{ borderColor: LINE, color: INK_2, background: SURFACE }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = LINE_2)}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = SURFACE)}
+                >
+                  <input type="file" accept=".csv" onChange={handleFileUpload} className="hidden" />
+                  <Upload size={13} />
+                  <span className="hidden sm:inline">Importar CSV</span>
+                </label>
+                <button
+                  onClick={abrirFormManual}
+                  className="h-9 px-3.5 rounded-md text-[12.5px] font-semibold flex items-center gap-1.5 text-white transition-colors"
+                  style={{ background: INK }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = INK_2)}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = INK)}
+                >
+                  <Plus size={14} strokeWidth={3} />
+                  Novo evento
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={resetar}
+                className="h-9 px-3 rounded-md text-[12.5px] font-semibold flex items-center gap-1.5 border transition-colors"
+                style={{ borderColor: LINE, color: INK_2, background: SURFACE }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = LINE_2)}
+                onMouseLeave={(e) => (e.currentTarget.style.background = SURFACE)}
+              >
+                <ArrowLeft size={13} />
+                Voltar
+              </button>
+            )}
+          </div>
         </div>
 
         {/* ═══════════════════════════════════════════════════════════ */}
@@ -458,296 +494,350 @@ export default function PortalEventos() {
         {/* ═══════════════════════════════════════════════════════════ */}
 
         {fase === "inicio" && (
-          <div className="space-y-6">
-            {/* Cards de ação */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Importação em Lote */}
-              <div
-                className="relative bg-white border-2 border-dashed rounded-2xl p-7 text-center overflow-hidden group anim-fade-up transition-all hover:border-solid"
-                style={{
-                  borderColor: `${AZUL}40`,
-                  animationDelay: "60ms",
-                }}
-              >
-                <input
-                  type="file"
-                  accept=".csv"
-                  onChange={handleFileUpload}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                />
-                <div
-                  className="absolute -top-12 -right-12 w-40 h-40 rounded-full opacity-0 group-hover:opacity-15 transition-opacity duration-500 blur-3xl pointer-events-none"
-                  style={{ background: AZUL }}
-                />
-                <div className="relative flex flex-col items-center">
-                  <div
-                    className="w-16 h-16 rounded-2xl flex items-center justify-center text-white shadow-md transition-transform group-hover:scale-105 group-hover:rotate-3 mb-4"
-                    style={{ background: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})` }}
-                  >
-                    <FileSpreadsheet size={26} />
-                  </div>
-                  <h3 className={`${jakarta.className} text-base font-bold text-slate-900 mb-2`}>
-                    Importação em lote
-                  </h3>
-                  <p className="text-xs text-slate-500 leading-relaxed max-w-xs mb-5">
-                    Arrasta o teu ficheiro CSV (Excel) para carregar dezenas de eventos de uma só vez.
+          <>
+            {/* Linha de estatísticas rápidas */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 anim-fade-up">
+              <Panel className="anim-fade-up" noPad>
+                <div className="px-4 py-3">
+                  <p className="text-[10.5px] font-semibold uppercase tracking-[0.08em]" style={{ color: MUTED }}>
+                    Total futuros
                   </p>
-                  <div
-                    className={`${jakarta.className} text-white text-[11px] font-bold uppercase tracking-widest px-5 py-2.5 rounded-xl flex items-center gap-2 shadow-sm pointer-events-none`}
-                    style={{ background: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})` }}
-                  >
-                    <Upload size={13} />
-                    Selecionar CSV
-                  </div>
-                </div>
-              </div>
-
-              {/* Cadastro Manual */}
-              <div
-                className="relative bg-white border-2 border-slate-200/80 rounded-2xl p-7 text-center overflow-hidden group anim-fade-up transition-all hover:shadow-md"
-                style={{ animationDelay: "120ms" }}
-              >
-                <div
-                  className="absolute -top-12 -right-12 w-40 h-40 rounded-full opacity-0 group-hover:opacity-15 transition-opacity duration-500 blur-3xl pointer-events-none"
-                  style={{ background: VERDE }}
-                />
-                <div className="relative flex flex-col items-center">
-                  <div
-                    className="w-16 h-16 rounded-2xl flex items-center justify-center text-white shadow-md transition-transform group-hover:scale-105 group-hover:rotate-3 mb-4"
-                    style={{ background: `linear-gradient(135deg, ${VERDE}, ${VERDE_LIGHT})` }}
-                  >
-                    <Plus size={26} />
-                  </div>
-                  <h3 className={`${jakarta.className} text-base font-bold text-slate-900 mb-2`}>
-                    Cadastro manual
-                  </h3>
-                  <p className="text-xs text-slate-500 leading-relaxed max-w-xs mb-5">
-                    Cria um evento único preenchendo o formulário completo de publicação.
+                  <p className={`${jakarta.className} num text-[22px] font-bold mt-1.5 leading-none`} style={{ color: INK, letterSpacing: "-0.02em" }}>
+                    {eventosList.length}
                   </p>
-                  <button
-                    onClick={abrirFormManual}
-                    className={`${jakarta.className} text-white text-[11px] font-bold uppercase tracking-widest px-5 py-2.5 rounded-xl flex items-center gap-2 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all`}
-                    style={{ background: `linear-gradient(135deg, ${VERDE}, ${VERDE_LIGHT})` }}
-                  >
-                    <Plus size={13} />
-                    Criar evento manual
-                  </button>
                 </div>
-              </div>
+              </Panel>
+              <Panel className="anim-fade-up" noPad>
+                <div className="px-4 py-3">
+                  <p className="text-[10.5px] font-semibold uppercase tracking-[0.08em]" style={{ color: MUTED }}>
+                    Em destaque
+                  </p>
+                  <p className={`${jakarta.className} num text-[22px] font-bold mt-1.5 leading-none`} style={{ color: INK, letterSpacing: "-0.02em" }}>
+                    {eventosList.filter((e) => e.destaque).length}
+                  </p>
+                </div>
+              </Panel>
+              <Panel className="anim-fade-up" noPad>
+                <div className="px-4 py-3">
+                  <p className="text-[10.5px] font-semibold uppercase tracking-[0.08em]" style={{ color: MUTED }}>
+                    Categorias
+                  </p>
+                  <p className={`${jakarta.className} num text-[22px] font-bold mt-1.5 leading-none`} style={{ color: INK, letterSpacing: "-0.02em" }}>
+                    {categoriasUnicas.length}
+                  </p>
+                </div>
+              </Panel>
+              <Panel className="anim-fade-up" noPad>
+                <div className="px-4 py-3">
+                  <p className="text-[10.5px] font-semibold uppercase tracking-[0.08em]" style={{ color: MUTED }}>
+                    Este mês
+                  </p>
+                  <p className={`${jakarta.className} num text-[22px] font-bold mt-1.5 leading-none`} style={{ color: INK, letterSpacing: "-0.02em" }}>
+                    {eventosList.filter((e) => {
+                      const hoje = new Date();
+                      const [y, m] = e.data.split("-");
+                      return parseInt(y) === hoje.getFullYear() && parseInt(m) === hoje.getMonth() + 1;
+                    }).length}
+                  </p>
+                </div>
+              </Panel>
             </div>
 
-            {/* Lista de eventos */}
-            <div
-              className="space-y-3 anim-fade-up"
-              style={{ animationDelay: "180ms" }}
-            >
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                  <div
-                    className="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm"
-                    style={{ background: `linear-gradient(135deg, ${AMBAR}, ${AMBAR_LIGHT})` }}
-                  >
-                    <CalendarIcon size={15} />
-                  </div>
-                  <div>
-                    <h3 className={`${jakarta.className} text-sm font-bold text-slate-800`}>
-                      Eventos cadastrados
-                    </h3>
-                    <p className="text-[11px] text-slate-500 mt-0.5">
-                      Próximos eventos a partir de hoje
-                    </p>
-                  </div>
+            {/* Lista principal */}
+            <Panel noPad className="anim-fade-up">
+              <PanelHeader
+                title="Calendário de eventos"
+                subtitle="Ordenados pela data mais próxima"
+                badge={
                   <span
-                    className="text-[10px] font-bold px-2 py-0.5 rounded-full border ml-2"
-                    style={{
-                      background: `${AZUL}10`,
-                      color: AZUL,
-                      borderColor: `${AZUL}25`,
-                    }}
+                    className="text-[10px] font-semibold px-1.5 py-0.5 rounded num"
+                    style={{ background: LINE_2, color: MUTED }}
                   >
-                    {eventosList.length}
+                    {eventosFiltrados.length}
                   </span>
-                </div>
-
-                {eventosList.length > 0 && (
-                  <div className="relative w-full sm:w-72">
-                    <Search
-                      size={14}
-                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Buscar título, local ou categoria..."
-                      value={busca}
-                      onChange={(e) => setBusca(e.target.value)}
-                      className={`${inputCls} pl-10 pr-9`}
-                    />
-                    {busca && (
-                      <button
-                        onClick={() => setBusca("")}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full hover:bg-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors"
+                }
+                action={
+                  <div className="flex items-center gap-2">
+                    {/* Filtro categoria */}
+                    <div className="relative">
+                      <select
+                        value={filtroCat}
+                        onChange={(e) => setFiltroCat(e.target.value)}
+                        className="h-8 pl-2.5 pr-7 rounded-md text-[12px] font-medium border appearance-none cursor-pointer transition-colors"
+                        style={{ borderColor: LINE, color: INK_2, background: SURFACE }}
                       >
-                        <X size={11} />
-                      </button>
+                        <option value="">Todas</option>
+                        {categoriasUnicas.map((c) => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </select>
+                      <Filter
+                        size={11}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none"
+                        style={{ color: SUBTLE }}
+                      />
+                    </div>
+
+                    {/* Busca */}
+                    {eventosList.length > 0 && (
+                      <div className="relative w-full sm:w-56">
+                        <Search
+                          size={13}
+                          className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                          style={{ color: SUBTLE }}
+                        />
+                        <input
+                          type="text"
+                          placeholder="Buscar..."
+                          value={busca}
+                          onChange={(e) => setBusca(e.target.value)}
+                          className="w-full h-8 pl-7 pr-7 rounded-md text-[12px] border transition-[border-color,box-shadow]"
+                          style={{ borderColor: LINE, color: INK, background: SURFACE }}
+                          onFocus={(e) => {
+                            e.currentTarget.style.borderColor = INK;
+                            e.currentTarget.style.boxShadow = `0 0 0 3px rgba(10,14,20,0.06)`;
+                          }}
+                          onBlur={(e) => {
+                            e.currentTarget.style.borderColor = LINE;
+                            e.currentTarget.style.boxShadow = "none";
+                          }}
+                        />
+                        {busca && (
+                          <button
+                            onClick={() => setBusca("")}
+                            className="absolute right-1.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded flex items-center justify-center transition-colors"
+                            style={{ color: SUBTLE }}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = LINE_2)}
+                            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                            aria-label="Limpar"
+                          >
+                            <X size={11} />
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
-                )}
-              </div>
+                }
+              />
 
               {loadingList ? (
-                <Skeleton rows={4} />
+                <div className="divide-y" style={{ borderColor: LINE_2 }}>
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <div key={i} className="h-16 skeleton" />
+                  ))}
+                </div>
               ) : eventosFiltrados.length === 0 ? (
-                <div className="bg-white border border-slate-200/80 rounded-2xl py-20 text-center shadow-sm anim-fade">
+                <div className="py-16 text-center">
                   <div
-                    className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm text-white"
-                    style={{
-                      background: busca
-                        ? `linear-gradient(135deg, ${AMBAR}, ${AMBAR_LIGHT})`
-                        : `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})`,
-                    }}
+                    className="w-11 h-11 rounded-lg mx-auto mb-3 flex items-center justify-center"
+                    style={{ background: LINE_2, color: MUTED }}
                   >
-                    {busca ? <Search size={28} /> : <Inbox size={28} />}
+                    {busca || filtroCat ? <Search size={20} strokeWidth={2} /> : <Inbox size={20} strokeWidth={2} />}
                   </div>
-                  <h3 className={`${jakarta.className} text-lg font-bold text-slate-800 mb-1.5`}>
-                    {busca ? "Nenhum resultado" : "Nenhum evento cadastrado"}
-                  </h3>
-                  <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed mb-5">
-                    {busca
-                      ? "Ajusta a pesquisa para encontrares eventos."
-                      : "Importa um CSV ou cria o primeiro evento manualmente."}
+                  <p className={`${jakarta.className} text-[13px] font-bold`} style={{ color: INK }}>
+                    {busca || filtroCat ? "Nenhum resultado" : "Nenhum evento futuro"}
                   </p>
-                  {busca && (
-                    <button
-                      onClick={() => setBusca("")}
-                      className={`${jakarta.className} text-[11px] font-bold px-4 py-2 rounded-xl text-white shadow-sm hover:shadow-md transition-all`}
-                      style={{ background: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})` }}
-                    >
-                      Limpar pesquisa
-                    </button>
-                  )}
+                  <p className="text-[11.5px] mt-1 max-w-md mx-auto" style={{ color: MUTED }}>
+                    {busca || filtroCat
+                      ? "Ajusta os filtros para encontrar eventos."
+                      : "Importa um CSV ou cria um evento manualmente."}
+                  </p>
+                  <div className="mt-4 flex items-center justify-center gap-2">
+                    {(busca || filtroCat) ? (
+                      <button
+                        onClick={() => { setBusca(""); setFiltroCat(""); }}
+                        className="h-9 px-3 rounded-md text-[12.5px] font-semibold text-white transition-colors"
+                        style={{ background: INK }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = INK_2)}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = INK)}
+                      >
+                        Limpar filtros
+                      </button>
+                    ) : (
+                      <>
+                        <label
+                          className="h-9 px-3 rounded-md text-[12.5px] font-semibold flex items-center gap-1.5 border cursor-pointer transition-colors"
+                          style={{ borderColor: LINE, color: INK_2, background: SURFACE }}
+                          onMouseEnter={(e) => (e.currentTarget.style.background = LINE_2)}
+                          onMouseLeave={(e) => (e.currentTarget.style.background = SURFACE)}
+                        >
+                          <input type="file" accept=".csv" onChange={handleFileUpload} className="hidden" />
+                          <Upload size={13} />
+                          Importar CSV
+                        </label>
+                        <button
+                          onClick={abrirFormManual}
+                          className="h-9 px-3.5 rounded-md text-[12.5px] font-semibold inline-flex items-center gap-1.5 text-white transition-colors"
+                          style={{ background: INK }}
+                          onMouseEnter={(e) => (e.currentTarget.style.background = INK_2)}
+                          onMouseLeave={(e) => (e.currentTarget.style.background = INK)}
+                        >
+                          <Plus size={14} strokeWidth={3} />
+                          Novo evento
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {eventosFiltrados.map((ev, idx) => (
-                    <article
-                      key={ev.id}
-                      style={{ animationDelay: `${240 + idx * 30}ms` }}
-                      className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300 anim-fade-up"
-                    >
+                <div className="divide-y" style={{ borderColor: LINE_2 }}>
+                  {eventosFiltrados.map((ev, idx) => {
+                    const { dia, mes } = fmtDataCurta(ev.data);
+                    const isDestaque = ev.destaque;
+                    return (
                       <div
-                        className="h-0.5"
-                        style={{
-                          background: ev.destaque
-                            ? `linear-gradient(90deg, ${AMBAR}, ${AMBAR_LIGHT})`
-                            : `linear-gradient(90deg, ${AZUL}, ${AZUL_ESCURO})`,
-                        }}
-                      />
-                      <div className="p-4 flex flex-col sm:flex-row gap-4">
+                        key={ev.id}
+                        style={{ animationDelay: `${idx * 15}ms` }}
+                        className="relative grid grid-cols-[auto_auto_1fr_auto] items-center gap-4 px-5 py-3.5 hover:bg-[#FAFAFB] transition-colors group anim-fade-up"
+                      >
+                        {/* Faixa de destaque */}
+                        {isDestaque && (
+                          <span
+                            className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-8 rounded-r"
+                            style={{ background: WARNING }}
+                          />
+                        )}
+
+                        {/* Data */}
+                        <div
+                          className="w-11 h-11 rounded-md flex flex-col items-center justify-center shrink-0"
+                          style={{
+                            background: isDestaque ? WARNING : INK,
+                            color: "#FFF",
+                          }}
+                        >
+                          <span className="text-[9px] font-bold tracking-wider leading-none mb-0.5 opacity-80">
+                            {mes}
+                          </span>
+                          <span className={`${jakarta.className} num text-[15px] font-bold leading-none`}>
+                            {dia}
+                          </span>
+                        </div>
+
                         {/* Thumb */}
-                        <div className="w-full sm:w-40 h-32 sm:h-24 rounded-xl overflow-hidden shrink-0 shadow-sm border border-slate-200/60 bg-slate-100">
+                        <div
+                          className="w-12 h-12 rounded-md overflow-hidden shrink-0 border hidden sm:block"
+                          style={{ borderColor: LINE, background: LINE_2 }}
+                        >
                           {ev.imagem_url ? (
-                            <img
-                              src={ev.imagem_url}
-                              alt={ev.titulo}
-                              className="w-full h-full object-cover"
-                            />
+                            <img src={ev.imagem_url} alt={ev.titulo} className="w-full h-full object-cover" />
                           ) : (
                             <div
-                              className="w-full h-full flex items-center justify-center text-white"
-                              style={{
-                                background: `linear-gradient(135deg, ${AMBAR}, ${AMBAR_LIGHT})`,
-                              }}
+                              className="w-full h-full flex items-center justify-center"
+                              style={{ color: SUBTLE }}
                             >
-                              <CalendarIcon size={24} className="opacity-50" />
+                              <CalendarIcon size={16} strokeWidth={1.5} />
                             </div>
                           )}
                         </div>
 
                         {/* Conteúdo */}
-                        <div className="flex-1 min-w-0 flex flex-col">
-                          <div className="flex items-center gap-2 flex-wrap mb-2">
-                            {ev.destaque && (
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                            {isDestaque && (
+                              <StatusPill tone="warning">
+                                <Star size={8} className="fill-current" />
+                                Destaque
+                              </StatusPill>
+                            )}
+                            {ev.categoria && (
                               <span
-                                className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md border"
-                                style={{
-                                  background: `${AMBAR}10`,
-                                  color: AMBAR,
-                                  borderColor: `${AMBAR}25`,
-                                }}
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide"
+                                style={{ background: LINE_2, color: MUTED, border: `1px solid ${LINE}` }}
                               >
-                                <Star size={9} className="fill-current" /> Destaque
+                                <Tag size={8} />
+                                {ev.categoria}
                               </span>
                             )}
-                            {ev.categoria && <CategoriaBadge categoria={ev.categoria} />}
                             {ev.classificacao && (
                               <span
-                                className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md"
-                                style={{
-                                  background: "#F1F5F9",
-                                  color: "#475569",
-                                }}
+                                className="hidden md:inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide"
+                                style={{ background: LINE_2, color: MUTED, border: `1px solid ${LINE}` }}
                               >
-                                <Shield size={9} /> {ev.classificacao}
+                                {ev.classificacao}
                               </span>
                             )}
                           </div>
 
-                          <h3
-                            className={`${jakarta.className} text-sm font-bold text-slate-900 line-clamp-2 mb-1.5 leading-snug`}
+                          <p
+                            className={`${jakarta.className} text-[13.5px] font-bold leading-snug truncate`}
+                            style={{ color: INK }}
                           >
                             {ev.titulo}
-                          </h3>
+                          </p>
 
                           {ev.subtitulo && (
-                            <p className="text-xs text-slate-500 line-clamp-1 mb-2">
+                            <p className="text-[11.5px] truncate mt-0.5" style={{ color: MUTED }}>
                               {ev.subtitulo}
                             </p>
                           )}
 
-                          <div className="flex items-center gap-3 text-[10px] text-slate-400 flex-wrap mt-auto">
-                            <span className="flex items-center gap-1">
-                              <CalendarIcon size={10} /> {fmtData(ev.data)}
-                            </span>
+                          {/* Meta info em linha */}
+                          <div
+                            className="flex items-center gap-3 text-[10.5px] flex-wrap mt-1.5 num"
+                            style={{ color: SUBTLE }}
+                          >
                             {ev.horario && (
                               <span className="flex items-center gap-1">
-                                <Clock size={10} /> {ev.horario}
+                                <Clock size={10} />
+                                {ev.horario}
                               </span>
                             )}
-                            <span className="flex items-center gap-1 truncate">
-                              <MapPin size={10} /> {ev.local}
+                            <span className="flex items-center gap-1 truncate max-w-[240px]">
+                              <MapPin size={10} />
+                              {ev.local}
                             </span>
                             {ev.preco && (
                               <span className="flex items-center gap-1">
-                                <Wallet size={10} /> {ev.preco}
+                                <Wallet size={10} />
+                                {ev.preco}
                               </span>
                             )}
                           </div>
                         </div>
 
                         {/* Ações */}
-                        <div className="flex sm:flex-col gap-1.5 shrink-0 self-end sm:self-center">
+                        <div className="flex items-center gap-1 shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                           <button
                             onClick={() => abrirFormEditar(ev)}
-                            className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-[#0078D4] hover:bg-[#0078D4]/10 transition-colors"
+                            className="w-8 h-8 rounded-md flex items-center justify-center transition-colors"
+                            style={{ color: SUBTLE }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = LINE_2;
+                              e.currentTarget.style.color = INK;
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = "transparent";
+                              e.currentTarget.style.color = SUBTLE;
+                            }}
                             title="Editar"
                           >
-                            <Pencil size={14} />
+                            <Pencil size={13} />
                           </button>
                           <button
                             onClick={() => handleDeleteEvento(ev.id)}
-                            className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-[#D13438] hover:bg-red-50 transition-colors"
+                            className="w-8 h-8 rounded-md flex items-center justify-center transition-colors"
+                            style={{ color: SUBTLE }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = "#FEF2F2";
+                              e.currentTarget.style.color = DANGER;
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = "transparent";
+                              e.currentTarget.style.color = SUBTLE;
+                            }}
                             title="Remover"
                           >
-                            <Trash2 size={14} />
+                            <Trash2 size={13} />
                           </button>
                         </div>
                       </div>
-                    </article>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
-            </div>
-          </div>
+            </Panel>
+          </>
         )}
 
         {/* ═══════════════════════════════════════════════════════════ */}
@@ -756,399 +846,473 @@ export default function PortalEventos() {
 
         {fase === "manual" && (
           <div className="space-y-4 anim-fade-up">
-            <div
-              className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm"
-            >
-              <div className="h-0.5" style={{ background: `linear-gradient(90deg, ${AMBAR}, ${AMBAR_LIGHT})` }} />
-              <div
-                className="px-5 py-4 border-b border-slate-100 flex items-center gap-3"
-                style={{ background: `linear-gradient(135deg, ${AMBAR}06, ${AMBAR}02)` }}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={resetar}
+                className="w-9 h-9 rounded-md flex items-center justify-center transition-colors shrink-0 border"
+                style={{ borderColor: LINE, color: MUTED, background: SURFACE }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = LINE_2;
+                  e.currentTarget.style.color = INK;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = SURFACE;
+                  e.currentTarget.style.color = MUTED;
+                }}
+                aria-label="Voltar"
               >
-                <div
-                  className="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0"
-                  style={{ background: `linear-gradient(135deg, ${AMBAR}, ${AMBAR_LIGHT})` }}
+                <ArrowLeft size={16} />
+              </button>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span
+                    className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.1em] px-1.5 py-0.5 rounded"
+                    style={{ background: INK, color: "#FFF" }}
+                  >
+                    <CalendarIcon size={9} strokeWidth={3} />
+                    {editando ? "Editar" : "Novo"}
+                  </span>
+                  <span className="text-[11px]" style={{ color: MUTED }}>
+                    {editando ? `Criado em ${fmtData(editando.data)}` : "Rascunho"}
+                  </span>
+                </div>
+                <h2
+                  className={`${jakarta.className} text-[20px] font-bold tracking-tight truncate`}
+                  style={{ color: INK, letterSpacing: "-0.02em" }}
                 >
-                  <CalendarIcon size={15} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className={`${jakarta.className} text-sm font-bold text-slate-800`}>
-                    {editando ? "Editar evento" : "Construtor de evento"}
-                  </h3>
-                  <p className="text-[11px] text-slate-500 mt-0.5">
-                    Preenche os dados base, logística e mídia do evento.
-                  </p>
-                </div>
+                  {editando ? editando.titulo : "Novo evento"}
+                </h2>
               </div>
+            </div>
 
-              <div className="p-5 grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-6">
-                {/* Coluna 1: Informações Base */}
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-                    <div
-                      className="w-7 h-7 rounded-lg flex items-center justify-center text-white shadow-sm"
-                      style={{ background: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})` }}
-                    >
-                      <FileText size={12} />
-                    </div>
-                    <h4 className={`${jakarta.className} text-sm font-bold text-slate-700`}>
-                      Informações base
-                    </h4>
-                  </div>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
 
-                  <FormField label="Título do evento" icon={<Type size={11} />} required>
-                    <input
-                      value={formManual.titulo || ""}
-                      onChange={(e) =>
-                        setFormManual({ ...formManual, titulo: e.target.value })
-                      }
-                      className={inputCls}
-                      placeholder="Ex: Festival de Verão"
-                    />
-                  </FormField>
+              {/* Coluna principal */}
+              <div className="lg:col-span-8 space-y-4">
 
-                  <FormField label="Subtítulo" icon={<Hash size={11} />}>
-                    <input
-                      value={formManual.subtitulo || ""}
-                      onChange={(e) =>
-                        setFormManual({ ...formManual, subtitulo: e.target.value })
-                      }
-                      className={inputCls}
-                      placeholder="Frase de chamariz..."
-                    />
-                  </FormField>
-
-                  <FormField label="Descrição" icon={<FileText size={11} />}>
-                    <textarea
-                      value={formManual.descricao || ""}
-                      onChange={(e) =>
-                        setFormManual({ ...formManual, descricao: e.target.value })
-                      }
-                      rows={4}
-                      className={`${inputCls} resize-y min-h-[100px]`}
-                    />
-                  </FormField>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <FormField label="Categoria" icon={<Tag size={11} />}>
+                <Panel noPad>
+                  <PanelHeader title="Informações" subtitle="Título, subtítulo e descrição" />
+                  <div className="p-5 space-y-4">
+                    <FormField label="Título" icon={<FileText size={10} />} required>
                       <input
-                        value={formManual.categoria || ""}
-                        onChange={(e) =>
-                          setFormManual({ ...formManual, categoria: e.target.value })
-                        }
+                        value={formManual.titulo || ""}
+                        onChange={(e) => setFormManual({ ...formManual, titulo: e.target.value })}
                         className={inputCls}
-                        placeholder="Ex: Música, Cultura..."
+                        style={{ borderColor: LINE }}
+                        onFocus={(e) => {
+                          e.currentTarget.style.borderColor = INK;
+                          e.currentTarget.style.boxShadow = `0 0 0 3px rgba(10,14,20,0.06)`;
+                        }}
+                        onBlur={(e) => {
+                          e.currentTarget.style.borderColor = LINE;
+                          e.currentTarget.style.boxShadow = "none";
+                        }}
+                        placeholder="Ex: Festival de Verão"
                       />
                     </FormField>
-                    <FormField label="Destaque" icon={<Star size={11} />}>
-                      <select
-                        value={String(formManual.destaque)}
-                        onChange={(e) =>
-                          setFormManual({ ...formManual, destaque: e.target.value })
-                        }
+
+                    <FormField label="Subtítulo" icon={<Hash size={10} />}>
+                      <input
+                        value={formManual.subtitulo || ""}
+                        onChange={(e) => setFormManual({ ...formManual, subtitulo: e.target.value })}
                         className={inputCls}
-                      >
-                        <option value="false">Não</option>
-                        <option value="true">Sim (Banner principal)</option>
-                      </select>
+                        style={{ borderColor: LINE }}
+                        onFocus={(e) => {
+                          e.currentTarget.style.borderColor = INK;
+                          e.currentTarget.style.boxShadow = `0 0 0 3px rgba(10,14,20,0.06)`;
+                        }}
+                        onBlur={(e) => {
+                          e.currentTarget.style.borderColor = LINE;
+                          e.currentTarget.style.boxShadow = "none";
+                        }}
+                        placeholder="Frase de chamariz..."
+                      />
+                    </FormField>
+
+                    <FormField label="Descrição" icon={<FileText size={10} />}>
+                      <textarea
+                        value={formManual.descricao || ""}
+                        onChange={(e) => setFormManual({ ...formManual, descricao: e.target.value })}
+                        rows={5}
+                        className={`${inputCls} resize-y min-h-[110px]`}
+                        style={{ borderColor: LINE }}
+                        onFocus={(e) => {
+                          e.currentTarget.style.borderColor = INK;
+                          e.currentTarget.style.boxShadow = `0 0 0 3px rgba(10,14,20,0.06)`;
+                        }}
+                        onBlur={(e) => {
+                          e.currentTarget.style.borderColor = LINE;
+                          e.currentTarget.style.boxShadow = "none";
+                        }}
+                        placeholder="Descrição detalhada do evento..."
+                      />
                     </FormField>
                   </div>
-                </div>
+                </Panel>
 
-                {/* Coluna 2: Logística e mídia */}
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-                    <div
-                      className="w-7 h-7 rounded-lg flex items-center justify-center text-white shadow-sm"
-                      style={{ background: `linear-gradient(135deg, ${VERDE}, ${VERDE_LIGHT})` }}
-                    >
-                      <MapPin size={12} />
-                    </div>
-                    <h4 className={`${jakarta.className} text-sm font-bold text-slate-700`}>
-                      Logística e mídia
-                    </h4>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <FormField label="Data" icon={<CalendarIcon size={11} />} required>
+                <Panel noPad>
+                  <PanelHeader title="Logística" subtitle="Local, data e hora" />
+                  <div className="p-5 grid grid-cols-2 gap-4">
+                    <FormField label="Data" icon={<CalendarIcon size={10} />} required>
                       <input
                         type="date"
                         value={formManual.data || ""}
-                        onChange={(e) =>
-                          setFormManual({ ...formManual, data: e.target.value })
-                        }
+                        onChange={(e) => setFormManual({ ...formManual, data: e.target.value })}
                         className={inputCls}
+                        style={{ borderColor: LINE }}
                       />
                     </FormField>
-                    <FormField label="Horário de início" icon={<Clock size={11} />}>
+
+                    <FormField label="Hora de início" icon={<Clock size={10} />}>
                       <input
                         type="time"
                         value={formManual.horario || ""}
-                        onChange={(e) =>
-                          setFormManual({ ...formManual, horario: e.target.value })
-                        }
+                        onChange={(e) => setFormManual({ ...formManual, horario: e.target.value })}
                         className={inputCls}
+                        style={{ borderColor: LINE }}
                       />
                     </FormField>
-                  </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <FormField label="Duração estimada" icon={<Clock size={11} />}>
+                    <FormField label="Duração" icon={<Clock size={10} />}>
                       <input
                         value={formManual.duracao || ""}
-                        onChange={(e) =>
-                          setFormManual({ ...formManual, duracao: e.target.value })
-                        }
+                        onChange={(e) => setFormManual({ ...formManual, duracao: e.target.value })}
                         className={inputCls}
-                        placeholder="Ex: 3 dias, 4 horas..."
+                        style={{ borderColor: LINE }}
+                        onFocus={(e) => {
+                          e.currentTarget.style.borderColor = INK;
+                          e.currentTarget.style.boxShadow = `0 0 0 3px rgba(10,14,20,0.06)`;
+                        }}
+                        onBlur={(e) => {
+                          e.currentTarget.style.borderColor = LINE;
+                          e.currentTarget.style.boxShadow = "none";
+                        }}
+                        placeholder="Ex: 3 dias"
                       />
                     </FormField>
-                    <FormField label="Classificação etária" icon={<Shield size={11} />}>
+
+                    <FormField label="Classificação" icon={<Tag size={10} />}>
                       <input
                         value={formManual.classificacao || ""}
-                        onChange={(e) =>
-                          setFormManual({ ...formManual, classificacao: e.target.value })
-                        }
+                        onChange={(e) => setFormManual({ ...formManual, classificacao: e.target.value })}
                         className={inputCls}
-                        placeholder="Ex: Livre, +18..."
+                        style={{ borderColor: LINE }}
+                        onFocus={(e) => {
+                          e.currentTarget.style.borderColor = INK;
+                          e.currentTarget.style.boxShadow = `0 0 0 3px rgba(10,14,20,0.06)`;
+                        }}
+                        onBlur={(e) => {
+                          e.currentTarget.style.borderColor = LINE;
+                          e.currentTarget.style.boxShadow = "none";
+                        }}
+                        placeholder="Ex: Livre, +18"
+                      />
+                    </FormField>
+
+                    <FormField label="Local" icon={<MapPin size={10} />} required className="col-span-2">
+                      <input
+                        value={formManual.local || ""}
+                        onChange={(e) => setFormManual({ ...formManual, local: e.target.value })}
+                        className={inputCls}
+                        style={{ borderColor: LINE }}
+                        onFocus={(e) => {
+                          e.currentTarget.style.borderColor = INK;
+                          e.currentTarget.style.boxShadow = `0 0 0 3px rgba(10,14,20,0.06)`;
+                        }}
+                        onBlur={(e) => {
+                          e.currentTarget.style.borderColor = LINE;
+                          e.currentTarget.style.boxShadow = "none";
+                        }}
+                        placeholder="Ex: Praça Central, Teatro Municipal..."
                       />
                     </FormField>
                   </div>
+                </Panel>
+              </div>
 
-                  <FormField label="Local do evento" icon={<MapPin size={11} />} required>
-                    <div className="relative">
-                      <MapPin
-                        size={14}
-                        className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-                      />
+              {/* Lateral */}
+              <div className="lg:col-span-4 space-y-4">
+                <Panel noPad>
+                  <PanelHeader title="Publicação" subtitle="Categoria e visibilidade" />
+                  <div className="p-5 space-y-4">
+                    <FormField label="Categoria" icon={<Tag size={10} />}>
                       <input
-                        value={formManual.local || ""}
-                        onChange={(e) =>
-                          setFormManual({ ...formManual, local: e.target.value })
-                        }
-                        className={`${inputCls} pl-10`}
-                        placeholder="Ex: Praça Central"
-                      />
-                    </div>
-                  </FormField>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <FormField label="Preço" icon={<Wallet size={11} />}>
-                      <input
-                        value={formManual.preco || ""}
-                        onChange={(e) =>
-                          setFormManual({ ...formManual, preco: e.target.value })
-                        }
+                        value={formManual.categoria || ""}
+                        onChange={(e) => setFormManual({ ...formManual, categoria: e.target.value })}
                         className={inputCls}
-                        placeholder="R$ 50,00 (ou vazio)"
+                        style={{ borderColor: LINE }}
+                        onFocus={(e) => {
+                          e.currentTarget.style.borderColor = INK;
+                          e.currentTarget.style.boxShadow = `0 0 0 3px rgba(10,14,20,0.06)`;
+                        }}
+                        onBlur={(e) => {
+                          e.currentTarget.style.borderColor = LINE;
+                          e.currentTarget.style.boxShadow = "none";
+                        }}
+                        placeholder="Ex: Cultura, Música..."
                       />
                     </FormField>
-                    <FormField label="Link bilheteira" icon={<Target size={11} />}>
+
+                    <FormField label="Preço" icon={<Wallet size={10} />}>
                       <input
-                        value={formManual.link_bilheteira || ""}
-                        onChange={(e) =>
-                          setFormManual({
-                            ...formManual,
-                            link_bilheteira: e.target.value,
-                          })
-                        }
+                        value={formManual.preco || ""}
+                        onChange={(e) => setFormManual({ ...formManual, preco: e.target.value })}
                         className={inputCls}
+                        style={{ borderColor: LINE }}
+                        onFocus={(e) => {
+                          e.currentTarget.style.borderColor = INK;
+                          e.currentTarget.style.boxShadow = `0 0 0 3px rgba(10,14,20,0.06)`;
+                        }}
+                        onBlur={(e) => {
+                          e.currentTarget.style.borderColor = LINE;
+                          e.currentTarget.style.boxShadow = "none";
+                        }}
+                        placeholder="R$ 50 ou Grátis"
+                      />
+                    </FormField>
+
+                    <FormField label="Link bilheteira" icon={<ExternalLink size={10} />}>
+                      <input
+                        value={formManual.link_bilheiteira || formManual.link_bilheteira || ""}
+                        onChange={(e) => setFormManual({ ...formManual, link_bilheteira: e.target.value })}
+                        className={inputCls}
+                        style={{ borderColor: LINE }}
+                        onFocus={(e) => {
+                          e.currentTarget.style.borderColor = INK;
+                          e.currentTarget.style.boxShadow = `0 0 0 3px rgba(10,14,20,0.06)`;
+                        }}
+                        onBlur={(e) => {
+                          e.currentTarget.style.borderColor = LINE;
+                          e.currentTarget.style.boxShadow = "none";
+                        }}
                         placeholder="https://..."
                       />
                     </FormField>
-                  </div>
 
-                  <FormField label="Cartaz oficial (imagem)" icon={<ImageIcon size={11} />}>
+                    <FormField label="Destaque" icon={<Star size={10} />}>
+                      <select
+                        value={String(formManual.destaque)}
+                        onChange={(e) => setFormManual({ ...formManual, destaque: e.target.value })}
+                        className={inputCls}
+                        style={{ borderColor: LINE }}
+                      >
+                        <option value="false">Normal</option>
+                        <option value="true">Banner principal</option>
+                      </select>
+                    </FormField>
+                  </div>
+                </Panel>
+
+                <Panel noPad>
+                  <PanelHeader title="Cartaz" subtitle="Imagem oficial" />
+                  <div className="p-5">
                     <label
-                      className="flex flex-col items-center justify-center gap-2.5 border-2 border-dashed rounded-xl p-5 cursor-pointer text-xs font-bold transition-all group"
+                      className="flex flex-col items-center justify-center gap-2 border-2 border-dashed rounded-md p-5 cursor-pointer text-[12px] font-semibold transition-colors"
                       style={{
-                        background: imagemManual
-                          ? `linear-gradient(135deg, ${VERDE}06, ${VERDE}02)`
-                          : "#F8FAFC",
-                        borderColor: imagemManual ? `${VERDE}50` : "#CBD5E1",
+                        background: imagemManual ? "#ECFDF5" : BG,
+                        borderColor: imagemManual ? `${SUCCESS}50` : LINE,
+                        color: imagemManual ? SUCCESS : MUTED,
                       }}
                     >
                       <input
                         type="file"
                         accept="image/*"
                         className="hidden"
-                        onChange={(e) =>
-                          setImagemManual(e.target.files?.[0] || null)
-                        }
+                        onChange={(e) => setImagemManual(e.target.files?.[0] || null)}
                       />
                       <div
-                        className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-sm transition-transform group-hover:scale-105"
+                        className="w-8 h-8 rounded-md flex items-center justify-center"
                         style={{
-                          background: imagemManual
-                            ? `linear-gradient(135deg, ${VERDE}, ${VERDE_LIGHT})`
-                            : `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})`,
+                          background: imagemManual ? SUCCESS : LINE_2,
+                          color: imagemManual ? "#FFF" : MUTED,
                         }}
                       >
-                        {imagemManual ? (
-                          <CheckCircle2 size={16} />
-                        ) : (
-                          <Camera size={16} />
-                        )}
+                        {imagemManual ? <CheckCircle2 size={14} /> : <Camera size={14} />}
                       </div>
-                      <span
-                        className="truncate max-w-[200px] text-center"
-                        style={{ color: imagemManual ? VERDE : AZUL }}
-                      >
+                      <span className="truncate max-w-[200px] text-center">
                         {imagemManual
                           ? imagemManual.name
                           : formManual.imagem_url
-                          ? "Substituir cartaz atual"
-                          : "Clique para anexar cartaz"}
+                          ? "Substituir cartaz"
+                          : "Anexar cartaz"}
                       </span>
                     </label>
 
                     {formManual.imagem_url && !imagemManual && (
-                      <div className="mt-3 rounded-xl overflow-hidden border border-slate-200 shadow-sm">
-                        <img
-                          src={formManual.imagem_url}
-                          alt="Cartaz atual"
-                          className="w-full h-32 object-cover"
-                        />
+                      <div className="mt-3 rounded-md overflow-hidden border" style={{ borderColor: LINE }}>
+                        <img src={formManual.imagem_url} alt="Cartaz" className="w-full h-32 object-cover" />
                       </div>
                     )}
-                  </FormField>
-                </div>
-              </div>
+                  </div>
+                </Panel>
 
-              {/* Footer de ação */}
-              <div className="px-5 py-4 border-t border-slate-100 bg-slate-50/70 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 {feedback && (
-                  <p
-                    className="text-xs font-bold flex items-center gap-2"
+                  <div
+                    className="rounded-lg border p-3.5 flex items-start gap-3 anim-fade-up"
                     style={{
-                      color: feedback.toLowerCase().includes("erro")
-                        ? VERMELHO
-                        : feedback.toLowerCase().includes("sucesso")
-                        ? VERDE
-                        : AZUL,
+                      background: feedback.toLowerCase().includes("erro") || feedback.toLowerCase().includes("obrigat")
+                        ? "#FEF2F2"
+                        : feedback.toLowerCase().includes("sucesso") || feedback.toLowerCase().includes("publicado") || feedback.toLowerCase().includes("atualizado")
+                        ? "#ECFDF5"
+                        : "#EFF6FF",
+                      borderColor: feedback.toLowerCase().includes("erro") || feedback.toLowerCase().includes("obrigat")
+                        ? "#FEE2E2"
+                        : feedback.toLowerCase().includes("sucesso") || feedback.toLowerCase().includes("publicado") || feedback.toLowerCase().includes("atualizado")
+                        ? "#D1FAE5"
+                        : "#DBEAFE",
+                      color: feedback.toLowerCase().includes("erro") || feedback.toLowerCase().includes("obrigat")
+                        ? DANGER
+                        : feedback.toLowerCase().includes("sucesso") || feedback.toLowerCase().includes("publicado") || feedback.toLowerCase().includes("atualizado")
+                        ? SUCCESS
+                        : ACCENT,
                     }}
                   >
-                    {feedback.toLowerCase().includes("erro") ? (
-                      <AlertCircle size={13} />
-                    ) : feedback.toLowerCase().includes("sucesso") ? (
-                      <CheckCircle2 size={13} />
+                    {feedback.toLowerCase().includes("erro") || feedback.toLowerCase().includes("obrigat") ? (
+                      <AlertCircle size={14} className="shrink-0 mt-0.5" />
+                    ) : feedback.toLowerCase().includes("sucesso") || feedback.toLowerCase().includes("publicado") || feedback.toLowerCase().includes("atualizado") ? (
+                      <CheckCircle2 size={14} className="shrink-0 mt-0.5" />
                     ) : (
-                      <Loader2 size={13} className="animate-spin" />
+                      <Loader2 size={14} className="shrink-0 mt-0.5 animate-spin" />
                     )}
-                    {feedback}
-                  </p>
+                    <p className="text-[12.5px] font-medium">{feedback}</p>
+                  </div>
                 )}
-
-                <button
-                  onClick={handleSalvarManual}
-                  disabled={savingManual}
-                  className={`${jakarta.className} sm:ml-auto text-white px-5 py-3 rounded-xl font-bold text-xs uppercase tracking-widest flex items-center gap-2 transition-all disabled:opacity-50 shadow-sm hover:shadow-md hover:-translate-y-0.5 disabled:hover:translate-y-0 shrink-0`}
-                  style={{
-                    background: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})`,
-                  }}
-                >
-                  {savingManual ? (
-                    <Loader2 size={14} className="animate-spin" />
-                  ) : (
-                    <Save size={14} />
-                  )}
-                  {savingManual
-                    ? "A guardar..."
-                    : editando
-                    ? "Guardar edição"
-                    : "Publicar evento"}
-                </button>
               </div>
+            </div>
+
+            {/* Footer sticky */}
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                onClick={resetar}
+                className="h-9 px-3.5 rounded-md text-[12.5px] font-semibold border transition-colors"
+                style={{ borderColor: LINE, color: INK_2, background: SURFACE }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = LINE_2)}
+                onMouseLeave={(e) => (e.currentTarget.style.background = SURFACE)}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSalvarManual}
+                disabled={savingManual}
+                className="h-9 px-4 rounded-md text-[12.5px] font-semibold flex items-center gap-2 text-white transition-colors disabled:opacity-50"
+                style={{ background: INK }}
+                onMouseEnter={(e) => !savingManual && (e.currentTarget.style.background = INK_2)}
+                onMouseLeave={(e) => !savingManual && (e.currentTarget.style.background = INK)}
+              >
+                {savingManual ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+                {savingManual ? "A guardar..." : editando ? "Guardar" : "Publicar evento"}
+              </button>
             </div>
           </div>
         )}
 
         {/* ═══════════════════════════════════════════════════════════ */}
-        {/* FASE: PREVIEW (CSV)                                         */}
+        {/* FASE: PREVIEW CSV                                           */}
         {/* ═══════════════════════════════════════════════════════════ */}
 
         {fase === "preview" && (
-          <div className="space-y-5 anim-fade-up">
-            {/* Banner âmbar */}
+          <div className="space-y-4 anim-fade-up">
+
+            {/* Banner aviso */}
             <div
-              className="rounded-2xl border-2 p-4 flex items-start gap-3.5 shadow-sm"
-              style={{
-                background: `linear-gradient(135deg, ${AMBAR}08, ${AMBAR}02)`,
-                borderColor: `${AMBAR}30`,
-              }}
+              className="rounded-lg border p-3.5 flex items-start gap-3"
+              style={{ background: "#FFFBEB", borderColor: "#FEF3C7" }}
             >
               <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-white shadow-sm"
-                style={{ background: `linear-gradient(135deg, ${AMBAR}, ${AMBAR_LIGHT})` }}
+                className="w-8 h-8 rounded-md flex items-center justify-center shrink-0"
+                style={{ background: WARNING, color: "#FFF" }}
               >
-                <AlertCircle size={16} />
+                <AlertCircle size={14} />
               </div>
-              <div className="text-xs leading-relaxed pt-1.5">
-                <p className="font-bold text-slate-800">
-                  Foram identificados{" "}
-                  <strong style={{ color: AMBAR }}>{eventosPreview.length}</strong> eventos no
-                  ficheiro!
+              <div className="text-[12.5px] pt-1">
+                <p className="font-semibold" style={{ color: INK }}>
+                  {eventosPreview.length} eventos identificados no CSV
                 </p>
-                <p className="text-slate-600 mt-1">
-                  Anexa as fotos oficiais de cada um abaixo e clica no botão para guardar tudo
-                  no portal.
+                <p className="mt-0.5" style={{ color: MUTED }}>
+                  Anexa as fotos oficiais antes de guardar. Eventos sem imagem usam um placeholder.
                 </p>
               </div>
             </div>
 
-            {/* Cards de eventos */}
-            <div className="space-y-3">
-              {eventosPreview.map((ev, idx) => {
-                const temImagem = !!imagensMap[idx];
-                return (
-                  <div
-                    key={idx}
-                    style={{ animationDelay: `${idx * 30}ms` }}
-                    className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow anim-fade-up"
+            {/* Lista preview */}
+            <Panel noPad>
+              <PanelHeader
+                title="Pré-visualização"
+                subtitle="Confirma os dados antes de sincronizar"
+                badge={
+                  <span
+                    className="text-[10px] font-semibold px-1.5 py-0.5 rounded num"
+                    style={{ background: LINE_2, color: MUTED }}
                   >
-                    <div className="h-0.5" style={{ background: `linear-gradient(90deg, ${AZUL}, ${AZUL_ESCURO})` }} />
-                    <div className="p-4 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-                      {/* Numeração */}
+                    {eventosPreview.length}
+                  </span>
+                }
+              />
+
+              <div className="divide-y scroll-thin max-h-[600px] overflow-y-auto" style={{ borderColor: LINE_2 }}>
+                {eventosPreview.map((ev, idx) => {
+                  const temImagem = !!imagensMap[idx];
+                  const { dia, mes } = fmtDataCurta(ev.data);
+                  return (
+                    <div
+                      key={idx}
+                      style={{ animationDelay: `${idx * 15}ms` }}
+                      className="grid grid-cols-[auto_1fr_auto] items-center gap-4 px-5 py-3.5 anim-fade-up"
+                    >
+                      {/* Data */}
                       <div
-                        className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-sm font-bold text-white shadow-sm"
-                        style={{ background: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})` }}
+                        className="w-11 h-11 rounded-md flex flex-col items-center justify-center shrink-0"
+                        style={{ background: INK, color: "#FFF" }}
                       >
-                        {idx + 1}
+                        <span className="text-[9px] font-bold tracking-wider leading-none mb-0.5 opacity-80">
+                          {mes || "—"}
+                        </span>
+                        <span className={`${jakarta.className} num text-[15px] font-bold leading-none`}>
+                          {dia || idx + 1}
+                        </span>
                       </div>
 
-                      {/* Conteúdo */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap mb-2">
-                          {ev.categoria && <CategoriaBadge categoria={ev.categoria} />}
-                          {ev.data && (
-                            <span className="text-[10px] text-slate-500 flex items-center gap-1">
-                              <CalendarIcon size={10} /> {fmtData(ev.data)}
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                          {ev.categoria && (
+                            <span
+                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide"
+                              style={{ background: LINE_2, color: MUTED, border: `1px solid ${LINE}` }}
+                            >
+                              <Tag size={8} />
+                              {ev.categoria}
                             </span>
                           )}
-                          {ev.local && (
-                            <span className="text-[10px] text-slate-500 flex items-center gap-1 truncate">
-                              <MapPin size={10} /> {ev.local}
+                          {ev.data && (
+                            <span className="text-[10.5px] num" style={{ color: SUBTLE }}>
+                              {fmtData(ev.data)}
                             </span>
                           )}
                         </div>
-                        <h4 className={`${jakarta.className} text-sm font-bold text-slate-900 line-clamp-2 mb-1`}>
+                        <p
+                          className={`${jakarta.className} text-[13.5px] font-bold leading-snug truncate`}
+                          style={{ color: INK }}
+                        >
                           {ev.titulo}
-                        </h4>
-                        {ev.descricao && (
-                          <p className="text-xs text-slate-500 line-clamp-1">
-                            {ev.descricao}
+                        </p>
+                        {ev.local && (
+                          <p
+                            className="text-[11.5px] truncate flex items-center gap-1 mt-0.5"
+                            style={{ color: MUTED }}
+                          >
+                            <MapPin size={10} />
+                            {ev.local}
                           </p>
                         )}
                       </div>
 
                       {/* Upload */}
                       <label
-                        className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl cursor-pointer transition-all text-[11px] font-bold border-2 shrink-0 w-full sm:w-auto justify-center"
+                        className="h-8 px-2.5 rounded-md cursor-pointer inline-flex items-center gap-1.5 text-[11.5px] font-semibold border transition-colors shrink-0 whitespace-nowrap"
                         style={{
-                          background: temImagem
-                            ? `linear-gradient(135deg, ${VERDE}08, ${VERDE}02)`
-                            : "white",
-                          borderColor: temImagem ? `${VERDE}40` : "#E2E8F0",
-                          color: temImagem ? VERDE : AZUL,
+                          background: temImagem ? "#ECFDF5" : SURFACE,
+                          borderColor: temImagem ? "#D1FAE5" : LINE,
+                          color: temImagem ? SUCCESS : INK_2,
                         }}
                       >
                         <input
@@ -1156,38 +1320,43 @@ export default function PortalEventos() {
                           accept="image/*"
                           className="hidden"
                           onChange={(e) => {
-                            if (e.target.files) {
-                              handleImagemChange(idx, e.target.files[0]);
-                            }
+                            if (e.target.files) handleImagemChange(idx, e.target.files[0]);
                           }}
                         />
                         {temImagem ? (
                           <>
-                            <CheckCircle2 size={13} /> Imagem selecionada
+                            <CheckCircle2 size={12} />
+                            <span className="hidden sm:inline">Imagem OK</span>
                           </>
                         ) : (
                           <>
-                            <Camera size={13} /> Anexar foto
+                            <Camera size={12} />
+                            <span className="hidden sm:inline">Anexar</span>
                           </>
                         )}
                       </label>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
 
-            {/* Botão salvar tudo */}
-            <div className="flex justify-end pt-2">
-              <button
-                onClick={handleSalvarTudo}
-                className={`${jakarta.className} text-white px-6 py-3.5 rounded-xl font-bold text-xs uppercase tracking-widest flex items-center gap-2 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all`}
-                style={{ background: `linear-gradient(135deg, ${VERDE}, ${VERDE_LIGHT})` }}
+              {/* Footer */}
+              <div
+                className="px-5 py-3.5 flex items-center justify-end border-t"
+                style={{ borderColor: LINE, background: BG }}
               >
-                <Save size={14} />
-                Salvar {eventosPreview.length} evento(s) no portal
-              </button>
-            </div>
+                <button
+                  onClick={handleSalvarTudo}
+                  className="h-9 px-4 rounded-md text-[12.5px] font-semibold flex items-center gap-2 text-white transition-colors"
+                  style={{ background: INK }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = INK_2)}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = INK)}
+                >
+                  <Save size={13} />
+                  Guardar {eventosPreview.length} evento{eventosPreview.length !== 1 ? "s" : ""}
+                </button>
+              </div>
+            </Panel>
           </div>
         )}
 
@@ -1196,84 +1365,49 @@ export default function PortalEventos() {
         {/* ═══════════════════════════════════════════════════════════ */}
 
         {(fase === "salvando" || fase === "sucesso") && (
-          <div className="bg-white border border-slate-200/80 rounded-2xl py-20 text-center shadow-sm anim-fade-up max-w-2xl mx-auto">
-            <div
-              className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-md"
-              style={{
-                background:
-                  fase === "salvando"
-                    ? `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})`
-                    : `linear-gradient(135deg, ${VERDE}, ${VERDE_LIGHT})`,
-              }}
-            >
-              {fase === "salvando" ? (
-                <Loader2 size={32} className="animate-spin text-white" />
-              ) : (
-                <CheckCircle2 size={32} className="text-white" />
+          <Panel noPad className="anim-fade-up max-w-2xl mx-auto">
+            <div className="py-16 px-6 text-center">
+              <div
+                className="w-12 h-12 rounded-lg flex items-center justify-center mx-auto mb-4"
+                style={{
+                  background: fase === "salvando" ? INK : SUCCESS,
+                  color: "#FFF",
+                }}
+              >
+                {fase === "salvando" ? (
+                  <Loader2 size={22} className="animate-spin" />
+                ) : (
+                  <CheckCircle2 size={22} />
+                )}
+              </div>
+
+              <h3
+                className={`${jakarta.className} text-[18px] font-bold tracking-tight mb-1.5`}
+                style={{ color: INK, letterSpacing: "-0.02em" }}
+              >
+                {fase === "salvando" ? "A sincronizar..." : "Tudo guardado"}
+              </h3>
+
+              <p className="text-[12.5px] mb-6 max-w-md mx-auto leading-relaxed" style={{ color: MUTED }}>
+                {feedback}
+              </p>
+
+              {fase === "sucesso" && (
+                <button
+                  onClick={resetar}
+                  className="h-9 px-4 rounded-md text-[12.5px] font-semibold inline-flex items-center gap-2 text-white transition-colors"
+                  style={{ background: INK }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = INK_2)}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = INK)}
+                >
+                  <RefreshCw size={13} />
+                  Voltar à lista
+                </button>
               )}
             </div>
-
-            <h3 className={`${jakarta.className} text-2xl font-extrabold text-slate-900 mb-2`}>
-              {fase === "salvando"
-                ? "A sincronizar calendário..."
-                : "Evento(s) guardado(s) com sucesso!"}
-            </h3>
-
-            <p className="text-sm text-slate-500 font-medium mb-8 max-w-md mx-auto leading-relaxed px-4">
-              {feedback}
-            </p>
-
-            {fase === "sucesso" && (
-              <button
-                onClick={resetar}
-                className={`${jakarta.className} text-white px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest inline-flex items-center gap-2 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all`}
-                style={{ background: `linear-gradient(135deg, ${AZUL}, ${AZUL_ESCURO})` }}
-              >
-                <RefreshCw size={13} />
-                Voltar ao início
-              </button>
-            )}
-          </div>
+          </Panel>
         )}
       </div>
     </>
-  );
-}
-
-// ─── Ícone "Type" (fallback) ───
-function Type({ size = 12 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <polyline points="4 7 4 4 20 4 20 7" />
-      <line x1="9" y1="20" x2="15" y2="20" />
-      <line x1="12" y1="4" x2="12" y2="20" />
-    </svg>
-  );
-}
-
-// ─── Ícone "Shield" (fallback) ───
-function Shield({ size = 12 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-    </svg>
   );
 }
