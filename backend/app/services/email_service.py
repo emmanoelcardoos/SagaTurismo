@@ -2,11 +2,15 @@ import base64
 import os
 import requests
 from typing import List, Dict, Any, Optional
+from dotenv import load_dotenv
+
+# Força o Python a ler o ficheiro .env local
+load_dotenv()
 
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
 EMAIL_FROM = "Turismo São Geraldo do Araguaia <nao-responda@sagatur.com.br>" # Domínio verificado no Resend
 
-LOGO_URL = "https://sagaturismo-production.up.railway.app/public/logop.png" 
+LOGO_URL = "https://sagaturismo-production.up.railway.app/public/logop.png"
 
 # ==========================================
 # MOTOR PRINCIPAL DE ENVIO (AGORA SUPORTA MÚLTIPLOS ANEXOS)

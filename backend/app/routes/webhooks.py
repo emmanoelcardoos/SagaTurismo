@@ -311,12 +311,23 @@ async def webhook_bb(request: Request):
                 residentes_encontrados = []
 
                 if token_id:
+                    # Busca o titular
                     titular_res = supabase.table("rd_residentes").select("*").eq("id", token_id).execute()
-                    deps_res = supabase.table("rd_residentes").select("*").eq("titular_id", token_id).execute()
-                    residentes_encontrados = (titular_res.data or []) + (deps_res.data or [])
+                    
+                    # ◄── CORREÇÃO 1: Busca APENAS os dependentes que estão aguardando pagamento
+                    deps_res = supabase.table("rd_residentes").select("*").eq("titular_id", token_id).eq("status", "aguardando_pagamento").execute()
+                    
+                    # ◄── CORREÇÃO 2: Adiciona o titular APENAS se ele próprio for novo e estiver aguardando pagamento
+                    if titular_res.data and titular_res.data[0].get("status") == "aguardando_pagamento":
+                        residentes_encontrados.append(titular_res.data[0])
+                        
+                    # Adiciona os novos dependentes encontrados
+                    if deps_res.data:
+                        residentes_encontrados.extend(deps_res.data)
                 
+                # Fallback de segurança via CPF (também filtrado para não duplicar)
                 if not residentes_encontrados:
-                    res_res = supabase.table("rd_residentes").select("*").eq("cpf", pedido.get("cpf_cliente")).execute()
+                    res_res = supabase.table("rd_residentes").select("*").eq("cpf", pedido.get("cpf_cliente")).eq("status", "aguardando_pagamento").execute()
                     residentes_encontrados = res_res.data or []
 
                 if residentes_encontrados:
@@ -382,44 +393,47 @@ async def processar_carteiras_pendentes():
             # Busca os residentes (titular e dependentes)
             if token_id:
                 titular_res = supabase.table("rd_residentes").select("*").eq("id", token_id).execute()
-                deps_res = supabase.table("rd_residentes").select("*").eq("titular_id", token_id).execute()
-                residentes_encontrados = (titular_res.data or []) + (deps_res.data or [])
+                # A MAGIA: Pega apenas os dependentes deste titular que também estão "aguardando_pagamento"
+                deps_res = supabase.table("rd_residentes").select("*").eq("titular_id", token_id).eq("status", "aguardando_pagamento").execute()
+                
+                # Junta o titular (se ele próprio estiver aguardando) e os novos dependentes
+                if titular_res.data and titular_res.data[0]["status"] == "aguardando_pagamento":
+                    residentes_encontrados.append(titular_res.data[0])
+                residentes_encontrados.extend(deps_res.data or [])
             
-            # Fallback pelo CPF
+            # Fallback pelo CPF se não houver token
             if not residentes_encontrados:
-                res_res = supabase.table("rd_residentes").select("*").eq("cpf", pedido.get("cpf_cliente")).execute()
+                res_res = supabase.table("rd_residentes").select("*").eq("cpf", pedido.get("cpf_cliente")).eq("status", "aguardando_pagamento").execute()
                 residentes_encontrados = res_res.data or []
 
-            # 3. Ativa os residentes, gera PDFs e envia e-mail
+            # 3. Ativa os residentes específicos, gera PDFs e envia e-mails individuais
             if residentes_encontrados:
-                caminhos_pdfs = []
                 email_real = pedido.get("email_cliente")
-                nome_real = pedido.get("nome_cliente")
 
                 for res in residentes_encontrados:
-                    # Muda o status para ativo na base de dados
+                    # Ativa o residente
                     supabase.table("rd_residentes").update({"status": "ativo"}).eq("id", res["id"]).execute()
-                    
-                    
 
                     try:
+                        nome_membro = res.get("nome_completo") or res.get("nome", "Residente Oficial")
                         dados_pdf = {
-                            "nome": res.get("nome_completo") or res.get("nome", "Residente Oficial"),
+                            "nome": nome_membro,
                             "cpf": res.get("cpf", pedido.get("cpf_cliente")),
                             "data_nascimento": res.get("data_nascimento", "--/--/----"),
                             "foto_url": res.get("foto_url")
                         }
+                        
+                        # Gera PDF para o membro específico
                         caminho_pdf = gerar_pdf_carteira(dados_pdf, res.get("qrcode_token") or res["id"])
-                        if caminho_pdf: caminhos_pdfs.append(caminho_pdf)
+                        
+                        # Dispara o e-mail
+                        if caminho_pdf:
+                            enviar_carteiras_por_email(email_real, nome_membro, [caminho_pdf])
+                            emails_enviados += 1
+                            print(f"[SIMULADOR WEBHOOK] Carteira de {nome_membro} enviada para {email_real}")
+                            
                     except Exception as e_pdf:
-                        print(f"Erro ao gerar PDF: {e_pdf}")
-                
-                if caminhos_pdfs:
-                    try:
-                        enviar_carteiras_por_email(email_real, nome_real, caminhos_pdfs)
-                        emails_enviados += 1
-                    except Exception as e_mail:
-                        print(f"Erro ao enviar e-mail: {e_mail}")
+                        print(f"Erro ao gerar/enviar PDF: {e_pdf}")
             
             processados += 1
 
