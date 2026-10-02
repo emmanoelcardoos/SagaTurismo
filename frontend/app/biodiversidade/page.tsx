@@ -4,34 +4,13 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState, useRef, ReactNode } from 'react';
 import {
-  ArrowRight, ArrowLeft, Leaf, Mountain, Waves, TreePine, Bird, Bug,
-  Droplets, Wind, Sun, Star, MapPin, ChevronDown, ChevronRight,
-  Eye, Menu, X, Fish, Feather, Flower2, Globe, Layers,
-  Shield, Users, Camera, Compass, ShieldCheck
+  ArrowRight, Leaf, Mountain, Droplets
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter, Playfair_Display } from 'next/font/google';
 
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['600', '700', '800'] });
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
 const playfair = Playfair_Display({ subsets: ['latin'], weight: ['400', '700', '900'], style: ['normal', 'italic'] });
-
-// ==========================================
-// MENU GROUPS - HEADER DO SITE (ATUALIZADO)
-// ==========================================
-const menuGroups = [
-  { 
-    label: 'Descobrir', 
-    links: ['Atrativos', 'História', 'Biodiversidade', 'Comunidades', 'Galeria', 'Eventos'] 
-  },
-  { 
-    label: 'Planejar', 
-    links: ['Hospedagens', 'Gastronomia', 'Agências', 'Informações', 'CAT'] 
-  },
-  { 
-    label: 'Institucional', 
-    links: ['SEMTUR', 'COMTUR', 'Parceiros'] 
-  },
-];
 
 // ==========================================
 // MOTOR DE ANIMAÇÕES DE SCROLL
@@ -140,14 +119,8 @@ const cachoeiras = [
   }
 ];
 
-const dificuldadeCor: Record<string, string> = {
-  "Fácil": "#009640",
-  "Moderada": "#c2930a",
-  "Difícil": "#c2440c",
-};
-
 // ==========================================
-// COMPONENTE: HERO CINEMATOGRÁFICO (TEXTO À ESQUERDA CORRIGIDO)
+// COMPONENTE: HERO
 // ==========================================
 function HeroBiodiversidade() {
   const [scrollY, setScrollY] = useState(0);
@@ -160,7 +133,6 @@ function HeroBiodiversidade() {
   return (
     <section className="relative h-[85vh] min-h-[600px] flex flex-col items-start justify-end pb-20 px-6 md:px-12 overflow-hidden bg-[#021a0d]">
       
-      {/* ── FOTOGRAFIA DE FUNDO ── */}
       <div className="absolute inset-0 z-0" style={{ transform: `translateY(${scrollY * 0.3}px)` }}>
         <Image
           src="https://images.pexels.com/photos/18064280/pexels-photo-18064280.jpeg?_gl=1*1at0h8g*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzk1MDQ0MjUkbzUyJGcxJHQxNzc5NTA0ODIxJGo1OSRsMCRoMA.."
@@ -169,19 +141,15 @@ function HeroBiodiversidade() {
         />
       </div>
 
-      {/* ── GRADIENTES INTELIGENTES ── */}
       <div className="absolute inset-0 bg-gradient-to-t from-[#021a0d] via-[#021a0d]/40 to-transparent z-0" />
       <div className="absolute inset-0 bg-gradient-to-r from-[#021a0d]/90 via-[#021a0d]/20 to-transparent z-0" />
 
-      {/* ── TEXTO (ALINHADO À ESQUERDA) ── */}
       <div className="relative z-10 max-w-[1400px] w-full mx-auto">
         <Reveal anim="up">
           <div className="flex flex-col items-start drop-shadow-2xl max-w-5xl">
-            {/* Primeira linha */}
             <span className="text-[#F9C400] text-sm md:text-xl font-black uppercase tracking-[0.3em] mb-2">
               Parque Estadual
             </span>
-            {/* Segunda linha (Nome completo) */}
             <h1 className={`${jakarta.className} text-[2.5rem] sm:text-[3.5rem] md:text-[4.5rem] lg:text-[5.5rem] font-black text-white leading-[1] tracking-tighter uppercase drop-shadow-lg flex flex-wrap items-center gap-x-3 md:gap-x-4`}>
               Serra dos Martírios -
               <span className="text-[#4ADE80] italic drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)]">
@@ -192,7 +160,6 @@ function HeroBiodiversidade() {
         </Reveal>
       </div>
 
-      {/* ── ESTATÍSTICAS (ALINHADAS À DIREITA) ── */}
       <div className="absolute bottom-10 right-8 md:right-12 z-10 hidden md:flex gap-8 md:gap-12">
         {[
           { n: "+50", label: "Cachoeiras" },
@@ -273,7 +240,7 @@ function SecParque() {
             <div>
               <h4 className={`${jakarta.className} text-[#F9C400] text-sm font-black uppercase tracking-widest mb-3`}>Importância Ecológica</h4>
               <p className="text-white/50 text-sm leading-relaxed">
-                A Serra das Andorinhas funciona como um corredor ecológico vital, connecting a Floresta Amazônica ao Cerrado. Esta transição única abriga espécies de ambos os biomas, tornando a região um hotspot de biodiversidade com alto grau de endemismo.
+                A Serra das Andorinhas funciona como um corredor ecológico vital, conectando a Floresta Amazônica ao Cerrado. Esta transição única abriga espécies de ambos os biomas, tornando a região um hotspot de biodiversidade com alto grau de endemismo.
               </p>
             </div>
             <div>
@@ -296,7 +263,7 @@ function SecParque() {
 }
 
 // ==========================================
-// SECÇÃO: DOIS BIOMAS — DIVISÓRIA VISUAL
+// SECÇÃO: DOIS BIOMAS
 // ==========================================
 function SecBiomas() {
   return (
@@ -380,7 +347,6 @@ function SecCachoeiras() {
                     <span className="text-[#F9C400] font-black text-xs">{c.altura}</span>
                   </div>
                   <h3 className={`${jakarta.className} text-2xl font-black mb-2`}>{c.nome}</h3>
-                  <p className="text-white/50 text-xs leading-relaxed">{c.descricao}</p>
                 </div>
               </div>
             </Reveal>
@@ -397,7 +363,6 @@ function SecCachoeiras() {
                   </div>
                   <p className="text-[#F9C400] font-black text-xl mb-1">{c.altura}</p>
                   <h4 className={`${jakarta.className} text-base font-black text-white mb-2 group-hover:text-[#F9C400] transition-colors`}>{c.nome}</h4>
-                  <p className="text-white/40 text-xs leading-relaxed">{c.descricao}</p>
                 </div>
               </Reveal>
             ))}
@@ -568,7 +533,7 @@ function SecFlora() {
 }
 
 // ==========================================
-// SECÇÃO: NATUREZA INTOCADA
+// SECÇÃO: NATUREZA INTOCADA (CITAÇÃO)
 // ==========================================
 function SecNaturezaIntocada() {
   return (
@@ -652,158 +617,17 @@ function SecCTA() {
 // COMPONENTE PRINCIPAL
 // ==========================================
 export default function BiodiversidadePage() {
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [showHeader, setShowHeader] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const y = window.scrollY;
-      setIsScrolled(y > 50);
-      if (y < 80) setShowHeader(true);
-      else if (y > lastScrollY) setShowHeader(false);
-      else setShowHeader(true);
-      setLastScrollY(y);
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [lastScrollY]);
-
-  const isHeaderSolid = isScrolled || isHovered || isMobileMenuOpen;
-
   return (
     <main className={`${inter.className} min-h-screen flex flex-col bg-[#021a0d] text-white overflow-x-hidden`}>
       <div className="flex-1">
-        
-        {/* ── HEADER ATUALIZADO ── */}
-        <header
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
-          className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${showHeader ? 'translate-y-0' : '-translate-y-full'} ${
-            isHeaderSolid 
-              ? 'bg-[#021a0d]/95 backdrop-blur-md shadow-sm border-b border-white/10' 
-              : 'bg-transparent border-b border-transparent'
-          }`}
-        >
-          <div className="mx-auto flex max-w-[1400px] items-center px-6 py-4 relative">
-            
-            {/* LADO ESQUERDO: Duas Logos */}
-            <div className="flex flex-1 items-center gap-4 md:gap-6 z-20">
-              <Link href="/" className="inline-flex items-center transition-all duration-300">
-                <div className="relative h-10 w-28 md:h-12 md:w-32 shrink-0">
-                  <Image 
-                    src="/logop.png" 
-                    alt="SagaTurismo" 
-                    fill 
-                    className={`object-contain object-left transition-all duration-300 ${!isHeaderSolid ? 'brightness-0 invert' : ''}`} 
-                  />
-                </div>
-              </Link>
-            </div>
-
-            {/* CENTRO: Menu */}
-            <nav className="hidden lg:flex flex-none items-center justify-center gap-6 xl:gap-8 z-10">
-              {menuGroups.map((group) => (
-                <div key={group.label} className="relative group py-2">
-                  <button className={`${jakarta.className} flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.2em] transition-colors ${
-                    isHeaderSolid 
-                      ? 'text-white/60 group-hover:text-[#F9C400]' 
-                      : 'text-white group-hover:text-[#F9C400] drop-shadow-md'
-                  }`}>
-                    {group.label} <ChevronDown size={14} className="group-hover:rotate-180 transition-transform duration-300" />
-                  </button>
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max bg-[#021a0d]/95 backdrop-blur-xl border border-white/10 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.5)] rounded-2xl p-2 opacity-0 invisible translate-y-2 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 transition-all duration-300 z-50 flex flex-row items-center gap-1">
-                    {group.links.map((link) => {
-                      const path = `/${link.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`;
-                      return (
-                        <Link key={link} href={path} className={`${jakarta.className} block px-5 py-3 text-sm font-bold text-white/60 hover:text-[#F9C400] hover:bg-white/5 rounded-xl transition-all whitespace-nowrap`}>
-                          {link}
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-              <Link href="/eventos" className={`${jakarta.className} flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.2em] transition-colors py-2 ${isHeaderSolid ? 'text-white/60 hover:text-[#F9C400]' : 'text-white hover:text-[#F9C400] drop-shadow-md'}`}>
-                Eventos
-              </Link>
-            </nav>
-
-            {/* LADO DIREITO: Botões */}
-            <div className="flex flex-1 justify-end items-center gap-4 z-20">
-              <Link href="/cadastro"
-                className={`hidden lg:inline-flex ${jakarta.className} px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-sm ${
-                  isHeaderSolid 
-                    ? 'bg-[#F9C400] text-[#002f40]' 
-                    : 'bg-white/20 backdrop-blur-md text-white border border-white/30 hover:bg-white/30'
-                }`}>
-                Residente
-              </Link>
-              <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className={`rounded-xl p-2 lg:hidden transition-all duration-300 ${
-                  isHeaderSolid 
-                    ? 'text-white hover:bg-white/10' 
-                    : 'text-white hover:bg-white/20'
-                }`}>
-                {isMobileMenuOpen ? <X className="h-8 w-8" /> : <Menu className="h-8 w-8" />}
-              </button>
-            </div>
-          </div>
-
-          {/* Menu Mobile */}
-          {isMobileMenuOpen && (
-            <div className="absolute top-full left-0 w-full bg-[#021a0d] border-b border-white/10 p-6 flex flex-col gap-6 shadow-2xl lg:hidden z-50 max-h-[85vh] overflow-y-auto">
-              {menuGroups.map((group) => (
-                <div key={group.label} className="flex flex-col gap-3">
-                  <p className={`${jakarta.className} text-[10px] font-black uppercase tracking-[0.2em] text-[#F9C400] border-b border-white/10 pb-2`}>{group.label}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {group.links.map((link) => {
-                      const path = `/${link.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`;
-                      return (
-                        <Link key={link} href={path} onClick={() => setIsMobileMenuOpen(false)} className={`${jakarta.className} font-bold text-white/60 hover:text-white text-sm bg-white/5 px-4 py-2 rounded-lg border border-white/10 hover:bg-white/10 transition-colors`}>
-                          {link}
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-              <div className="flex flex-col gap-3">
-                <p className={`${jakarta.className} text-[10px] font-black uppercase tracking-[0.2em] text-[#F9C400] border-b border-white/10 pb-2`}>Agenda</p>
-                <div className="flex flex-wrap gap-2">
-                  <Link href="/eventos" onClick={() => setIsMobileMenuOpen(false)} className={`${jakarta.className} font-bold text-white/60 hover:text-white text-sm bg-white/5 px-4 py-2 rounded-lg border border-white/10 hover:bg-white/10 transition-colors`}>
-                    Todos os Eventos
-                  </Link>
-                </div>
-              </div>
-              <div className="border-t border-white/10 pt-4 mt-2 flex flex-col gap-3">
-                <Link href="/cadastro" onClick={() => setIsMobileMenuOpen(false)} className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md`}>
-                  Cartão Residente
-                </Link>
-              </div>
-            </div>
-          )}
-        </header>
-
-        {/* CONTEÚDO DAS SECÇÕES */}
         <HeroBiodiversidade />
         <SecParque />
         <SecBiomas />
         <SecCachoeiras />
         <SecFauna />
         <SecFlora />
+        <SecCTA />
       </div>
-
-      {/* ── FOOTER ── */}
-      <footer className="relative z-10 py-7 bg-[#021a0d] border-t border-white/10">
-        <div className="w-full max-w-[1400px] mx-auto px-8 md:px-14 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className={`${jakarta.className} text-[10px] font-bold text-white/20 uppercase tracking-widest`}>
-            © {new Date().getFullYear()} Prefeitura Municipal de São Geraldo do Araguaia — Todos os direitos reservados.
-          </p>
-        </div>
-      </footer>
     </main>
   );
 }

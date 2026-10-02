@@ -1,9 +1,8 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
-import { Download, Menu, X, ChevronDown, MapPin, Phone, Mail, Clock } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['600', '700', '800'] });
@@ -11,7 +10,7 @@ const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] }
 
 /* -------------------------------------------------------------------------
  * SagaTurismo — Termos de Uso
- * Secretaria Municipal de Turismo de São Geraldo do Araguaia (SGA/PA)
+ * Secretaria Municipal de Turismo de São Geraldo do Araguaia (SEMTUR / SGA-PA)
  * ---------------------------------------------------------------------- */
 
 const TOC = [
@@ -33,18 +32,17 @@ const TOC = [
 export default function TermosDeUsoPage() {
   return (
     <div className={`${inter.className} flex min-h-screen flex-col bg-[#FDFCF7] text-slate-800`}>
-      <Header />
 
-      <main className="flex-1 mt-[72px] md:mt-[80px]">
-        <div className="mx-auto max-w-6xl px-6 py-12 md:py-16">
+      <main className="flex-1 pt-28 md:pt-36">
+        <div className="mx-auto max-w-6xl px-6 py-8 md:py-12">
           {/* Cabeçalho da página */}
           <div className="mb-10 flex flex-col gap-6 border-b border-slate-200 pb-8 sm:flex-row sm:items-end sm:justify-between print:hidden">
             <div>
-              <h1 className={`${jakarta.className} mt-4 text-4xl font-black tracking-tight text-[#00577C] md:text-5xl`}>
+              <h1 className={`${jakarta.className} text-4xl font-black tracking-tight text-[#00577C] md:text-5xl`}>
                 Termos de Uso
               </h1>
               <p className="mt-4 text-sm text-slate-500 font-medium">
-                Plataforma SagaTurismo · Última atualização: 03 de Agosto de 2026 · Versão preliminar 0.2
+                Plataforma SagaTurismo · Última atualização: 02 de Outubro de 2026 · Versão preliminar 1.1
               </p>
             </div>
 
@@ -123,8 +121,10 @@ export default function TermosDeUsoPage() {
               <Section id="carteira" number="4" title="Da Carteira Digital de Residente e do benefício">
                 <P>
                   A Carteira Digital de Residente, quando aprovada, concede ao titular desconto de até{' '}
-                  <strong>50% (cinquenta por cento)</strong> especificamente na entrada do <strong>Parque Cachoeira Três Quedas</strong>. Outros serviços e atrativos turísticos oferecidos
-                  por estabelecimentos parceiros cadastrados na Plataforma não estão incluídos neste benefício temporariamente.
+                  <strong>50% (cinquenta por cento)</strong> especificamente na entrada do{' '}
+                  <strong>Parque Cachoeira Três Quedas</strong>. Outros serviços e atrativos turísticos
+                  oferecidos por estabelecimentos parceiros cadastrados na Plataforma não estão incluídos
+                  neste benefício temporariamente.
                 </P>
                 <Ul>
                   <Li>
@@ -215,7 +215,7 @@ export default function TermosDeUsoPage() {
 
               <Section id="propriedade" number="8" title="Propriedade intelectual">
                 <P>
-                  A marca SagaTurismo, seu logotipo, layout, textos, códigos e demais elements da
+                  A marca SagaTurismo, seu logotipo, layout, textos, códigos e demais elementos da
                   Plataforma são de titularidade do Município de São Geraldo do Araguaia ou de terceiros
                   que autorizaram seu uso, sendo vedada a reprodução, cópia ou utilização não autorizada,
                   total ou parcial, para quaisquer fins.
@@ -263,8 +263,9 @@ export default function TermosDeUsoPage() {
               <Section id="foro" number="12" title="Legislação aplicável e foro">
                 <P>
                   Estes Termos são regidos pelas leis da República Federativa do Brasil. Fica eleito o foro
-                  da Comarca de São Geraldo do Araguaia, Estado do Pará, para dirimir quaisquer controvérsias
-                  decorrentes destes Termos, com renúncia a qualquer outro, por mais privilegiado que seja.
+                  da Comarca de São Geraldo do Araguaia, Estado do Pará, para dirimir quaisquer
+                  controvérsias decorrentes destes Termos, com renúncia a qualquer outro, por mais
+                  privilegiado que seja.
                 </P>
               </Section>
 
@@ -281,8 +282,6 @@ export default function TermosDeUsoPage() {
           </div>
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 }
@@ -320,7 +319,9 @@ function Section({ id, number, title, children }: { id: string; number: string; 
           {number}
         </span>
         <div className="min-w-0 flex-1 pt-1.5">
-          <h2 className={`${jakarta.className} text-xl font-black tracking-tight text-slate-900 md:text-2xl`}>{title}</h2>
+          <h2 className={`${jakarta.className} text-xl font-black tracking-tight text-slate-900 md:text-2xl`}>
+            {title}
+          </h2>
           <div className="mt-4 space-y-4">{children}</div>
         </div>
       </div>
@@ -342,105 +343,5 @@ function Li({ children }: { children: ReactNode }) {
       <span className="mt-2.5 h-1.5 w-1.5 flex-none rounded-full bg-[#009640]" />
       <span className="leading-relaxed font-medium text-slate-600">{children}</span>
     </li>
-  );
-}
-
-function Header() {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  const menuGroups = [
-  { 
-    label: 'Descobrir', 
-    links: ['Atrativos', 'História', 'Biodiversidade', 'Comunidades', 'Galeria', 'Eventos'] 
-  },
-  { 
-    label: 'Planejar', 
-    links: ['Hospedagens', 'Gastronomia', 'Agências', 'Informações', 'CAT'] 
-  },
-  { 
-    label: 'Institucional', 
-    links: ['SEMTUR', 'COMTUR', 'Parceiros'] 
-  },
-];
-
-  return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100 transition-all duration-500 print:hidden">
-      <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4 relative">
-        <div className="flex-1">
-          <Link href="/" className="inline-flex items-center gap-3">
-            <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
-              <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain" />
-            </div>
-          </Link>
-        </div>
-
-        <nav className="hidden lg:flex items-center justify-center gap-12">
-          {menuGroups.map((group) => (
-            <div key={group.label} className="relative group py-2">
-              <button className={`${jakarta.className} flex items-center gap-1.5 text-xs font-black uppercase tracking-[0.2em] text-slate-600 hover:text-[#00577C] transition-colors`}>
-                {group.label} <ChevronDown size={14} className="group-hover:rotate-180 transition-transform duration-300" />
-              </button>
-              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max bg-white/95 backdrop-blur-xl border border-slate-100 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] rounded-2xl p-2 opacity-0 invisible translate-y-2 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 transition-all duration-300 z-50 flex flex-row items-center gap-1">
-                {group.links.map((link) => (
-                  <Link key={link} href={`/${link.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`} className={`${jakarta.className} block px-5 py-3 text-sm font-bold text-slate-600 hover:text-[#00577C] hover:bg-slate-50 rounded-xl transition-all whitespace-nowrap`}>
-                    {link}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          ))}
-        </nav>
-
-        <div className="flex-1 flex justify-end items-center gap-4">
-          <Link href="/cadastro" className={`hidden lg:inline-flex ${jakarta.className} px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-[#F9C400] text-[#002f40] hover:scale-105 transition-all shadow-sm`}>
-            Residente
-          </Link>
-          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="rounded-xl p-2 lg:hidden text-[#00577C] hover:bg-slate-100 transition-all duration-300">
-            {isMobileMenuOpen ? <X className="h-8 w-8" /> : <Menu className="h-8 w-8" />}
-          </button>
-        </div>
-      </div>
-
-      {isMobileMenuOpen && (
-        <div className="absolute top-full left-0 w-full bg-white border-b border-slate-200 p-6 flex flex-col gap-6 shadow-2xl lg:hidden z-50 max-h-[85vh] overflow-y-auto">
-          {menuGroups.map((group) => (
-            <div key={group.label} className="flex flex-col gap-3">
-              <p className={`${jakarta.className} text-[10px] font-black uppercase tracking-[0.2em] text-[#00577C] border-b border-slate-100 pb-2`}>{group.label}</p>
-              <div className="flex flex-wrap gap-2">
-                {group.links.map((link) => (
-                  <Link key={link} href={`/${link.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`} onClick={() => setIsMobileMenuOpen(false)} className={`${jakarta.className} font-bold text-slate-700 text-sm bg-slate-50 px-4 py-2 rounded-lg border border-slate-100 hover:text-[#00577C] hover:bg-slate-100 transition-colors`}>
-                    {link}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </header>
-  );
-}
-
-function Footer() {
-  return (
-    <footer className="py-20 px-8 border-t border-slate-200 bg-[#FDFCF7] text-left mt-auto">
-            <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
-              <div className="flex flex-col items-center md:items-start gap-4">
-                <div className="flex items-center gap-6">
-                  <Image src="/logop.png" alt="SagaTurismo" width={160} height={50} className="object-contain" />
-                  <div className="w-px h-12 bg-slate-200 hidden md:block" />
-                  <Image src="/prefeitura.png" alt="Prefeitura de SGA" width={140} height={50} className="object-contain" />
-                </div>
-                <div className="text-left space-y-1 text-center md:text-left">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                    © 2026 Prefeitura Munícipal de São Geraldo do Araguaia - PA
-                  </p>
-                  <p className="text-[10px] font-bold text-slate-400/80">
-                    CNPJ: 10.249.241/0001-22
-                  </p>
-                </div>
-              </div>
-            </div>
-          </footer>
   );
 }

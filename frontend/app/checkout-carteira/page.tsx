@@ -123,18 +123,20 @@ function CheckoutCarteiraContent() {
     const fetchInitialData = async () => {
       try {
         const res = await fetch(`/api/validar?token=${token}`);
-        if (res.ok) {
-          const data = await res.json();
-          // SE JÁ ESTIVER PAGO, REDIRECIONA PARA SUCESSO COM O TOKEN!
-          if (data.status === 'ativa' || data.status === 'ativo' || data.status === 'pago') {
-            router.push(`/sucesso-carteira?token=${token}`);
-            return;
-          }
-
-          const nomeMemoria = typeof window !== 'undefined' ? localStorage.getItem('saga_residente_nome') : null;
-          const emailMemoria = typeof window !== 'undefined' ? localStorage.getItem('saga_residente_email') : null;
-          const qtdUrl = searchParams.get('quantidade') || searchParams.get('qtd');
-          const qtdMemoria = typeof window !== 'undefined' ? localStorage.getItem('saga_residente_quantidade') : null;
+          if (res.ok) {
+            const data = await res.json();
+            
+            const nomeMemoria = typeof window !== 'undefined' ? localStorage.getItem('saga_residente_nome') : null;
+            const emailMemoria = typeof window !== 'undefined' ? localStorage.getItem('saga_residente_email') : null;
+            const qtdUrl = searchParams.get('quantidade') || searchParams.get('qtd');
+            const qtdMemoria = typeof window !== 'undefined' ? localStorage.getItem('saga_residente_quantidade') : null;
+            
+            // ◄── A MAGIA DA RESOLUÇÃO ESTÁ AQUI
+            // Se ele é ativo, MAS temos novos dependentes na memória para cobrar, NÃO o expulsa da página!
+            if ((data.status === 'ativa' || data.status === 'ativo' || data.status === 'pago') && !qtdMemoria) {
+              router.push(`/sucesso-carteira?token=${token}`);
+              return;
+            }
 
           const dadosCompletos = {
             ...data,
@@ -144,10 +146,16 @@ function CheckoutCarteiraContent() {
 
           setDadosCidadão(dadosCompletos);
           
-          if (dadosCompletos.quantidade_pessoas) setQuantidade(Number(dadosCompletos.quantidade_pessoas));
-          else if (dadosCompletos.quantidade) setQuantidade(Number(dadosCompletos.quantidade));
-          else if (qtdUrl) setQuantidade(Number(qtdUrl));
-          else if (qtdMemoria) setQuantidade(Number(qtdMemoria));
+          // ◄── MUDANÇA DE PRIORIDADE: A memória local manda, pois representa o "carrinho" atual!
+          if (qtdMemoria) {
+            setQuantidade(Number(qtdMemoria));
+          } else if (qtdUrl) {
+            setQuantidade(Number(qtdUrl));
+          } else if (dadosCompletos.quantidade_pessoas) {
+            setQuantidade(Number(dadosCompletos.quantidade_pessoas));
+          } else if (dadosCompletos.quantidade) {
+            setQuantidade(Number(dadosCompletos.quantidade));
+          }
           
           if (dadosCompletos.cpf) setCpfFaturamento(dadosCompletos.cpf);
           setNomeTitular(dadosCompletos.nome);

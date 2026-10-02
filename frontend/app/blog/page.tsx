@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState, useRef, ReactNode } from 'react';
 import {
-  Menu, X, ChevronDown, Loader2, Newspaper
+  Loader2, Newspaper, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
@@ -16,7 +16,9 @@ const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700', '
 type BlogPost = {
   id: string;
   titulo: string;
+  resumo?: string;
   imagem_url: string;
+  categoria?: string;
   data_publicacao: string;
   ativo?: boolean;
 };
@@ -51,106 +53,11 @@ function AnimatedSection({ children, className = "", animation = "fade-up", dela
   );
 }
 
-// ── HEADER FIXO BRANCO (SEM TRANSPARÊNCIA) ──
-function Header() {
-  const [showHeader, setShowHeader] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const y = window.scrollY;
-      if (y < 80) setShowHeader(true);
-      else if (y > lastScrollY) setShowHeader(false);
-      else setShowHeader(true);
-      setLastScrollY(y);
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [lastScrollY]);
-
-  const menuGroups = [
-  { 
-    label: 'Descobrir', 
-    links: ['Atrativos', 'História', 'Biodiversidade', 'Comunidades', 'Galeria', 'Eventos'] 
-  },
-  { 
-    label: 'Planejar', 
-    links: ['Hospedagens', 'Gastronomia', 'Agências', 'Informações', 'CAT'] 
-  },
-  { 
-    label: 'Institucional', 
-    links: ['SEMTUR', 'COMTUR', 'Parceiros'] 
-  },
-];
-
-  return (
-    <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${showHeader ? 'translate-y-0' : '-translate-y-full'} bg-white border-b border-slate-200 shadow-sm`}
-    >
-      <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4 relative">
-        <div className="flex-1">
-          <Link href="/" className="inline-flex items-center gap-3 transition-all duration-300">
-            <div className="relative h-10 w-28 md:h-12 md:w-36 shrink-0">
-              <Image src="/logop.png" alt="SagaTurismo" fill className="object-contain" />
-            </div>
-          </Link>
-        </div>
-
-        <nav className="hidden lg:flex items-center justify-center gap-12">
-          {menuGroups.map((group) => (
-            <div key={group.label} className="relative group py-2">
-              <button className={`${jakarta.className} flex items-center gap-1.5 text-xs font-black uppercase tracking-[0.2em] transition-colors text-slate-600 group-hover:text-[#00577C]`}>
-                {group.label} <ChevronDown size={14} className="group-hover:rotate-180 transition-transform duration-300" />
-              </button>
-              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max bg-white/95 backdrop-blur-xl border border-slate-100 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] rounded-2xl p-2 opacity-0 invisible translate-y-2 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 transition-all duration-300 z-50 flex flex-row items-center gap-1">
-                {group.links.map((link) => (
-                  <Link key={link} href={`/${link.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`} className={`${jakarta.className} block px-5 py-3 text-sm font-bold text-slate-600 hover:text-[#00577C] hover:bg-slate-50 rounded-xl transition-all whitespace-nowrap`}>
-                    {link}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          ))}
-        </nav>
-
-        <div className="flex-1 flex justify-end items-center gap-4">
-          <Link href="/cadastro"
-            className={`hidden lg:inline-flex ${jakarta.className} bg-[#F9C400] text-[#002f40] px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-sm`}>
-            Residente
-          </Link>
-          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="rounded-xl p-2 lg:hidden bg-slate-50 text-[#00577C] hover:bg-slate-100 transition-colors">
-            {isMobileMenuOpen ? <X className="h-8 w-8" /> : <Menu className="h-8 w-8" />}
-          </button>
-        </div>
-      </div>
-
-      {isMobileMenuOpen && (
-        <div className="absolute top-full left-0 w-full bg-white border-b border-slate-200 p-6 flex flex-col gap-6 shadow-2xl lg:hidden z-50 max-h-[85vh] overflow-y-auto">
-          {menuGroups.map((group) => (
-            <div key={group.label} className="flex flex-col gap-3">
-              <p className={`${jakarta.className} text-[10px] font-black uppercase tracking-[0.2em] text-[#00577C] border-b border-slate-100 pb-2`}>{group.label}</p>
-              <div className="flex flex-wrap gap-2">
-                {group.links.map((link) => (
-                  <Link key={link} href={`/${link.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`} onClick={() => setIsMobileMenuOpen(false)} className={`${jakarta.className} font-bold text-slate-700 text-sm bg-slate-50 px-4 py-2 rounded-lg border border-slate-100 hover:text-[#00577C] hover:bg-slate-100 transition-colors`}>
-                    {link}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </header>
-  );
-}
-
 // ── COMPONENTE PRINCIPAL ──
 export default function BlogPage() {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [slideAtual, setSlideAtual] = useState(0);
 
   const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1542382156909-9ae37b3f56fd?q=80&w=2069";
 
@@ -158,7 +65,7 @@ export default function BlogPage() {
     async function fetchPosts() {
       const { data, error } = await supabase
         .from('blog')
-        .select('id, titulo, imagem_url, data_publicacao')
+        .select('*')
         .eq('ativo', true)
         .order('data_publicacao', { ascending: false });
 
@@ -172,31 +79,135 @@ export default function BlogPage() {
     fetchPosts();
   }, []);
 
+  // Notícias em destaque para o carrossel (5 primeiras com imagem)
+  const noticiasDestaque = posts.filter(p => p.imagem_url).slice(0, 5);
+
+  // Autoplay do carrossel
+  useEffect(() => {
+    if (noticiasDestaque.length <= 1) return;
+    const intervalo = setInterval(() => {
+      setSlideAtual((prev) => (prev === noticiasDestaque.length - 1 ? 0 : prev + 1));
+    }, 6000);
+    return () => clearInterval(intervalo);
+  }, [noticiasDestaque.length]);
+
+  const proximoSlide = () => setSlideAtual((prev) => (prev === noticiasDestaque.length - 1 ? 0 : prev + 1));
+  const slideAnterior = () => setSlideAtual((prev) => (prev === 0 ? noticiasDestaque.length - 1 : prev - 1));
+
   const formatarData = (dataStr: string) => {
     if (!dataStr) return '';
     const date = new Date(dataStr + 'T00:00:00');
-    return date.toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
+    return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  };
+
+  // Limpar HTML do resumo
+  const obterResumo = (post: BlogPost) => {
+    let texto = post.resumo || '';
+    if (texto.includes("<")) {
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = texto;
+      texto = tempDiv.textContent || tempDiv.innerText || texto;
+    }
+    texto = texto.replace(/&nbsp;/g, ' ');
+    if (texto.length > 150) texto = texto.substring(0, 150) + '...';
+    return texto;
   };
 
   return (
-    <div className={`${inter.className} min-h-screen bg-[#FDFCF7] text-slate-900 flex flex-col`}>
-      <Header />
+    <main className={`${inter.className} min-h-screen bg-[#FDFCF7] text-slate-900 flex flex-col`}>
 
-      {/* ── TÍTULO DA PÁGINA (CENTRALIZADO) ── */}
-      <div className="pt-32 md:pt-36 pb-12 px-6 max-w-[1400px] mx-auto w-full text-center">
+      {/* ══════════════════════════════════════
+          HERO CARROSSEL — SEMMAS STYLE
+      ══════════════════════════════════════ */}
+      <section className="relative w-full h-[85vh] min-h-[550px] overflow-hidden bg-[#002f40] flex items-center justify-center pt-16">
+        {loading ? (
+          <Loader2 className="animate-spin text-white/50" size={40} />
+        ) : noticiasDestaque.length > 0 ? (
+          <>
+            {noticiasDestaque.map((post, idx) => (
+              <div 
+                key={post.id} 
+                className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${idx === slideAtual ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
+              >
+                <Image 
+                  src={post.imagem_url} 
+                  alt={post.titulo} 
+                  fill 
+                  className={`object-cover transition-transform duration-[10000ms] ${idx === slideAtual ? 'scale-105' : 'scale-100'}`}
+                  priority={idx === 0} 
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#002f40]/95 via-[#002f40]/40 to-transparent" />
+                
+                <div className="absolute bottom-0 left-0 w-full px-6 pb-20 md:pb-24 pt-32">
+                  <div className="max-w-7xl mx-auto flex flex-col items-start">
+                    <span className="bg-[#F9C400] text-[#002f40] text-[10px] sm:text-xs font-black uppercase tracking-widest px-4 py-1.5 rounded-full mb-4 shadow-lg">
+                      {post.categoria || "Notícias"}
+                    </span>
+                    <Link href={`/blog/${post.id}`} className="group max-w-4xl cursor-pointer">
+                      <h2 className={`${jakarta.className} text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white leading-[1.1] drop-shadow-xl group-hover:text-[#F9C400] transition-colors line-clamp-3`}>
+                        {post.titulo}
+                      </h2>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {/* Setas */}
+            <div className="absolute top-1/2 -translate-y-1/2 left-0 right-0 px-4 md:px-12 flex justify-between z-20 pointer-events-none">
+              <button onClick={slideAnterior} className="pointer-events-auto w-12 h-12 rounded-full bg-black/20 hover:bg-black/50 backdrop-blur border border-white/20 flex items-center justify-center text-white transition-all hover:scale-110">
+                <ChevronLeft size={24} />
+              </button>
+              <button onClick={proximoSlide} className="pointer-events-auto w-12 h-12 rounded-full bg-black/20 hover:bg-black/50 backdrop-blur border border-white/20 flex items-center justify-center text-white transition-all hover:scale-110">
+                <ChevronRight size={24} />
+              </button>
+            </div>
+
+            {/* Dots */}
+            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex gap-2">
+              {noticiasDestaque.map((_, idx) => (
+                <button 
+                  key={idx}
+                  onClick={() => setSlideAtual(idx)}
+                  className={`h-2 rounded-full transition-all duration-300 ${idx === slideAtual ? 'w-8 bg-[#F9C400]' : 'w-2 bg-white/50 hover:bg-white/80'}`}
+                  aria-label={`Ir para o slide ${idx + 1}`}
+                />
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="absolute inset-0 z-0">
+            <Image 
+              src={FALLBACK_IMAGE} 
+              alt="Blog Andorinhas" 
+              fill 
+              className="object-cover opacity-50"
+            />
+            <div className="absolute inset-0 bg-[#002f40]/60 mix-blend-multiply" />
+            <div className="relative z-10 w-full h-full flex items-center justify-center">
+              <h1 className={`${jakarta.className} text-[3rem] font-black text-white uppercase tracking-widest`}>
+                BLOG ANDORINHAS
+              </h1>
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* ══════════════════════════════════════
+          TÍTULO DA PÁGINA
+      ══════════════════════════════════════ */}
+      <div className="pt-16 md:pt-20 pb-8 px-6 max-w-[1400px] mx-auto w-full text-center">
         <h1 className={`${jakarta.className} text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight`}>
-          Blog Andorinhas
+          Notícias & <span className="italic text-[#F9C400]">Roteiros</span>
         </h1>
         <p className="text-slate-500 text-base md:text-lg font-medium mt-3">
           Notícias, roteiros e novidades sobre turismo em São Geraldo do Araguaia
         </p>
       </div>
 
-      {/* ── GRELHA DE NOTÍCIAS ── */}
+      {/* ══════════════════════════════════════
+          GRELHA DE NOTÍCIAS
+      ══════════════════════════════════════ */}
       <section className="mx-auto max-w-[1400px] px-6 pb-16 md:pb-24 w-full flex-1">
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-16">
@@ -216,39 +227,51 @@ export default function BlogPage() {
             <p className="text-slate-500">Em breve teremos novidades e roteiros publicados.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-16">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-14">
             {posts.map((post, index) => (
               <AnimatedSection key={post.id} animation="fade-up" delay={index * 50}>
-                <Link href={`/blog/${post.id}`} className="group flex flex-col gap-5 block h-full">
+                <Link href={`/blog/${post.id}`} className="group flex flex-col gap-4 block h-full">
                   
                   {/* Imagem */}
-                  <div className="relative w-full aspect-[4/3] rounded-2xl overflow-hidden bg-slate-100">
+                  <div className="relative w-full aspect-[4/3] rounded-[1.25rem] overflow-hidden bg-slate-100 shadow-sm">
                     <Image 
                       src={post.imagem_url || FALLBACK_IMAGE} 
                       alt={post.titulo} 
                       fill 
-                      className="object-cover group-hover:scale-105 transition-transform duration-[1500ms] ease-out" 
+                      className="object-cover group-hover:scale-105 transition-transform duration-700 ease-in-out" 
                     />
                   </div>
 
-                  <div className="flex flex-col items-start text-left gap-3">
-                    {/* Data discreta */}
+                  {/* Categoria + Data */}
+                  <div className="flex items-center justify-between mt-2">
+                    {post.categoria && (
+                      <span className="text-[0.65rem] font-bold text-[#00577C] uppercase tracking-wider bg-[#00577C]/10 px-3 py-1 rounded-full">
+                        {post.categoria}
+                      </span>
+                    )}
                     {post.data_publicacao && (
-                      <span className="text-[12px] font-bold text-slate-400/80 tracking-widest">
+                      <span className="text-[0.75rem] font-bold text-slate-400 tracking-wider">
                         {formatarData(post.data_publicacao)}
                       </span>
                     )}
-
-                    {/* Título principal a negrito */}
-                    <h3 className={`${jakarta.className} text-2xl md:text-[26px] font-black text-slate-900 leading-[1.2] group-hover:text-[#00577C] transition-colors`}>
-                      {post.titulo}
-                    </h3>
-                    
-                    {/* Link "Leia mais" ao estilo clássico */}
-                    <span className="text-[#00577C] text-[13px] mt-1 font-bold tracking-wide underline underline-offset-4 decoration-slate-200 group-hover:decoration-[#00577C] transition-colors">
-                      Leia mais
-                    </span>
                   </div>
+
+                  {/* Título */}
+                  <h3 className={`${jakarta.className} text-xl md:text-[1.35rem] font-black text-[#002f40] leading-tight group-hover:text-[#00577C] transition-colors line-clamp-3`}>
+                    {post.titulo}
+                  </h3>
+
+                  {/* Resumo (se existir) */}
+                  {post.resumo && obterResumo(post) && (
+                    <p className="text-sm text-slate-500 font-medium line-clamp-2">
+                      {obterResumo(post)}
+                    </p>
+                  )}
+
+                  {/* Leia mais */}
+                  <span className="text-[0.85rem] font-bold text-[#00577C] mt-auto pt-2 group-hover:underline flex items-center gap-1">
+                    Ler notícia completa <ChevronRight size={14} />
+                  </span>
                 </Link>
               </AnimatedSection>
             ))}
@@ -256,22 +279,20 @@ export default function BlogPage() {
         )}
       </section>
 
-      {/* ── FOOTER INSTITUCIONAL ── */}
-      <footer className="py-20 px-8 border-t border-slate-200 bg-[#FDFCF7] text-left mt-auto">
-        <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
-          <div className="flex flex-col items-center md:items-start gap-4">
-            <div className="flex items-center gap-6">
-              <Image src="/logop.png" alt="SagaTurismo" width={160} height={50} className="object-contain" />
-              <div className="w-px h-12 bg-slate-200 hidden md:block" />
-              <Image src="/prefeitura.png" alt="Prefeitura" width={140} height={50} className="object-contain" />
-            </div>
-            <div className="text-left space-y-1 text-center md:text-left">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">© 2026 Prefeitura Munícipal de São Geraldo do Araguaia - PA</p>
-              <p className="text-[10px] font-bold text-slate-400/80">CNPJ: 10.249.241/0001-22</p>
-            </div>
-          </div>
-        </div>
-      </footer>
-    </div>
+      <style jsx global>{`
+        .line-clamp-2 {
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+        .line-clamp-3 {
+          display: -webkit-box;
+          -webkit-line-clamp: 3;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+      `}</style>
+    </main>
   );
 }

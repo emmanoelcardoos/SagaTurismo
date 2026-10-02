@@ -5,10 +5,9 @@ import { Plus_Jakarta_Sans, Inter } from "next/font/google";
 import { supabase } from "@/lib/supabase";
 import {
   Newspaper, Plus, Loader2, Save, Image as ImageIcon,
-  Sparkles, ArrowLeft, Tag, Calendar, User, Eye, EyeOff,
+  ArrowLeft, Tag, Calendar, User, Eye, EyeOff,
   Star, Code2, PenLine, FileText, CheckCircle2, AlertTriangle,
-  Inbox, Filter, Search, X, Pencil, Trash2, Hash, Camera,
-  MoreHorizontal, ExternalLink, Clock,
+  Inbox, Search, X, Pencil, Trash2, Clock, ExternalLink,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import "react-quill/dist/quill.snow.css";
@@ -44,17 +43,17 @@ const quillModules = {
 const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["500", "600", "700", "800"] });
 const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
-// ─── PALETA ENTERPRISE ───
-const INK = "#0A0E14";
-const INK_2 = "#1F2937";
+// ─── PALETA ENTERPRISE (adaptada do SEMMAS, mas com identidade SagaTurismo) ───
+const INK = "#002f40";          // Azul escuro SagaTurismo (usado no header/home)
+const INK_2 = "#00577C";        // Azul principal SagaTurismo
 const MUTED = "#6B7280";
 const SUBTLE = "#9CA3AF";
 const LINE = "#E5E7EB";
 const LINE_2 = "#F3F4F6";
-const BG = "#FBFBFC";
+const BG = "#FDFCF7";           // Fundo da página
 const SURFACE = "#FFFFFF";
-const ACCENT = "#2563EB";
-const SUCCESS = "#059669";
+const ACCENT = "#F9C400";       // Amarelo institucional
+const SUCCESS = "#009640";      // Verde
 const WARNING = "#D97706";
 const DANGER = "#DC2626";
 
@@ -124,7 +123,7 @@ function GlobalStyles() {
       .scroll-thin::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 3px; }
       .scroll-thin::-webkit-scrollbar-thumb:hover { background: #9CA3AF; }
 
-      /* Editor Quill — minimalista, mesma paleta do sistema */
+      /* Editor Quill — adaptado à paleta SagaTurismo */
       .ql-toolbar.ql-snow {
         border: none !important;
         border-bottom: 1px solid ${LINE} !important;
@@ -153,15 +152,15 @@ function GlobalStyles() {
       .ql-snow .ql-picker-options {
         border-color: ${LINE} !important;
         border-radius: 6px !important;
-        box-shadow: 0 4px 16px rgba(15,23,42,0.08) !important;
+        box-shadow: 0 4px 16px rgba(0,47,64,0.08) !important;
       }
       .ql-snow.ql-toolbar button:hover .ql-stroke,
       .ql-snow.ql-toolbar button.ql-active .ql-stroke {
-        stroke: ${INK} !important;
+        stroke: ${INK_2} !important;
       }
       .ql-snow.ql-toolbar button:hover .ql-fill,
       .ql-snow.ql-toolbar button.ql-active .ql-fill {
-        fill: ${INK} !important;
+        fill: ${INK_2} !important;
       }
     `}</style>
   );
@@ -171,7 +170,11 @@ function GlobalStyles() {
 // ÁTOMOS
 // ═══════════════════════════════════════════════════════════════
 
-function Panel({ children, className = "", noPad = false }: {
+function Panel({
+  children,
+  className = "",
+  noPad = false,
+}: {
   children: React.ReactNode;
   className?: string;
   noPad?: boolean;
@@ -184,7 +187,10 @@ function Panel({ children, className = "", noPad = false }: {
 }
 
 function PanelHeader({
-  title, subtitle, action, badge,
+  title,
+  subtitle,
+  action,
+  badge,
 }: {
   title: string;
   subtitle?: string;
@@ -215,7 +221,12 @@ function PanelHeader({
 }
 
 function FormField({
-  label, icon, required, hint, children, className = "",
+  label,
+  icon,
+  required,
+  hint,
+  children,
+  className = "",
 }: {
   label: string;
   icon?: React.ReactNode;
@@ -244,12 +255,19 @@ function FormField({
   );
 }
 
-function StatusPill({ tone, children }: { tone: "success" | "danger" | "warning" | "neutral"; children: React.ReactNode }) {
+function StatusPill({
+  tone,
+  children,
+}: {
+  tone: "success" | "danger" | "warning" | "neutral" | "accent";
+  children: React.ReactNode;
+}) {
   const map = {
     success: { c: SUCCESS, bg: "#ECFDF5", b: "#D1FAE5" },
     danger: { c: DANGER, bg: "#FEF2F2", b: "#FEE2E2" },
     warning: { c: WARNING, bg: "#FFFBEB", b: "#FEF3C7" },
     neutral: { c: MUTED, bg: LINE_2, b: LINE },
+    accent: { c: INK_2, bg: "#F0F7FA", b: "#D6E9F0" },
   }[tone];
   return (
     <span
@@ -416,7 +434,9 @@ export default function PortalBlog() {
                   {editando ? "Editar" : "Novo"}
                 </span>
                 <span className="text-[11px]" style={{ color: MUTED }}>
-                  {editando ? `Última alteração em ${tempoRelativo(editando.data_publicacao)}` : "Rascunho"}
+                  {editando
+                    ? `Última alteração em ${tempoRelativo(editando.data_publicacao)}`
+                    : "Rascunho"}
                 </span>
               </div>
               <h1
@@ -427,7 +447,6 @@ export default function PortalBlog() {
               </h1>
             </div>
 
-            {/* Ações no topo */}
             <div className="flex items-center gap-2 shrink-0">
               <button
                 onClick={() => setShowForm(false)}
@@ -442,9 +461,9 @@ export default function PortalBlog() {
                 onClick={handleSave}
                 disabled={saving}
                 className="h-9 px-3.5 rounded-md text-[12.5px] font-semibold flex items-center gap-2 text-white transition-colors disabled:opacity-50"
-                style={{ background: INK }}
-                onMouseEnter={(e) => !saving && (e.currentTarget.style.background = INK_2)}
-                onMouseLeave={(e) => !saving && (e.currentTarget.style.background = INK)}
+                style={{ background: INK_2 }}
+                onMouseEnter={(e) => !saving && (e.currentTarget.style.background = INK)}
+                onMouseLeave={(e) => !saving && (e.currentTarget.style.background = INK_2)}
               >
                 {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
                 {saving ? "A guardar..." : editando ? "Guardar" : "Publicar"}
@@ -458,26 +477,18 @@ export default function PortalBlog() {
             {/* Coluna principal */}
             <div className="lg:col-span-8 space-y-4">
 
-              {/* Conteúdo */}
               <Panel noPad className="anim-fade-up">
-                <PanelHeader
-                  title="Conteúdo"
-                  subtitle="Título, resumo e corpo editorial"
-                />
+                <PanelHeader title="Conteúdo" subtitle="Título, resumo e corpo editorial" />
                 <div className="p-5 space-y-4">
-                  <FormField
-                    label="Título"
-                    icon={<FileText size={10} />}
-                    required
-                  >
+                  <FormField label="Título" icon={<FileText size={10} />} required>
                     <input
                       value={form.titulo}
                       onChange={(e) => setForm({ ...form, titulo: e.target.value })}
                       className={inputCls}
                       style={{ borderColor: LINE }}
                       onFocus={(e) => {
-                        e.currentTarget.style.borderColor = INK;
-                        e.currentTarget.style.boxShadow = `0 0 0 3px rgba(10,14,20,0.06)`;
+                        e.currentTarget.style.borderColor = INK_2;
+                        e.currentTarget.style.boxShadow = `0 0 0 3px rgba(0,87,124,0.08)`;
                       }}
                       onBlur={(e) => {
                         e.currentTarget.style.borderColor = LINE;
@@ -499,8 +510,8 @@ export default function PortalBlog() {
                       className={`${inputCls} resize-none`}
                       style={{ borderColor: LINE }}
                       onFocus={(e) => {
-                        e.currentTarget.style.borderColor = INK;
-                        e.currentTarget.style.boxShadow = `0 0 0 3px rgba(10,14,20,0.06)`;
+                        e.currentTarget.style.borderColor = INK_2;
+                        e.currentTarget.style.boxShadow = `0 0 0 3px rgba(0,87,124,0.08)`;
                       }}
                       onBlur={(e) => {
                         e.currentTarget.style.borderColor = LINE;
@@ -517,7 +528,8 @@ export default function PortalBlog() {
                         className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em]"
                         style={{ color: MUTED }}
                       >
-                        <FileText size={10} /> Corpo do artigo <span style={{ color: DANGER }}>*</span>
+                        <FileText size={10} /> Corpo do artigo{" "}
+                        <span style={{ color: DANGER }}>*</span>
                       </label>
 
                       <div
@@ -530,8 +542,11 @@ export default function PortalBlog() {
                           className="text-[10.5px] font-semibold uppercase tracking-wide px-2 py-1 rounded transition-colors flex items-center gap-1"
                           style={{
                             background: modoEditor === "visual" ? SURFACE : "transparent",
-                            color: modoEditor === "visual" ? INK : MUTED,
-                            boxShadow: modoEditor === "visual" ? "0 1px 2px rgba(15,23,42,0.06)" : "none",
+                            color: modoEditor === "visual" ? INK_2 : MUTED,
+                            boxShadow:
+                              modoEditor === "visual"
+                                ? "0 1px 2px rgba(0,47,64,0.06)"
+                                : "none",
                           }}
                         >
                           <Eye size={10} strokeWidth={2.5} />
@@ -543,8 +558,11 @@ export default function PortalBlog() {
                           className="text-[10.5px] font-semibold uppercase tracking-wide px-2 py-1 rounded transition-colors flex items-center gap-1"
                           style={{
                             background: modoEditor === "codigo" ? SURFACE : "transparent",
-                            color: modoEditor === "codigo" ? INK : MUTED,
-                            boxShadow: modoEditor === "codigo" ? "0 1px 2px rgba(15,23,42,0.06)" : "none",
+                            color: modoEditor === "codigo" ? INK_2 : MUTED,
+                            boxShadow:
+                              modoEditor === "codigo"
+                                ? "0 1px 2px rgba(0,47,64,0.06)"
+                                : "none",
                           }}
                         >
                           <Code2 size={10} strokeWidth={2.5} />
@@ -584,11 +602,8 @@ export default function PortalBlog() {
             <div className="lg:col-span-4 space-y-4">
 
               {/* Publicação */}
-              <Panel noPad className="anim-fade-up" >
-                <PanelHeader
-                  title="Publicação"
-                  subtitle="Autoria e visibilidade"
-                />
+              <Panel noPad className="anim-fade-up">
+                <PanelHeader title="Publicação" subtitle="Autoria e visibilidade" />
                 <div className="p-5 space-y-4">
                   <FormField label="Autor" icon={<User size={10} />}>
                     <input
@@ -597,8 +612,8 @@ export default function PortalBlog() {
                       className={inputCls}
                       style={{ borderColor: LINE }}
                       onFocus={(e) => {
-                        e.currentTarget.style.borderColor = INK;
-                        e.currentTarget.style.boxShadow = `0 0 0 3px rgba(10,14,20,0.06)`;
+                        e.currentTarget.style.borderColor = INK_2;
+                        e.currentTarget.style.boxShadow = `0 0 0 3px rgba(0,87,124,0.08)`;
                       }}
                       onBlur={(e) => {
                         e.currentTarget.style.borderColor = LINE;
@@ -615,8 +630,8 @@ export default function PortalBlog() {
                       className={inputCls}
                       style={{ borderColor: LINE }}
                       onFocus={(e) => {
-                        e.currentTarget.style.borderColor = INK;
-                        e.currentTarget.style.boxShadow = `0 0 0 3px rgba(10,14,20,0.06)`;
+                        e.currentTarget.style.borderColor = INK_2;
+                        e.currentTarget.style.boxShadow = `0 0 0 3px rgba(0,87,124,0.08)`;
                       }}
                       onBlur={(e) => {
                         e.currentTarget.style.borderColor = LINE;
@@ -626,7 +641,11 @@ export default function PortalBlog() {
                     />
                   </FormField>
 
-                  <FormField label="Data de publicação" icon={<Calendar size={10} />} required>
+                  <FormField
+                    label="Data de publicação"
+                    icon={<Calendar size={10} />}
+                    required
+                  >
                     <input
                       type="date"
                       value={form.data_publicacao}
@@ -634,8 +653,8 @@ export default function PortalBlog() {
                       className={inputCls}
                       style={{ borderColor: LINE }}
                       onFocus={(e) => {
-                        e.currentTarget.style.borderColor = INK;
-                        e.currentTarget.style.boxShadow = `0 0 0 3px rgba(10,14,20,0.06)`;
+                        e.currentTarget.style.borderColor = INK_2;
+                        e.currentTarget.style.boxShadow = `0 0 0 3px rgba(0,87,124,0.08)`;
                       }}
                       onBlur={(e) => {
                         e.currentTarget.style.borderColor = LINE;
@@ -648,7 +667,9 @@ export default function PortalBlog() {
                     <FormField label="Visibilidade" icon={<Eye size={10} />}>
                       <select
                         value={String(form.ativo)}
-                        onChange={(e) => setForm({ ...form, ativo: e.target.value === "true" })}
+                        onChange={(e) =>
+                          setForm({ ...form, ativo: e.target.value === "true" })
+                        }
                         className={inputCls}
                         style={{ borderColor: LINE }}
                       >
@@ -660,7 +681,9 @@ export default function PortalBlog() {
                     <FormField label="Destaque" icon={<Star size={10} />}>
                       <select
                         value={String(form.destaque)}
-                        onChange={(e) => setForm({ ...form, destaque: e.target.value === "true" })}
+                        onChange={(e) =>
+                          setForm({ ...form, destaque: e.target.value === "true" })
+                        }
                         className={inputCls}
                         style={{ borderColor: LINE }}
                       >
@@ -674,10 +697,7 @@ export default function PortalBlog() {
 
               {/* Imagem */}
               <Panel noPad className="anim-fade-up">
-                <PanelHeader
-                  title="Imagem de capa"
-                  subtitle="Visual principal"
-                />
+                <PanelHeader title="Imagem de capa" subtitle="Visual principal" />
                 <div className="p-5 space-y-4">
                   <FormField label="Ficheiro" icon={<ImageIcon size={10} />}>
                     <label
@@ -726,18 +746,17 @@ export default function PortalBlog() {
                     )}
                   </FormField>
 
-                  <FormField
-                    label="Legenda / créditos"
-                    icon={<FileText size={10} />}
-                  >
+                  <FormField label="Legenda / créditos" icon={<FileText size={10} />}>
                     <input
                       value={form.legenda_imagem_capa || ""}
-                      onChange={(e) => setForm({ ...form, legenda_imagem_capa: e.target.value })}
+                      onChange={(e) =>
+                        setForm({ ...form, legenda_imagem_capa: e.target.value })
+                      }
                       className={inputCls}
                       style={{ borderColor: LINE }}
                       onFocus={(e) => {
-                        e.currentTarget.style.borderColor = INK;
-                        e.currentTarget.style.boxShadow = `0 0 0 3px rgba(10,14,20,0.06)`;
+                        e.currentTarget.style.borderColor = INK_2;
+                        e.currentTarget.style.boxShadow = `0 0 0 3px rgba(0,87,124,0.08)`;
                       }}
                       onBlur={(e) => {
                         e.currentTarget.style.borderColor = LINE;
@@ -757,7 +776,9 @@ export default function PortalBlog() {
                     background: feedback.toLowerCase().includes("obrigat")
                       ? "#FEF2F2"
                       : "#ECFDF5",
-                    borderColor: feedback.toLowerCase().includes("obrigat") ? "#FEE2E2" : "#D1FAE5",
+                    borderColor: feedback.toLowerCase().includes("obrigat")
+                      ? "#FEE2E2"
+                      : "#D1FAE5",
                     color: feedback.toLowerCase().includes("obrigat") ? DANGER : SUCCESS,
                   }}
                 >
@@ -797,7 +818,9 @@ export default function PortalBlog() {
                 Conteúdo
               </span>
               <span className="text-[11px]" style={{ color: MUTED }}>
-                {posts.length} artigo{posts.length !== 1 ? "s" : ""} · {posts.filter((p) => p.ativo).length} público{posts.filter((p) => p.ativo).length !== 1 ? "s" : ""}
+                {posts.length} artigo{posts.length !== 1 ? "s" : ""} ·{" "}
+                {posts.filter((p) => p.ativo).length} público
+                {posts.filter((p) => p.ativo).length !== 1 ? "s" : ""}
               </span>
             </div>
             <h1
@@ -824,9 +847,9 @@ export default function PortalBlog() {
             <button
               onClick={abrirFormNovo}
               className="h-9 px-3.5 rounded-md text-[12.5px] font-semibold flex items-center gap-1.5 text-white transition-colors"
-              style={{ background: INK }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = INK_2)}
-              onMouseLeave={(e) => (e.currentTarget.style.background = INK)}
+              style={{ background: INK_2 }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = INK)}
+              onMouseLeave={(e) => (e.currentTarget.style.background = INK_2)}
             >
               <Plus size={14} strokeWidth={3} />
               Novo artigo
@@ -852,8 +875,8 @@ export default function PortalBlog() {
                   className={`${inputCls} pl-9 pr-9`}
                   style={{ borderColor: LINE }}
                   onFocus={(e) => {
-                    e.currentTarget.style.borderColor = INK;
-                    e.currentTarget.style.boxShadow = `0 0 0 3px rgba(10,14,20,0.06)`;
+                    e.currentTarget.style.borderColor = INK_2;
+                    e.currentTarget.style.boxShadow = `0 0 0 3px rgba(0,87,124,0.08)`;
                   }}
                   onBlur={(e) => {
                     e.currentTarget.style.borderColor = LINE;
@@ -908,7 +931,11 @@ export default function PortalBlog() {
                 className="w-11 h-11 rounded-lg mx-auto mb-3 flex items-center justify-center"
                 style={{ background: LINE_2, color: MUTED }}
               >
-                {busca ? <Search size={20} strokeWidth={2} /> : <Inbox size={20} strokeWidth={2} />}
+                {busca ? (
+                  <Search size={20} strokeWidth={2} />
+                ) : (
+                  <Inbox size={20} strokeWidth={2} />
+                )}
               </div>
               <p className={`${jakarta.className} text-[13px] font-bold`} style={{ color: INK }}>
                 {busca ? "Nenhum resultado" : "Nenhum artigo ainda"}
@@ -923,9 +950,9 @@ export default function PortalBlog() {
                   <button
                     onClick={() => setBusca("")}
                     className="h-9 px-3 rounded-md text-[12.5px] font-semibold text-white transition-colors"
-                    style={{ background: INK }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = INK_2)}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = INK)}
+                    style={{ background: INK_2 }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = INK)}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = INK_2)}
                   >
                     Limpar pesquisa
                   </button>
@@ -933,9 +960,9 @@ export default function PortalBlog() {
                   <button
                     onClick={abrirFormNovo}
                     className="h-9 px-3.5 rounded-md text-[12.5px] font-semibold inline-flex items-center gap-1.5 text-white transition-colors"
-                    style={{ background: INK }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = INK_2)}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = INK)}
+                    style={{ background: INK_2 }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = INK)}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = INK_2)}
                   >
                     <Plus size={14} strokeWidth={3} /> Novo artigo
                   </button>
@@ -951,14 +978,11 @@ export default function PortalBlog() {
                 style={{ animationDelay: `${idx * 20}ms` }}
                 className="bg-white border rounded-lg overflow-hidden hover:border-slate-300 transition-colors anim-fade-up group"
               >
-                {/* Faixa lateral esquerda conforme estado */}
                 <div className="flex items-stretch">
                   {/* Indicador de destaque */}
                   <div
                     className="w-1 shrink-0"
-                    style={{
-                      background: post.destaque ? WARNING : "transparent",
-                    }}
+                    style={{ background: post.destaque ? ACCENT : "transparent" }}
                   />
 
                   <div className="flex-1 p-3.5 flex flex-col sm:flex-row gap-4 min-w-0">
@@ -985,7 +1009,6 @@ export default function PortalBlog() {
 
                     {/* Conteúdo */}
                     <div className="flex-1 min-w-0 flex flex-col">
-                      {/* Badges */}
                       <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
                         <StatusPill tone={post.ativo ? "success" : "neutral"}>
                           {post.ativo ? <Eye size={8} /> : <EyeOff size={8} />}
@@ -1000,7 +1023,11 @@ export default function PortalBlog() {
                         {post.categoria && (
                           <span
                             className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide"
-                            style={{ background: LINE_2, color: MUTED, border: `1px solid ${LINE}` }}
+                            style={{
+                              background: LINE_2,
+                              color: MUTED,
+                              border: `1px solid ${LINE}`,
+                            }}
                           >
                             <Tag size={8} />
                             {post.categoria}
@@ -1051,7 +1078,7 @@ export default function PortalBlog() {
                         style={{ color: SUBTLE }}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.background = LINE_2;
-                          e.currentTarget.style.color = INK;
+                          e.currentTarget.style.color = INK_2;
                         }}
                         onMouseLeave={(e) => {
                           e.currentTarget.style.background = "transparent";
@@ -1067,7 +1094,7 @@ export default function PortalBlog() {
                         style={{ color: SUBTLE }}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.background = LINE_2;
-                          e.currentTarget.style.color = INK;
+                          e.currentTarget.style.color = INK_2;
                         }}
                         onMouseLeave={(e) => {
                           e.currentTarget.style.background = "transparent";
