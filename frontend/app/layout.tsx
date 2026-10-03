@@ -1,19 +1,9 @@
-// @ts-nocheck
 // app/layout.tsx
-
-"use client";
-
+import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Inter } from "next/font/google";
 import "./globals.css";
-import Image from "next/image";
-import Link from "next/link";
-import { useEffect, useState } from "react";
-import { Menu, X, ChevronDown } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { LayoutClient } from "./layout-client";
 
-// ════════════════════════════════════════════
-//  FONTES
-// ════════════════════════════════════════════
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800"],
@@ -28,387 +18,407 @@ const inter = Inter({
   display: "swap",
 });
 
-// ════════════════════════════════════════════
-//  PALETA SAGATURISMO
-// ════════════════════════════════════════════
-const AZUL_SAGA = "#00577C";
-const AMARELO_SAGA = "#F9C400";
+export const metadata: Metadata = {
+  metadataBase: new URL("https://turismo.saogeraldodoaraguaia.pa.gov.br"),
 
-// ════════════════════════════════════════════
-//  NAV GROUPS
-// ════════════════════════════════════════════
-const NAV_GROUPS = [
-  {
-    title: "Descobrir",
-    links: [
-      { label: "Atrativos", href: "/atrativos" },
-      { label: "História", href: "/historia" },
-      { label: "Biodiversidade", href: "/biodiversidade" },
-      { label: "Comunidades", href: "/comunidades" },
-      { label: "Roteiros", href: "/roteiros" },
-      { label: "Pesca Esportiva", href: "/pesca-esportiva" },
-      { label: "Eventos", href: "/eventos" },
+  title: {
+    default:
+      "Turismo São Geraldo do Araguaia | Serra das Andorinhas e Rio Araguaia",
+    template: "%s | Turismo São Geraldo do Araguaia",
+  },
+
+  description:
+    "Descubra São Geraldo do Araguaia - PA. Parque Estadual Serra dos Martírios/Andorinhas, Cachoeira Três Quedas, praias do Rio Araguaia, pinturas rupestres, Guerrilha do Araguaia e o melhor do ecoturismo no Pará.",
+
+  keywords: [
+
+    // ==========================================
+    // SERRA / PARQUE
+    // ==========================================
+
+    "Serra das Andorinhas",
+    "Serra dos Martírios",
+    "Serra das Andorinhas São Geraldo do Araguaia",
+    "Serra dos Martírios São Geraldo do Araguaia",
+    "Parque Estadual Serra dos Martírios Andorinhas",
+    "Parque Estadual Serra dos Martírios Andorinhas PA",
+    "PESAM",
+    "PESAM Pará",
+    "PESAM São Geraldo do Araguaia",
+    "Parque Estadual Serra dos Martírios Andorinhas turismo",
+    "Serra das Andorinhas turismo",
+    "Serra das Andorinhas turismo no Pará",
+    "Serra dos Martírios turismo",
+    "visitar Serra das Andorinhas",
+    "visitar Serra dos Martírios",
+    "trilhas Serra das Andorinhas",
+    "trilhas Serra dos Martírios",
+    "trilhas no PESAM",
+    "turismo de natureza Serra das Andorinhas",
+    "ecoturismo Serra das Andorinhas",
+    "aventura Serra das Andorinhas",
+    "guia Serra das Andorinhas",
+    "guia PESAM",
+    "passeio Serra das Andorinhas",
+    "roteiro Serra das Andorinhas",
+
+    // ==========================================
+    // ATRATIVOS / CACHOEIRAS / CAVERNAS
+    // ==========================================
+
+    "Cachoeira Três Quedas",
+    "Cachoeira das Três Quedas",
+    "Três Quedas São Geraldo do Araguaia",
+    "Cachoeira Três Quedas Pará",
+    "Cachoeiras em São Geraldo do Araguaia",
+    "cachoeiras perto de São Geraldo do Araguaia",
+    "cachoeiras no Araguaia",
+    "Casa de Pedra",
+    "Casa de Pedra São Geraldo do Araguaia",
+    "Casa de Pedra Serra das Andorinhas",
+    "Casa de Pedra Pará",
+    "Caverna das Andorinhas",
+    "Caverna das Andorinhas Pará",
+    "Caverna das Andorinhas São Geraldo do Araguaia",
+    "cavernas em São Geraldo do Araguaia",
+    "cavernas na Serra das Andorinhas",
+    "cavernas no Pará",
+    "Rancho Bela Serra",
+    "Rancho Bela Serra São Geraldo do Araguaia",
+    "atrativos turísticos São Geraldo do Araguaia",
+    "pontos turísticos São Geraldo do Araguaia",
+    "lugares para conhecer em São Geraldo do Araguaia",
+    "lugares para visitar em São Geraldo do Araguaia",
+    "passeios em São Geraldo do Araguaia",
+
+    // ==========================================
+    // RIO ARAGUAIA / PRAIAS / NATUREZA
+    // ==========================================
+
+    "Rio Araguaia",
+    "Rio Araguaia Pará",
+    "Rio Araguaia São Geraldo do Araguaia",
+    "turismo no Rio Araguaia",
+    "praias do Rio Araguaia",
+    "praias em São Geraldo do Araguaia",
+    "Praia da Gaivota",
+    "Praia da Gaivota São Geraldo do Araguaia",
+    "Praia da Gaivota Pará",
+    "Praia de Santa Cruz",
+    "Praia de Santa Cruz São Geraldo do Araguaia",
+    "Praia de Santa Cruz Pará",
+    "Praia de Ilha de Campo",
+    "Ilha de Campo São Geraldo do Araguaia",
+    "Praia de Ilha de Campo Pará",
+    "Remanso dos Botos",
+    "Remanso dos Botos São Geraldo do Araguaia",
+    "botos do Araguaia",
+    "observação de botos no Araguaia",
+    "praias de água doce no Pará",
+    "praias fluviais no Pará",
+    "praias do Araguaia no Pará",
+    "temporada de praia São Geraldo do Araguaia",
+    "verão no Araguaia",
+    "pesca no Rio Araguaia",
+    "pôr do sol no Rio Araguaia",
+    "natureza no Rio Araguaia",
+
+    // ==========================================
+    // ARQUEOLOGIA / PINTURAS RUPESTRES
+    // ==========================================
+
+    "pinturas rupestres na Amazônia",
+    "pinturas rupestres no Pará",
+    "pinturas rupestres São Geraldo do Araguaia",
+    "pinturas rupestres Serra das Andorinhas",
+    "pinturas rupestres Serra dos Martírios",
+    "arte rupestre no Pará",
+    "arte rupestre na Amazônia",
+    "sítios arqueológicos São Geraldo do Araguaia",
+    "sítios arqueológicos no Pará",
+    "sítio arqueológico Serra das Andorinhas",
+    "patrimônio arqueológico Pará",
+    "patrimônio arqueológico São Geraldo do Araguaia",
+    "arqueologia no Pará",
+    "arqueologia na Amazônia",
+    "arqueologia Serra das Andorinhas",
+    "história da Serra das Andorinhas",
+    "história da Serra dos Martírios",
+    "vestígios arqueológicos no Araguaia",
+
+    // ==========================================
+    // HISTÓRIA / GUERRILHA DO ARAGUAIA
+    // ==========================================
+
+    "Guerrilha do Araguaia",
+    "Guerrilha do Araguaia São Geraldo do Araguaia",
+    "Guerrilha do Araguaia Pará",
+    "história da Guerrilha do Araguaia",
+    "história de São Geraldo do Araguaia",
+    "história do Araguaia",
+    "memória da Guerrilha do Araguaia",
+    "lugares históricos da Guerrilha do Araguaia",
+    "patrimônio histórico São Geraldo do Araguaia",
+    "patrimônio cultural São Geraldo do Araguaia",
+    "história do Pará",
+
+    // ==========================================
+    // O QUE FAZER / GUIAS / ROTEIROS
+    // ==========================================
+
+    "o que fazer em São Geraldo do Araguaia",
+    "o que fazer em São Geraldo do Araguaia PA",
+    "o que visitar em São Geraldo do Araguaia",
+    "pontos turísticos de São Geraldo do Araguaia",
+    "pontos turísticos São Geraldo do Araguaia PA",
+    "turismo em São Geraldo do Araguaia",
+    "turismo São Geraldo do Araguaia PA",
+    "roteiro São Geraldo do Araguaia",
+    "roteiro turístico São Geraldo do Araguaia",
+    "roteiro de viagem São Geraldo do Araguaia",
+    "viagem para São Geraldo do Araguaia",
+    "viajar para São Geraldo do Araguaia",
+    "destinos turísticos no Pará",
+    "destinos de natureza no Pará",
+    "destinos de ecoturismo no Pará",
+    "lugares turísticos no Pará",
+    "melhores passeios São Geraldo do Araguaia",
+    "passeios turísticos São Geraldo do Araguaia",
+    "tour São Geraldo do Araguaia",
+    "turismo de aventura São Geraldo do Araguaia",
+    "ecoturismo São Geraldo do Araguaia",
+    "turismo de natureza São Geraldo do Araguaia",
+
+    // ==========================================
+    // PLANEJAMENTO DA VIAGEM
+    // ==========================================
+
+    "como chegar em São Geraldo do Araguaia",
+    "como chegar a São Geraldo do Araguaia",
+    "como chegar na Serra das Andorinhas",
+    "como chegar no PESAM",
+    "como chegar ao Parque Estadual Serra dos Martírios Andorinhas",
+    "distância até São Geraldo do Araguaia",
+    "São Geraldo do Araguaia como chegar",
+    "São Geraldo do Araguaia de carro",
+    "São Geraldo do Araguaia de avião",
+    "aeroporto perto de São Geraldo do Araguaia",
+    "quando visitar São Geraldo do Araguaia",
+    "melhor época para visitar São Geraldo do Araguaia",
+    "melhor época para visitar Serra das Andorinhas",
+    "clima São Geraldo do Araguaia",
+    "tempo São Geraldo do Araguaia",
+    "temporada de praias São Geraldo do Araguaia",
+    "quanto custa viajar para São Geraldo do Araguaia",
+    "viagem São Geraldo do Araguaia",
+    "fim de semana em São Geraldo do Araguaia",
+    "feriado em São Geraldo do Araguaia",
+    "o que levar para Serra das Andorinhas",
+    "o que levar para trilha no PESAM",
+
+    // ==========================================
+    // HOSPEDAGEM
+    // ==========================================
+
+    "onde ficar em São Geraldo do Araguaia",
+    "onde se hospedar em São Geraldo do Araguaia",
+    "hospedagem São Geraldo do Araguaia",
+    "hotéis em São Geraldo do Araguaia",
+    "hotel São Geraldo do Araguaia",
+    "pousadas em São Geraldo do Araguaia",
+    "pousada São Geraldo do Araguaia",
+    "onde dormir em São Geraldo do Araguaia",
+    "acomodação São Geraldo do Araguaia",
+    "hospedagem perto da Serra das Andorinhas",
+    "pousada perto da Serra das Andorinhas",
+    "hotel perto do PESAM",
+
+    // ==========================================
+    // GUIAS / TURISMO RECEPTIVO
+    // ==========================================
+
+    "guia turístico São Geraldo do Araguaia",
+    "guia de turismo São Geraldo do Araguaia",
+    "guia local São Geraldo do Araguaia",
+    "guia Serra das Andorinhas",
+    "guia Serra dos Martírios",
+    "guia PESAM",
+    "agência de turismo São Geraldo do Araguaia",
+    "agência de turismo no Araguaia",
+    "turismo receptivo São Geraldo do Araguaia",
+    "passeio guiado Serra das Andorinhas",
+    "trilha guiada Serra das Andorinhas",
+    "trilha com guia PESAM",
+    "excursão São Geraldo do Araguaia",
+    "passeios São Geraldo do Araguaia",
+
+    // ==========================================
+    // FAMÍLIA / AVENTURA / EXPERIÊNCIAS
+    // ==========================================
+
+    "turismo para família São Geraldo do Araguaia",
+    "passeios em família São Geraldo do Araguaia",
+    "trilhas São Geraldo do Araguaia",
+    "trilhas no Pará",
+    "trilhas na Amazônia",
+    "aventura no Araguaia",
+    "turismo de aventura no Pará",
+    "ecoturismo no Pará",
+    "ecoturismo na Amazônia",
+    "turismo de natureza no Pará",
+    "turismo de natureza na Amazônia",
+    "experiências na Amazônia",
+    "experiências no Araguaia",
+    "banho de cachoeira São Geraldo do Araguaia",
+    "banho de rio São Geraldo do Araguaia",
+    "observação da natureza São Geraldo do Araguaia",
+    "fotografia de natureza São Geraldo do Araguaia",
+
+    // ==========================================
+    // CIDADE / REGIÃO
+    // ==========================================
+
+    "São Geraldo do Araguaia",
+    "São Geraldo do Araguaia PA",
+    "São Geraldo do Araguaia Pará",
+    "turismo em São Geraldo do Araguaia Pará",
+    "cidade de São Geraldo do Araguaia",
+    "Araguaia Pará",
+    "região do Araguaia Pará",
+    "sudeste do Pará turismo",
+    "turismo no sudeste do Pará",
+    "turismo no sul do Pará",
+    "turismo no Pará",
+    "turismo na Amazônia",
+
+    // ==========================================
+    // MARABÁ / XAMBIOÁ / ARAGUAÍNA
+    // ==========================================
+
+    "o que fazer em Marabá",
+    "turismo em Marabá",
+    "pontos turísticos de Marabá",
+    "Marabá São Geraldo do Araguaia",
+    "como ir de Marabá para São Geraldo do Araguaia",
+    "distância Marabá São Geraldo do Araguaia",
+
+    "Xambioá",
+    "turismo em Xambioá",
+    "o que fazer em Xambioá",
+    "Xambioá Tocantins",
+    "São Geraldo do Araguaia Xambioá",
+    "como ir de Xambioá para São Geraldo do Araguaia",
+
+    "Araguaína",
+    "turismo em Araguaína",
+    "Araguaína São Geraldo do Araguaia",
+    "como ir de Araguaína para São Geraldo do Araguaia",
+    "distância Araguaína São Geraldo do Araguaia",
+
+    // ==========================================
+    // PONTE / ACESSO / CONEXÃO REGIONAL
+    // ==========================================
+
+    "Ponte São Geraldo do Araguaia",
+    "Ponte do Araguaia São Geraldo do Araguaia",
+    "ponte São Geraldo do Araguaia Xambioá",
+    "travessia do Rio Araguaia",
+    "Rio Araguaia Xambioá",
+    "Rio Araguaia São Geraldo do Araguaia",
+    "acesso São Geraldo do Araguaia",
+    "acesso Serra das Andorinhas",
+
+    // ==========================================
+    // BUSCAS LONG TAIL
+    // ==========================================
+
+    "lugares para conhecer no Araguaia",
+    "lugares para conhecer no Pará",
+    "lugares para conhecer na Amazônia",
+    "lugares para viajar no Pará",
+    "lugares para viajar no Araguaia",
+    "destinos para viajar no Pará",
+    "destinos para viajar na Amazônia",
+    "destinos de aventura no Pará",
+    "destinos de natureza no Araguaia",
+    "destinos de ecoturismo na Amazônia",
+    "viagem de aventura no Pará",
+    "viagem de natureza no Pará",
+    "roteiro de ecoturismo no Pará",
+    "roteiro de ecoturismo na Amazônia",
+    "roteiro pelo Araguaia",
+    "roteiro de viagem pelo Araguaia",
+    "o que conhecer no Araguaia",
+    "o que fazer no Araguaia",
+    "o que visitar no Araguaia",
+    "turismo fora do comum no Pará",
+    "turismo de aventura no Araguaia",
+    "turismo sustentável no Pará",
+    "turismo sustentável na Amazônia"
+
+  ],
+
+  authors: [{ name: "Prefeitura de São Geraldo do Araguaia" }],
+  creator: "Prefeitura de São Geraldo do Araguaia",
+  publisher: "Prefeitura de São Geraldo do Araguaia",
+
+  openGraph: {
+    type: "website",
+    locale: "pt_BR",
+    url: "https://turismo.saogeraldodoaraguaia.pa.gov.br",
+    siteName: "Turismo São Geraldo do Araguaia",
+    title:
+      "Turismo São Geraldo do Araguaia | Serra das Andorinhas e Rio Araguaia",
+    description:
+      "Parque Estadual Serra dos Martírios/Andorinhas, Cachoeira Três Quedas, praias do Rio Araguaia e o melhor do ecoturismo no Pará.",
+    images: [
+      {
+        url: "/og-image.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Serra das Andorinhas — São Geraldo do Araguaia",
+      },
     ],
   },
-  {
-    title: "Planejar",
-    links: [
-      { label: "Hospedagens", href: "/hospedagens" },
-      { label: "Gastronomia", href: "/gastronomia" },
-      { label: "Agências", href: "/agencias" },
-      { label: "Informações", href: "/informacoes" },
-      { label: "App SagaTurismo", href: "/app-turismo" },
-      { label: "CAT", href: "/cat" },
-    ],
+
+  twitter: {
+    card: "summary_large_image",
+    title: "Turismo São Geraldo do Araguaia",
+    description:
+      "Serra das Andorinhas, Cachoeira Três Quedas, praias do Rio Araguaia.",
+    images: ["/og-image.jpg"],
   },
-  {
-    title: "Institucional",
-    links: [
-      { label: "SEMTUR", href: "/semtur" },
-      { label: "COMTUR", href: "/comtur" },
-      { label: "Parceiros", href: "/parceiros" },
-    ],
+
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
   },
-];
 
-// ════════════════════════════════════════════
-//  ROTAS SEM HERO
-//  → Páginas com fundo claro/branco que NÃO têm
-//    um hero a cobrir o topo. O header deve começar
-//    sólido para ser legível.
-// ════════════════════════════════════════════
-const ROTAS_SEM_HERO = [
-  "/blog",
-  "/eventos",
-  "/privacidade",
-  "/termos" ,
-  "/app-turismo",
-  // "/noticias",
-  // "/termos",
-  // "/privacidade",
-];
+  alternates: {
+    canonical: "https://turismo.saogeraldodoaraguaia.pa.gov.br",
+  },
 
-// ════════════════════════════════════════════
-//  ROTAS SEM HEADER/FOOTER GLOBAL
-//  → Páginas que têm o seu PRÓPRIO header/footer
-//    (ou que são portais independentes). Nestas
-//    rotas, o header e footer globais NÃO aparecem.
-// ════════════════════════════════════════════
-const ROTAS_SEM_HEADER = [
-  "/portal-servicos",
-  "/not-found.tsx"
-  // Adiciona aqui outras rotas que tenham o seu próprio header/footer:
-  // "/admin",
-];
+  verification: {
+    google: "nDEIZaezlrlrS7GolzE7ySvUPM9aCRNKRU1OMaN_UvI",
+  },
+};
 
-// ════════════════════════════════════════════
-//  LAYOUT ROOT
-// ════════════════════════════════════════════
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
-
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [showHeader, setShowHeader] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
-  const [dropdownAberto, setDropdownAberto] = useState<string | null>(null);
-
-  // ─── Rotas especiais ───
-  const isHome = pathname === "/";
-
-  // ─── Verifica se a rota atual está na lista de rotas sem hero ───
-  const isRotaSemHero = ROTAS_SEM_HERO.some(
-    (rota) => pathname === rota || pathname?.startsWith(rota + "/")
-  );
-
-  // ─── Verifica se a rota atual está na lista de rotas sem header/footer ───
-  const isRotaSemHeader = ROTAS_SEM_HEADER.some(
-    (rota) => pathname === rota || pathname?.startsWith(rota + "/")
-  );
-
-  // ─── Scroll behavior ───
-  useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      setIsScrolled(currentScrollY > 50);
-
-      if (currentScrollY < 50) {
-        setShowHeader(true);
-      } else if (currentScrollY > lastScrollY) {
-        setShowHeader(false);
-      } else {
-        setShowHeader(true);
-      }
-      setLastScrollY(currentScrollY);
-    };
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [lastScrollY]);
-
-  // ─── Bloqueia scroll quando menu mobile aberto ───
-  useEffect(() => {
-    document.body.style.overflow = isMobileMenuOpen ? "hidden" : "";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [isMobileMenuOpen]);
-
-  // ─── Fecha menu ao mudar de rota ───
-  useEffect(() => {
-    setIsMobileMenuOpen(false);
-    setDropdownAberto(null);
-  }, [pathname]);
-
-  // 
-  // O header fica sólido se:
-  //   - o utilizador rolou (> 50px), OU
-  //   - o rato está por cima (hover), OU
-  //   - o menu mobile está aberto, OU
-  //   - a rota atual está na lista de rotas sem hero.
-  //
-  const isHeaderSolid =
-    isScrolled || isHovered || isMobileMenuOpen || isRotaSemHero;
-
-  const handleLogoClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    if (isHome) {
-      e.preventDefault();
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  };
-
   return (
     <html lang="pt-BR" className={`${jakarta.variable} ${inter.variable}`}>
-      <head>
-        <title>Visite São Geraldo do Araguaia</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <meta name="theme-color" content={AZUL_SAGA} />
-        <meta
-          name="description"
-          content="Plataforma oficial de turismo e emissão da Carteira de Residente de São Geraldo do Araguaia - PA."
-        />
-        <meta
-          name="google-site-verification"
-          content="nDEIZaezlrlrS7GolzE7ySvUPM9aCRNKRU1OMaN_UvI"
-        />
-      </head>
-      <body
-        className={`${inter.className} bg-[#FDFCF7] text-slate-900 min-h-screen flex flex-col antialiased`}
-      >
-        {/* ══════════════════════════════════════
-            HEADER GLOBAL
-            (não aparece em rotas da lista ROTAS_SEM_HEADER)
-        ══════════════════════════════════════ */}
-        {!isRotaSemHeader && (
-          <header
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-            className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-              showHeader ? "translate-y-0" : "-translate-y-full"
-            } ${
-              isHeaderSolid
-                ? "bg-white/95 backdrop-blur-md border-b border-slate-100 shadow-[0_4px_24px_-8px_rgba(0,87,124,0.12)]"
-                : "bg-transparent border-b border-transparent"
-            }`}
-          >
-            <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex items-center justify-between h-16 md:h-20">
-                {/* ─── Logo ─── */}
-                <div className="w-32 md:w-48 flex-shrink-0">
-                  <Link
-                    href="/"
-                    onClick={handleLogoClick}
-                    className="relative block h-10 md:h-12 w-full transition-transform hover:scale-[1.02]"
-                  >
-                    <Image
-                      src="/logop.png"
-                      alt="SagaTurismo — São Geraldo do Araguaia"
-                      fill
-                      priority
-                      className={`object-contain object-left transition-all duration-300 ${
-                        !isHeaderSolid ? "brightness-0 invert" : ""
-                      }`}
-                    />
-                  </Link>
-                </div>
-
-                {/* ─── Navegação Desktop ─── */}
-                <nav className="hidden lg:flex flex-1 justify-center items-center gap-2 xl:gap-3">
-                  {NAV_GROUPS.map((group) => {
-                    const isDropdownOpen = dropdownAberto === group.title;
-                    return (
-                      <div
-                        key={group.title}
-                        className="relative"
-                        onMouseLeave={() => setDropdownAberto(null)}
-                      >
-                        <button
-                          onMouseEnter={() => setDropdownAberto(group.title)}
-                          onClick={() =>
-                            setDropdownAberto(isDropdownOpen ? null : group.title)
-                          }
-                          className={`${jakarta.className} group relative flex items-center gap-1.5 text-[0.7rem] xl:text-xs font-black uppercase tracking-widest transition-colors px-3.5 py-2.5 rounded-xl ${
-                            isDropdownOpen
-                              ? "text-[#00577C] bg-[#00577C]/5"
-                              : isHeaderSolid
-                              ? "text-slate-700 hover:text-[#00577C] hover:bg-[#00577C]/5"
-                              : "text-white hover:text-[#F9C400] drop-shadow-md"
-                          }`}
-                        >
-                          {group.title}
-                          <ChevronDown
-                            size={13}
-                            className={`transition-transform duration-300 ${
-                              isDropdownOpen ? "rotate-180" : ""
-                            }`}
-                            strokeWidth={2.5}
-                          />
-                        </button>
-
-                        {/* ─── Dropdown HORIZONTAL ─── */}
-                        <div
-                          className={`absolute top-full left-1/2 -translate-x-1/2 pt-2 transition-all duration-300 z-50 ${
-                            isDropdownOpen
-                              ? "opacity-100 visible translate-y-0"
-                              : "opacity-0 invisible translate-y-2 pointer-events-none"
-                          }`}
-                        >
-                          <div className="relative bg-white border border-slate-200 shadow-[0_20px_50px_-12px_rgba(0,87,124,0.18)] rounded-2xl p-2 w-max overflow-hidden">
-                            <div
-                              className="absolute top-0 left-0 right-0 h-0.5"
-                              style={{ background: AMARELO_SAGA }}
-                            />
-                            <div className="pt-1 flex flex-row items-center gap-1">
-                              {group.links.map((link) => (
-                                <Link
-                                  key={link.label}
-                                  href={link.href}
-                                  onClick={() => setDropdownAberto(null)}
-                                  className={`${jakarta.className} block px-5 py-3 text-sm font-bold text-slate-600 hover:text-[#00577C] hover:bg-slate-50 rounded-xl transition-all whitespace-nowrap`}
-                                >
-                                  {link.label}
-                                </Link>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </nav>
-
-                {/* ─── Botão Residente + Mobile ─── */}
-                <div className="w-32 md:w-48 flex justify-end items-center gap-2 flex-shrink-0">
-                  <Link
-                    href="/cadastro"
-                    className={`hidden lg:inline-flex ${jakarta.className} px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all shadow-sm ${
-                      isHeaderSolid
-                        ? "bg-[#F9C400] text-[#002f40] hover:scale-105"
-                        : "bg-white/20 backdrop-blur-md text-white border border-white/30 hover:bg-white/30"
-                    }`}
-                  >
-                    Residente
-                  </Link>
-
-                  <button
-                    className={`lg:hidden p-2.5 rounded-xl transition-all duration-300 ${
-                      isMobileMenuOpen
-                        ? "bg-[#00577C] text-white"
-                        : isHeaderSolid
-                        ? "text-[#00577C] hover:bg-[#00577C]/10"
-                        : "text-white hover:bg-white/20"
-                    }`}
-                    onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                    aria-label={isMobileMenuOpen ? "Fechar menu" : "Abrir menu"}
-                  >
-                    {isMobileMenuOpen ? (
-                      <X size={22} strokeWidth={2.4} />
-                    ) : (
-                      <Menu size={22} strokeWidth={2.4} />
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* ─── NAVEGAÇÃO MOBILE ─── */}
-            {isMobileMenuOpen && (
-              <div className="lg:hidden absolute top-full left-0 w-full bg-white border-t border-slate-100 shadow-2xl max-h-[calc(100vh-4rem)] overflow-y-auto">
-                <div className="px-5 py-6 flex flex-col gap-6">
-                  {NAV_GROUPS.map((group) => (
-                    <div key={group.title} className="flex flex-col gap-3">
-                      <div className="flex items-center gap-2.5">
-                        <span className="w-6 h-0.5 rounded-full bg-[#F9C400]" />
-                        <span
-                          className={`${jakarta.className} text-[10px] font-black uppercase tracking-[0.22em] text-[#00577C]`}
-                        >
-                          {group.title}
-                        </span>
-                      </div>
-
-                      <div className="flex flex-wrap gap-2">
-                        {group.links.map((link) => (
-                          <Link
-                            key={link.label}
-                            href={link.href}
-                            onClick={() => setIsMobileMenuOpen(false)}
-                            className={`${jakarta.className} font-bold text-slate-700 text-sm bg-slate-50 border border-slate-100 hover:border-[#00577C] hover:text-[#00577C] hover:bg-[#00577C]/5 transition-all px-4 py-2 rounded-lg`}
-                          >
-                            {link.label}
-                          </Link>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-
-                  <Link
-                    href="/cadastro"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className={`${jakarta.className} bg-[#F9C400] text-[#002f40] font-black px-4 py-4 rounded-xl text-center uppercase tracking-widest text-xs shadow-md`}
-                  >
-                    Cartão Residente
-                  </Link>
-                </div>
-              </div>
-            )}
-          </header>
-        )}
-
-        {/* ══════════════════════════════════════
-            CONTEÚDO
-        ══════════════════════════════════════ */}
-        <div className="flex-1">{children}</div>
-
-        {/* ══════════════════════════════════════
-            FOOTER GLOBAL (simples)
-            - Não aparece na Home (tem o seu próprio footer completo)
-            - Não aparece em rotas da lista ROTAS_SEM_HEADER
-        ══════════════════════════════════════ */}
-        {!isHome && !isRotaSemHeader && (
-          <footer className="py-20 px-8 border-t border-slate-200 bg-[#FDFCF7] text-left mt-auto">
-            <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
-              <div className="flex flex-col items-center md:items-start gap-4">
-                <div className="flex items-center gap-6">
-                  <Image src="/logop.png" alt="SagaTurismo" width={160} height={50} className="object-contain" />
-                  <div className="w-px h-12 bg-slate-200 hidden md:block" />
-                  <Image src="/prefeitura.png" alt="Prefeitura de SGA" width={140} height={50} className="object-contain" />
-                </div>
-                <div className="text-left space-y-1 text-center md:text-left">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                    © 2026 Prefeitura Munícipal de São Geraldo do Araguaia - PA
-                  </p>
-                  <p className="text-[10px] font-bold text-slate-400/80">
-                    CNPJ: 10.249.241/0001-22
-                  </p>
-                </div>
-              </div>
-            </div>
-          </footer>
-        )}
+      <body className={`${inter.className} bg-[#FDFCF7] text-slate-900 min-h-screen flex flex-col antialiased`}>
+        <LayoutClient>{children}</LayoutClient>
       </body>
     </html>
   );
