@@ -1,4 +1,4 @@
-// app/comunidades/[id]/page.tsx
+// app/comunidades/[slug]/page.tsx
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -7,17 +7,17 @@ import ComunidadeClient, { type Comunidade, type PontoComunidade } from "./Comun
 const BASE_URL = "https://turismo.saogeraldodoaraguaia.pa.gov.br";
 
 type Props = {
-  params: Promise<{ id: string }>;
+  params: Promise<{ slug: string }>;
 };
 
 // ── 1. SEO dinâmico ──
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { id } = await params;
+  const { slug } = await params;
 
   const { data: comunidade } = await supabase
     .from("comunidades")
     .select("titulo, descricao_curta, historia_texto, imagem_url, ativo")
-    .eq("id", id)
+    .eq("slug", slug)
     .eq("ativo", true)
     .single();
 
@@ -30,7 +30,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const tituloLimpo = comunidade.titulo?.trim() ?? "Comunidade";
 
-  // Prefere a descrição curta; senão o início da história
   const descricaoFonte =
     comunidade.descricao_curta?.trim() ||
     comunidade.historia_texto?.replace(/\s+/g, " ").trim().substring(0, 155) ||
@@ -40,7 +39,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     descricaoFonte ||
     `${tituloLimpo} — comunidade ribeirinha de São Geraldo do Araguaia, Pará. Conheça a história, cultura e tradições locais.`;
 
-  const url = `${BASE_URL}/comunidades/${id}`;
+  const url = `${BASE_URL}/comunidades/${slug}`;
   const ogImage = comunidade.imagem_url?.startsWith("http")
     ? comunidade.imagem_url
     : comunidade.imagem_url
@@ -85,21 +84,23 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 // ── 2. Página ──
 export default async function ComunidadePage({ params }: Props) {
-  const { id } = await params;
+  const { slug } = await params;
 
+  // 1. Primeiro achamos a comunidade pelo SLUG
   const { data: comunidade, error } = await supabase
     .from("comunidades")
     .select("*")
-    .eq("id", id)
+    .eq("slug", slug)
     .eq("ativo", true)
     .single();
 
   if (error || !comunidade) notFound();
 
+  // 2. 🟢 CORREÇÃO AQUI: Usamos o ID da comunidade encontrada para achar os pontos
   const { data: pontos } = await supabase
     .from("comunidade_pontos")
     .select("*")
-    .eq("comunidade_id", id);
+    .eq("comunidade_id", comunidade.id);
 
   // ── 3. JSON-LD ──
   const jsonLd = {
@@ -111,7 +112,7 @@ export default async function ComunidadePage({ params }: Props) {
       comunidade.historia_texto?.substring(0, 200) ||
       undefined,
     image: comunidade.imagem_url,
-    url: `${BASE_URL}/comunidades/${id}`,
+    url: `${BASE_URL}/comunidades/${slug}`,
     address: {
       "@type": "PostalAddress",
       addressLocality: "São Geraldo do Araguaia",

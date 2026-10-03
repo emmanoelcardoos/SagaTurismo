@@ -55,46 +55,46 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   //  2. ROTAS DINÂMICAS (Supabase)
   // ════════════════════════════════════════════
 
-  // ── Atrativos ──
+  // ── Atrativos (MUDANÇA PARA SLUG) ──
   const { data: atracoes } = await supabase
     .from('atracoes')
-    .select('id')
+    .select('slug') // 🔴 Buscamos o slug em vez do ID
     .eq('ativo', true)
     .order('ordem', { ascending: true, nullsFirst: false });
 
   const atracoesUrls: MetadataRoute.Sitemap = (atracoes ?? []).map((a) => ({
-    url: `${BASE_URL}/atrativos/${a.id}`,
+    url: `${BASE_URL}/atrativos/${a.slug}`, // 🔴 Usamos a propriedade slug
     lastModified: now,
     changeFrequency: 'monthly',
     priority: 0.8,
   }));
 
-  // ── Comunidades ──
+  // ── Comunidades (MUDANÇA PARA SLUG) ──
   const { data: comunidades } = await supabase
     .from('comunidades')
-    .select('id')
+    .select('slug') // 🔴 Buscamos o slug
     .eq('ativo', true);
 
   const comunidadesUrls: MetadataRoute.Sitemap = (comunidades ?? []).map((c) => ({
-    url: `${BASE_URL}/comunidades/${c.id}`,
+    url: `${BASE_URL}/comunidades/${c.slug}`, // 🔴 Usamos a propriedade slug
     lastModified: now,
     changeFrequency: 'monthly',
     priority: 0.7,
   }));
 
-  // ── Eventos ──
+  // ── Eventos (MUDANÇA PARA SLUG) ──
   const { data: eventos } = await supabase
     .from('eventos')
-    .select('id, data');
+    .select('slug, data'); // 🔴 Buscamos o slug
 
   const eventosUrls: MetadataRoute.Sitemap = (eventos ?? []).map((e) => ({
-    url: `${BASE_URL}/eventos/${e.id}`,
+    url: `${BASE_URL}/eventos/${e.slug}`, // 🔴 Usamos a propriedade slug
     lastModified: e.data ? new Date(e.data) : now,
     changeFrequency: 'weekly',
     priority: 0.7,
   }));
 
-  // ── Blog ──
+  // ── Blog (Mantido com ID, a menos que mude a lógica do Blog também) ──
   const { data: posts } = await supabase
     .from('blog')
     .select('id, data_publicacao')
@@ -107,7 +107,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }));
 
-  // ── Notícias (se a tabela existir) ──
+  // ── Notícias (Mantido com ID) ──
   const { data: noticias } = await supabase
     .from('noticias')
     .select('id, data_publicacao');
@@ -118,42 +118,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     changeFrequency: 'weekly',
     priority: 0.7,
   }));
-
-  // ── Hospedagens ──
-  // ⚠️ NÃO incluídas como rotas individuais porque /hospedagens/[id] não existe.
-  // Se um dia criares essa página, descomenta o bloco abaixo:
-  //
-  // const { data: hoteis } = await supabase.from('hoteis').select('id').eq('ativo', true);
-  // const hoteisUrls: MetadataRoute.Sitemap = (hoteis ?? []).map((h) => ({
-  //   url: `${BASE_URL}/hospedagens/${h.id}`,
-  //   lastModified: now,
-  //   changeFrequency: 'monthly',
-  //   priority: 0.6,
-  // }));
-
-  // ── Gastronomia ──
-  // ⚠️ NÃO incluídas como rotas individuais porque /gastronomia/[id] não existe.
-  // Se um dia criares essa página, descomenta:
-  //
-  // const { data: restaurantes } = await supabase.from('gastronomia').select('id').eq('ativo', true);
-  // const gastronomiaUrls: MetadataRoute.Sitemap = (restaurantes ?? []).map((r) => ({
-  //   url: `${BASE_URL}/gastronomia/${r.id}`,
-  //   lastModified: now,
-  //   changeFrequency: 'monthly',
-  //   priority: 0.6,
-  // }));
-
-  // ── Agências ──
-  // ⚠️ NÃO incluídas como rotas individuais porque /agencias/[id] não existe.
-  // Se um dia criares essa página, descomenta:
-  //
-  // const { data: agencias } = await supabase.from('agencias').select('id').eq('ativo', true);
-  // const agenciasUrls: MetadataRoute.Sitemap = (agencias ?? []).map((a) => ({
-  //   url: `${BASE_URL}/agencias/${a.id}`,
-  //   lastModified: now,
-  //   changeFrequency: 'monthly',
-  //   priority: 0.6,
-  // }));
 
   // ════════════════════════════════════════════
   //  3. COMBINAR TUDO

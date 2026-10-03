@@ -276,7 +276,7 @@ export default function AtivarContaPage() {
               </div>
 
               <div>
-                  <label className={labelClass}>Telemóvel / WhatsApp *</label>
+                  <label className={labelClass}>Telefone / WhatsApp *</label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                     <input type="text" required value={telefone} onChange={e => setTelefone(e.target.value)} className={inputClass} placeholder="(94) 99999-9999" />

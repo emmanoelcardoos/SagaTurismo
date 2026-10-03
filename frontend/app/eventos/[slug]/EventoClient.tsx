@@ -1,4 +1,3 @@
-// app/eventos/[id]/EventoClient.tsx
 'use client';
 
 import Link from 'next/link';
@@ -12,6 +11,7 @@ const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700', '
 
 export type Evento = {
   id: string;
+  slug: string; // 🔴 Adicionado o slug na tipagem
   titulo: string;
   subtitulo?: string;
   descricao: string;
@@ -28,6 +28,7 @@ export type Evento = {
 
 export type EventoNav = {
   id: string;
+  slug: string; // 🔴 Adicionado o slug na navegação (Anterior/Próximo)
   titulo: string;
 };
 
@@ -216,7 +217,7 @@ export default function EventoClient({
           <div className="flex flex-col sm:flex-row justify-between items-center gap-10">
 
             {eventoAnterior ? (
-              <Link href={`/eventos/${eventoAnterior.id}`} className="group flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left mr-auto w-full sm:w-auto">
+              <Link href={`/eventos/${eventoAnterior.slug}`} className="group flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left mr-auto w-full sm:w-auto">
                 <div className="w-12 h-12 rounded-full border border-slate-200 flex items-center justify-center text-slate-400 group-hover:bg-[#00577C] group-hover:text-white group-hover:border-[#00577C] transition-all shrink-0">
                   <ArrowLeft size={20} />
                 </div>
@@ -232,7 +233,7 @@ export default function EventoClient({
             ) : <div className="hidden sm:block flex-1" />}
 
             {eventoProximo ? (
-              <Link href={`/eventos/${eventoProximo.id}`} className="group flex flex-col sm:flex-row-reverse items-center sm:items-start gap-4 text-center sm:text-right ml-auto w-full sm:w-auto">
+              <Link href={`/eventos/${eventoProximo.slug}`} className="group flex flex-col sm:flex-row-reverse items-center sm:items-start gap-4 text-center sm:text-right ml-auto w-full sm:w-auto">
                 <div className="w-12 h-12 rounded-full border border-slate-200 flex items-center justify-center text-slate-400 group-hover:bg-[#00577C] group-hover:text-white group-hover:border-[#00577C] transition-all shrink-0">
                   <ArrowRight size={20} />
                 </div>

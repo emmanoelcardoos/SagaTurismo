@@ -14,6 +14,7 @@ const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700', '
 
 type Evento = {
   id: string;
+  slug: string; // 🔴 Adicionado o slug aqui!
   titulo: string;
   subtitulo: string | null;
   descricao: string | null;
@@ -219,7 +220,7 @@ export default function EventosPage() {
                                       <span className="text-[10px] font-bold uppercase tracking-widest">{evento.local || 'SGA'}</span>
                                     </div>
                                     <Link 
-                                      href={`/eventos/${evento.id}`}
+                                      href={`/eventos/${evento.slug}`} /* 🔴 Aqui mudamos de evento.id para evento.slug */
                                       className="bg-white/10 hover:bg-[#F9C400] text-white hover:text-[#002f40] p-3 rounded-full transition-all group-hover:translate-x-1"
                                     >
                                       <ArrowRight size={20} />

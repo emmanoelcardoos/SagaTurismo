@@ -44,8 +44,22 @@ function fmtDataCurta(iso: string) {
   return { dia: d, mes: meses[parseInt(m) - 1] };
 }
 
+// 🔴 FUNÇÃO PARA GERAR O SLUG AUTOMATICAMENTE
+function gerarSlug(texto: string) {
+  return texto
+    .toString()
+    .toLowerCase()
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Remove acentos
+    .replace(/[^a-z0-9 -]/g, "") // Remove caracteres especiais
+    .replace(/\s+/g, "-") // Troca espaços por hífens
+    .replace(/-+/g, "-"); // Remove múltiplos hífens
+}
+
 interface Evento {
   id: string;
+  slug: string; // 🔴 Adicionado o slug
   titulo: string;
   subtitulo: string | null;
   descricao: string | null;
@@ -289,8 +303,13 @@ export default function PortalEventos() {
             imagem_url = pubUrl.publicUrl;
           }
         }
+        
+        // 🔴 GERA SLUG PARA EVENTOS IMPORTADOS VIA CSV
+        const slug = gerarSlug(evento.titulo);
+
         const { error: dbError } = await supabase.from("eventos").insert([{
           titulo: evento.titulo,
+          slug, // 🔴 O slug é guardado
           subtitulo: evento.subtitulo || null,
           descricao: evento.descricao || null,
           data: evento.data || null,
@@ -361,8 +380,13 @@ export default function PortalEventos() {
           throw new Error("Erro ao fazer upload do cartaz.");
         }
       }
+
+      // 🔴 GERA SLUG PARA EVENTOS CRIADOS/EDITADOS MANUALMENTE
+      const slug = gerarSlug(formManual.titulo);
+
       const payload = {
         titulo: formManual.titulo,
+        slug, // 🔴 O slug é guardado
         subtitulo: formManual.subtitulo || null,
         descricao: formManual.descricao || null,
         data: formManual.data,
@@ -376,6 +400,7 @@ export default function PortalEventos() {
         imagem_url: imagem_url || null,
         destaque: String(formManual.destaque) === "true",
       };
+      
       let erroBd;
       if (editando) {
         const { error } = await supabase.from("eventos").update(payload).eq("id", editando.id);
@@ -830,6 +855,26 @@ export default function PortalEventos() {
                           >
                             <Trash2 size={13} />
                           </button>
+
+                          {/* 🔴 ADICIONADO O BOTÃO "VER PÚBLICO" */}
+                          <a
+                            href={`/eventos/${ev.slug}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-8 h-8 rounded-md flex items-center justify-center transition-colors"
+                            style={{ color: SUBTLE }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = LINE_2;
+                              e.currentTarget.style.color = INK;
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = "transparent";
+                              e.currentTarget.style.color = SUBTLE;
+                            }}
+                            title="Ver no site público"
+                          >
+                            <ExternalLink size={13} />
+                          </a>
                         </div>
                       </div>
                     );

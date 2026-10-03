@@ -3,18 +3,16 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState, useRef, ReactNode } from 'react';
-import { useParams } from 'next/navigation';
-import { Loader2, AlertCircle } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
-import { supabase } from '@/lib/supabase';
 
 // ── FONTES ──
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '700', '800'] });
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
 
 // ── TIPOS ──
-type Comunidade = {
+export type Comunidade = {
   id: string;
+  slug: string; // 🔴 Adicionado o slug
   titulo: string;
   descricao_curta: string;
   historia_texto?: string;
@@ -23,7 +21,7 @@ type Comunidade = {
   galeria?: any;
 };
 
-type PontoComunidade = {
+export type PontoComunidade = {
   id: string;
   titulo: string;
   tipo: string; 
@@ -73,51 +71,15 @@ function Reveal({ children, className = '', anim = 'up', delay = 0 }: {
   );
 }
 
-export default function ComunidadeDetailPage() {
-  const params = useParams();
-  const id = params?.id as string;
+// 🔴 AGORA O COMPONENTE RECEBE AS PROPS DIRETAMENTE! 
+export default function ComunidadeClient({
+  comunidade,
+  pontos,
+}: {
+  comunidade: Comunidade;
+  pontos: PontoComunidade[];
+}) {
   
-  const [comunidade, setComunidade] = useState<Comunidade | null>(null);
-  const [pontos, setPontos] = useState<PontoComunidade[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchComunidadeData() {
-      if (!id) return;
-      
-      const { data: comunidadeData, error: comError } = await supabase.from('comunidades').select('*').eq('id', id).single();
-      if (comError || !comunidadeData) {
-        setLoading(false);
-        return;
-      }
-      setComunidade(comunidadeData as Comunidade);
-
-      const { data: pontosData } = await supabase.from('comunidade_pontos').select('*').eq('comunidade_id', id);
-      if (pontosData) setPontos(pontosData as PontoComunidade[]);
-
-      setLoading(false);
-    }
-    fetchComunidadeData();
-  }, [id]);
-
-  if (loading) return (
-    <div className={`${inter.className} min-h-screen bg-[#FDFCF7] flex flex-col items-center justify-center gap-4`}>
-      <Loader2 className="animate-spin text-[#00577C] w-12 h-12" />
-      <p className="text-slate-400 font-black text-[10px] uppercase tracking-widest">Carregando comunidade...</p>
-    </div>
-  );
-
-  if (!comunidade) return (
-    <div className={`${inter.className} min-h-screen bg-[#FDFCF7] flex flex-col items-center justify-center text-center px-6 gap-6`}>
-      <AlertCircle size={64} className="text-slate-300 mb-2" />
-      <h1 className={`${jakarta.className} text-4xl font-black text-slate-800`}>Comunidade não encontrada</h1>
-      <p className="text-slate-500 max-w-md">Não conseguimos localizar esta comunidade. O link pode estar incorreto.</p>
-      <Link href="/comunidades" className="inline-flex items-center gap-2 bg-[#00577C] text-white px-7 py-3.5 rounded-full font-black text-xs uppercase tracking-widest mt-4 shadow-md hover:bg-[#004a6b] transition-colors">
-        &larr; Voltar para Comunidades
-      </Link>
-    </div>
-  );
-
   const fotosGaleria = parseGaleria(comunidade.galeria).filter(Boolean);
 
   return (

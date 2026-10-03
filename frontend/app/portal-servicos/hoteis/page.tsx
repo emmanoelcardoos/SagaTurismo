@@ -733,7 +733,7 @@ export default function PortalHoteis() {
                 Alojamento
               </span>
               <span className="text-[11px]" style={{ color: MUTED }}>
-                {hoteis.length} registo{hoteis.length !== 1 ? "s" : ""} · {hoteis.filter((h) => h.ativo).length} público{hoteis.filter((h) => h.ativo).length !== 1 ? "s" : ""}
+                {hoteis.length} registro{hoteis.length !== 1 ? "s" : ""} · {hoteis.filter((h) => h.ativo).length} público{hoteis.filter((h) => h.ativo).length !== 1 ? "s" : ""}
               </span>
             </div>
             <h1

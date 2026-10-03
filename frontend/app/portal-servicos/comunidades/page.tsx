@@ -38,6 +38,19 @@ const TIPOS_PONTO = [
   { value: "artesanato", label: "Artesanato" },
 ];
 
+// 🔴 FUNÇÃO PARA GERAR O SLUG AUTOMATICAMENTE
+function gerarSlug(texto: string) {
+  return texto
+    .toString()
+    .toLowerCase()
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Remove acentos
+    .replace(/[^a-z0-9 -]/g, "") // Remove caracteres especiais
+    .replace(/\s+/g, "-") // Troca espaços por hífens
+    .replace(/-+/g, "-"); // Remove múltiplos hífens
+}
+
 // ═══════════════════════════════════════════════════════════════
 // ESTILOS GLOBAIS
 // ═══════════════════════════════════════════════════════════════
@@ -274,8 +287,12 @@ export default function PortalComunidades() {
       galeriaFinal = [...galeriaFinal, ...novasUrls];
     }
 
+    // 🔴 GERA O SLUG AUTOMATICAMENTE COM BASE NO TÍTULO
+    const slug = gerarSlug(form.titulo);
+
     const payload = {
       titulo: form.titulo,
+      slug, // 🔴 O slug é guardado na base de dados
       descricao_curta: form.descricao_curta,
       historia_texto: form.historia_texto,
       cultura_texto: form.cultura_texto,
@@ -924,7 +941,7 @@ export default function PortalComunidades() {
               Comunidades
             </h1>
             <p className="text-[12.5px] mt-1" style={{ color: MUTED }}>
-              Registo das comunidades locais, história e pontos de interesse.
+              Registro das comunidades locais, história e pontos de interesse.
             </p>
           </div>
 
@@ -1191,14 +1208,17 @@ export default function PortalComunidades() {
                       </button>
                     </div>
 
-                    <button
-                      onClick={() => abrirFormEditar(c)}
-                      className="text-[11px] font-semibold inline-flex items-center gap-1 transition-opacity hover:opacity-70"
+                    {/* 🔴 Alterado o link "Ver público" para apontar para o slug */}
+                    <a
+                      href={`/comunidades/${c.slug}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold transition-opacity hover:opacity-70"
                       style={{ color: MUTED }}
                     >
-                      Pontos
+                      Ver público
                       <ExternalLink size={11} />
-                    </button>
+                    </a>
                   </div>
                 </div>
               </article>

@@ -489,7 +489,7 @@ export default function RoteiroDetailPage() {
                   ))
                 ) : (
                   <div className="italic text-slate-400 border-l-4 border-[#00577C] pl-4 md:pl-6 py-2 text-sm">
-                    Este roteiro ainda está a ser estudado pela nossa equipa. Em breve, mais detalhes serão disponibilizados.
+                    Este roteiro ainda está a ser estudado pela nossa equipe. Em breve, mais detalhes serão disponibilizados.
                   </div>
                 )}
               </div>

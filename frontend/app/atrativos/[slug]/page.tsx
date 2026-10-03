@@ -1,4 +1,4 @@
-// app/atrativos/[id]/page.tsx
+// app/atrativos/[slug]/page.tsx
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -7,17 +7,17 @@ import AtracaoClient, { type Atracao, type PontoInteresse } from "./AtracaoClien
 const BASE_URL = "https://turismo.saogeraldodoaraguaia.pa.gov.br";
 
 type Props = {
-  params: Promise<{ id: string }>;
+  params: Promise<{ slug: string }>; // 🔴 1. Mudamos de 'id' para 'slug'
 };
 
 // ── 1. SEO dinâmico ──
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { id } = await params;
+  const { slug } = await params; // 🔴 2. Extraímos o slug
 
   const { data: atracao } = await supabase
     .from("atracoes")
     .select("nome, descricao, imagem_url, tipo")
-    .eq("id", id)
+    .eq("slug", slug) // 🔴 3. Busca pelo slug no Supabase
     .eq("ativo", true)
     .single();
 
@@ -35,7 +35,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     atracao.descricao?.replace(/\s+/g, " ").trim().substring(0, 155) ||
     `${nomeLimpo}${tipoLimpo ? ` — ${tipoLimpo}` : ""} em São Geraldo do Araguaia, Pará.`;
 
-  const url = `${BASE_URL}/atrativos/${id}`;
+  const url = `${BASE_URL}/atrativos/${slug}`; // 🔴 4. URL amigável com slug
   const ogImage = atracao.imagem_url?.startsWith("http")
     ? atracao.imagem_url
     : `${BASE_URL}${atracao.imagem_url}`;
@@ -78,21 +78,22 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 // ── 2. Página ──
 export default async function AtracaoPage({ params }: Props) {
-  const { id } = await params;
+  const { slug } = await params; // 🔴 5. Extraímos o slug
 
   const { data: atracao, error } = await supabase
     .from("atracoes")
     .select("*")
-    .eq("id", id)
+    .eq("slug", slug) // 🔴 6. Busca pelo slug no Supabase
     .eq("ativo", true)
     .single();
 
   if (error || !atracao) notFound();
 
+  // 🔴 7. Como achamos a atração pelo slug, usamos o ID dela para achar os pontos
   const { data: pontos } = await supabase
     .from("atracao_pontos")
     .select("*")
-    .eq("atracao_id", id);
+    .eq("atracao_id", atracao.id);
 
   const nomeLimpo = atracao.nome?.trim() ?? "Atrativo";
   const descricaoLimpa =
@@ -105,7 +106,7 @@ export default async function AtracaoPage({ params }: Props) {
     name: nomeLimpo,
     description: descricaoLimpa.substring(0, 300),
     image: atracao.imagem_url,
-    url: `${BASE_URL}/atrativos/${id}`,
+    url: `${BASE_URL}/atrativos/${slug}`, // 🔴 8. JSON-LD atualizado com slug
     touristType: atracao.tipo ?? undefined,
     address: {
       "@type": "PostalAddress",

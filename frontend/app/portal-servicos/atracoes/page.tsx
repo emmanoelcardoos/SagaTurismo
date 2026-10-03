@@ -33,6 +33,7 @@ const inputCls =
 
 interface Atracao {
   id: string;
+  slug: string; // 🔴 Adicionada a tipagem do slug
   nome: string;
   tipo: string;
   descricao: string;
@@ -45,6 +46,19 @@ interface Atracao {
   galeria: string[] | null;
   ordem: number | null;
   ativo: boolean;
+}
+
+// 🔴 FUNÇÃO PARA GERAR O SLUG AUTOMATICAMENTE
+function gerarSlug(texto: string) {
+  return texto
+    .toString()
+    .toLowerCase()
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Remove acentos
+    .replace(/[^a-z0-9 -]/g, "") // Remove caracteres especiais
+    .replace(/\s+/g, "-") // Troca espaços por hífens
+    .replace(/-+/g, "-"); // Remove múltiplos hífens
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -256,7 +270,16 @@ export default function PortalAtracoes() {
       galeriaFinal = [...galeriaFinal, ...novasUrls];
     }
 
-    const payload = { ...form, imagem_url, galeria: galeriaFinal.length > 0 ? galeriaFinal : null };
+    // 🔴 CRIA O SLUG AUTOMATICAMENTE COM BASE NO NOME
+    const slug = gerarSlug(form.nome);
+
+    const payload = { 
+      ...form, 
+      slug, // 🔴 O slug é guardado na base de dados
+      imagem_url, 
+      galeria: galeriaFinal.length > 0 ? galeriaFinal : null 
+    };
+
     if (editando) await supabase.from("atracoes").update(payload).eq("id", editando.id);
     else await supabase.from("atracoes").insert(payload);
 
@@ -1027,18 +1050,17 @@ export default function PortalAtracoes() {
                       </button>
                     </div>
 
-                    {a.link_google_maps && (
-                      <a
-                        href={a.link_google_maps}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-[11px] font-semibold transition-opacity hover:opacity-70"
-                        style={{ color: MUTED }}
-                      >
-                        Mapa
-                        <ExternalLink size={11} />
-                      </a>
-                    )}
+                    {/* 🔴 O link "Ver público" agora aponta para o slug */}
+                    <a
+                      href={`/atrativos/${a.slug}`} 
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold transition-opacity hover:opacity-70"
+                      style={{ color: MUTED }}
+                    >
+                      Ver público
+                      <ExternalLink size={11} />
+                    </a>
                   </div>
                 </div>
               </article>

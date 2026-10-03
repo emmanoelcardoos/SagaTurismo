@@ -33,6 +33,33 @@ const inputCls =
   "w-full bg-white text-[13.5px] rounded-md px-3 py-2.5 transition-[border-color,box-shadow] duration-150 placeholder:text-slate-400 focus:outline-none border";
 
 // ═══════════════════════════════════════════════════════════════
+// COOKIE DE SESSÃO — validade de 3 horas
+// ═══════════════════════════════════════════════════════════════
+
+const SESSION_COOKIE = "sagaturismo_portal_session";
+const SESSION_MAX_AGE_MS = 3 * 60 * 60 * 1000; // 3 horas
+
+function setSessionCookie() {
+  if (typeof document === "undefined") return;
+  const expires = new Date(Date.now() + SESSION_MAX_AGE_MS).toUTCString();
+  // SameSite=Lax + Secure em produção (ajusta conforme necessário)
+  const secure = window.location.protocol === "https:" ? "; Secure" : "";
+  document.cookie = `${SESSION_COOKIE}=1; expires=${expires}; path=/; SameSite=Lax${secure}`;
+}
+
+function clearSessionCookie() {
+  if (typeof document === "undefined") return;
+  document.cookie = `${SESSION_COOKIE}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax`;
+}
+
+function hasValidSessionCookie(): boolean {
+  if (typeof document === "undefined") return false;
+  return document.cookie
+    .split(";")
+    .some((c) => c.trim().startsWith(`${SESSION_COOKIE}=1`));
+}
+
+// ═══════════════════════════════════════════════════════════════
 // LOGIN
 // ═══════════════════════════════════════════════════════════════
 
@@ -221,6 +248,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   const pathname = usePathname();
   const router = useRouter();
   const hoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cookieWatchRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     verificarSessao();
@@ -258,6 +286,30 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
     };
   }, []);
 
+  // ─── Vigia o cookie de sessão a cada minuto ───
+  // Se o cookie expirar (após 3h), força logout imediato.
+  useEffect(() => {
+    if (!role) return;
+
+    const check = async () => {
+      if (!hasValidSessionCookie()) {
+        // Cookie expirou → termina sessão
+        await supabase.auth.signOut();
+        setRole(null);
+        setEmailLogado("");
+        router.push("/portal-servicos");
+      }
+    };
+
+    // checa imediatamente
+    check();
+
+    cookieWatchRef.current = setInterval(check, 60_000); // 1 min
+    return () => {
+      if (cookieWatchRef.current) clearInterval(cookieWatchRef.current);
+    };
+  }, [role, router]);
+
   // ─── Handlers do hover ───
   const handleSidebarEnter = () => {
     if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
@@ -265,7 +317,6 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   };
 
   const handleSidebarLeave = () => {
-    // pequeno atraso para evitar flicker ao mover entre elementos internos
     if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
     hoverTimeout.current = setTimeout(() => {
       setHovered(false);
@@ -274,9 +325,18 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
   async function verificarSessao() {
     const { data: { session } } = await supabase.auth.getSession();
+
     if (session) {
-      setRole("geral");
-      setEmailLogado(session.user.email || "");
+      // Só considera autenticado se o cookie de 3h ainda for válido
+      if (hasValidSessionCookie()) {
+        setRole("geral");
+        setEmailLogado(session.user.email || "");
+      } else {
+        // Sessão Supabase existe, mas o cookie expirou → força logout
+        await supabase.auth.signOut();
+        setRole(null);
+        setEmailLogado("");
+      }
     }
     setLoadingSessao(false);
   }
@@ -288,6 +348,10 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
       if (error) throw new Error("Credenciais inválidas. Verifique o e-mail e a senha.");
+
+      // ✅ Cria o cookie de sessão com validade de 3 horas
+      setSessionCookie();
+
       setRole("geral");
       setEmailLogado(email);
       router.push("/portal-servicos");
@@ -299,6 +363,9 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   }
 
   const handleLogout = async () => {
+    // ✅ Limpa o cookie de sessão
+    clearSessionCookie();
+
     await supabase.auth.signOut();
     setRole(null);
     setEmailLogado("");
@@ -330,9 +397,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
   const grupos = isSuperAdmin ? [...MENU_GRUPOS, MENU_ADMIN] : MENU_GRUPOS;
 
-  // Estado visual derivado:
-  // - Se preferência = fixado expandido  → mostra expandido
-  // - Se preferência = fixado colapsado  → colapsa, mas expande em hover
+  // Estado visual derivado
   const isExpanded = !collapsed || hovered;
   const sidebarWidth = isExpanded ? 244 : 68;
 
@@ -371,9 +436,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
             width: sidebarWidth,
             background: SURFACE,
             borderRight: `1px solid ${LINE}`,
-            // Transição suave, mas sem afetar o conteúdo do lado
             transition: "width 180ms cubic-bezier(0.32, 0.72, 0, 1)",
-            // Elevação visual quando está a expandir em hover a partir de collapsed
             boxShadow: collapsed && hovered ? "4px 0 24px rgba(15,23,42,0.06)" : "none",
             zIndex: collapsed && hovered ? 20 : 1,
             willChange: "width",
@@ -396,7 +459,6 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
               {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={15} />}
             </button>
 
-            {/* Logo — só visível quando expandido */}
             <div
               className="relative ml-1 shrink-0 transition-opacity duration-150"
               style={{
@@ -414,7 +476,6 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           <nav className="flex-1 overflow-y-auto scroll-thin overflow-x-hidden px-2 py-2">
             {grupos.map((grupo) => (
               <div key={grupo.label} className="mb-4">
-                {/* Label do grupo — esconde em collapsed */}
                 <div
                   className="overflow-hidden transition-all duration-150"
                   style={{
@@ -430,7 +491,6 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                   </div>
                 </div>
 
-                {/* Divisor em collapsed */}
                 {!isExpanded && (
                   <div className="h-px my-2 mx-2" style={{ background: LINE }} />
                 )}
@@ -518,7 +578,6 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                 />
               </div>
 
-              {/* Bloco de info do user — esconde quando collapsed */}
               <div
                 className="min-w-0 flex-1 text-left overflow-hidden transition-opacity duration-150"
                 style={{

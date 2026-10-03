@@ -83,7 +83,7 @@ export default async function AtrativosPage() {
         name: atracao.nome,
         description: atracao.descricao?.replace(/\s+/g, " ").substring(0, 200),
         image: atracao.imagem_url,
-        url: `${BASE_URL}/atrativos/${atracao.id}`,
+        url: `${BASE_URL}/atrativos/${atracao.slug}`, // 🔴 Alterado para atracao.slug
         touristType: atracao.tipo || undefined,
         address: {
           "@type": "PostalAddress",

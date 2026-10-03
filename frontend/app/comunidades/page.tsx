@@ -14,6 +14,7 @@ const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700', '
 // ── TIPAGEM ──
 type Comunidade = {
   id: string;
+  slug: string;
   titulo: string;
   descricao_curta: string;
   imagem_url: string;
@@ -180,7 +181,7 @@ export default function ComunidadesPage() {
 
                       <div className="pt-2">
                         <Link 
-                          href={`/comunidades/${comunidade.id}`}
+                          href={`/comunidades/${comunidade.slug}`}
                           className="group/btn inline-flex items-center gap-3 px-8 py-4 rounded-full font-black text-xs uppercase tracking-widest bg-transparent border-2 border-[#00577C] text-[#00577C] hover:bg-[#00577C] hover:text-white transition-all duration-300" 
                         >
                           Explorar a comunidade

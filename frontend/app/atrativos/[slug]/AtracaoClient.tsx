@@ -12,6 +12,7 @@ const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] }
 
 export type Atracao = {
   id: string;
+  slug: string;
   nome: string;
   tipo: string;
   descricao: string;

@@ -223,7 +223,7 @@ function SeccaoSuporte() {
 
       <p className="text-slate-500 text-base leading-relaxed mb-8 font-medium flex-1">
         Teve problemas com a emissão da sua Carteira Digital, dúvidas sobre
-        passeios ou não encontrou o que procurava? A nossa equipa de suporte
+        passeios ou não encontrou o que procurava? A nossa equipe de suporte
         está pronta para resolver o seu caso rapidamente.
       </p>
 

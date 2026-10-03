@@ -124,7 +124,7 @@ export default async function FiscalPage({ params }: { params: { token: string }
                 <div className="flex items-center gap-4 bg-stone-50 rounded-2xl px-5 py-4 border border-stone-100">
                     <CreditCard className="w-5 h-5 text-stone-400 flex-shrink-0" />
                     <div>
-                        <p className="text-[10px] text-stone-400 font-black uppercase tracking-wider">CPF Registado</p>
+                        <p className="text-[10px] text-stone-400 font-black uppercase tracking-wider">CPF Registrado</p>
                         <p className="font-bold text-stone-700 uppercase">{data.cpf}</p>
                     </div>
                 </div>

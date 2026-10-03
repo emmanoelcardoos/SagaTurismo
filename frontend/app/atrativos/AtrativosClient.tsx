@@ -12,6 +12,7 @@ const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] }
 
 export type Atracao = {
   id: string;
+  slug: string;
   nome: string;
   tipo?: string;
   descricao?: string;
@@ -60,7 +61,7 @@ function AtracaoCard({ atracao, index }: { atracao: Atracao; index: number }) {
   return (
     <Reveal anim="up" delay={index * 50}>
       <Link
-        href={`/atrativos/${atracao.id}`}
+        href={`/atrativos/${atracao.slug}`}
         className="group bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-slate-100 h-full flex flex-col block"
       >
         <div className="relative w-full aspect-[4/3] overflow-hidden bg-slate-100">

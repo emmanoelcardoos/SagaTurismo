@@ -683,7 +683,7 @@ export default function PortalDashboard() {
           <div className="lg:col-span-8">
             <Panel noPad>
               <PanelHeader
-                title="Novos registos de residentes"
+                title="Novos registros de residentes"
                 subtitle="Atividade diária nos últimos 7 dias"
                 badge={
                   <span
@@ -700,7 +700,7 @@ export default function PortalDashboard() {
                         {grafico.totalSemana}
                       </div>
                       <div className="text-[10px] font-semibold uppercase tracking-wider mt-0.5" style={{ color: SUBTLE }}>
-                        registos
+                        registros
                       </div>
                     </div>
                     <div className="w-px h-7" style={{ background: LINE }} />
@@ -729,7 +729,7 @@ export default function PortalDashboard() {
                       Sem atividade esta semana
                     </p>
                     <p className="text-[11.5px] mt-1" style={{ color: MUTED }}>
-                      Nenhum residente se registou nos últimos 7 dias.
+                      Nenhum residente se registrou nos últimos 7 dias.
                     </p>
                   </div>
                 ) : (
@@ -789,7 +789,7 @@ export default function PortalDashboard() {
                       <div className="flex items-center gap-2">
                         <div className="w-2.5 h-2.5 rounded-sm" style={{ background: INK }} />
                         <span className="text-[11px] font-medium" style={{ color: MUTED }}>
-                          Total de registos
+                          Total de registros
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -970,7 +970,7 @@ export default function PortalDashboard() {
                 { href: "/portal-servicos/noticias", label: "Nova matéria", hint: "Publicar no blog", icon: FileText },
                 { href: "/portal-servicos/eventos", label: "Novo evento", hint: "Adicionar à agenda", icon: CalendarIcon },
                 { href: "/portal-servicos/atracoes", label: "Novo atrativo", hint: "Vitrine turística", icon: MapPin },
-                { href: "/portal-servicos/emissao", label: "Emitir carteira", hint: "Registo de residente", icon: BadgeCheck },
+                { href: "/portal-servicos/emissao", label: "Emitir carteira", hint: "Registro de residente", icon: BadgeCheck },
               ].map((a, i) => {
                 const Icon = a.icon;
                 return (
