@@ -191,6 +191,10 @@ export default function RootLayout({
           name="description"
           content="Plataforma oficial de turismo e emissão da Carteira de Residente de São Geraldo do Araguaia - PA."
         />
+        <meta
+          name="google-site-verification"
+          content="nDEIZaezlrlrS7GolzE7ySvUPM9aCRNKRU1OMaN_UvI"
+        />
       </head>
       <body
         className={`${inter.className} bg-[#FDFCF7] text-slate-900 min-h-screen flex flex-col antialiased`}
