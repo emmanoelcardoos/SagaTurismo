@@ -8,52 +8,32 @@ import {
   ArrowLeft, Tag, Calendar, User, Eye, EyeOff,
   Star, Code2, PenLine, FileText, CheckCircle2, AlertTriangle,
   Inbox, Search, X, Pencil, Trash2, Clock, ExternalLink,
+  Bold, Italic, Underline, List, ListOrdered, Quote,
+  AlignLeft, AlignCenter, AlignRight, Heading1, Heading2, Heading3,
+  Undo, Redo, Link as LinkIcon, Minus,
 } from "lucide-react";
-import dynamic from "next/dynamic";
-import "react-quill/dist/quill.snow.css";
-import katex from "katex";
-import "katex/dist/katex.min.css";
-
-if (typeof window !== "undefined") {
-  window.katex = katex;
-}
-
-const ReactQuill = dynamic(() => import("react-quill"), {
-  ssr: false,
-  loading: () => (
-    <div className="p-4 flex items-center gap-2 text-xs" style={{ color: "#6B7280" }}>
-      <Loader2 size={14} className="animate-spin" />
-      A carregar editor...
-    </div>
-  ),
-});
-
-const quillModules = {
-  toolbar: [
-    [{ header: [1, 2, 3, 4, false] }],
-    ["bold", "italic", "underline", "strike"],
-    [{ script: "sub" }, { script: "super" }],
-    [{ color: [] }, { background: [] }],
-    [{ list: "ordered" }, { list: "bullet" }, { align: [] }],
-    ["link", "image", "video", "formula"],
-    ["clean"],
-  ],
-};
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import ImageResize from "tiptap-extension-resize-image";
+import Link from "@tiptap/extension-link";
+import TextAlign from "@tiptap/extension-text-align";
+import UnderlineExt from "@tiptap/extension-underline";
+import Placeholder from "@tiptap/extension-placeholder";
 
 const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["500", "600", "700", "800"] });
 const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
-// ─── PALETA ENTERPRISE (adaptada do SEMMAS, mas com identidade SagaTurismo) ───
-const INK = "#002f40";          // Azul escuro SagaTurismo (usado no header/home)
-const INK_2 = "#00577C";        // Azul principal SagaTurismo
+// ─── PALETA ENTERPRISE ───
+const INK = "#002f40";
+const INK_2 = "#00577C";
 const MUTED = "#6B7280";
 const SUBTLE = "#9CA3AF";
 const LINE = "#E5E7EB";
 const LINE_2 = "#F3F4F6";
-const BG = "#FDFCF7";           // Fundo da página
+const BG = "#FDFCF7";
 const SURFACE = "#FFFFFF";
-const ACCENT = "#F9C400";       // Amarelo institucional
-const SUCCESS = "#009640";      // Verde
+const ACCENT = "#F9C400";
+const SUCCESS = "#009640";
 const WARNING = "#D97706";
 const DANGER = "#DC2626";
 
@@ -97,11 +77,11 @@ interface BlogPost {
   autor: string | null;
   categoria: string | null;
   destaque: boolean;
-  legenda_imagem_capa?: string;
+  legenda_imagem_capa?: string | null;
 }
 
 // ═══════════════════════════════════════════════════════════════
-// ESTILOS GLOBAIS
+// ESTILOS GLOBAIS (Tiptap + ProseMirror)
 // ═══════════════════════════════════════════════════════════════
 
 function GlobalStyles() {
@@ -123,51 +103,166 @@ function GlobalStyles() {
       .scroll-thin::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 3px; }
       .scroll-thin::-webkit-scrollbar-thumb:hover { background: #9CA3AF; }
 
-      /* Editor Quill — adaptado à paleta SagaTurismo */
-      .ql-toolbar.ql-snow {
-        border: none !important;
-        border-bottom: 1px solid ${LINE} !important;
-        background: ${LINE_2};
-        padding: 8px !important;
-      }
-      .ql-container.ql-snow {
-        border: none !important;
-        font-family: 'Inter', sans-serif !important;
-        font-size: 14px;
-      }
-      .ql-editor {
-        min-height: 380px;
-        padding: 16px !important;
-        line-height: 1.7 !important;
+      /* ═══ Tiptap / ProseMirror 编辑器样式 ═══ */
+      .tiptap-editor {
+        min-height: 420px;
+        padding: 20px 24px;
+        font-family: 'Inter', sans-serif;
+        font-size: 15px;
+        line-height: 1.75;
         color: #1E293B;
+        outline: none;
       }
-      .ql-editor.ql-blank::before {
-        color: #94A3B8 !important;
-        font-style: normal !important;
-        left: 16px !important;
+      .tiptap-editor > * + * {
+        margin-top: 0.75em;
       }
-      .ql-snow .ql-stroke { stroke: #6B7280 !important; }
-      .ql-snow .ql-fill { fill: #6B7280 !important; }
-      .ql-snow .ql-picker { color: #6B7280 !important; }
-      .ql-snow .ql-picker-options {
-        border-color: ${LINE} !important;
-        border-radius: 6px !important;
-        box-shadow: 0 4px 16px rgba(0,47,64,0.08) !important;
+      .tiptap-editor p {
+        margin: 0;
       }
-      .ql-snow.ql-toolbar button:hover .ql-stroke,
-      .ql-snow.ql-toolbar button.ql-active .ql-stroke {
-        stroke: ${INK_2} !important;
+      .tiptap-editor h1 {
+        font-size: 1.75em;
+        font-weight: 700;
+        color: ${INK};
+        margin-top: 1.2em;
+        margin-bottom: 0.4em;
+        line-height: 1.3;
       }
-      .ql-snow.ql-toolbar button:hover .ql-fill,
-      .ql-snow.ql-toolbar button.ql-active .ql-fill {
-        fill: ${INK_2} !important;
+      .tiptap-editor h2 {
+        font-size: 1.4em;
+        font-weight: 700;
+        color: ${INK};
+        margin-top: 1.1em;
+        margin-bottom: 0.35em;
+        line-height: 1.3;
+      }
+      .tiptap-editor h3 {
+        font-size: 1.15em;
+        font-weight: 600;
+        color: ${INK};
+        margin-top: 1em;
+        margin-bottom: 0.3em;
+        line-height: 1.35;
+      }
+      .tiptap-editor ul, .tiptap-editor ol {
+        padding-left: 1.6em;
+        margin: 0.5em 0;
+      }
+      .tiptap-editor li {
+        margin: 0.15em 0;
+      }
+      .tiptap-editor li > p {
+        margin: 0;
+      }
+      .tiptap-editor blockquote {
+        border-left: 4px solid ${INK_2};
+        padding-left: 1em;
+        margin: 0.75em 0;
+        background: #F8FAFB;
+        color: #334155;
+        font-style: italic;
+      }
+      .tiptap-editor a {
+        color: ${INK_2};
+        text-decoration: underline;
+        text-underline-offset: 2px;
+        cursor: pointer;
+      }
+      .tiptap-editor a:hover {
+        color: ${INK};
+      }
+      .tiptap-editor code {
+        background: #F1F5F9;
+        padding: 0.15em 0.4em;
+        border-radius: 4px;
+        font-size: 0.9em;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      .tiptap-editor pre {
+        background: #0F172A;
+        color: #E2E8F0;
+        padding: 1em;
+        border-radius: 8px;
+        overflow-x: auto;
+        margin: 0.75em 0;
+      }
+      .tiptap-editor pre code {
+        background: transparent;
+        padding: 0;
+        color: inherit;
+      }
+      .tiptap-editor hr {
+        border: none;
+        border-top: 2px solid ${LINE};
+        margin: 1.5em 0;
+      }
+      .tiptap-editor img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 8px;
+        margin: 0.5em 0;
+        display: block;
+      }
+      .tiptap-editor img.ProseMirror-selectednode {
+        outline: 3px solid ${INK_2};
+        outline-offset: 2px;
+        border-radius: 8px;
+      }
+      .tiptap-editor p.is-editor-empty:first-child::before {
+        content: attr(data-placeholder);
+        float: left;
+        color: #94A3B8;
+        pointer-events: none;
+        height: 0;
+        font-style: normal;
+      }
+
+      /* Toolbar */
+      .tiptap-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 2px;
+        padding: 8px 10px;
+        border-bottom: 1px solid ${LINE};
+        background: ${LINE_2};
+      }
+      .tiptap-toolbar button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        border: none;
+        background: transparent;
+        color: ${MUTED};
+        cursor: pointer;
+        transition: background 0.12s, color 0.12s;
+      }
+      .tiptap-toolbar button:hover {
+        background: ${SURFACE};
+        color: ${INK_2};
+      }
+      .tiptap-toolbar button.is-active {
+        background: ${INK_2};
+        color: #FFF;
+      }
+      .tiptap-toolbar button:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+      }
+      .tiptap-toolbar .separator {
+        width: 1px;
+        height: 22px;
+        background: ${LINE};
+        margin: 0 4px;
       }
     `}</style>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════
-// ÁTOMOS
+// ÁTOMOS (mantidos do original)
 // ═══════════════════════════════════════════════════════════════
 
 function Panel({
@@ -280,6 +375,175 @@ function StatusPill({
 }
 
 // ═══════════════════════════════════════════════════════════════
+// TOOLBAR DO TIPTAP
+// ═══════════════════════════════════════════════════════════════
+
+function TiptapToolbar({ editor }: { editor: any }) {
+  if (!editor) return null;
+
+  const Btn = ({
+    onClick,
+    isActive,
+    disabled,
+    title,
+    children,
+  }: {
+    onClick: () => void;
+    isActive?: boolean;
+    disabled?: boolean;
+    title: string;
+    children: React.ReactNode;
+  }) => (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      className={isActive ? "is-active" : ""}
+    >
+      {children}
+    </button>
+  );
+
+  return (
+    <div className="tiptap-toolbar">
+      <Btn
+        onClick={() => editor.chain().focus().toggleBold().run()}
+        isActive={editor.isActive("bold")}
+        title="Negrito (Ctrl+B)"
+      >
+        <Bold size={15} strokeWidth={2.5} />
+      </Btn>
+      <Btn
+        onClick={() => editor.chain().focus().toggleItalic().run()}
+        isActive={editor.isActive("italic")}
+        title="Itálico (Ctrl+I)"
+      >
+        <Italic size={15} strokeWidth={2.5} />
+      </Btn>
+      <Btn
+        onClick={() => editor.chain().focus().toggleUnderline().run()}
+        isActive={editor.isActive("underline")}
+        title="Sublinhado (Ctrl+U)"
+      >
+        <Underline size={15} strokeWidth={2.5} />
+      </Btn>
+
+      <div className="separator" />
+
+      <Btn
+        onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+        isActive={editor.isActive("heading", { level: 1 })}
+        title="Título 1"
+      >
+        <Heading1 size={15} />
+      </Btn>
+      <Btn
+        onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+        isActive={editor.isActive("heading", { level: 2 })}
+        title="Título 2"
+      >
+        <Heading2 size={15} />
+      </Btn>
+      <Btn
+        onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+        isActive={editor.isActive("heading", { level: 3 })}
+        title="Título 3"
+      >
+        <Heading3 size={15} />
+      </Btn>
+
+      <div className="separator" />
+
+      <Btn
+        onClick={() => editor.chain().focus().toggleBulletList().run()}
+        isActive={editor.isActive("bulletList")}
+        title="Lista com marcadores"
+      >
+        <List size={15} />
+      </Btn>
+      <Btn
+        onClick={() => editor.chain().focus().toggleOrderedList().run()}
+        isActive={editor.isActive("orderedList")}
+        title="Lista numerada"
+      >
+        <ListOrdered size={15} />
+      </Btn>
+      <Btn
+        onClick={() => editor.chain().focus().toggleBlockquote().run()}
+        isActive={editor.isActive("blockquote")}
+        title="Citação"
+      >
+        <Quote size={15} />
+      </Btn>
+
+      <div className="separator" />
+
+      <Btn
+        onClick={() => editor.chain().focus().setTextAlign("left").run()}
+        isActive={editor.isActive({ textAlign: "left" })}
+        title="Alinhar à esquerda"
+      >
+        <AlignLeft size={15} />
+      </Btn>
+      <Btn
+        onClick={() => editor.chain().focus().setTextAlign("center").run()}
+        isActive={editor.isActive({ textAlign: "center" })}
+        title="Centrar"
+      >
+        <AlignCenter size={15} />
+      </Btn>
+      <Btn
+        onClick={() => editor.chain().focus().setTextAlign("right").run()}
+        isActive={editor.isActive({ textAlign: "right" })}
+        title="Alinhar à direita"
+      >
+        <AlignRight size={15} />
+      </Btn>
+
+      <div className="separator" />
+
+      <Btn
+        onClick={() => {
+          const url = window.prompt("URL do link:");
+          if (url) {
+            editor.chain().focus().setLink({ href: url }).run();
+          }
+        }}
+        isActive={editor.isActive("link")}
+        title="Inserir link"
+      >
+        <LinkIcon size={15} />
+      </Btn>
+
+      <Btn
+        onClick={() => editor.chain().focus().setHorizontalRule().run()}
+        title="Linha horizontal"
+      >
+        <Minus size={15} />
+      </Btn>
+
+      <div className="separator" />
+
+      <Btn
+        onClick={() => editor.chain().focus().undo().run()}
+        disabled={!editor.can().undo()}
+        title="Desfazer (Ctrl+Z)"
+      >
+        <Undo size={15} />
+      </Btn>
+      <Btn
+        onClick={() => editor.chain().focus().redo().run()}
+        disabled={!editor.can().redo()}
+        title="Refazer (Ctrl+Y)"
+      >
+        <Redo size={15} />
+      </Btn>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
 // PAGE
 // ═══════════════════════════════════════════════════════════════
 
@@ -307,18 +571,107 @@ export default function PortalBlog() {
   const [imagemFile, setImagemFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState("");
+  const [feedbackTipo, setFeedbackTipo] = useState<"erro" | "sucesso" | "info">("info");
+
+  // ─── TIPTAP EDITOR ───
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        heading: { levels: [1, 2, 3] },
+      }),
+      UnderlineExt,
+      Link.configure({
+        openOnClick: false,
+        HTMLAttributes: { class: "tiptap-link" },
+      }),
+      TextAlign.configure({
+        types: ["heading", "paragraph"],
+      }),
+      ImageResize.configure({
+        inline: false,
+        minWidth: 100,
+        maxWidth: 900,
+      }),
+      Placeholder.configure({
+        placeholder: "Escreve a notícia, adiciona fotos ou formata o texto...",
+      }),
+    ],
+    content: "",
+    immediatelyRender: false,
+    editorProps: {
+      attributes: {
+        class: "tiptap-editor scroll-thin",
+      },
+    },
+    onUpdate: ({ editor }) => {
+      const html = editor.getHTML();
+      setForm((prev: any) => ({ ...prev, conteudo: html }));
+    },
+  });
+
+  // Sincroniza conteúdo quando abrir form de edição
+  useEffect(() => {
+    if (editor && showForm && form.conteudo) {
+      const current = editor.getHTML();
+      if (current !== form.conteudo) {
+        editor.commands.setContent(form.conteudo || "");
+      }
+    }
+  }, [editor, showForm]);
 
   useEffect(() => {
     fetchPosts();
   }, []);
 
+  function setMsg(tipo: "erro" | "sucesso" | "info", msg: string) {
+    setFeedbackTipo(tipo);
+    setFeedback(msg);
+  }
+
+  function traduzErro(err: any): string {
+    const raw = String(err?.message || err?.error_description || err || "");
+    if (raw.includes("row-level security") || raw.includes("violates row-level"))
+      return "Bloqueado pelo RLS. Confirma que estás autenticado (login) e que as políticas permitem esta operação.";
+    if (raw.includes("permission denied"))
+      return "Sem permissão para esta operação (GRANT em falta).";
+    if (raw.includes("JWT") || raw.includes("token"))
+      return "Sessão inválida ou expirada. Faz login novamente.";
+    if (raw.includes("does not exist") || raw.includes("column"))
+      return `Coluna inexistente na tabela: ${raw}`;
+    if (raw.includes("duplicate key"))
+      return "Valor duplicado (slug já existe).";
+    return raw || "Erro desconhecido.";
+  }
+
+  async function ensureAuth(): Promise<boolean> {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.warn("[blog] Sem sessão ativa — RLS vai tratar como anon.");
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.error("[blog] Erro ao verificar sessão:", e);
+      return false;
+    }
+  }
+
   async function fetchPosts() {
     setLoading(true);
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("blog")
       .select("*")
       .order("data_publicacao", { ascending: false });
-    setPosts(data || []);
+
+    if (error) {
+      console.error("[blog] fetchPosts erro:", error);
+      setMsg("erro", `Erro ao carregar artigos: ${traduzErro(error)}`);
+      setPosts([]);
+    } else {
+      setPosts(data || []);
+      setFeedback("");
+    }
     setLoading(false);
   }
 
@@ -328,61 +681,162 @@ export default function PortalBlog() {
     setImagemFile(null);
     setShowForm(true);
     setFeedback("");
+    setTimeout(() => {
+      editor?.commands.setContent("");
+    }, 50);
   }
 
   function abrirFormEditar(post: BlogPost) {
     setEditando(post);
-    setForm({ ...post });
+    setForm({
+      titulo: post.titulo ?? "",
+      resumo: post.resumo ?? "",
+      conteudo: post.conteudo ?? "",
+      legenda_imagem_capa: post.legenda_imagem_capa ?? "",
+      data_publicacao: post.data_publicacao ?? new Date().toISOString().split("T")[0],
+      autor: post.autor ?? "Redação",
+      categoria: post.categoria ?? "Turismo",
+      ativo: post.ativo ?? true,
+      destaque: post.destaque ?? false,
+    });
     setImagemFile(null);
     setShowForm(true);
     setFeedback("");
+    setTimeout(() => {
+      editor?.commands.setContent(post.conteudo || "");
+    }, 50);
   }
 
   async function toggleAtivo(id: string, estadoAtual: boolean) {
-    await supabase.from("blog").update({ ativo: !estadoAtual }).eq("id", id);
+    const authed = await ensureAuth();
+    if (!authed) {
+      setMsg("erro", "Precisas estar autenticado para alterar a visibilidade.");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("blog")
+      .update({ ativo: !estadoAtual })
+      .eq("id", id);
+
+    if (error) {
+      console.error("[blog] toggleAtivo erro:", error);
+      setMsg("erro", traduzErro(error));
+      return;
+    }
+    setMsg("sucesso", estadoAtual ? "Artigo ocultado." : "Artigo publicado.");
     fetchPosts();
+    setTimeout(() => setFeedback(""), 2000);
   }
 
   async function handleSave() {
-    if (!form.titulo || !form.conteudo) {
-      setFeedback("Título e conteúdo são obrigatórios.");
+    const conteudo = editor?.getHTML() || form.conteudo;
+
+    if (!form.titulo || !conteudo || conteudo === "<p></p>") {
+      setMsg("erro", "Título e conteúdo são obrigatórios.");
       return;
     }
+
+    const authed = await ensureAuth();
+    if (!authed) {
+      setMsg(
+        "erro",
+        "Sem sessão ativa. Faz login para poder criar/editar (RLS bloqueia anon)."
+      );
+      return;
+    }
+
     setSaving(true);
-    setFeedback("A guardar artigo...");
+    setMsg("info", "A guardar artigo...");
 
     let imagem_url = editando?.imagem_url || null;
 
     if (imagemFile) {
       const ext = imagemFile.name.split(".").pop();
       const path = `blog/${Date.now()}.${ext}`;
-      const { error } = await supabase.storage
+      const { error: upErr } = await supabase.storage
         .from("galeria")
         .upload(path, imagemFile, { upsert: true });
-      if (!error) {
-        const { data: pub } = supabase.storage.from("galeria").getPublicUrl(path);
-        imagem_url = pub.publicUrl;
+
+      if (upErr) {
+        console.error("[blog] upload erro:", upErr);
+        setMsg("erro", `Erro no upload da imagem: ${traduzErro(upErr)}`);
+        setSaving(false);
+        return;
       }
+
+      const { data: pub } = supabase.storage.from("galeria").getPublicUrl(path);
+      imagem_url = pub.publicUrl;
     }
 
-    const payload = { ...form, imagem_url };
+    const payload: any = {
+      titulo: form.titulo,
+      resumo: form.resumo,
+      conteudo,
+      data_publicacao: form.data_publicacao,
+      autor: form.autor,
+      categoria: form.categoria,
+      ativo: form.ativo,
+      destaque: form.destaque,
+      imagem_url,
+      legenda_imagem_capa: form.legenda_imagem_capa || null,
+    };
 
-    if (editando) await supabase.from("blog").update(payload).eq("id", editando.id);
-    else await supabase.from("blog").insert(payload);
+    if (editando) {
+      const { error } = await supabase
+        .from("blog")
+        .update(payload)
+        .eq("id", editando.id);
 
-    setFeedback(editando ? "Artigo atualizado com sucesso!" : "Novo artigo publicado!");
+      if (error) {
+        console.error("[blog] update erro:", error);
+        setMsg("erro", `Erro ao atualizar: ${traduzErro(error)}`);
+        setSaving(false);
+        return;
+      }
+
+      setMsg("sucesso", "Artigo atualizado com sucesso!");
+    } else {
+      const { error } = await supabase.from("blog").insert(payload);
+
+      if (error) {
+        console.error("[blog] insert erro:", error);
+        setMsg("erro", `Erro ao publicar: ${traduzErro(error)}`);
+        setSaving(false);
+        return;
+      }
+
+      setMsg("sucesso", "Novo artigo publicado!");
+    }
+
     setTimeout(() => {
       setShowForm(false);
       setSaving(false);
       fetchPosts();
       setFeedback("");
-    }, 1500);
+    }, 1200);
   }
 
   async function handleDelete(id: string) {
     if (!confirm("Tem certeza que deseja apagar este artigo permanentemente?")) return;
-    await supabase.from("blog").delete().eq("id", id);
+
+    const authed = await ensureAuth();
+    if (!authed) {
+      setMsg("erro", "Precisas estar autenticado para apagar artigos.");
+      return;
+    }
+
+    const { error } = await supabase.from("blog").delete().eq("id", id);
+
+    if (error) {
+      console.error("[blog] delete erro:", error);
+      setMsg("erro", traduzErro(error));
+      return;
+    }
+
+    setMsg("sucesso", "Artigo apagado.");
     fetchPosts();
+    setTimeout(() => setFeedback(""), 2000);
   }
 
   const filtrados = posts.filter((p) => {
@@ -521,7 +975,7 @@ export default function PortalBlog() {
                     />
                   </FormField>
 
-                  {/* Editor */}
+                  {/* Editor Tiptap */}
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <label
@@ -576,23 +1030,28 @@ export default function PortalBlog() {
                       style={{ borderColor: LINE }}
                     >
                       {modoEditor === "visual" ? (
-                        <ReactQuill
-                          theme="snow"
-                          value={form.conteudo || ""}
-                          onChange={(content) => setForm({ ...form, conteudo: content })}
-                          modules={quillModules}
-                          placeholder="Escreve a notícia, adiciona fotos ou fórmulas (botão fx)..."
-                        />
+                        <>
+                          <TiptapToolbar editor={editor} />
+                          <EditorContent editor={editor} />
+                        </>
                       ) : (
                         <textarea
-                          value={form.conteudo || ""}
-                          onChange={(e) => setForm({ ...form, conteudo: e.target.value })}
+                          value={editor?.getHTML() || form.conteudo || ""}
+                          onChange={(e) => {
+                            setForm({ ...form, conteudo: e.target.value });
+                          }}
                           className="w-full h-[450px] p-4 text-[12.5px] focus:outline-none scroll-thin font-mono"
                           style={{ background: INK, color: "#E2E8F0", border: "none" }}
                           placeholder="<p>Insere aqui o HTML ou marcações LaTeX...</p>"
                         />
                       )}
                     </div>
+
+                    {modoEditor === "codigo" && (
+                      <p className="text-[10.5px] mt-1.5" style={{ color: SUBTLE }}>
+                        Modo HTML: o conteúdo editado aqui não é refletido no editor visual. Volta ao modo Visual para continuar a editar normalmente.
+                      </p>
+                    )}
                   </div>
                 </div>
               </Panel>
@@ -695,7 +1154,7 @@ export default function PortalBlog() {
                 </div>
               </Panel>
 
-              {/* Imagem */}
+              {/* Imagem de capa */}
               <Panel noPad className="anim-fade-up">
                 <PanelHeader title="Imagem de capa" subtitle="Visual principal" />
                 <div className="p-5 space-y-4">
@@ -773,19 +1232,32 @@ export default function PortalBlog() {
                 <div
                   className="rounded-lg border p-3.5 flex items-start gap-3 anim-fade-up"
                   style={{
-                    background: feedback.toLowerCase().includes("obrigat")
-                      ? "#FEF2F2"
-                      : "#ECFDF5",
-                    borderColor: feedback.toLowerCase().includes("obrigat")
-                      ? "#FEE2E2"
-                      : "#D1FAE5",
-                    color: feedback.toLowerCase().includes("obrigat") ? DANGER : SUCCESS,
+                    background:
+                      feedbackTipo === "erro"
+                        ? "#FEF2F2"
+                        : feedbackTipo === "sucesso"
+                        ? "#ECFDF5"
+                        : "#F0F7FA",
+                    borderColor:
+                      feedbackTipo === "erro"
+                        ? "#FEE2E2"
+                        : feedbackTipo === "sucesso"
+                        ? "#D1FAE5"
+                        : "#D6E9F0",
+                    color:
+                      feedbackTipo === "erro"
+                        ? DANGER
+                        : feedbackTipo === "sucesso"
+                        ? SUCCESS
+                        : INK_2,
                   }}
                 >
-                  {feedback.toLowerCase().includes("obrigat") ? (
+                  {feedbackTipo === "erro" ? (
                     <AlertTriangle size={14} className="shrink-0 mt-0.5" />
-                  ) : (
+                  ) : feedbackTipo === "sucesso" ? (
                     <CheckCircle2 size={14} className="shrink-0 mt-0.5" />
+                  ) : (
+                    <Loader2 size={14} className="shrink-0 mt-0.5 animate-spin" />
                   )}
                   <p className="text-[12.5px] font-medium">{feedback}</p>
                 </div>
@@ -856,6 +1328,49 @@ export default function PortalBlog() {
             </button>
           </div>
         </div>
+
+        {/* Feedback global */}
+        {feedback && !showForm && (
+          <div
+            className="rounded-lg border p-3.5 flex items-start gap-3 anim-fade-up"
+            style={{
+              background:
+                feedbackTipo === "erro"
+                  ? "#FEF2F2"
+                  : feedbackTipo === "sucesso"
+                  ? "#ECFDF5"
+                  : "#F0F7FA",
+              borderColor:
+                feedbackTipo === "erro"
+                  ? "#FEE2E2"
+                  : feedbackTipo === "sucesso"
+                  ? "#D1FAE5"
+                  : "#D6E9F0",
+              color:
+                feedbackTipo === "erro"
+                  ? DANGER
+                  : feedbackTipo === "sucesso"
+                  ? SUCCESS
+                  : INK_2,
+            }}
+          >
+            {feedbackTipo === "erro" ? (
+              <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+            ) : feedbackTipo === "sucesso" ? (
+              <CheckCircle2 size={14} className="shrink-0 mt-0.5" />
+            ) : (
+              <Loader2 size={14} className="shrink-0 mt-0.5 animate-spin" />
+            )}
+            <p className="text-[12.5px] font-medium flex-1">{feedback}</p>
+            <button
+              onClick={() => setFeedback("")}
+              className="shrink-0 w-6 h-6 rounded flex items-center justify-center"
+              style={{ color: "inherit" }}
+            >
+              <X size={12} />
+            </button>
+          </div>
+        )}
 
         {/* Busca */}
         {posts.length > 0 && (
@@ -979,7 +1494,6 @@ export default function PortalBlog() {
                 className="bg-white border rounded-lg overflow-hidden hover:border-slate-300 transition-colors anim-fade-up group"
               >
                 <div className="flex items-stretch">
-                  {/* Indicador de destaque */}
                   <div
                     className="w-1 shrink-0"
                     style={{ background: post.destaque ? ACCENT : "transparent" }}

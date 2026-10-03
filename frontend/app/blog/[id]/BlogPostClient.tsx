@@ -25,30 +25,42 @@ export type BlogPost = {
   updated_at?: string;
 };
 
-// ── LIMPEZA DO CONTEÚDO (Quill) ──
+// ── LIMPEZA SUAVE DO CONTEÚDO ──
+// Antes: substituía espaços, &nbsp;, e apagava <p><br></p> — destruía formatação.
+// Agora: apenas normaliza casos realmente problemáticos, preserva o HTML do editor.
 function limparConteudo(raw: string): string {
   if (!raw) return '<p>Conteúdo não disponível</p>';
   let html = raw;
 
-  if (!html.includes('<p>') && !html.includes('<br>') && !html.includes('<div>') && !html.includes('<h')) {
-    const paragraphs = html.split('\n\n').filter((p) => p.trim());
-    if (paragraphs.length > 0) {
-      html = paragraphs.map((p) => `<p>${p.trim()}</p>`).join('');
-    } else if (html.trim()) {
-      html = `<p>${html.trim()}</p>`;
-    }
+  // Se for texto puro (sem tags de bloco), transforma em parágrafos
+  const temTagsDeBloco = /<(p|br|div|h[1-6]|ul|ol|blockquote|pre|img|figure)\b/i.test(html);
+  if (!temTagsDeBloco) {
+    const paragraphs = html
+      .split(/\n{2,}/)
+      .map((p) => p.trim())
+      .filter(Boolean);
+    html = paragraphs.length
+      ? paragraphs.map((p) => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('')
+      : `<p>${html.trim()}</p>`;
   }
 
-  html = html.replace(/<p[^>]*>(?:\s|&nbsp;|<br\s*\/?>)*<\/p>/gi, '');
-  html = html.replace(/<\/p>\s*<br\s*\/?>\s*<p[^>]*>/gi, '</p><p>');
-  html = html.replace(/<br\s*\/?>\s*<\/p>/gi, '</p>');
-  html = html.replace(/&nbsp;/g, ' ');
-  html = html.replace(/\s{2,}/g, ' ');
+  // Remove APENAS parágrafos completamente vazios (sem <br>, sem &nbsp;)
+  html = html.replace(/<p[^>]*>\s*<\/p>/gi, '');
 
-  return html;
+  // Remove <br> soltos entre blocos (ex: "</p><br><p>") que criam gaps
+  html = html.replace(/<\/p>\s*<br\s*\/?>\s*<p[^>]*>/gi, '</p><p>');
+
+  // Remove <br> no fim de parágrafos
+  html = html.replace(/<br\s*\/?>\s*<\/p>/gi, '</p>');
+
+  // Remove linhas em branco entre tags, mas preserva dentro de <pre>
+  html = html.replace(/>\s+</g, '><');
+
+  return html.trim();
 }
 
-const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1542382156909-9ae37b3f56fd?q=80&w=2069';
+const FALLBACK_IMAGE =
+  'https://images.unsplash.com/photo-1542382156909-9ae37b3f56fd?q=80&w=2069';
 
 export default function BlogPostClient({ post }: { post: BlogPost }) {
   // ── Incrementa visualizações (client-side, uma vez por sessão) ──
@@ -111,7 +123,7 @@ export default function BlogPostClient({ post }: { post: BlogPost }) {
 
   return (
     <main className={`${inter.className} min-h-screen bg-white font-sans pt-28 pb-32`}>
-      <article className="max-w-[800px] mx-auto px-4 sm:px-6">
+      <article className="max-w-[760px] mx-auto px-4 sm:px-6">
 
         <div className="mb-8">
           <Link
@@ -130,13 +142,13 @@ export default function BlogPostClient({ post }: { post: BlogPost }) {
           )}
 
           <h1
-            className={`${jakarta.className} text-[2rem] sm:text-[2.5rem] md:text-[3rem] leading-[1.1] font-black text-[#222222] mb-4 tracking-tight`}
+            className={`${jakarta.className} text-[2rem] sm:text-[2.4rem] md:text-[2.75rem] leading-[1.15] font-black text-[#222222] mb-4 tracking-tight`}
           >
             {post.titulo}
           </h1>
 
           {post.resumo && post.resumo !== post.titulo && (
-            <h2 className="text-lg sm:text-xl text-[#555555] font-normal leading-relaxed mb-6">
+            <h2 className="text-[1.15rem] sm:text-[1.25rem] text-[#555555] font-normal leading-[1.55] mb-6">
               {post.resumo}
             </h2>
           )}
@@ -221,87 +233,253 @@ export default function BlogPostClient({ post }: { post: BlogPost }) {
 
         {/* Corpo do Texto */}
         <div
-          className="noticia-conteudo text-[#333333]"
+          className="noticia-conteudo"
           dangerouslySetInnerHTML={{ __html: conteudoLimpo }}
         />
 
       </article>
 
       <style jsx global>{`
+        /* ═══════════════════════════════════════════════════════
+           CONTEÚDO DA NOTÍCIA — estilos normalizados
+           ═══════════════════════════════════════════════════════ */
         .noticia-conteudo {
-          font-family: Arial, Helvetica, sans-serif;
-          word-break: break-word;
-        }
-        .noticia-conteudo p {
+          font-family: 'Inter', Arial, Helvetica, sans-serif;
           font-size: 1.0625rem;
-          line-height: 1.7;
-          margin: 0 0 1rem 0;
+          line-height: 1.75;
           color: #333333;
+          word-break: break-word;
+          overflow-wrap: anywhere;
         }
-        .noticia-conteudo > p:last-child { margin-bottom: 0; }
+
+        /* ── Reset de espaços entre blocos ── */
+        .noticia-conteudo > *:first-child {
+          margin-top: 0 !important;
+        }
+        .noticia-conteudo > *:last-child {
+          margin-bottom: 0 !important;
+        }
+
+        /* ── Parágrafos ── */
+        .noticia-conteudo p {
+          margin: 0 0 1.1em 0;
+          padding: 0;
+        }
+        /* Parágrafo vazio (só <br> ou &nbsp;) — não criar gap gigante */
+        .noticia-conteudo p:empty,
+        .noticia-conteudo p:has(> br:only-child) {
+          display: none;
+        }
+
+        /* ── Títulos ── */
         .noticia-conteudo h1,
         .noticia-conteudo h2,
         .noticia-conteudo h3,
         .noticia-conteudo h4 {
-          color: #222222;
+          color: #1a1a1a;
           font-weight: 700;
-          margin: 1.75rem 0 0.875rem 0;
-          line-height: 1.25;
+          margin: 1.6em 0 0.6em 0;
+          line-height: 1.3;
+          letter-spacing: -0.01em;
         }
         .noticia-conteudo h1 { font-size: 1.75rem; }
-        .noticia-conteudo h2 { font-size: 1.4rem; }
+        .noticia-conteudo h2 { font-size: 1.45rem; }
         .noticia-conteudo h3 { font-size: 1.2rem; }
         .noticia-conteudo h4 { font-size: 1.05rem; }
+        .noticia-conteudo h1 + p,
+        .noticia-conteudo h2 + p,
+        .noticia-conteudo h3 + p,
+        .noticia-conteudo h4 + p {
+          margin-top: 0;
+        }
+
+        /* ── Listas ── */
         .noticia-conteudo ul,
         .noticia-conteudo ol {
-          padding-left: 1.75rem;
-          margin: 0 0 1rem 0;
-          font-size: 1.0625rem;
-          line-height: 1.7;
+          padding-left: 1.6em;
+          margin: 0 0 1.1em 0;
         }
-        .noticia-conteudo ul { list-style-type: disc; }
-        .noticia-conteudo ol { list-style-type: decimal; }
-        .noticia-conteudo li { margin-bottom: 0.35rem; }
+        .noticia-conteudo ul { list-style: disc; }
+        .noticia-conteudo ol { list-style: decimal; }
+        .noticia-conteudo li {
+          margin: 0.25em 0;
+          padding-left: 0.25em;
+        }
+        .noticia-conteudo li > p {
+          margin: 0;
+        }
+        .noticia-conteudo li::marker {
+          color: #00577C;
+          font-weight: 600;
+        }
+
+        /* ── Ênfase ── */
         .noticia-conteudo strong,
-        .noticia-conteudo b { font-weight: 700; color: #222222; }
+        .noticia-conteudo b {
+          font-weight: 700;
+          color: #1a1a1a;
+        }
+        .noticia-conteudo em,
+        .noticia-conteudo i {
+          font-style: italic;
+        }
+        .noticia-conteudo u {
+          text-decoration: underline;
+          text-underline-offset: 2px;
+        }
+        .noticia-conteudo s,
+        .noticia-conteudo strike {
+          text-decoration: line-through;
+          opacity: 0.8;
+        }
+
+        /* ── Links ── */
         .noticia-conteudo a {
           color: #00577C;
           font-weight: 600;
           text-decoration: underline;
           text-underline-offset: 2px;
+          transition: color 0.15s ease;
         }
-        .noticia-conteudo a:hover { color: #003d5a; }
+        .noticia-conteudo a:hover {
+          color: #002f40;
+        }
+
+        /* ── Imagens ── */
         .noticia-conteudo img {
           display: block;
-          width: 100%;
-          height: auto;
-          margin: 1.5rem 0 0.5rem 0;
+          max-width: 100% !important;
+          height: auto !important;
+          margin: 1.5em auto 0.5em auto;
           border-radius: 0.5rem;
         }
+        /* Imagens com estilo inline de width (Quill) — respeitar, mas limitar */
+        .noticia-conteudo img[style*="width"] {
+          max-width: 100%;
+        }
+
+        /* ── Bloco de citação ── */
         .noticia-conteudo blockquote {
           border-left: 4px solid #F9C400;
-          padding-left: 1.25rem;
-          margin: 1.5rem 0;
+          background: #FDFCF7;
+          padding: 0.75em 1.25em;
+          margin: 1.5em 0;
           color: #555555;
           font-style: italic;
-          font-size: 1.15rem;
+          font-size: 1.1rem;
+          line-height: 1.6;
+          border-radius: 0 6px 6px 0;
+        }
+        .noticia-conteudo blockquote p:last-child {
+          margin-bottom: 0;
+        }
+
+        /* ── Código ── */
+        .noticia-conteudo code {
+          background: #F1F5F9;
+          padding: 0.15em 0.4em;
+          border-radius: 4px;
+          font-size: 0.9em;
+          font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+          color: #0F172A;
+        }
+        .noticia-conteudo pre {
+          background: #0F172A;
+          color: #E2E8F0;
+          padding: 1em 1.25em;
+          border-radius: 8px;
+          overflow-x: auto;
+          margin: 1.5em 0;
+          font-size: 0.9rem;
           line-height: 1.6;
         }
+        .noticia-conteudo pre code {
+          background: transparent;
+          padding: 0;
+          color: inherit;
+        }
+
+        /* ── Separador ── */
+        .noticia-conteudo hr {
+          border: none;
+          border-top: 1px solid #E5E7EB;
+          margin: 2em 0;
+        }
+
+        /* ── Mídia incorporada ── */
         .noticia-conteudo iframe,
         .noticia-conteudo video {
+          display: block;
           max-width: 100%;
-          margin: 1.5rem 0;
+          width: 100%;
+          margin: 1.5em 0;
           border-radius: 0.5rem;
+          border: none;
         }
-        .noticia-conteudo .katex { font-size: 1.05em; }
+
+        /* ── Fórmulas (KaTeX) ── */
+        .noticia-conteudo .katex {
+          font-size: 1.05em;
+        }
+        .noticia-conteudo .katex-display {
+          margin: 1em 0;
+          overflow-x: auto;
+          overflow-y: hidden;
+        }
+
+        /* ── Classes utilitárias do Quill ── */
         .noticia-conteudo .ql-size-small { font-size: 0.875rem; }
         .noticia-conteudo .ql-size-large { font-size: 1.35rem; }
         .noticia-conteudo .ql-size-huge { font-size: 1.75rem; font-weight: 700; }
+
         .noticia-conteudo .ql-align-center { text-align: center; }
         .noticia-conteudo .ql-align-right { text-align: right; }
         .noticia-conteudo .ql-align-justify { text-align: justify; }
-        .noticia-conteudo p:empty,
-        .noticia-conteudo p > br:only-child { display: none; }
+
+        .noticia-conteudo .ql-indent-1 { padding-left: 2em; }
+        .noticia-conteudo .ql-indent-2 { padding-left: 4em; }
+        .noticia-conteudo .ql-indent-3 { padding-left: 6em; }
+        .noticia-conteudo .ql-indent-4 { padding-left: 8em; }
+
+        /* ── Color / background inline do Quill preservados ── */
+        .noticia-conteudo [style*="background-color"] {
+          padding: 0.1em 0.2em;
+          border-radius: 3px;
+        }
+
+        /* ── Tabelas ── */
+        .noticia-conteudo table {
+          width: 100%;
+          border-collapse: collapse;
+          margin: 1.5em 0;
+          font-size: 0.95rem;
+        }
+        .noticia-conteudo th,
+        .noticia-conteudo td {
+          border: 1px solid #E5E7EB;
+          padding: 0.6em 0.85em;
+          text-align: left;
+        }
+        .noticia-conteudo th {
+          background: #F3F4F6;
+          font-weight: 700;
+          color: #1a1a1a;
+        }
+
+        /* ── Responsivo ── */
+        @media (max-width: 640px) {
+          .noticia-conteudo {
+            font-size: 1rem;
+            line-height: 1.7;
+          }
+          .noticia-conteudo h1 { font-size: 1.5rem; }
+          .noticia-conteudo h2 { font-size: 1.3rem; }
+          .noticia-conteudo h3 { font-size: 1.1rem; }
+          .noticia-conteudo blockquote {
+            font-size: 1.05rem;
+            padding: 0.6em 1em;
+          }
+        }
       `}</style>
     </main>
   );
