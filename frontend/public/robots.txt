@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://turismo.saogeraldodoaraguaia.pa.gov.br/sitemap.xml
