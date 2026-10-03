@@ -94,14 +94,12 @@ function Lightbox({
   onPrev: () => void;
   onNext: () => void;
 }) {
-  // Bloquear scroll do body quando aberto
   useEffect(() => {
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = originalOverflow; };
   }, []);
 
-  // Fechar com Esc + navegar com setas
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -120,7 +118,6 @@ function Lightbox({
       aria-modal="true"
       aria-label="Visualização da imagem"
     >
-      {/* Botão fechar */}
       <button
         onClick={onClose}
         className="absolute top-5 right-5 md:top-8 md:right-8 z-10 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center text-white transition-all"
@@ -129,14 +126,12 @@ function Lightbox({
         <X size={22} />
       </button>
 
-      {/* Contador */}
       <div className="absolute top-5 left-5 md:top-8 md:left-8 z-10 px-4 py-2 rounded-full bg-white/10 backdrop-blur border border-white/20">
         <span className="text-white text-xs font-bold tracking-widest">
           {index + 1} / {fotos.length}
         </span>
       </div>
 
-      {/* Imagem */}
       <div
         className="relative w-full h-full max-w-[90vw] max-h-[85vh] mx-auto"
         onClick={(e) => e.stopPropagation()}
@@ -151,7 +146,6 @@ function Lightbox({
         />
       </div>
 
-      {/* Navegação anterior/próxima (só se houver mais de 1) */}
       {fotos.length > 1 && (
         <>
           <button
@@ -179,32 +173,31 @@ export default function AtracaoDetailPage() {
   const id = params?.id as string;
 
   const [atracao, setAtracao] = useState<Atracao | null>(null);
-  const [pontos, setPontos] = useState<PontoInteresse[]>([]); 
+  const [pontos, setPontos] = useState<PontoInteresse[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound404, setNotFound404] = useState(false);
 
-  // ── ESTADO DO LIGHTBOX ──
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
 
   useEffect(() => {
     async function fetchData() {
       if (!id) return;
-      
+
       const { data: atracaoData, error: atracaoError } = await supabase
         .from('atracoes').select('*').eq('id', id).single();
-      
-      if (atracaoError || !atracaoData) { 
-        setNotFound404(true); 
-        setLoading(false); 
-        return; 
+
+      if (atracaoError || !atracaoData) {
+        setNotFound404(true);
+        setLoading(false);
+        return;
       }
-      
+
       setAtracao(atracaoData as Atracao);
 
       const { data: pontosData } = await supabase
         .from('atracao_pontos').select('*').eq('atracao_id', id);
-        
+
       if (pontosData) setPontos(pontosData as PontoInteresse[]);
 
       setLoading(false);
@@ -239,19 +232,36 @@ export default function AtracaoDetailPage() {
 
   const fotosGaleria = parseGaleria(atracao.galeria);
 
-  // Abrir lightbox
   const abrirLightbox = (index: number) => {
     setLightboxIndex(index);
     setLightboxOpen(true);
   };
 
-  // Navegação circular
   const nextImage = () => setLightboxIndex((i) => (i + 1) % fotosGaleria.length);
   const prevImage = () => setLightboxIndex((i) => (i - 1 + fotosGaleria.length) % fotosGaleria.length);
 
   return (
     <>
-      <main className={`${inter.className} text-slate-900 overflow-x-hidden bg-[#FDFCF7] flex flex-col min-h-screen`}>
+      {/* ══════════════════════════════════════
+          LIGHTBOX GLOBAL (fora do main para evitar stacking issues)
+      ══════════════════════════════════════ */}
+      {lightboxOpen && fotosGaleria.length > 0 && (
+        <Lightbox
+          fotos={fotosGaleria}
+          index={lightboxIndex}
+          onClose={() => setLightboxOpen(false)}
+          onPrev={prevImage}
+          onNext={nextImage}
+        />
+      )}
+
+      {/* 
+        ✅ CORREÇÃO MOBILE:
+        - `overflow-x-hidden` movido para o <body> via CSS global (mais seguro que no <main>)
+        - `relative` e `w-full` mantidos no <main>
+        - `overflow-hidden` aplicado apenas onde necessário (não no <main>)
+      */}
+      <main className={`${inter.className} relative text-slate-900 bg-[#FDFCF7] flex flex-col min-h-screen w-full`}>
 
         {/* ══════════════════════════════════════
             HERO
@@ -264,6 +274,7 @@ export default function AtracaoDetailPage() {
               fill
               className="object-cover"
               priority
+              sizes="100vw"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
           </div>
@@ -274,8 +285,10 @@ export default function AtracaoDetailPage() {
             </h1>
           </div>
 
-          {/* ── ONDA DE TRANSIÇÃO ── */}
-          <div className="absolute bottom-0 left-0 w-full overflow-hidden leading-none z-20 translate-y-[1px]">
+          {/* ── ONDA DE TRANSIÇÃO ── 
+              ✅ CORREÇÃO: adicionado `pointer-events-none` para não bloquear cliques
+              e removido o translate-y para evitar 1px de scroll horizontal */}
+          <div className="pointer-events-none absolute bottom-0 left-0 w-full overflow-hidden leading-none z-20">
             <svg className="relative block w-full h-[20px] md:h-[45px]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none">
               <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V120H0V95.8C59.71,118.06,130.83,115.54,191.13,97.8,235.34,84.7,279.16,71.21,321.39,56.44Z" fill="#FDFCF7"></path>
             </svg>
@@ -286,7 +299,6 @@ export default function AtracaoDetailPage() {
             CONTEÚDO PRINCIPAL E INFORMAÇÕES
         ══════════════════════════════════════ */}
         <section className="max-w-[900px] mx-auto px-6 py-12 md:py-16 w-full relative z-20">
-          
           <Reveal anim="up">
             <Link href="/atrativos" className="text-[#00577C] hover:text-[#003d57] transition-colors mb-10 inline-block font-medium text-sm md:text-base underline underline-offset-4 decoration-slate-200 hover:decoration-[#00577C]">
               &larr; Voltar para atrativos
@@ -300,7 +312,7 @@ export default function AtracaoDetailPage() {
               {atracao.tipo && (
                 <p><strong>Categoria:</strong> {atracao.tipo}</p>
               )}
-              
+
               {atracao.preco_entrada !== undefined && (
                 <p>
                   <strong>Entrada:</strong> {Number(atracao.preco_entrada) > 0 ? `R$ ${Number(atracao.preco_entrada).toFixed(2)}` : 'Gratuito'}
@@ -343,25 +355,26 @@ export default function AtracaoDetailPage() {
               <h3 className={`${jakarta.className} text-2xl md:text-3xl font-black text-slate-900 mb-8 border-b border-slate-200 pb-4`}>
                 O que você encontra aqui
               </h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {pontos.map((ponto) => {
                   const linkDestino = ponto.atracao_destino_id ? `/atrativos/${ponto.atracao_destino_id}` : `/atrativos/${ponto.id}`;
 
                   return (
                     <Link href={linkDestino} key={ponto.id} className="relative h-[300px] md:h-[380px] rounded-[2.5rem] overflow-hidden group shadow-md border border-slate-100 block">
-                      <Image 
-                        src={ponto.imagem_url || atracao.imagem_url} 
-                        alt={ponto.titulo} 
-                        fill 
-                        className="object-cover group-hover:scale-110 transition-transform duration-1000 ease-out" 
+                      <Image
+                        src={ponto.imagem_url || atracao.imagem_url}
+                        alt={ponto.titulo}
+                        fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        className="object-cover group-hover:scale-110 transition-transform duration-1000 ease-out"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-slate-900/95 via-slate-900/30 to-transparent" />
-                      
+
                       <div className="absolute top-6 left-6 z-10">
-                         <span className="bg-white/20 backdrop-blur-md text-white px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border border-white/20 shadow-sm">
-                            {ponto.tipo}
-                         </span>
+                        <span className="bg-white/20 backdrop-blur-md text-white px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border border-white/20 shadow-sm">
+                          {ponto.tipo}
+                        </span>
                       </div>
 
                       <div className="absolute bottom-8 left-8 right-8 z-10 flex flex-col gap-3">
@@ -386,7 +399,7 @@ export default function AtracaoDetailPage() {
               <h3 className={`${jakarta.className} text-2xl md:text-3xl font-black text-slate-900 mb-8 border-b border-slate-200 pb-4`}>
                 Galeria
               </h3>
-              
+
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                 {fotosGaleria.map((imgUrl, i) => (
                   <button
@@ -400,9 +413,9 @@ export default function AtracaoDetailPage() {
                       src={imgUrl}
                       alt={`Galeria ${atracao.nome} ${i + 1}`}
                       fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                       className="object-cover group-hover:scale-105 transition-transform duration-700"
                     />
-                    {/* Overlay sutil no hover */}
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300" />
                   </button>
                 ))}
@@ -412,19 +425,6 @@ export default function AtracaoDetailPage() {
         )}
 
       </main>
-
-      {/* ══════════════════════════════════════
-          LIGHTBOX (renderizado por cima de tudo)
-      ══════════════════════════════════════ */}
-      {lightboxOpen && fotosGaleria.length > 0 && (
-        <Lightbox
-          fotos={fotosGaleria}
-          index={lightboxIndex}
-          onClose={() => setLightboxOpen(false)}
-          onPrev={prevImage}
-          onNext={nextImage}
-        />
-      )}
     </>
   );
 }

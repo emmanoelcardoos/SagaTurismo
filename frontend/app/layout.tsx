@@ -45,6 +45,8 @@ const NAV_GROUPS = [
       { label: "História", href: "/historia" },
       { label: "Biodiversidade", href: "/biodiversidade" },
       { label: "Comunidades", href: "/comunidades" },
+      { label: "Roteiros", href: "/roteiros" },
+      { label: "Pesca Esportiva", href: "/pesca-esportiva" },
       { label: "Eventos", href: "/eventos" },
     ],
   },
@@ -94,6 +96,7 @@ const ROTAS_SEM_HERO = [
 // ════════════════════════════════════════════
 const ROTAS_SEM_HEADER = [
   "/portal-servicos",
+  "/not-found.tsx"
   // Adiciona aqui outras rotas que tenham o seu próprio header/footer:
   // "/admin",
 ];
