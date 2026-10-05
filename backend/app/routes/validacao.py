@@ -16,7 +16,27 @@ def executar_validacao(token: str):
         return {"sucesso": False, "mensagem": "Token não fornecido."}
         
     # 1. Busca o residente pela tabela CORRETA usando o token limpo
+    # 1. Tenta buscar o residente primeiro
     res = supabase.table("rd_residentes").select("*").eq("id", token_clean).execute()
+    
+    # 2. Se não for residente, procura se é um ingresso de evento
+    if not res.data:
+        res_evt = supabase.table("inscricoes_eventos").select("*, eventos(titulo)").eq("qrcode_token", token_clean).execute()
+        if res_evt.data:
+            inscricao = res_evt.data[0]
+            if inscricao.get("status") == "confirmado":
+                # Marca como presente para não usarem o bilhete 2 vezes
+                supabase.table("inscricoes_eventos").update({"status": "checkin_realizado"}).eq("id", inscricao["id"]).execute()
+                return {
+                    "sucesso": True,
+                    "status": "ativo",
+                    "nome": inscricao.get("nome_participante"),
+                    "mensagem": f"CHECK-IN CONFIRMADO: {inscricao['eventos']['titulo']}"
+                }
+            elif inscricao.get("status") == "checkin_realizado":
+                return {"sucesso": False, "status": "reprovada", "mensagem": "Este bilhete já foi validado anteriormente."}
+            else:
+                return {"sucesso": False, "status": "reprovada", "mensagem": "Inscrição pendente de pagamento."}
     
     # Fallback: Se não encontrar pelo ID, tenta pelo token do QRCode
     if not res.data:

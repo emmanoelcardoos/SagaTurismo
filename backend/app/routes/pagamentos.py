@@ -123,6 +123,14 @@ class PedidoCarteiraGratuita(BaseModel):
     quantidade: Optional[int] = 1 
     is_reemissao: Optional[bool] = False
 
+class PedidoEventoBB(BaseModel):
+    evento_id: str
+    nome_cliente: str
+    cpf_cliente: str
+    email_cliente: str
+    telefone_cliente: str
+    quantidade: int = 1
+
 
 # ==========================================
 # FUNÇÕES AUXILIARES
@@ -1043,6 +1051,92 @@ async def processar_carteira_bb(pedido: PedidoCarteiraGratuita):
             status_code=400, 
             detail="O serviço do Banco do Brasil encontra-se temporariamente indisponível. Por favor, aguarde alguns instantes e tente gerar o PIX novamente."
         )
+    finally:
+        if pub_path and os.path.exists(pub_path): os.remove(pub_path)
+        if priv_path and os.path.exists(priv_path): os.remove(priv_path)
+
+        
+
+@router.post("/api/v1/pagamentos/evento-bb")
+async def processar_inscricao_evento_bb(pedido: PedidoEventoBB):
+    pub_path, priv_path = obter_certificados_mtls()
+    try:
+        # 1. Verifica vagas e preço do evento
+        res_evento = supabase.table("eventos").select("*").eq("id", pedido.evento_id).single().execute()
+        if not res_evento.data:
+            raise HTTPException(status_code=404, detail="Evento não encontrado.")
+            
+        evento = res_evento.data
+        if (evento["vagas_vendidas"] + pedido.quantidade) > evento["vagas_totais"]:
+            raise HTTPException(status_code=400, detail="Lotação esgotada para este evento.")
+            
+        valor_total = float(evento["preco_numerico"]) * pedido.quantidade
+        tax_id_limpo = pedido.cpf_cliente.replace(".", "").replace("-", "")
+        
+        # 2. Cria a inscrição provisória
+        inscricao = {
+            "evento_id": pedido.evento_id,
+            "nome_participante": pedido.nome_cliente,
+            "cpf": tax_id_limpo,
+            "email": pedido.email_cliente,
+            "telefone": pedido.telefone_cliente,
+            "status": "aguardando_pagamento"
+        }
+        res_insc = supabase.table("inscricoes_eventos").insert(inscricao).execute()
+        inscricao_id = res_insc.data[0]["id"]
+
+        # 3. Gera TXID e conecta ao BB (reaproveitando a sua lógica mTLS)
+        caracteres_txid = string.ascii_letters + string.digits
+        txid = ''.join(random.choices(caracteres_txid, k=30))
+        
+        auth_string = f"{BB_CLIENT_ID}:{BB_CLIENT_SECRET}"
+        auth_b64 = base64.b64encode(auth_string.encode()).decode("utf-8")
+        
+        token_headers = {"Authorization": f"Basic {auth_b64}", "Content-Type": "application/x-www-form-urlencoded"}
+        client_kwargs = {"cert": (pub_path, priv_path)} if pub_path and priv_path else {}
+            
+        async with httpx.AsyncClient(**client_kwargs) as client:
+            resp_token = await client.post("https://oauth.bb.com.br/oauth/token", headers=token_headers, data={"grant_type": "client_credentials", "scope": "cob.write pix.read"}, params={"gw-dev-app-key": BB_DEV_APP_KEY})
+            access_token = resp_token.json()["access_token"]
+
+            payload_cob = {
+                "calendario": { "expiracao": 1800 }, # 30 minutos para pagar ingresso
+                "devedor": { "cpf": tax_id_limpo, "nome": pedido.nome_cliente[:80] },
+                "valor": { "original": f"{valor_total:.2f}" },
+                "chave": BB_PIX_KEY,
+                "solicitacaoPagador": f"Inscricao: {evento['titulo'][:30]}"
+            }
+
+            resp_cob = await client.put(f"{BB_API_URL}/cob/{txid}", headers={"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}, json=payload_cob, params={"gw-dev-app-key": BB_DEV_APP_KEY})
+            pix_copia_cola = resp_cob.json().get("pixCopiaECola")
+            
+            # Gera QR Code Base64
+            qr = qrcode.QRCode(box_size=8, border=2)
+            qr.add_data(pix_copia_cola)
+            qr.make(fit=True)
+            buffered = BytesIO()
+            qr.make_image(fill_color="black", back_color="white").save(buffered, format="PNG")
+            qr_data_uri = f"data:image/png;base64,{base64.b64encode(buffered.getvalue()).decode('utf-8')}"
+
+            # 4. Regista na tabela 'pedidos' para o Webhook apanhar
+            pedido_db = {
+                "codigo_pedido": txid,
+                "tipo_item": "evento",
+                "nome_cliente": pedido.nome_cliente,
+                "cpf_cliente": tax_id_limpo,
+                "email_cliente": pedido.email_cliente,
+                "telefone_cliente": pedido.telefone_cliente,
+                "valor_total": valor_total,
+                "status_pagamento": "aguardando",
+                "metodo_pagamento": "pix",
+                "quantidade": pedido.quantidade,
+                "nome_item": f"Ingresso - {evento['titulo']}",
+                "item_id": inscricao_id
+            }
+            supabase.table("pedidos").insert(pedido_db).execute()
+
+            return {"sucesso": True, "codigo_pedido": txid, "pix_copia_cola": pix_copia_cola, "pix_qrcode_img": qr_data_uri}
+
     finally:
         if pub_path and os.path.exists(pub_path): os.remove(pub_path)
         if priv_path and os.path.exists(priv_path): os.remove(priv_path)
