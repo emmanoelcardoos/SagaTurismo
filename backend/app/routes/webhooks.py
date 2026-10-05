@@ -362,37 +362,42 @@ async def webhook_bb(request: Request):
                 else:
                     print(f"[WEBHOOK] Residente não encontrado para o token {token_id}")
 
+            # ────────────────────────────────────────────────────────
+            # CASO E: INSCRIÇÃO EM EVENTO (SEM PDF)
+            # ────────────────────────────────────────────────────────
             elif tipo == "evento":
                 inscricao_id = pedido.get("item_id")
                 
                 if inscricao_id:
-                    # 1. Atualiza o status do participante para confirmado
+                    # 1. Atualiza o status do participante
                     supabase.table("inscricoes_eventos").update({"status": "confirmado"}).eq("id", inscricao_id).execute()
                     
-                    # 2. Busca os dados do evento e do participante
+                    # 2. Busca os dados para o e-mail
                     res_insc = supabase.table("inscricoes_eventos").select("*, eventos(titulo, data, local)").eq("id", inscricao_id).single().execute()
                     
                     if res_insc.data:
                         dados_insc = res_insc.data
                         evento_relacionado = dados_insc.get("eventos", {})
                         
-                        # 3. Atualiza as vagas vendidas no evento
+                        # 3. Incrementa a vaga
                         supabase.rpc('incrementar_vaga_evento', {'p_evento_id': dados_insc["evento_id"], 'p_quantidade': pedido.get("quantidade", 1)}).execute()
                         
-                        # 4. Envia o Bilhete (Reaproveitando a sua função de voucher avulso)
+                        # 4. Organiza os dados para o novo e-mail direto
                         dados_ingresso = {
-                            "nome_passeio": evento_relacionado.get("titulo", "Evento Oficial"),
+                            "nome_evento": evento_relacionado.get("titulo", "Evento Oficial"),
                             "data_hora": evento_relacionado.get("data", "A confirmar"),
-                            "endereco": evento_relacionado.get("local", "São Geraldo do Araguaia"),
-                            "nome_guia": "Equipe de Eventos SGA",
-                            "contato_guia": "Apresente o QR Code na entrada."
+                            "local": evento_relacionado.get("local", "São Geraldo do Araguaia"),
+                            "quantidade": pedido.get("quantidade", 1),
+                            "qrcode_token": dados_insc.get("qrcode_token")
                         }
                         
-                        # Você já tem o gerar_pdf_voucher pronto!
-                        caminho_pdf = gerar_pdf_voucher(pedido, dados_ingresso)
-                        if caminho_pdf:
-                            enviar_voucher_passeio(email_cliente, nome_cliente, dados_ingresso, caminho_pdf)
-                            print(f"[WEBHOOK BB] Ingresso de evento enviado para: {email_cliente}")
+                        try:
+                            # ⚠️ Não se esqueça de importar enviar_ingresso_evento no topo do webhooks.py!
+                            from app.services.email_service import enviar_ingresso_evento
+                            enviar_ingresso_evento(email_cliente, nome_cliente, dados_ingresso)
+                            print(f"[WEBHOOK BB] Ingresso enviado em HTML para: {email_cliente}")
+                        except Exception as e_mail:
+                            print(f"[WEBHOOK] Erro ao disparar e-mail do evento: {e_mail}")
 
                 
 

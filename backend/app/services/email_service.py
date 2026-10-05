@@ -636,3 +636,44 @@ def enviar_resposta_suporte(email_destino: str, nome: str, protocolo: str, respo
     </div>
     """
     return enviar_email(email_destino, f"Atualização do Chamado #{protocolo}", html)
+
+# ==========================================
+# 8. INGRESSO DIGITAL DE EVENTOS (HTML DIRETO)
+# ==========================================
+def enviar_ingresso_evento(email_destino: str, nome_cliente: str, dados_evento: dict) -> bool:
+    primeiro_nome = nome_cliente.strip().split()[0]
+    token = dados_evento.get("qrcode_token", "")
+    
+    # Gera o QR Code através de um link direto para ser renderizado no próprio e-mail
+    qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=250x250&data={token}&color=00577C"
+
+    html = f"""
+    <div style="font-family: Arial, sans-serif; color: #334155; max-width: 600px; margin: 0 auto; border: 1px solid #E2E8F0; border-radius: 16px; overflow: hidden; background: #FDFCF7;">
+        <div style="background: #00577C; padding: 30px; text-align: center;">
+            <h1 style="color: #ffffff; margin: 0; font-size: 22px;">Inscrição Confirmada! 🎉</h1>
+        </div>
+        
+        <div style="padding: 30px; background: #ffffff; text-align: center;">
+            <p style="font-size: 16px; text-align: left;">Olá, <strong>{primeiro_nome}</strong>. A sua presença está garantida!</p>
+            
+            <div style="margin: 20px 0; padding: 20px; background: #F8FAFC; border-left: 4px solid #00577C; border-radius: 8px; text-align: left;">
+                <h2 style="margin-top: 0; color: #00577C; font-size: 20px;">{dados_evento.get('nome_evento')}</h2>
+                <p style="margin: 5px 0; font-size: 14px;"><strong>📅 Data:</strong> {dados_evento.get('data_hora')}</p>
+                <p style="margin: 5px 0; font-size: 14px;"><strong>📍 Local:</strong> {dados_evento.get('local')}</p>
+                <p style="margin: 5px 0; font-size: 14px;"><strong>🎟️ Ingressos:</strong> {dados_evento.get('quantidade')} pessoa(s)</p>
+            </div>
+            
+            <div style="margin: 30px 0; padding: 20px; border: 2px dashed #E2E8F0; border-radius: 12px; display: inline-block;">
+                <h3 style="color: #334155; margin-top: 0; font-size: 16px;">O seu QR Code de Acesso</h3>
+                <p style="font-size: 13px; color: #64748B; max-width: 250px; margin: 0 auto 15px auto;">Apresente este código no ecrã do seu telemóvel à entrada do evento.</p>
+                
+                <img src="{qr_url}" alt="QR Code Ingresso" style="width: 220px; height: 220px; margin: 0 auto; display: block;" />
+            </div>
+            
+            <p style="font-size: 12px; color: #94A3B8; margin-top: 20px;">Este e-mail serve como comprovativo oficial de inscrição. O QR Code é único e intransmissível.</p>
+        </div>
+    </div>
+    """
+    
+    # Note que NÃO usamos anexos_paths
+    return enviar_email(email_destino, f"O seu ingresso: {dados_evento.get('nome_evento')}", html)
