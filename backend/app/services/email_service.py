@@ -665,7 +665,7 @@ def enviar_ingresso_evento(email_destino: str, nome_cliente: str, dados_evento: 
             
             <div style="margin: 30px 0; padding: 20px; border: 2px dashed #E2E8F0; border-radius: 12px; display: inline-block;">
                 <h3 style="color: #334155; margin-top: 0; font-size: 16px;">O seu QR Code de Acesso</h3>
-                <p style="font-size: 13px; color: #64748B; max-width: 250px; margin: 0 auto 15px auto;">Apresente este código no ecrã do seu telemóvel à entrada do evento.</p>
+                <p style="font-size: 13px; color: #64748B; max-width: 250px; margin: 0 auto 15px auto;">Apresente este código na tela do seu celular à entrada do evento.</p>
                 
                 <img src="{qr_url}" alt="QR Code Ingresso" style="width: 220px; height: 220px; margin: 0 auto; display: block;" />
             </div>

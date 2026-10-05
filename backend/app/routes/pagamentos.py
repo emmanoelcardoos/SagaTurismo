@@ -1080,6 +1080,7 @@ async def processar_inscricao_evento_bb(pedido: PedidoEventoBB):
             "cpf": tax_id_limpo,
             "email": pedido.email_cliente,
             "telefone": pedido.telefone_cliente,
+            "quantidade": pedido.quantidade,
             "status": "aguardando_pagamento"
         }
         res_insc = supabase.table("inscricoes_eventos").insert(inscricao).execute()
