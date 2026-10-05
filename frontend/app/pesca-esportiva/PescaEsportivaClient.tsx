@@ -14,6 +14,7 @@ const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] }
 
 // ── FOTOS DO TORPESAGA ──
 const FOTOS_TORPESAGA = [
+  'https://live.staticflickr.com/65535/55422310039_7378616ec4_h.jpg?s=eyJpIjo1NTQyMjMxMDAzOSwiZSI6MTc5MTIyODc0OSwicyI6ImFkYzYxOTg5NGMyZjMyODJkY2RhNTM0MjY1ODMyZDkxNDQ3Nzc3NWUiLCJ2IjoxfQ',
   'https://live.staticflickr.com/65535/55422310039_9391b93de9_k.jpg?s=eyJpIjo1NTQyMjMxMDAzOSwiZSI6MTc5MDk5NTU5NSwicyI6ImQ5ZWQ4OGMzYWVmZTg5MjBkZDU0NzliNzY1ZDVkZDI5YjBkYTUzOWEiLCJ2IjoxfQ',
   'https://live.staticflickr.com/65535/55422310229_750f92feb2_h.jpg?s=eyJpIjo1NTQyMjMxMDIyOSwiZSI6MTc5MDk5NTAwOSwicyI6IjA3YmNkNjg2MmUxMWEwMjU3MDI3ODA0MTUwNmUyMTUzOGZmZDQyZTkiLCJ2IjoxfQ',
   'https://live.staticflickr.com/65535/55422310044_4ba87fc7a5_h.jpg?s=eyJpIjo1NTQyMjMxMDA0NCwiZSI6MTc5MDk5NTA0MywicyI6Ijk4OGFlYTc2YWVhMTllNWJhYTQwODU1ODlkYjc3ZDJlYzg4ODllYzQiLCJ2IjoxfQ',

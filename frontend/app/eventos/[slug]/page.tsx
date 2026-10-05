@@ -4,20 +4,23 @@ import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import EventoClient, { type Evento, type EventoNav } from "./EventoClient";
 
+// 🔴 ESTA É A LINHA MÁGICA QUE DESATIVA O CACHE E OBRIGA A LER DADOS FRESCOS
+export const revalidate = 0;
+
 const BASE_URL = "https://turismo.saogeraldodoaraguaia.pa.gov.br";
 
 type Props = {
-  params: Promise<{ slug: string }>; // 🔴 1. Alterado de 'id' para 'slug'
+  params: Promise<{ slug: string }>;
 };
 
 // ── 1. SEO dinâmico ──
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug } = await params; // 🔴 2. Extraímos o slug
+  const { slug } = await params;
 
   const { data: evento } = await supabase
     .from("eventos")
     .select("titulo, subtitulo, descricao, imagem_url, data, local, categoria")
-    .eq("slug", slug) // 🔴 3. Busca no Supabase pelo slug
+    .eq("slug", slug)
     .single();
 
   if (!evento) {
@@ -45,7 +48,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     evento.descricao?.replace(/\s+/g, " ").trim().substring(0, 155) ||
     `${tituloLimpo} — ${dataFormatada} em ${localLimpo}. Confira a programação completa e informações no portal de turismo de São Geraldo do Araguaia.`;
 
-  const url = `${BASE_URL}/eventos/${slug}`; // 🔴 4. URL amigável
+  const url = `${BASE_URL}/eventos/${slug}`;
   const ogImage = evento.imagem_url?.startsWith("http")
     ? evento.imagem_url
     : evento.imagem_url
@@ -89,13 +92,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 // ── 2. Página ──
 export default async function EventoPage({ params }: Props) {
-  const { slug } = await params; // 🔴 5. Extraímos o slug
+  const { slug } = await params;
 
   // Evento atual
   const { data: evento, error } = await supabase
     .from("eventos")
     .select("*")
-    .eq("slug", slug) // 🔴 6. Busca pelo slug
+    .eq("slug", slug)
     .single();
 
   if (error || !evento) notFound();
@@ -103,14 +106,14 @@ export default async function EventoPage({ params }: Props) {
   // Navegação anterior/próximo
   const { data: allEvents } = await supabase
     .from("eventos")
-    .select("id, slug, titulo") // 🔴 7. Adicionamos a coluna 'slug' no .select() para os botões de navegação
+    .select("id, slug, titulo")
     .order("data", { ascending: true });
 
   let eventoAnterior: EventoNav | null = null;
   let eventoProximo: EventoNav | null = null;
 
   if (allEvents) {
-    const currentIndex = allEvents.findIndex((e) => e.slug === slug); // 🔴 8. Procuramos usando o slug
+    const currentIndex = allEvents.findIndex((e) => e.slug === slug);
     if (currentIndex > 0) {
       eventoAnterior = allEvents[currentIndex - 1] as EventoNav;
     }
@@ -149,7 +152,7 @@ export default async function EventoPage({ params }: Props) {
           "@type": "Offer",
           price: evento.preco,
           priceCurrency: "BRL",
-          url: evento.link_bilheteira ?? `${BASE_URL}/eventos/${slug}`, // 🔴 9. URL atualizada
+          url: evento.link_bilheteira ?? `${BASE_URL}/eventos/${slug}`,
           availability: "https://schema.org/InStock",
         }
       : {

@@ -30,23 +30,28 @@ const NAV_GROUPS = [
     title: "Descobrir",
     links: [
       { label: "Atrativos", href: "/atrativos" },
-      { label: "História", href: "/historia" },
       { label: "Biodiversidade", href: "/biodiversidade" },
+      { label: "História", href: "/historia" },
       { label: "Comunidades", href: "/comunidades" },
+    ],
+  },
+  {
+    title: "Viver",
+    links: [
       { label: "Roteiros", href: "/roteiros" },
       { label: "Pesca Esportiva", href: "/pesca-esportiva" },
       { label: "Eventos", href: "/eventos" },
+      { label: "Gastronomia", href: "/gastronomia" },
     ],
   },
   {
     title: "Planejar",
     links: [
       { label: "Hospedagens", href: "/hospedagens" },
-      { label: "Gastronomia", href: "/gastronomia" },
       { label: "Agências", href: "/agencias" },
+      { label: "CAT", href: "/cat" },
       { label: "Informações", href: "/informacoes" },
       { label: "App SagaTurismo", href: "/app-turismo" },
-      { label: "CAT", href: "/cat" },
     ],
   },
   {
