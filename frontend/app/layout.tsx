@@ -1,6 +1,7 @@
 // app/layout.tsx
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Inter } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { LayoutClient } from "./layout-client";
 
@@ -31,11 +32,9 @@ export const metadata: Metadata = {
     "Descubra São Geraldo do Araguaia - PA. Parque Estadual Serra dos Martírios/Andorinhas, Cachoeira Três Quedas, praias do Rio Araguaia, pinturas rupestres, Guerrilha do Araguaia e o melhor do ecoturismo no Pará.",
 
   keywords: [
-
     // ==========================================
     // SERRA / PARQUE
     // ==========================================
-
     "Serra das Andorinhas",
     "Serra dos Martírios",
     "Serra das Andorinhas São Geraldo do Araguaia",
@@ -65,7 +64,6 @@ export const metadata: Metadata = {
     // ==========================================
     // ATRATIVOS / CACHOEIRAS / CAVERNAS
     // ==========================================
-
     "Cachoeira Três Quedas",
     "Cachoeira das Três Quedas",
     "Três Quedas São Geraldo do Araguaia",
@@ -94,7 +92,6 @@ export const metadata: Metadata = {
     // ==========================================
     // RIO ARAGUAIA / PRAIAS / NATUREZA
     // ==========================================
-
     "Rio Araguaia",
     "Rio Araguaia Pará",
     "Rio Araguaia São Geraldo do Araguaia",
@@ -126,7 +123,6 @@ export const metadata: Metadata = {
     // ==========================================
     // ARQUEOLOGIA / PINTURAS RUPESTRES
     // ==========================================
-
     "pinturas rupestres na Amazônia",
     "pinturas rupestres no Pará",
     "pinturas rupestres São Geraldo do Araguaia",
@@ -149,7 +145,6 @@ export const metadata: Metadata = {
     // ==========================================
     // HISTÓRIA / GUERRILHA DO ARAGUAIA
     // ==========================================
-
     "Guerrilha do Araguaia",
     "Guerrilha do Araguaia São Geraldo do Araguaia",
     "Guerrilha do Araguaia Pará",
@@ -165,7 +160,6 @@ export const metadata: Metadata = {
     // ==========================================
     // O QUE FAZER / GUIAS / ROTEIROS
     // ==========================================
-
     "o que fazer em São Geraldo do Araguaia",
     "o que fazer em São Geraldo do Araguaia PA",
     "o que visitar em São Geraldo do Araguaia",
@@ -192,7 +186,6 @@ export const metadata: Metadata = {
     // ==========================================
     // PLANEJAMENTO DA VIAGEM
     // ==========================================
-
     "como chegar em São Geraldo do Araguaia",
     "como chegar a São Geraldo do Araguaia",
     "como chegar na Serra das Andorinhas",
@@ -219,7 +212,6 @@ export const metadata: Metadata = {
     // ==========================================
     // HOSPEDAGEM
     // ==========================================
-
     "onde ficar em São Geraldo do Araguaia",
     "onde se hospedar em São Geraldo do Araguaia",
     "hospedagem São Geraldo do Araguaia",
@@ -236,7 +228,6 @@ export const metadata: Metadata = {
     // ==========================================
     // GUIAS / TURISMO RECEPTIVO
     // ==========================================
-
     "guia turístico São Geraldo do Araguaia",
     "guia de turismo São Geraldo do Araguaia",
     "guia local São Geraldo do Araguaia",
@@ -255,7 +246,6 @@ export const metadata: Metadata = {
     // ==========================================
     // FAMÍLIA / AVENTURA / EXPERIÊNCIAS
     // ==========================================
-
     "turismo para família São Geraldo do Araguaia",
     "passeios em família São Geraldo do Araguaia",
     "trilhas São Geraldo do Araguaia",
@@ -277,7 +267,6 @@ export const metadata: Metadata = {
     // ==========================================
     // CIDADE / REGIÃO
     // ==========================================
-
     "São Geraldo do Araguaia",
     "São Geraldo do Araguaia PA",
     "São Geraldo do Araguaia Pará",
@@ -294,7 +283,6 @@ export const metadata: Metadata = {
     // ==========================================
     // MARABÁ / XAMBIOÁ / ARAGUAÍNA
     // ==========================================
-
     "o que fazer em Marabá",
     "turismo em Marabá",
     "pontos turísticos de Marabá",
@@ -318,7 +306,6 @@ export const metadata: Metadata = {
     // ==========================================
     // PONTE / ACESSO / CONEXÃO REGIONAL
     // ==========================================
-
     "Ponte São Geraldo do Araguaia",
     "Ponte do Araguaia São Geraldo do Araguaia",
     "ponte São Geraldo do Araguaia Xambioá",
@@ -331,7 +318,6 @@ export const metadata: Metadata = {
     // ==========================================
     // BUSCAS LONG TAIL
     // ==========================================
-
     "lugares para conhecer no Araguaia",
     "lugares para conhecer no Pará",
     "lugares para conhecer na Amazônia",
@@ -354,8 +340,7 @@ export const metadata: Metadata = {
     "turismo fora do comum no Pará",
     "turismo de aventura no Araguaia",
     "turismo sustentável no Pará",
-    "turismo sustentável na Amazônia"
-
+    "turismo sustentável na Amazônia",
   ],
 
   authors: [{ name: "Prefeitura de São Geraldo do Araguaia" }],
@@ -417,7 +402,33 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR" className={`${jakarta.variable} ${inter.variable}`}>
-      <body className={`${inter.className} bg-[#FDFCF7] text-slate-900 min-h-screen flex flex-col antialiased`}>
+      <body
+        className={`${inter.className} bg-[#FDFCF7] text-slate-900 min-h-screen flex flex-col antialiased`}
+      >
+        {/* ══════════════════════════════════════
+            COOKIEYES — Banner de Consentimento
+            (carregado primeiro para que o Clarity
+             respeite as preferências do utilizador)
+        ══════════════════════════════════════ */}
+        <Script
+          id="cookieyes"
+          src="https://cdn-cookieyes.com/client_data/ed210793799b866fb3b7f66db441506c/script.js"
+          strategy="afterInteractive"
+        />
+
+        {/* ══════════════════════════════════════
+            MICROSOFT CLARITY — Portal Público (Turismo)
+        ══════════════════════════════════════ */}
+        <Script id="microsoft-clarity-turismo" strategy="afterInteractive">
+          {`
+            (function(c,l,a,r,i,t,y){
+                c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+                t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+                y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+            })(window, document, "clarity", "script", "yxsao3qlp8");
+          `}
+        </Script>
+
         <LayoutClient>{children}</LayoutClient>
       </body>
     </html>
