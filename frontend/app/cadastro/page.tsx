@@ -127,8 +127,6 @@ function validateDependenteExtra(
 export default function CadastroPage() {
   const router = useRouter();
 
-  // ── BANNER DE MANUTENÇÃO ──
-  const [mostrarBanner, setMostrarBanner] = useState(true);
 
   // ── VISTA ATUAL ──
   const [view, setView] = useState<'selecao' | 'novo' | 'dependente'>('selecao');
@@ -483,25 +481,6 @@ export default function CadastroPage() {
   // ── ECRÃ PRINCIPAL ──
   return (
     <main className={`${inter.className} min-h-screen flex flex-col bg-white text-slate-900 text-left relative`}>
-
-    {/* ── BANNER DE MANUTENÇÃO ── */}
-      {mostrarBanner && (
-        <div className="fixed top-0 left-0 right-0 z-[90] bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 text-amber-950 shadow-lg animate-in slide-in-from-top duration-500">
-          <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 flex items-center justify-center gap-3">
-            <Info className="h-5 w-5 shrink-0" />
-            <p className="text-xs sm:text-sm font-bold text-center leading-snug">
-              ⚠️ <strong>AVISO:</strong> As emissões de carteiras estão temporariamente indisponíveis para emissão devido a uma correção de um problema técnico. Agradecemos a sua compreensão.
-            </p>
-            <button
-              onClick={() => setMostrarBanner(false)}
-              className="ml-2 shrink-0 rounded-full p-1.5 hover:bg-amber-600/30 transition-colors"
-              aria-label="Fechar aviso"
-            >
-              <XCircle className="h-5 w-5" />
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* ── OVERLAY DE LOADING ── */}
       {loading && (
