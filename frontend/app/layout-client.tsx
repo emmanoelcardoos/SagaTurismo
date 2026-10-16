@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Menu, X, ChevronDown } from "lucide-react";
 import { usePathname } from "next/navigation";
+import Script from "next/script";
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -136,6 +137,22 @@ export function LayoutClient({ children }: { children: React.ReactNode }) {
 
   return (
     <>
+      {/* ═══ GOOGLE ANALYTICS (gtag.js) ═══ */}
+      <Script
+        id="google-analytics-src"
+        async
+        src="https://www.googletagmanager.com/gtag/js?id=G-MGH2GE4LC8"
+        strategy="afterInteractive"
+      />
+      <Script id="google-analytics-init" strategy="afterInteractive">
+        {`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-MGH2GE4LC8');
+        `}
+      </Script>
+
       {/* ═══ HEADER GLOBAL ═══ */}
       {!isRotaSemHeader && (
         <header
