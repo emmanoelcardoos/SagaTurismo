@@ -176,7 +176,7 @@ export function LayoutClient({ children }: { children: React.ReactNode }) {
                 >
                   <Image
                     src="/logop.png"
-                    alt="SagaTurismo — São Geraldo do Araguaia"
+                    alt="Visite São Geraldo do Araguaia"
                     fill
                     priority
                     className={`object-contain object-left transition-all duration-300 ${

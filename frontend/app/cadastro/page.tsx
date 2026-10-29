@@ -17,7 +17,8 @@ import {
   FileCheck2,
   CalendarDays,
   Users,
-  UserPlus
+  UserPlus,
+  AlertTriangle
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 
@@ -523,6 +524,30 @@ export default function CadastroPage() {
           <svg className="relative block w-full h-[20px] md:h-[45px]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none">
             <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V120H0V95.8C59.71,118.06,130.83,115.54,191.13,97.8,235.34,84.7,279.16,71.21,321.39,56.44Z" fill="#FDFCF7"></path>
           </svg>
+        </div>
+      </section>
+
+      {/* ── AVISO DE EMISSÕES SUSPENSAS ── */}
+      <section className="bg-[#FDFCF7] px-4 pt-8 md:pt-12 sm:px-6">
+        <div className="mx-auto max-w-5xl">
+          <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-5 rounded-[2rem] border-2 border-amber-300 bg-amber-50 p-5 md:p-7 shadow-lg shadow-amber-100/60 animate-in fade-in slide-in-from-top-4 duration-500">
+            <div className="flex h-12 w-12 md:h-14 md:w-14 shrink-0 items-center justify-center rounded-2xl bg-amber-400 text-amber-950">
+              <AlertTriangle className="h-6 w-6 md:h-7 md:w-7" strokeWidth={2.5} />
+            </div>
+            <div className="text-left">
+              <span className="inline-flex rounded-full bg-amber-400/60 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-amber-900 mb-2">
+                Aviso Importante
+              </span>
+              <h2 className={`${jakarta.className} text-lg md:text-xl font-black text-amber-900 mb-2`}>
+                Emissões temporariamente suspensas
+              </h2>
+              <p className="text-sm md:text-base font-medium text-amber-800 leading-relaxed">
+                Informamos que as emissões de novas carteiras de residente estão <strong>temporariamente suspensas</strong>.
+                Estamos trabalhando para que o serviço volte à normalidade com a maior brevidade possível.
+                Agradecemos a sua compreensão e pedimos desculpas pelo transtorno.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
