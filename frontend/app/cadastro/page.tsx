@@ -18,7 +18,8 @@ import {
   CalendarDays,
   Users,
   UserPlus,
-  AlertTriangle
+  AlertTriangle,
+  Lock
 } from 'lucide-react';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 
@@ -568,23 +569,28 @@ export default function CadastroPage() {
 
             <div className="grid md:grid-cols-2 gap-6 md:gap-8">
               {/* BLOCO 1: NOVO CADASTRO */}
-              <button
-                onClick={() => { setView('novo'); setErrors({}); }}
-                className="group relative flex flex-col items-center text-center p-8 md:p-12 rounded-[2.5rem] bg-white border-[3px] border-slate-100 hover:border-[#00577C] hover:shadow-2xl transition-all duration-300"
+              {/* BLOCO 1: NOVO CADASTRO (BLOQUEADO — EMISSÕES SUSPENSAS) */}
+              <div
+                aria-disabled="true"
+                title="Emissões de novas carteiras temporariamente suspensas"
+                className="group relative flex flex-col items-center text-center p-8 md:p-12 rounded-[2.5rem] bg-slate-50 border-[3px] border-slate-200 opacity-70 cursor-not-allowed select-none"
               >
-                <div className="w-20 h-20 rounded-full bg-blue-50 text-[#00577C] flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-[#00577C] group-hover:text-white transition-all">
+                <span className="absolute top-5 right-5 inline-flex items-center gap-1.5 rounded-full bg-amber-100 border border-amber-300 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-amber-800">
+                  <Lock size={12} strokeWidth={3} /> Suspenso
+                </span>
+                <div className="w-20 h-20 rounded-full bg-slate-200 text-slate-400 flex items-center justify-center mb-6">
                   <User size={36} strokeWidth={2.5} />
                 </div>
-                <h3 className={`${jakarta.className} text-xl md:text-2xl font-black text-slate-900 mb-3`}>
+                <h3 className={`${jakarta.className} text-xl md:text-2xl font-black text-slate-500 mb-3`}>
                   Fazer Novo Cadastro
                 </h3>
-                <p className="text-sm text-slate-500 font-medium mb-8">
+                <p className="text-sm text-slate-400 font-medium mb-8">
                   Para cidadãos que ainda não emitiram a Carteira Digital de Residente. Será necessário enviar comprovante de residência.
                 </p>
-                <div className="mt-auto flex items-center gap-2 text-[#00577C] font-bold uppercase tracking-widest text-xs">
-                  Avançar <ArrowRight size={16} />
+                <div className="mt-auto flex items-center gap-2 text-slate-400 font-bold uppercase tracking-widest text-xs">
+                  <Lock size={16} /> Indisponível
                 </div>
-              </button>
+              </div>
 
               {/* BLOCO 2: ADICIONAR DEPENDENTE */}
               <button
