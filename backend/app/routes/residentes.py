@@ -326,7 +326,7 @@ async def consultar_limite_familia(cpf: str):
         res_titular = supabase.table("rd_residentes").select("id, nome_completo, status, titular_id").eq("cpf", cpf_formatado).execute()
         
         if not res_titular.data or len(res_titular.data) == 0:
-            return {"status": "erro", "mensagem": "Nenhum registo encontrado com este CPF."}
+            return {"status": "erro", "mensagem": "Não há registros encontrados com este CPF."}
             
         titular_dados = res_titular.data[0] 
         
