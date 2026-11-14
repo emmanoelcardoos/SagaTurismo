@@ -40,7 +40,7 @@ const NAV_GROUPS = [
     title: "Viver",
     links: [
       { label: "Roteiros", href: "/roteiros" },
-      { label: "Pesca Esportiva", href: "/pesca-esportiva" },
+      //{ label: "Pesca Esportiva", href: "/pesca-esportiva" },
       { label: "Eventos", href: "/eventos" },
       { label: "Gastronomia", href: "/gastronomia" },
     ],
@@ -58,7 +58,7 @@ const NAV_GROUPS = [
   {
     title: "Institucional",
     links: [
-      { label: "SEMTUR", href: "/semtur" },
+      //{ label: "SEMTUR", href: "/semtur" },
       { label: "COMTUR", href: "/comtur" },
       { label: "Parceiros", href: "/parceiros" },
     ],

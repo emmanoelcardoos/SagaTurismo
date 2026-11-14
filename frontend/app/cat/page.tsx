@@ -10,7 +10,7 @@ const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"] }
 
 export default function CatPage() {
   // URL de imagem de exemplo para o CAT
-  const HERO_IMAGE = "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/herosections/herocat.HEIC";
+  const HERO_IMAGE = "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galerias/WhatsApp%20Image%202026-08-16%20at%2001.59.16-2.jpeg";
 
   return (
     <main className={`${inter.className} bg-[#FDFCF7] min-h-screen text-slate-900 overflow-x-hidden`}>
