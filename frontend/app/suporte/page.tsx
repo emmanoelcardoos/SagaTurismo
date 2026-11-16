@@ -8,10 +8,9 @@ import {
   User, Mail, Phone, FileText, UploadCloud, ArrowRight,
   CheckCircle2, AlertCircle, ShieldCheck,
 } from 'lucide-react';
-import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 
-const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['600', '700', '800'] });
-const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
+const jakarta = { className: "font-['Plus_Jakarta_Sans',sans-serif]" };
+const inter = { className: "font-['Inter',sans-serif]" };
 
 // ── MOTOR DE ANIMAÇÕES ──
 function useScrollAnimation(threshold = 0.08) {
@@ -234,7 +233,7 @@ export default function SuportePage() {
       <section className="relative h-[90vh] min-h-[500px] w-full flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           <Image
-            src="https://images.pexels.com/photos/9214628/pexels-photo-9214628.jpeg?_gl=1*1tanof8*_gcl_au*NDU0NDkxNDc2LjE3ODczNjc3NjI.*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3ODgxMTA3MDUkbzExNyRnMSR0MTc4ODExMDg4MyRqOSRsMCRoMA.."
+            src="https://images.pexels.com/photos/9214628/pexels-photo-9214628.jpeg"
             alt="Atendimento ao Cidadão"
             fill
             className="object-cover"

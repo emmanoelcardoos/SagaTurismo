@@ -34,7 +34,7 @@ const jakarta = Plus_Jakarta_Sans({
 
 const inter = Inter({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700', '800'],
+  weight: ['400', '500', '600', '700'],
 });
 
 type DependenteData = {
