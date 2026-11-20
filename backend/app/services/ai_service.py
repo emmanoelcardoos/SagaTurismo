@@ -12,7 +12,7 @@ def validar_endereco_com_ia(imagem_bytes: bytes, lista_nomes: list, mime_type: s
     try:
         client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
         
-        MODELO = "gemini-2.5-flash"
+        MODELO = "gemini-3.5-flash"
         
         ano_atual = datetime.now().year
 
