@@ -79,9 +79,10 @@ def _indexar_pedidos_pagos(pedidos_pagos: List[Dict[str, Any]]) -> Tuple[Dict[st
 
     for p in pedidos_pagos:
         data_pedido = (
-            _parse_date(p.get("created_at"))
-            or _parse_date(p.get("criado_em"))
+            _parse_date(p.get("criado_em"))
             or _parse_date(p.get("criado_at"))
+            or _parse_date(p.get("data_criacao"))
+            or _parse_date(p.get("created_at"))
         )
         if not data_pedido:
             continue
@@ -153,7 +154,7 @@ def executar_rotina_expiracao_carteiras(
     expirados_existentes = _buscar_todos_registros("rd_residentes", "*", {"status": "expirado"})
     pedidos_pagos = _buscar_todos_registros(
         "pedidos",
-        "id, item_id, cpf_cliente, status_pagamento, tipo_item, created_at, criado_em",
+        "*",
         {"tipo_item": "carteira", "status_pagamento": "pago"},
     )
     pedidos_por_item, pedidos_por_cpf = _indexar_pedidos_pagos(pedidos_pagos)
