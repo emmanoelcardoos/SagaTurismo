@@ -3,11 +3,13 @@
 import React, { useState } from "react";
 import { Plus_Jakarta_Sans, Inter } from "next/font/google";
 import { supabase } from "@/lib/supabase";
+import { portalFetchJson } from "@/lib/portalApi";
+import ResidenteDetalheDrawer from "@/components/portal/ResidenteDetalheDrawer";
 import {
   AlertCircle, Loader2, CheckCircle2, Upload, Search,
   User, Mail, Calendar, Camera, Copy, X, QrCode, Wallet,
   Info, RefreshCw, IdCard, Users, ShieldAlert,
-  BadgeCheck, Clock, Zap, Check, FileText,
+  BadgeCheck, Clock, Zap, Check, FileText, Eye,
 } from "lucide-react";
 
 const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["500", "600", "700", "800"] });
@@ -177,6 +179,7 @@ export default function PortalEmissao() {
   const [loadingBusca, setLoadingBusca] = useState(false);
 
   const [reemissaoId, setReemissaoId] = useState<string | null>(null);
+  const [detalheResidenteId, setDetalheResidenteId] = useState<string | null>(null);
   const [novoEmail, setNovoEmail] = useState("");
   const [metodoReemissao, setMetodoReemissao] = useState("dinheiro");
 
@@ -207,9 +210,8 @@ export default function PortalEmissao() {
       .replace(/(-\d{2})\d+?$/, "$1");
   };
 
-  async function handleBuscar(e: React.FormEvent) {
-    e.preventDefault();
-    if (!busca.trim()) return;
+  async function executarBusca(termo: string) {
+    if (!termo.trim()) return;
 
     setLoadingBusca(true);
     setPixGerado(null);
@@ -217,16 +219,13 @@ export default function PortalEmissao() {
     setReemissaoId(null);
 
     try {
-      const resp = await fetch(
-        `https://sagaturismo-production.up.railway.app/api/v1/residentes/buscar?q=${encodeURIComponent(busca)}`
+      const json = await portalFetchJson(
+        `/api/v1/residentes/buscar?q=${encodeURIComponent(termo.trim())}`
       );
-      if (!resp.ok) throw new Error("Falha na comunicação com o servidor.");
-
-      const json = await resp.json();
       setResultados(json.dados || []);
 
       if (!json.dados || json.dados.length === 0) {
-        setFeedbackAcao("Nenhum cidadão encontrado com esse Nome ou CPF.");
+        setFeedbackAcao("Nenhum cidadão encontrado com esse Nome, CPF ou E-mail.");
       }
     } catch (err: any) {
       console.error(err);
@@ -234,6 +233,11 @@ export default function PortalEmissao() {
     } finally {
       setLoadingBusca(false);
     }
+  }
+
+  async function handleBuscar(e: React.FormEvent) {
+    e.preventDefault();
+    await executarBusca(busca);
   }
 
   async function handleConfirmarReemissao(residente: any) {
@@ -248,16 +252,20 @@ export default function PortalEmissao() {
     setPixGerado(null);
 
     try {
-      const { error } = await supabase
-        .from("rd_residentes")
-        .update({ email: novoEmail })
-        .eq("id", residente.id);
-      if (error) throw error;
+      if (novoEmail.trim().toLowerCase() !== String(residente.email || "").trim().toLowerCase()) {
+        await portalFetchJson(`/api/v1/admin/residentes/${encodeURIComponent(residente.id)}/email`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            email: novoEmail.trim(),
+            motivo: "Atualização de e-mail durante emissão de 2ª via",
+          }),
+        });
+      }
 
       const reqBody = {
         nome_cliente: residente.nome_completo,
         cpf_cliente: residente.cpf,
-        email_cliente: novoEmail,
+        email_cliente: novoEmail.trim(),
         telefone_cliente: residente.telefone || "00000000000",
         foto_url: residente.foto_url,
         data_nascimento: residente.data_nascimento,
@@ -267,27 +275,17 @@ export default function PortalEmissao() {
       };
 
       if (metodoReemissao === "dinheiro") {
-        const resp = await fetch(
-          "https://sagaturismo-production.up.railway.app/api/v1/pagamentos/carteira-gratuita",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(reqBody),
-          }
-        );
-        if (!resp.ok) throw new Error("Erro ao disparar o e-mail.");
+        await portalFetchJson("/api/v1/pagamentos/carteira-gratuita", {
+          method: "POST",
+          body: JSON.stringify(reqBody),
+        });
         setFeedbackAcao("Pagamento em dinheiro confirmado. A 2ª via foi enviada por e-mail.");
       } else {
-        const resp = await fetch(
-          "https://sagaturismo-production.up.railway.app/api/v1/pagamentos/carteira-bb",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(reqBody),
-          }
-        );
-        const data = await resp.json();
-        if (!resp.ok || !data.sucesso) throw new Error("Falha ao gerar PIX.");
+        const data = await portalFetchJson("/api/v1/pagamentos/carteira-bb", {
+          method: "POST",
+          body: JSON.stringify(reqBody),
+        });
+        if (!data.sucesso) throw new Error("Falha ao gerar PIX.");
         setPixGerado({
           qr: data.pix_qrcode_img,
           copiaCola: data.pix_copia_cola,
@@ -296,6 +294,7 @@ export default function PortalEmissao() {
         setFeedbackAcao("");
       }
       setReemissaoId(null);
+      if (busca.trim()) await executarBusca(busca);
     } catch (err: any) {
       setFeedbackAcao(`Erro: ${err.message}`);
     } finally {
@@ -331,24 +330,18 @@ export default function PortalEmissao() {
 
       const statusFinal = metodoNovaEmissao === "dinheiro" ? "ativo" : "aguardando_pagamento";
 
-      const respResidente = await fetch(
-        "https://sagaturismo-production.up.railway.app/api/v1/residentes/emissao-manual",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            nome: form.nome,
-            cpf: form.cpf,
-            email: form.email,
-            data_nascimento: form.data_nascimento,
-            foto_url: fotoUrlCompleta,
-            status: statusFinal,
-          }),
-        }
-      );
+      const dadosResidente = await portalFetchJson("/api/v1/residentes/emissao-manual", {
+        method: "POST",
+        body: JSON.stringify({
+          nome: form.nome,
+          cpf: form.cpf,
+          email: form.email,
+          data_nascimento: form.data_nascimento,
+          foto_url: fotoUrlCompleta,
+          status: statusFinal,
+        }),
+      });
 
-      if (!respResidente.ok) throw new Error("Erro ao registrar cidadão no servidor.");
-      const dadosResidente = await respResidente.json();
       const residenteId = dadosResidente.residente_id;
 
       const reqBody = {
@@ -364,27 +357,17 @@ export default function PortalEmissao() {
       };
 
       if (metodoNovaEmissao === "dinheiro") {
-        const respCarteira = await fetch(
-          "https://sagaturismo-production.up.railway.app/api/v1/pagamentos/carteira-gratuita",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(reqBody),
-          }
-        );
-        if (!respCarteira.ok) throw new Error("Erro no envio do e-mail.");
+        await portalFetchJson("/api/v1/pagamentos/carteira-gratuita", {
+          method: "POST",
+          body: JSON.stringify(reqBody),
+        });
         setFeedbackAcao("Cidadão registrado. Carteira enviada por e-mail.");
       } else {
-        const respCarteira = await fetch(
-          "https://sagaturismo-production.up.railway.app/api/v1/pagamentos/carteira-bb",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(reqBody),
-          }
-        );
-        const data = await respCarteira.json();
-        if (!respCarteira.ok) throw new Error("Falha ao gerar PIX.");
+        const data = await portalFetchJson("/api/v1/pagamentos/carteira-bb", {
+          method: "POST",
+          body: JSON.stringify(reqBody),
+        });
+        if (!data.sucesso) throw new Error("Falha ao gerar PIX.");
         setPixGerado({
           qr: data.pix_qrcode_img,
           copiaCola: data.pix_copia_cola,
@@ -550,8 +533,8 @@ export default function PortalEmissao() {
                 <input
                   type="text"
                   value={busca}
-                  onChange={(e) => setBusca(mascaraCPF(e.target.value))}
-                  placeholder="Nome ou CPF (000.000.000-00)..."
+                  onChange={(e) => setBusca(e.target.value)}
+                  placeholder="Nome, e-mail ou CPF (com ou sem pontuação)..."
                   className={`${inputCls} pl-9`}
                   style={{ borderColor: LINE }}
                   onFocus={(e) => {
@@ -611,9 +594,9 @@ export default function PortalEmissao() {
                           className="w-11 h-11 rounded-md overflow-hidden shrink-0 border"
                           style={{ borderColor: LINE, background: LINE_2 }}
                         >
-                          {res.foto_url && res.foto_url.includes("http") ? (
+                          {res.foto_assinada_url || (res.foto_url && res.foto_url.includes("http")) ? (
                             <img
-                              src={res.foto_url}
+                              src={res.foto_assinada_url || res.foto_url}
                               alt="Foto"
                               className="w-full h-full object-cover"
                             />
@@ -664,36 +647,50 @@ export default function PortalEmissao() {
                           </div>
                         </div>
 
-                        {/* Botão 2ª via */}
-                        <button
-                          onClick={() => {
-                            setReemissaoId(expandido ? null : res.id);
-                            setNovoEmail(res.email);
-                          }}
-                          className="h-8 px-2.5 rounded-md text-[11.5px] font-semibold flex items-center gap-1.5 transition-colors shrink-0"
-                          style={{
-                            background: expandido ? LINE_2 : INK,
-                            color: expandido ? INK : "#FFF",
-                          }}
-                          onMouseEnter={(e) => {
-                            if (!expandido) e.currentTarget.style.background = INK_2;
-                          }}
-                          onMouseLeave={(e) => {
-                            if (!expandido) e.currentTarget.style.background = INK;
-                          }}
-                        >
-                          {expandido ? (
-                            <>
-                              <X size={12} />
-                              Cancelar
-                            </>
-                          ) : (
-                            <>
-                              <RefreshCw size={12} />
-                              2ª via
-                            </>
-                          )}
-                        </button>
+                        {/* Ações: Detalhes/Reprocessar + 2ª via */}
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            onClick={() => setDetalheResidenteId(res.id)}
+                            className="h-8 px-2.5 rounded-md text-[11.5px] font-semibold flex items-center gap-1.5 border transition-colors"
+                            style={{ borderColor: LINE, color: INK, background: SURFACE }}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = LINE_2)}
+                            onMouseLeave={(e) => (e.currentTarget.style.background = SURFACE)}
+                            title="Ver detalhes, editar e-mail, reprocessar, baixar ou imprimir"
+                          >
+                            <Eye size={12} />
+                            Detalhes
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              setReemissaoId(expandido ? null : res.id);
+                              setNovoEmail(res.email);
+                            }}
+                            className="h-8 px-2.5 rounded-md text-[11.5px] font-semibold flex items-center gap-1.5 transition-colors shrink-0"
+                            style={{
+                              background: expandido ? LINE_2 : INK,
+                              color: expandido ? INK : "#FFF",
+                            }}
+                            onMouseEnter={(e) => {
+                              if (!expandido) e.currentTarget.style.background = INK_2;
+                            }}
+                            onMouseLeave={(e) => {
+                              if (!expandido) e.currentTarget.style.background = INK;
+                            }}
+                          >
+                            {expandido ? (
+                              <>
+                                <X size={12} />
+                                Cancelar
+                              </>
+                            ) : (
+                              <>
+                                <RefreshCw size={12} />
+                                2ª via
+                              </>
+                            )}
+                          </button>
+                        </div>
                       </div>
 
                       {/* Painel expansível */}
@@ -1005,6 +1002,15 @@ export default function PortalEmissao() {
           </form>
         </Panel>
       </div>
+
+      <ResidenteDetalheDrawer
+        residenteId={detalheResidenteId}
+        onClose={() => setDetalheResidenteId(null)}
+        onSelectResidente={(id) => setDetalheResidenteId(id)}
+        onUpdated={() => {
+          if (busca.trim()) executarBusca(busca);
+        }}
+      />
     </>
   );
 }

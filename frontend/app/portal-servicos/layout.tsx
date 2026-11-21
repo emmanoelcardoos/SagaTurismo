@@ -392,10 +392,21 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   }
 
   const isSuperAdmin =
-    emailLogado === "emmanoel.cardoso09@gmail.com" ||
-    emailLogado === "planejamentosaga@gmail.com";
+    emailLogado.toLowerCase() === "emmanoel.cardoso09@gmail.com" ||
+    emailLogado.toLowerCase() === "planejamentosaga@gmail.com";
 
   const grupos = isSuperAdmin ? [...MENU_GRUPOS, MENU_ADMIN] : MENU_GRUPOS;
+
+  const rotasRestritasAdmin = [
+    "/portal-servicos/emissao",
+    "/portal-servicos/residentes",
+    "/portal-servicos/suporte",
+  ];
+  const acessoBloqueado =
+    !isSuperAdmin &&
+    rotasRestritasAdmin.some(
+      (rota) => pathname === rota || pathname.startsWith(`${rota}/`)
+    );
 
   // Estado visual derivado
   const isExpanded = !collapsed || hovered;
@@ -883,7 +894,34 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
           <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6">
             <div className="max-w-[1280px] mx-auto">
-              {children}
+              {acessoBloqueado ? (
+                <div
+                  className="max-w-md mx-auto mt-16 bg-white border rounded-lg p-6 text-center space-y-3"
+                  style={{ borderColor: LINE }}
+                >
+                  <div
+                    className="w-10 h-10 rounded-lg mx-auto flex items-center justify-center"
+                    style={{ background: "#FEF2F2", color: DANGER }}
+                  >
+                    <AlertCircle size={18} />
+                  </div>
+                  <h2 className={`${jakarta.className} text-[16px] font-bold`} style={{ color: INK }}>
+                    Acesso restrito
+                  </h2>
+                  <p className="text-[12.5px]" style={{ color: MUTED }}>
+                    A sua conta não tem permissão para acessar esta área administrativa.
+                  </p>
+                  <Link
+                    href="/portal-servicos"
+                    className="inline-flex items-center justify-center h-9 px-4 rounded-md text-[12.5px] font-semibold text-white"
+                    style={{ background: INK }}
+                  >
+                    Voltar ao painel
+                  </Link>
+                </div>
+              ) : (
+                children
+              )}
             </div>
           </main>
         </div>

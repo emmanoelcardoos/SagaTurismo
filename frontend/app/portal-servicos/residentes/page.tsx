@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { Plus_Jakarta_Sans, Inter } from "next/font/google";
-import { supabase } from "@/lib/supabase";
 import {
-  Users, Loader2, User, IdCard, Mail, Search, X,
-  Inbox, CheckCircle2, Clock, BadgeCheck, Circle,
-  Layers, ChevronRight,
+  Users, Search, X, Inbox, Clock, BadgeCheck, Circle,
+  ChevronRight, AlertTriangle, RefreshCw, Loader2, CheckCircle2, AlertCircle,
 } from "lucide-react";
+import { portalFetchJson } from "@/lib/portalApi";
+import ResidenteDetalheDrawer from "@/components/portal/ResidenteDetalheDrawer";
 
 const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["500", "600", "700", "800"] });
 const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
@@ -46,6 +46,13 @@ const STATUS_MAP: Record<
     border: "#FEF3C7",
     icone: Clock,
     label: "Aguardando pagamento",
+  },
+  expirado: {
+    cor: DANGER,
+    bg: "#FEF2F2",
+    border: "#FEE2E2",
+    icone: AlertTriangle,
+    label: "Expirado",
   },
   inativo: {
     cor: MUTED,
@@ -146,40 +153,69 @@ function StatusPill({ status }: { status: string }) {
 export default function PortalResidentes() {
   const [residentes, setResidentes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [erroCarga, setErroCarga] = useState("");
   const [busca, setBusca] = useState("");
-  const [filtroStatus, setFiltroStatus] = useState<"Todos" | "ativo" | "aguardando_pagamento">("Todos");
+  const [filtroStatus, setFiltroStatus] = useState<"Todos" | "ativo" | "aguardando_pagamento" | "expirado">("Todos");
+  const [residenteSelecionadoId, setResidenteSelecionadoId] = useState<string | null>(null);
+  const [verificandoExpiracoes, setVerificandoExpiracoes] = useState(false);
+  const [msgRotina, setMsgRotina] = useState<{ tipo: "success" | "error"; texto: string } | null>(null);
 
-  useEffect(() => { fetchResidentes(); }, []);
-
-  async function fetchResidentes() {
+  const fetchResidentes = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("rd_residentes")
-      .select("id, nome_completo, cpf, email, status")
-      .order("criado_at", { ascending: false });
-
-    if (!error && data) {
-      setResidentes(data);
-    } else if (error) {
-      console.error("Erro ao carregar residentes:", error.message);
+    setErroCarga("");
+    try {
+      const resp = await portalFetchJson("/api/v1/admin/residentes?limit=2000");
+      setResidentes(resp.dados || []);
+    } catch (error: any) {
+      console.error("Erro ao carregar residentes:", error);
+      setErroCarga(error.message || "Falha ao carregar a lista de residentes.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
+  }, []);
+
+  useEffect(() => { fetchResidentes(); }, [fetchResidentes]);
+
+  async function handleVerificarExpiracoes() {
+    if (!confirm("Executar agora a verificação de carteiras com mais de 365 dias (desativar vencidas e avisar titulares por e-mail)?")) {
+      return;
+    }
+    setVerificandoExpiracoes(true);
+    setMsgRotina(null);
+    try {
+      const resp = await portalFetchJson("/api/v1/admin/residentes/verificar-expiracoes", {
+        method: "POST",
+      });
+      setMsgRotina({
+        tipo: "success",
+        texto: `Verificação concluída: ${resp.carteiras_desativadas || 0} carteira(s) desativada(s) e ${resp.familias_notificadas || 0} e-mail(s) de aviso enviado(s).`,
+      });
+      await fetchResidentes();
+    } catch (err: any) {
+      setMsgRotina({ tipo: "error", texto: err.message || "Erro ao executar verificação de vencimentos." });
+    } finally {
+      setVerificandoExpiracoes(false);
+    }
   }
 
   const contadores = useMemo(() => ({
     total: residentes.length,
     ativos: residentes.filter((r) => r.status === "ativo").length,
     aguardando: residentes.filter((r) => r.status === "aguardando_pagamento").length,
+    expirados: residentes.filter((r) => r.status === "expirado").length,
   }), [residentes]);
 
   const residentesFiltrados = useMemo(() => {
     const termo = busca.toLowerCase().trim();
+    const termoDigitos = termo.replace(/\D/g, "");
     return residentes.filter((r) => {
       const passaStatus = filtroStatus === "Todos" || r.status === filtroStatus;
+      const cpfDigitos = String(r.cpf || "").replace(/\D/g, "");
       const passaBusca =
         !termo ||
         r.nome_completo?.toLowerCase().includes(termo) ||
         r.cpf?.toLowerCase().includes(termo) ||
+        (termoDigitos.length >= 3 && cpfDigitos.includes(termoDigitos)) ||
         r.email?.toLowerCase().includes(termo);
       return passaStatus && passaBusca;
     });
@@ -217,24 +253,66 @@ export default function PortalResidentes() {
               Residentes
             </h1>
             <p className="text-[12.5px] mt-1" style={{ color: MUTED }}>
-              Listagem de cidadãos registrados na base de dados do portal.
+              Clique em qualquer residente para ver detalhes da carteira, editar e-mail, reprocessar, baixar ou imprimir.
             </p>
           </div>
 
-          {/* Status da base */}
-          <div
-            className="inline-flex items-center gap-2 h-9 px-3 rounded-md border self-start sm:self-auto"
-            style={{ borderColor: LINE, background: SURFACE }}
-          >
-            <Users size={12} style={{ color: INK }} />
-            <span
-              className={`${jakarta.className} num text-[12px] font-bold`}
-              style={{ color: INK }}
+          {/* Ações do header */}
+          <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+            <button
+              onClick={handleVerificarExpiracoes}
+              disabled={verificandoExpiracoes}
+              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-md border text-[12px] font-semibold transition-colors disabled:opacity-50"
+              style={{ borderColor: LINE, background: SURFACE, color: INK_2 }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = LINE_2)}
+              onMouseLeave={(e) => (e.currentTarget.style.background = SURFACE)}
+              title="Rotina automática a cada 24h — clique para rodar manualmente agora"
             >
-              {contadores.total} total
-            </span>
+              {verificandoExpiracoes ? <Loader2 size={12} className="animate-spin" /> : <Clock size={12} />}
+              Verificar vencimentos
+            </button>
+
+            <button
+              onClick={fetchResidentes}
+              disabled={loading}
+              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-md border text-[12px] font-semibold transition-colors disabled:opacity-50"
+              style={{ borderColor: LINE, background: SURFACE, color: INK }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = LINE_2)}
+              onMouseLeave={(e) => (e.currentTarget.style.background = SURFACE)}
+            >
+              <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
+              Atualizar
+            </button>
           </div>
         </div>
+
+        {erroCarga && (
+          <div
+            className="rounded-md p-3.5 border flex items-start gap-2.5 text-[12.5px]"
+            style={{ background: "#FEF2F2", borderColor: "#FEE2E2", color: DANGER }}
+          >
+            <AlertCircle size={15} className="shrink-0 mt-0.5" />
+            <p className="font-medium">{erroCarga}</p>
+          </div>
+        )}
+
+        {msgRotina && (
+          <div
+            className="rounded-md p-3.5 border flex items-start gap-2.5 text-[12.5px]"
+            style={
+              msgRotina.tipo === "success"
+                ? { background: "#ECFDF5", borderColor: "#D1FAE5", color: SUCCESS }
+                : { background: "#FEF2F2", borderColor: "#FEE2E2", color: DANGER }
+            }
+          >
+            {msgRotina.tipo === "success" ? (
+              <CheckCircle2 size={15} className="shrink-0 mt-0.5" />
+            ) : (
+              <AlertCircle size={15} className="shrink-0 mt-0.5" />
+            )}
+            <p className="font-medium">{msgRotina.texto}</p>
+          </div>
+        )}
 
         {/* ═══════════════════════════════════════════════════════════ */}
         {/* KPIs — strip horizontal                                     */}
@@ -242,11 +320,12 @@ export default function PortalResidentes() {
 
         {residentes.length > 0 && (
           <Panel noPad className="anim-fade-up">
-            <div className="grid grid-cols-3 divide-x" style={{ borderColor: LINE }}>
+            <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-y md:divide-y-0" style={{ borderColor: LINE }}>
               {[
                 { label: "Total", valor: contadores.total, unit: "registrados" },
-                { label: "Ativos", valor: contadores.ativos, unit: "carteiras emitidas" },
+                { label: "Ativos", valor: contadores.ativos, unit: "carteiras válidas" },
                 { label: "Aguardando", valor: contadores.aguardando, unit: "pendentes de pagamento" },
+                { label: "Expirados", valor: contadores.expirados, unit: "acima de 1 ano" },
               ].map((kpi) => (
                 <div
                   key={kpi.label}
@@ -326,6 +405,7 @@ export default function PortalResidentes() {
                 <option value="Todos">Todos os status</option>
                 <option value="ativo">Ativos</option>
                 <option value="aguardando_pagamento">Aguardando pagamento</option>
+                <option value="expirado">Expirados</option>
               </select>
 
               {temFiltro && (
@@ -443,10 +523,12 @@ export default function PortalResidentes() {
             {/* Linhas */}
             <div className="divide-y" style={{ borderColor: LINE_2 }}>
               {residentesFiltrados.map((res, idx) => (
-                <div
+                <button
+                  type="button"
                   key={res.id}
-                  style={{ animationDelay: `${idx * 15}ms` }}
-                  className="grid grid-cols-[40px_1fr_auto] md:grid-cols-[40px_2fr_1fr_1.4fr_1fr_20px] items-center gap-4 px-5 py-3 hover:bg-[#FAFAFB] transition-colors anim-fade-up group"
+                  onClick={() => setResidenteSelecionadoId(res.id)}
+                  style={{ animationDelay: `${Math.min(idx, 20) * 15}ms` }}
+                  className="w-full text-left grid grid-cols-[40px_1fr_auto] md:grid-cols-[40px_2fr_1fr_1.4fr_1fr_20px] items-center gap-4 px-5 py-3 hover:bg-[#FAFAFB] transition-colors anim-fade-up group cursor-pointer"
                 >
                   {/* Avatar */}
                   <div
@@ -501,15 +583,22 @@ export default function PortalResidentes() {
                   {/* Seta */}
                   <ChevronRight
                     size={14}
-                    className="hidden md:block shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="hidden md:block shrink-0 opacity-40 group-hover:opacity-100 transition-opacity"
                     style={{ color: SUBTLE }}
                   />
-                </div>
+                </button>
               ))}
             </div>
           </Panel>
         )}
       </div>
+
+      <ResidenteDetalheDrawer
+        residenteId={residenteSelecionadoId}
+        onClose={() => setResidenteSelecionadoId(null)}
+        onSelectResidente={(id) => setResidenteSelecionadoId(id)}
+        onUpdated={fetchResidentes}
+      />
     </>
   );
 }
