@@ -9,14 +9,11 @@ import {
   Loader2, Compass, CheckCircle2, X,
   Phone, Mail, Clock
 } from 'lucide-react';
-import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
+import { jakarta, inter } from "@/lib/fonts";
 import { supabase } from '@/lib/supabase';
 import MinhaReservaModal from '@/components/MinhaReservaModal';
 
-
 // ── FONTES ──
-const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['600', '700', '800'] });
-const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'] });
 
 // ==========================================
 // MOTOR DE ANIMAÇÕES DE SCROLL
@@ -112,7 +109,6 @@ type FotoGaleria = {
   imagem_url: string;
   titulo: string;
 };
-
 
 // ==========================================
 // COMPONENTE: ÚLTIMOS ARTIGOS DO BLOG

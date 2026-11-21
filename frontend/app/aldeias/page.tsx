@@ -4,11 +4,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { Loader2, MapPin, ArrowRight, ChevronDown, Menu, X, ShieldCheck } from 'lucide-react';
-import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
+import { jakarta, inter } from "@/lib/fonts";
 import { supabase } from '@/lib/supabase';
-
-const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '700', '800'] });
-const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
 
 type Aldeia = {
   id: string;

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import { Plus_Jakarta_Sans, Inter } from "next/font/google";
+import { jakarta, inter } from "@/lib/fonts";
 import {
   X, Loader2, User, IdCard, Mail, Calendar, ShieldCheck,
   Clock, BadgeCheck, AlertTriangle, Circle, Send, Download,
@@ -9,9 +9,6 @@ import {
   AlertCircle, Lock, Save, ExternalLink, RefreshCw,
 } from "lucide-react";
 import { portalFetchBlob, portalFetchJson } from "@/lib/portalApi";
-
-const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["500", "600", "700", "800"] });
-const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
 const INK = "#0A0E14";
 const INK_2 = "#1F2937";

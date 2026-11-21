@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Plus_Jakarta_Sans, Inter } from "next/font/google";
+import { jakarta, inter } from "@/lib/fonts";
 import { supabase } from "@/lib/supabase";
 import {
   Newspaper, Plus, Loader2, Save, Image as ImageIcon,
@@ -19,9 +19,6 @@ import Link from "@tiptap/extension-link";
 import TextAlign from "@tiptap/extension-text-align";
 import UnderlineExt from "@tiptap/extension-underline";
 import Placeholder from "@tiptap/extension-placeholder";
-
-const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["500", "600", "700", "800"] });
-const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
 // ─── PALETA ENTERPRISE ───
 const INK = "#002f40";

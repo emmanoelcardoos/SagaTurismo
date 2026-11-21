@@ -8,10 +8,7 @@ import {
   Loader2, ShieldCheck, CheckCircle2, User, Mail, Copy, 
   Lock, Check, ChevronRight, Users, Menu, X
 } from 'lucide-react';
-import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
-
-const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '700', '800'] });
-const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
+import { jakarta, inter } from "@/lib/fonts";
 
 const formatarMoeda = (valor: number) => (valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const mascaraCPF = (v: string) => v.replace(/\D/g, '').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2').slice(0, 14);

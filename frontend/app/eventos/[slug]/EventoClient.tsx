@@ -20,21 +20,11 @@ import {
   Info,
   Tag,
 } from "lucide-react";
-import { Plus_Jakarta_Sans, Inter } from "next/font/google";
+import { jakarta, inter } from "@/lib/fonts";
 
 // ════════════════════════════════════════════
 //  FONTES
 // ════════════════════════════════════════════
-const jakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-  display: "swap",
-});
-const inter = Inter({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-  display: "swap",
-});
 
 // ════════════════════════════════════════════
 //  PALETA PETRÓLEO

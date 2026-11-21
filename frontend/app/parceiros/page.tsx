@@ -6,10 +6,7 @@ import Image from 'next/image';
 import {
   Building2, HeartHandshake, Sprout, ShieldCheck, ExternalLink
 } from 'lucide-react';
-import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
-
-const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['600', '700', '800'] });
-const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
+import { jakarta, inter } from "@/lib/fonts";
 
 // ── MOTOR DE ANIMAÇÕES ──
 function ScrollReveal({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {

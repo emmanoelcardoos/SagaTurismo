@@ -10,12 +10,10 @@ import {
   Route, CalendarDays, Ticket, Info, Footprints, ArrowLeft, ArrowRight,
   Image as ImageIcon, Map as MapIcon, Briefcase
 } from 'lucide-react';
-import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
+import { jakarta, inter } from "@/lib/fonts";
 import { supabase } from '@/lib/supabase';
 
 // ── FONTES ──
-const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '700', '800'] });
-const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
 
 // ── TIPOS ──
 type Roteiro = {

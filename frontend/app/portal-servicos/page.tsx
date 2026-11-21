@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react";
-import { Plus_Jakarta_Sans, Inter } from "next/font/google";
+import { jakarta, inter } from "@/lib/fonts";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import {
@@ -11,9 +11,6 @@ import {
   FileText, Notebook, Plus, RefreshCw, ArrowUpRight, ArrowDownRight,
   Circle, ChevronRight, Zap, Layers, Filter, CheckCircle2
 } from "lucide-react";
-
-const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["500", "600", "700", "800"] });
-const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
 // ─── PALETA ENTERPRISE (sóbria, funcional) ───
 const INK = "#0A0E14";           // preto dominante

@@ -21,21 +21,11 @@ import {
   AlertTriangle,
   Lock
 } from 'lucide-react';
-import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
+import { jakarta, inter } from "@/lib/fonts";
 
 import CPFInput from '@/components/ui/CPFInput';
 import FileUploader from '@/components/ui/FileUploader';
 import { cadastrarResidente, type CadastroResponse } from '@/lib/api';
-
-const jakarta = Plus_Jakarta_Sans({
-  subsets: ['latin'],
-  weight: ['600', '700', '800'],
-});
-
-const inter = Inter({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-});
 
 type DependenteData = {
   id: string;
@@ -128,7 +118,6 @@ function validateDependenteExtra(
 
 export default function CadastroPage() {
   const router = useRouter();
-
 
   // ── VISTA ATUAL ──
   const [view, setView] = useState<'selecao' | 'novo' | 'dependente'>('selecao');

@@ -7,10 +7,7 @@ import {
   Fish, Waves, Target, Leaf, ArrowRight, Compass,
   Camera, X, ChevronLeft, ChevronRight, Sun, MapPin, Anchor
 } from 'lucide-react';
-import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
-
-const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '700', '800'] });
-const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
+import { jakarta, inter } from "@/lib/fonts";
 
 // ── FOTOS DO TORPESAGA ──
 const FOTOS_TORPESAGA = [
@@ -24,7 +21,6 @@ const FOTOS_TORPESAGA = [
   'https://live.staticflickr.com/65535/55422309654_8c0d0fd997_h.jpg?s=eyJpIjo1NTQyMjMwOTY1NCwiZSI6MTc5MDk5NTE1NCwicyI6IjY0MDhlMjMyNjI3YjEzYTQzNjUyZDM3OTBlYTE4ZTU1MDE1MGQ3ZjIiLCJ2IjoxfQ',
   'https://live.staticflickr.com/65535/55423159401_3ef4d343ae_h.jpg?s=eyJpIjo1NTQyMzE1OTQwMSwiZSI6MTc5MDk5NTIxOCwicyI6IjMxZmYyYzkyYjFhOWM5Yjc1NWU5MzBkYTk3ODU2MTgzY2UxYTQ5MzEiLCJ2IjoxfQ',
   'https://live.staticflickr.com/65535/55423294098_d023ae1e52_h.jpg?s=eyJpIjo1NTQyMzI5NDA5OCwiZSI6MTc5MDk5NTI1MiwicyI6IjY3YjI0YTUxMGI2YmQ3NzQwZDMyNjBmYjg3ZWNmZmJjOWQ0YzVjMGMiLCJ2IjoxfQ',
-
 
 ];
 

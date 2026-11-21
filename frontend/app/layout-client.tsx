@@ -1,27 +1,13 @@
 // app/layout-client.tsx
 "use client";
 
-import { Plus_Jakarta_Sans, Inter } from "next/font/google";
+import { jakarta, inter } from "@/lib/fonts";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Menu, X, ChevronDown } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Script from "next/script";
-
-const jakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-  variable: "--font-jakarta",
-  display: "swap",
-});
-
-const inter = Inter({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-inter",
-  display: "swap",
-});
 
 const AZUL_SAGA = "#00577C";
 const AMARELO_SAGA = "#F9C400";

@@ -10,12 +10,9 @@ import {
   CreditCard, Lock, ShieldAlert, Home, Check, ChevronRight,
   Wallet, ChevronLeft, UserPlus, Menu, X, CalendarDays
 } from 'lucide-react';
-import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
+import { jakarta, inter } from "@/lib/fonts";
 import { supabase } from '@/lib/supabase';
 import { QRCodeSVG } from 'qrcode.react';
-
-const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '700', '800'] });
-const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
 
 type Hotel = { 
   id: string; nome: string; imagem_url: string;
@@ -252,7 +249,6 @@ function CheckoutHotelContent() {
     obterPrecoOficialAPI();
   }, [hotelId, quartoNomeReal, checkinData, checkoutData, quartosParam, adultosParam]);
 
-
   // ── LÓGICA DE VALIDAÇÃO E NAVEGAÇÃO HORIZONTAL ──
   const handleAvançarPasso = () => {
     setErroApi('');
@@ -295,7 +291,6 @@ function CheckoutHotelContent() {
     setErroApi('');
     setPassoAtual(prev => Math.max(1, prev - 1));
   };
-
 
   // ── FUNÇÃO DE PAGAMENTO UNIFICADA COM O PYTHON ──
   const handlePagamento = async (e: React.FormEvent) => {

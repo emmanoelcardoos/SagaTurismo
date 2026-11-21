@@ -9,14 +9,11 @@ import {
   ExternalLink, Loader2, ChevronLeft, ChevronRight, Quote,
   ShieldCheck, ChevronDown
 } from 'lucide-react';
-import { Plus_Jakarta_Sans } from 'next/font/google';
+import { jakarta } from "@/lib/fonts";
 import { supabase } from '@/lib/supabase';
 import { useParams } from 'next/navigation';
 
-
-
 // ── FONTS ──
-const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '700', '800'] });
 
 // ── TYPES ──
 type MenuItem = { prato: string; preco: string; desc: string };

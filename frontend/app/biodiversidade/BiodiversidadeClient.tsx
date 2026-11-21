@@ -6,11 +6,7 @@ import { useEffect, useState, useRef, ReactNode } from 'react';
 import {
   ArrowRight, Leaf, Mountain, Droplets
 } from 'lucide-react';
-import { Plus_Jakarta_Sans, Inter, Playfair_Display } from 'next/font/google';
-
-const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['600', '700', '800'] });
-const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
-const playfair = Playfair_Display({ subsets: ['latin'], weight: ['400', '700', '900'], style: ['normal', 'italic'] });
+import { jakarta, inter, playfair } from "@/lib/fonts";
 
 // ==========================================
 // MOTOR DE ANIMAÇÕES DE SCROLL

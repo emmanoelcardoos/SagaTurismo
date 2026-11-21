@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Plus_Jakarta_Sans, Inter } from "next/font/google";
+import { jakarta, inter } from "@/lib/fonts";
 import { supabase } from "@/lib/supabase";
 import {
   Building2, Plus, Loader2, Save, Image as ImageIcon, Phone,
@@ -9,9 +9,6 @@ import {
   Eye, EyeOff, Pencil, Inbox, Search, X, Tag, Star,
   CheckCircle2, AlertTriangle, AtSign, Images, ExternalLink, Trash2
 } from "lucide-react";
-
-const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["500", "600", "700", "800"] });
-const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
 // ─── PALETA ENTERPRISE ───
 const INK = "#0A0E14";

@@ -9,12 +9,8 @@ import {
   Menu,
   ShieldCheck,
 } from 'lucide-react';
-import { Plus_Jakarta_Sans, Playfair_Display, Lora } from 'next/font/google';
+import { jakarta, playfair, lora } from "@/lib/fonts";
 import { supabase } from '@/lib/supabase';
-
-const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '600', '700', '800'] });
-const playfair = Playfair_Display({ subsets: ['latin'], weight: ['400', '700', '900'], style: ['normal', 'italic'] });
-const lora = Lora({ subsets: ['latin'], weight: ['400', '500', '600'], style: ['normal', 'italic'] });
 
 type Aldeia = {
   id: string;
