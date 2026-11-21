@@ -2,7 +2,7 @@ import os
 import uuid
 import json
 from typing import List
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
 from supabase import create_client, Client
 from dotenv import load_dotenv
 from pydantic import BaseModel
@@ -10,6 +10,8 @@ from datetime import datetime, timedelta
 
 # Importação dos serviços customizados
 from app.services.ai_service import validar_endereco_com_ia
+from app.deps.auth import OperadorAutenticado, require_portal_admin
+from app.services.auditoria_service import apenas_digitos, formatar_cpf, gerar_url_assinada_storage
 
 # ◄── REMOVIDAS as importações de PDF e E-mail daqui. O Webhook é que vai assumir esse trabalho!
 
@@ -177,19 +179,39 @@ class EmissaoManualPayload(BaseModel):
     status: str = "ativo"  # ◄── 1. ADICIONADO AQUI PARA RECEBER O STATUS DO FRONTEND
 
 @router.post("/residentes/emissao-manual")
-async def emissao_manual_admin(payload: EmissaoManualPayload):
+async def emissao_manual_admin(
+    payload: EmissaoManualPayload,
+    operador: OperadorAutenticado = Depends(require_portal_admin),
+):
     try:
-        qrcode_token = str(uuid.uuid4())
+        cpf_formatado = formatar_cpf(payload.cpf)
+        cpf_digitos = apenas_digitos(payload.cpf)
 
+        # Verificação preventiva de duplicidade de CPF
+        if cpf_digitos:
+            busca_existente = (
+                supabase.table("rd_residentes")
+                .select("id, cpf, status")
+                .in_("cpf", list({payload.cpf.strip(), cpf_formatado, cpf_digitos}))
+                .execute()
+            )
+            if busca_existente.data:
+                existente = busca_existente.data[0]
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"Este CPF ({existente['cpf']}) já está cadastrado no sistema com status '{existente['status']}'. Use a busca acima para consultar ou reprocessar.",
+                )
+
+        qrcode_token = str(uuid.uuid4())
         data_expiracao_calculada = (datetime.now() + timedelta(days=365)).strftime("%Y-%m-%d")
 
         novo_residente = {
-            "nome_completo": payload.nome,
-            "cpf": payload.cpf,
-            "email": payload.email,
+            "nome_completo": payload.nome.strip(),
+            "cpf": cpf_formatado or payload.cpf.strip(),
+            "email": payload.email.strip().lower(),
             "data_nascimento": payload.data_nascimento,
             "foto_url": payload.foto_url,
-            "status": payload.status, # ◄── 2. ALTERADO AQUI PARA USAR O PAYLOAD
+            "status": payload.status,
             "qrcode_token": qrcode_token,
             "url_comprovante": "isento_admin",
             "data_expiracao": data_expiracao_calculada
@@ -201,21 +223,43 @@ async def emissao_manual_admin(payload: EmissaoManualPayload):
         if not resposta.data:
             raise Exception("Falha ao inserir na base de dados.")
             
-        return {"sucesso": True, "residente_id": resposta.data[0]["id"]}
+        return {"sucesso": True, "residente_id": resposta.data[0]["id"], "operador": operador.email}
         
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"[ERRO EMISSÃO MANUAL] {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# ◄── 3. NOVA ROTA DE BUSCA ADICIONADA AQUI (ESSENCIAL PARA O CRM FUNCIONAR) ──►
+# ◄── 3. ROTA DE BUSCA ADMIN PROTEGIDA ──►
 @router.get("/residentes/buscar")
-async def buscar_residentes(q: str):
-    """Buscador Admin: Ignora RLS para encontrar cidadãos pelo Nome ou CPF"""
+async def buscar_residentes(
+    q: str,
+    operador: OperadorAutenticado = Depends(require_portal_admin),
+):
+    """Buscador Admin protegido: busca cidadãos pelo Nome, CPF (com ou sem pontuação) ou E-mail"""
     try:
-        # A chave mestra do Supabase faz bypass ao bloqueio de segurança RLS
-        resposta = supabase.table("rd_residentes").select("*").or_(f"cpf.ilike.%{q}%,nome_completo.ilike.%{q}%").order("criado_at", desc=True).limit(10).execute()
+        termo = q.strip()
+        digitos = apenas_digitos(termo)
+        filtros = [f"cpf.ilike.%{termo}%", f"nome_completo.ilike.%{termo}%", f"email.ilike.%{termo}%"]
+        if len(digitos) == 11:
+            filtros.append(f"cpf.ilike.%{formatar_cpf(digitos)}%")
+
+        resposta = (
+            supabase.table("rd_residentes")
+            .select("id, nome_completo, cpf, email, data_nascimento, status, foto_url, data_expiracao, titular_id, criado_at")
+            .or_(",".join(filtros))
+            .order("criado_at", desc=True)
+            .limit(15)
+            .execute()
+        )
+
+        dados_enriquecidos = []
+        for item in (resposta.data or []):
+            item["foto_assinada_url"] = gerar_url_assinada_storage(item.get("foto_url"), expira_em=300)
+            dados_enriquecidos.append(item)
         
-        return {"sucesso": True, "dados": resposta.data}
+        return {"sucesso": True, "dados": dados_enriquecidos}
     except Exception as e:
         print(f"[ERRO BUSCA] {e}")
         raise HTTPException(status_code=500, detail=str(e))

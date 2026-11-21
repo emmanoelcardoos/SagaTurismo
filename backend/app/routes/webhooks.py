@@ -1,12 +1,20 @@
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Depends, Request, HTTPException
 import os
 import uuid
 from datetime import datetime
 from supabase import create_client, Client
 
-from app.services.pdf_service import gerar_pdf_carteira, gerar_pdf_voucher
+from app.deps.auth import OperadorAutenticado, require_portal_admin
+from app.services.auditoria_service import apenas_digitos, formatar_cpf, registrar_auditoria
+from app.services.pdf_service import (
+    gerar_pdf_carteira,
+    gerar_pdf_carteira_bytes,
+    gerar_pdf_voucher,
+    nome_arquivo_carteira,
+)
 from app.services.email_service import (
     enviar_carteiras_por_email,
+    enviar_carteira_por_email_detalhado,
     enviar_voucher_hotel,
     enviar_voucher_pacote,
     enviar_voucher_passeio
@@ -308,59 +316,104 @@ async def webhook_bb(request: Request):
             
             if tipo == "carteira":
                 token_id = pedido.get("item_id") 
+                nome_item_pedido = str(pedido.get("nome_item") or "")
+                eh_segunda_via = ("2ª via" in nome_item_pedido.lower()) or ("2a via" in nome_item_pedido.lower())
                 residentes_encontrados = []
 
                 if token_id:
-                    # Busca o titular
+                    # Busca o titular / residente alvo
                     titular_res = supabase.table("rd_residentes").select("*").eq("id", token_id).execute()
-                    
-                    # ◄── CORREÇÃO 1: Busca APENAS os dependentes que estão aguardando pagamento
-                    deps_res = supabase.table("rd_residentes").select("*").eq("titular_id", token_id).eq("status", "aguardando_pagamento").execute()
-                    
-                    # ◄── CORREÇÃO 2: Adiciona o titular APENAS se ele próprio for novo e estiver aguardando pagamento
-                    if titular_res.data and titular_res.data[0].get("status") == "aguardando_pagamento":
-                        residentes_encontrados.append(titular_res.data[0])
+
+                    if eh_segunda_via:
+                        # Em 2ª via paga via Pix BB, reemite o residente específico mesmo que já esteja 'ativo'
+                        if titular_res.data:
+                            residentes_encontrados.append(titular_res.data[0])
+                    else:
+                        # Busca APENAS os dependentes que estão aguardando pagamento
+                        deps_res = supabase.table("rd_residentes").select("*").eq("titular_id", token_id).eq("status", "aguardando_pagamento").execute()
                         
-                    # Adiciona os novos dependentes encontrados
-                    if deps_res.data:
-                        residentes_encontrados.extend(deps_res.data)
+                        # Adiciona o titular APENAS se ele próprio for novo e estiver aguardando pagamento
+                        if titular_res.data and titular_res.data[0].get("status") == "aguardando_pagamento":
+                            residentes_encontrados.append(titular_res.data[0])
+                            
+                        # Adiciona os novos dependentes encontrados
+                        if deps_res.data:
+                            residentes_encontrados.extend(deps_res.data)
                 
-                # Fallback de segurança via CPF (também filtrado para não duplicar)
-                if not residentes_encontrados:
-                    res_res = supabase.table("rd_residentes").select("*").eq("cpf", pedido.get("cpf_cliente")).eq("status", "aguardando_pagamento").execute()
+                # Fallback de segurança via CPF (aceitando CPF formatado ou apenas dígitos)
+                if not residentes_encontrados and pedido.get("cpf_cliente"):
+                    cpf_raw = str(pedido.get("cpf_cliente"))
+                    cpfs_candidatos = list({cpf_raw, formatar_cpf(cpf_raw), apenas_digitos(cpf_raw)} - {""})
+                    query_fb = supabase.table("rd_residentes").select("*").in_("cpf", cpfs_candidatos)
+                    if not eh_segunda_via:
+                        query_fb = query_fb.eq("status", "aguardando_pagamento")
+                    res_res = query_fb.execute()
                     residentes_encontrados = res_res.data or []
 
                 if residentes_encontrados:
-                    email_real_destino = email_cliente
-
                     for res in residentes_encontrados:
                         # Muda o status do morador para ativo na base de dados
-                        supabase.table("rd_residentes").update({"status": "ativo"}).eq("id", res["id"]).execute()
+                        if res.get("status") != "ativo":
+                            supabase.table("rd_residentes").update({"status": "ativo"}).eq("id", res["id"]).execute()
                         
+                        # Prioriza o e-mail mais atualizado salvo em rd_residentes (caso editado antes do pagamento)
+                        email_real_destino = (res.get("email") or email_cliente or "").strip()
+
                         try:
-                            # 1. Prepara os dados
                             nome_membro = res.get("nome_completo") or res.get("nome", "Residente Oficial")
+                            token_qr = res.get("qrcode_token") or res["id"]
                             dados_pdf = {
                                 "nome": nome_membro,
                                 "cpf": res.get("cpf", pedido.get("cpf_cliente")),
                                 "data_nascimento": res.get("data_nascimento", "--/--/----"),
-                                "foto_url": res.get("foto_url")
+                                "foto_url": res.get("foto_url"),
+                                "data_expiracao": res.get("data_expiracao"),
                             }
                             
-                            # 2. Gera o PDF
-                            caminho_pdf = gerar_pdf_carteira(dados_pdf, res.get("qrcode_token") or res["id"])
+                            # Gera o PDF em memória com a data_expiracao real
+                            pdf_bytes = gerar_pdf_carteira_bytes(dados_pdf, token_qr)
+                            filename = nome_arquivo_carteira(nome_membro, token_qr)
                             
-                            # 3. ENVIO FRACIONADO IMEDIATO 
-                            # Envia apenas este PDF para o e-mail do Titular, saudando o nome do dependente
-                            if caminho_pdf:
-                                enviar_carteiras_por_email(email_real_destino, nome_membro, [caminho_pdf])
-                                print(f"[WEBHOOK] Carteira individual de {nome_membro} enviada para: {email_real_destino}")
+                            # Envio individual imediato com tratamento e auditoria do retorno do Resend
+                            if pdf_bytes:
+                                res_email = enviar_carteira_por_email_detalhado(
+                                    email_destino=email_real_destino,
+                                    nome_titular=nome_membro,
+                                    anexos_memoria=[{"filename": filename, "content_bytes": pdf_bytes}],
+                                )
+                                registrar_auditoria(
+                                    residente_id=res["id"],
+                                    acao="envio_automatico_webhook",
+                                    operador_email="sistema:webhook_bb",
+                                    email_novo=email_real_destino,
+                                    sucesso=bool(res_email.get("ok")),
+                                    resend_message_id=res_email.get("resend_id"),
+                                    erro_detalhe=res_email.get("erro"),
+                                    metadata={
+                                        "txid": txid,
+                                        "segunda_via": eh_segunda_via,
+                                        "filename": filename,
+                                    },
+                                )
+                                if res_email.get("ok"):
+                                    print(f"[WEBHOOK BB] Carteira individual de {nome_membro} enviada para: {email_real_destino}")
+                                else:
+                                    print(f"[WEBHOOK BB] Falha Resend ao enviar carteira de {nome_membro} para {email_real_destino}: {res_email.get('erro')}")
 
                         except Exception as e_processo:
-                            print(f"[WEBHOOK] Erro ao processar/enviar carteira de {res.get('nome_completo')}: {e_processo}")
+                            registrar_auditoria(
+                                residente_id=res["id"],
+                                acao="envio_automatico_webhook",
+                                operador_email="sistema:webhook_bb",
+                                email_novo=email_real_destino,
+                                sucesso=False,
+                                erro_detalhe=str(e_processo),
+                                metadata={"txid": txid, "segunda_via": eh_segunda_via},
+                            )
+                            print(f"[WEBHOOK BB] Erro ao processar/enviar carteira de {res.get('nome_completo')}: {e_processo}")
                             
                 else:
-                    print(f"[WEBHOOK] Residente não encontrado para o token {token_id}")
+                    print(f"[WEBHOOK BB] Residente não encontrado para o token {token_id}")
 
             # ────────────────────────────────────────────────────────
             # CASO E: INSCRIÇÃO EM EVENTO (SEM PDF)
@@ -408,8 +461,10 @@ async def webhook_bb(request: Request):
         print(f"[WEBHOOK BB ERRO] Falha crítica: {str(e)}")
         raise HTTPException(status_code=500, detail="Erro interno no webhook")
 
-@router.get("/api/v1/admin/processar-pendentes")
-async def processar_carteiras_pendentes():
+@router.post("/api/v1/admin/processar-pendentes")
+async def processar_carteiras_pendentes(
+    operador: OperadorAutenticado = Depends(require_portal_admin),
+):
     try:
         # 1. Busca todos os pedidos de carteira que estão "aguardando"
         res_pedidos = supabase.table("pedidos").select("*").eq("tipo_item", "carteira").eq("status_pagamento", "aguardando").execute()

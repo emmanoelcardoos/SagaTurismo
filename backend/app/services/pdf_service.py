@@ -1,4 +1,6 @@
 import os
+import re
+import unicodedata
 import requests
 from PIL import Image
 from io import BytesIO, StringIO
@@ -18,6 +20,9 @@ load_dotenv()
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+_FUNDO_CARTEIRA_BYTES = None
+URL_FUNDO_CARTEIRA = "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/carteira/versao.jpg"
 
 # ─── CONFIGURAÇÕES VISUAIS INSTITUCIONAIS ────────────────────────────────────
 COR_PRIMARIA = colors.HexColor("#0A3D4A")       # Azul Escuro do Cabeçalho e Rodapé Esquerdo
@@ -103,8 +108,8 @@ def _foto_circular_sem_borda(c, x, y, diametro, foto_url):
         else:
             if not foto_url.startswith("http"):
                 resposta_supabase = supabase.storage.from_("comprovantes").create_signed_url(foto_url, 60)
-                if isinstance(resposta_supabase, dict) and "signedURL" in resposta_supabase:
-                    foto_url = resposta_supabase["signedURL"]
+                if isinstance(resposta_supabase, dict):
+                    foto_url = resposta_supabase.get("signedURL") or resposta_supabase.get("signedUrl") or foto_url
                 elif isinstance(resposta_supabase, str):
                     foto_url = resposta_supabase
 
@@ -145,61 +150,100 @@ def _foto_circular_sem_borda(c, x, y, diametro, foto_url):
         print(f"Erro ao desenhar foto circular: {e}")
         pass
 
-def gerar_pdf_carteira(residente_data: dict, token: str) -> str:
-    os.makedirs("tmp_pdfs", exist_ok=True)
-    nome_pessoa_limpo = _safe(residente_data.get('nome'), 'Residente').replace(' ', '_')
-    caminho_pdf = os.path.abspath(f"tmp_pdfs/Carteira_{nome_pessoa_limpo}_{token[:4]}.pdf")
+def _obter_fundo_carteira_bytes() -> bytes:
+    global _FUNDO_CARTEIRA_BYTES
+    if _FUNDO_CARTEIRA_BYTES is not None:
+        return _FUNDO_CARTEIRA_BYTES
+    try:
+        resposta_fundo = requests.get(URL_FUNDO_CARTEIRA, timeout=10)
+        if resposta_fundo.status_code == 200:
+            _FUNDO_CARTEIRA_BYTES = resposta_fundo.content
+            return _FUNDO_CARTEIRA_BYTES
+    except Exception as e:
+        print(f"[PDF] Falha ao baixar fundo da carteira: {e}")
+    return b""
+
+
+def _resolver_validade_carteira(data_expiracao) -> str:
+    """
+    Usa a data_expiracao real gravada no banco (YYYY-MM-DD, ISO ou DD/MM/YYYY).
+    Apenas faz fallback para +365 dias se data_expiracao não existir.
+    """
+    if data_expiracao:
+        texto = str(data_expiracao).strip()
+        if texto and texto.lower() != "none":
+            if "-" in texto:
+                partes = texto.split("T")[0].split("-")
+                if len(partes) == 3 and all(p.isdigit() for p in partes):
+                    return f"{partes[2].zfill(2)}/{partes[1].zfill(2)}/{partes[0]}"
+            elif "/" in texto and len(texto) >= 10:
+                return texto[:10]
+    return (datetime.now() + timedelta(days=365)).strftime("%d/%m/%Y")
+
+
+def nome_arquivo_carteira(nome: str, token: str) -> str:
+    nome_bruto = _safe(nome, "Residente")
+    sem_acentos = unicodedata.normalize("NFKD", nome_bruto).encode("ascii", "ignore").decode("ascii")
+    nome_limpo = re.sub(r"[^A-Za-z0-9]+", "_", sem_acentos).strip("_") or "Residente"
+    sufixo = re.sub(r"[^A-Za-z0-9]", "", str(token or ""))[:6] or "carteira"
+    return f"Carteira_{nome_limpo}_{sufixo}.pdf"
+
+
+def gerar_pdf_carteira_bytes(residente_data: dict, token: str) -> bytes:
+    """Gera o PDF da Carteira Digital de Residente em memória (sem deixar arquivos órfãos em disco)."""
+    buffer = BytesIO()
 
     # Proporção padrão do Cartão
     largura, altura = 135 * mm, 83 * mm
-    c = canvas.Canvas(caminho_pdf, pagesize=(largura, altura))
+    c = canvas.Canvas(buffer, pagesize=(largura, altura))
 
-    # 1. Desenha o fundo
-    url_fundo = "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/carteira/versao.jpg"
-    
-    try:
-        resposta_fundo = requests.get(url_fundo, timeout=10)
-        if resposta_fundo.status_code == 200:
-            img_fundo = ImageReader(BytesIO(resposta_fundo.content))
+    # 1. Desenha o fundo (cacheado em memória)
+    fundo_bytes = _obter_fundo_carteira_bytes()
+    if fundo_bytes:
+        try:
+            img_fundo = ImageReader(BytesIO(fundo_bytes))
             c.drawImage(img_fundo, 0, 0, width=largura, height=altura)
-    except Exception as e:
+        except Exception:
+            c.setFillColor(colors.HexColor("#f0f0f0"))
+            c.rect(0, 0, largura, altura, fill=1, stroke=0)
+    else:
         c.setFillColor(colors.HexColor("#f0f0f0"))
         c.rect(0, 0, largura, altura, fill=1, stroke=0)
 
     # 2. Inserir a Foto
     foto_diam = 39.1 * mm
-    foto_x = 2.5 * mm    
-    foto_y = 19.5 * mm    
+    foto_x = 2.5 * mm
+    foto_y = 19.5 * mm
     _foto_circular_sem_borda(c, foto_x, foto_y, foto_diam, residente_data.get('foto_url'))
 
     # 3. Textos Dinâmicos (Variáveis independentes para ajuste fino horizontal)
-    c.setFillColor(colors.HexColor("#1e293b")) 
-    
+    c.setFillColor(colors.HexColor("#1e293b"))
+
     x_nome = 53 * mm
     x_cpf = 50.9 * mm
     x_validade = 56.9 * mm
 
     nome_reduzido = _primeiro_ultimo_nome(residente_data.get('nome'))
-    
-    # Nome (Restaurado para Helvetica-Bold)
+
+    # Nome (Helvetica-Bold)
     c.setFillColor(colors.HexColor("#374151"))
     c.setFont("Helvetica-Bold", 9)
     c.drawString(x_nome, 42.9 * mm, nome_reduzido)
-    
-    # CPF (Restaurado para Helvetica-Bold)
+
+    # CPF (Helvetica-Bold)
     c.setFillColor(colors.HexColor("#374151"))
     c.setFont("Helvetica-Bold", 9)
     c.drawString(x_cpf, 34.7 * mm, _safe(residente_data.get('cpf'), "—"))
-    
-    # Validade (Mantém a fonte anterior, ou seja, Helvetica-Bold tamanho 10)
+
+    # Validade real do banco (data_expiracao)
     c.setFillColor(colors.HexColor("#374151"))
-    validade = (datetime.now() + timedelta(days=365)).strftime("%d/%m/%Y")
+    validade = _resolver_validade_carteira(residente_data.get('data_expiracao'))
     c.drawString(x_validade, 27.7 * mm, validade)
 
     # 4. QR Code
     qr_size = 25 * mm
-    qr_x = 103.5 * mm      
-    qr_y = 25 * mm          
+    qr_x = 103.5 * mm
+    qr_y = 25 * mm
 
     c.setFillColor(colors.white)
     c.setStrokeColor(colors.white)
@@ -209,6 +253,16 @@ def gerar_pdf_carteira(residente_data: dict, token: str) -> str:
     c.drawImage(ImageReader(qr_io), qr_x, qr_y, width=qr_size, height=qr_size)
 
     c.save()
+    return buffer.getvalue()
+
+
+def gerar_pdf_carteira(residente_data: dict, token: str) -> str:
+    """Wrapper de compatibilidade: gera os bytes em memória e salva em tmp_pdfs quando o chamador precisa de caminho em disco."""
+    os.makedirs("tmp_pdfs", exist_ok=True)
+    caminho_pdf = os.path.abspath(os.path.join("tmp_pdfs", nome_arquivo_carteira(residente_data.get('nome'), token)))
+    pdf_bytes = gerar_pdf_carteira_bytes(residente_data, token)
+    with open(caminho_pdf, "wb") as f:
+        f.write(pdf_bytes)
     return caminho_pdf
 
 # ─── 2. GERAÇÃO DO VOUCHER DE HOSPEDAGEM (HOTÉIS / PASSEIOS) ───────────────

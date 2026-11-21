@@ -13,17 +13,24 @@ EMAIL_FROM = "Turismo São Geraldo do Araguaia <nao-responda@sagatur.com.br>" # 
 LOGO_URL = "https://sagaturismo-production.up.railway.app/public/logop.png"
 
 # ==========================================
-# MOTOR PRINCIPAL DE ENVIO (AGORA SUPORTA MÚLTIPLOS ANEXOS)
+# MOTOR PRINCIPAL DE ENVIO (AGORA SUPORTA MÚLTIPLOS ANEXOS EM DISCO E MEMÓRIA)
 # ==========================================
-def enviar_email(
+def enviar_email_detalhado(
     destinatario: str,
     assunto: str,
     corpo_html: str,
     anexos_paths: List[str] = None,
-) -> bool:
+    anexos_memoria: List[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
     if not RESEND_API_KEY:
-        print("[EMAIL] Erro: RESEND_API_KEY não configurada no Railway.")
-        return False
+        erro = "RESEND_API_KEY não configurada no servidor."
+        print(f"[EMAIL] Erro: {erro}")
+        return {"ok": False, "resend_id": None, "status_code": None, "erro": erro}
+
+    if not destinatario or "@" not in str(destinatario):
+        erro = f"Destinatário de e-mail inválido: {destinatario}"
+        print(f"[EMAIL] Erro: {erro}")
+        return {"ok": False, "resend_id": None, "status_code": None, "erro": erro}
 
     url = "https://api.resend.com/emails"
     headers = {
@@ -33,34 +40,86 @@ def enviar_email(
 
     payload = {
         "from": EMAIL_FROM,
-        "to": [destinatario],
+        "to": [str(destinatario).strip()],
         "subject": assunto,
         "html": corpo_html
     }
 
-    # Tratamento de múltiplos anexos em Base64
+    attachments = []
+
+    # Tratamento de múltiplos anexos em disco (compatibilidade legada)
     if anexos_paths:
-        payload["attachments"] = []
         for path in anexos_paths:
-            if os.path.exists(path):
+            if path and os.path.exists(path):
                 with open(path, "rb") as f:
                     conteudo_base64 = base64.b64encode(f.read()).decode("utf-8")
-                
-                payload["attachments"].append({
+                attachments.append({
                     "filename": os.path.basename(path),
                     "content": conteudo_base64
                 })
 
+    # Tratamento de anexos em memória (BytesIO / bytes — sem arquivos órfãos)
+    if anexos_memoria:
+        for anexo in anexos_memoria:
+            content_bytes = anexo.get("content_bytes")
+            filename = anexo.get("filename") or "Carteira_Residente.pdf"
+            if content_bytes:
+                conteudo_base64 = base64.b64encode(content_bytes).decode("utf-8")
+                attachments.append({
+                    "filename": filename,
+                    "content": conteudo_base64
+                })
+
+    if attachments:
+        payload["attachments"] = attachments
+
     try:
-        response = requests.post(url, json=payload, headers=headers, timeout=15)
+        response = requests.post(url, json=payload, headers=headers, timeout=20)
         if response.status_code in [200, 201]:
-            print(f"[EMAIL RESEND] Enviado com sucesso para {destinatario}")
-            return True
-        print(f"[EMAIL RESEND] Erro ({response.status_code}): {response.text}")
-        return False
+            resend_id = None
+            try:
+                resend_id = response.json().get("id")
+            except Exception:
+                pass
+            print(f"[EMAIL RESEND] Enviado com sucesso para {destinatario} (id={resend_id})")
+            return {
+                "ok": True,
+                "resend_id": resend_id,
+                "status_code": response.status_code,
+                "erro": None,
+            }
+
+        erro_txt = response.text[:500]
+        print(f"[EMAIL RESEND] Erro ({response.status_code}): {erro_txt}")
+        return {
+            "ok": False,
+            "resend_id": None,
+            "status_code": response.status_code,
+            "erro": f"Resend HTTP {response.status_code}: {erro_txt}",
+        }
     except Exception as e:
         print(f"[EMAIL RESEND] Falha crítica: {e}")
-        return False
+        return {
+            "ok": False,
+            "resend_id": None,
+            "status_code": None,
+            "erro": str(e),
+        }
+
+
+def enviar_email(
+    destinatario: str,
+    assunto: str,
+    corpo_html: str,
+    anexos_paths: List[str] = None,
+) -> bool:
+    resultado = enviar_email_detalhado(
+        destinatario=destinatario,
+        assunto=assunto,
+        corpo_html=corpo_html,
+        anexos_paths=anexos_paths,
+    )
+    return bool(resultado.get("ok"))
 
 # ==========================================
 # 4. CARTEIRA DIGITAL DE RESIDENTE (FLUXO CONCLUÍDO NO WEBHOOK)
@@ -71,12 +130,12 @@ from typing import List
 LOGO_URL = "https://sagatur.com.br/logop.png"
 
 
-def enviar_carteiras_por_email(email_destino: str, nome_titular: str, caminhos_pdfs: List[str]):
+def _montar_html_carteira_residente(nome_titular: str) -> str:
     primeiro_nome = nome_titular.strip().split()[0] if nome_titular else "Cidadão"
 
     FONT_STACK = "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
 
-    html = f"""
+    return f"""
     <div style="background-color:#F8FAFC; margin:0; padding:0; width:100%;">
 
         <!-- Preheader (texto de pré-visualização, invisível no corpo do e-mail) -->
@@ -187,7 +246,31 @@ def enviar_carteiras_por_email(email_destino: str, nome_titular: str, caminhos_p
         </table>
     </div>
     """
-    return enviar_email(email_destino, "A sua Carteira de Residente está pronta! 🎉", html, anexos_paths=caminhos_pdfs)
+
+
+def enviar_carteira_por_email_detalhado(
+    email_destino: str,
+    nome_titular: str,
+    caminhos_pdfs: List[str] = None,
+    anexos_memoria: List[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    html = _montar_html_carteira_residente(nome_titular)
+    return enviar_email_detalhado(
+        destinatario=email_destino,
+        assunto="A sua Carteira de Residente está pronta! 🎉",
+        corpo_html=html,
+        anexos_paths=caminhos_pdfs,
+        anexos_memoria=anexos_memoria,
+    )
+
+
+def enviar_carteiras_por_email(email_destino: str, nome_titular: str, caminhos_pdfs: List[str]):
+    resultado = enviar_carteira_por_email_detalhado(
+        email_destino=email_destino,
+        nome_titular=nome_titular,
+        caminhos_pdfs=caminhos_pdfs,
+    )
+    return bool(resultado.get("ok"))
 
 # ==========================================
 # 1. VOUCHER DE HOTEL
@@ -677,3 +760,125 @@ def enviar_ingresso_evento(email_destino: str, nome_cliente: str, dados_evento: 
     
     # Note que NÃO usamos anexos_paths
     return enviar_email(email_destino, f"O seu ingresso: {dados_evento.get('nome_evento')}", html)
+
+
+# ==========================================
+# 9. AVISO DE VENCIMENTO DA CARTEIRA DE RESIDENTE (ROTINA 24H)
+# ==========================================
+def enviar_aviso_vencimento_carteira(
+    email_destino: str,
+    nome_titular: str,
+    data_vencimento_br: str,
+    nomes_dependentes: List[str] = None,
+    titular_venceu: bool = True,
+) -> Dict[str, Any]:
+    primeiro_nome = nome_titular.strip().split()[0] if nome_titular else "Residente"
+    dependentes = [n for n in (nomes_dependentes or []) if n]
+    FONT_STACK = "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+
+    if titular_venceu and dependentes:
+        texto_principal = (
+            f"Informamos que a sua <strong>Carteira Digital de Residente</strong> e a(s) carteira(s) dos "
+            f"dependentes vinculados ao seu cadastro atingiram o prazo de validade de 1 ano "
+            f"(vencimento em <strong>{data_vencimento_br}</strong>) e foram desativadas automaticamente."
+        )
+    elif titular_venceu:
+        texto_principal = (
+            f"Informamos que a sua <strong>Carteira Digital de Residente</strong> atingiu o prazo de validade "
+            f"de 1 ano (vencimento em <strong>{data_vencimento_br}</strong>) e foi desativada automaticamente."
+        )
+    else:
+        texto_principal = (
+            f"Informamos que a(s) <strong>Carteira(s) Digital(is) de Residente</strong> de dependente(s) "
+            f"vinculado(s) ao seu cadastro atingiram o prazo de validade de 1 ano "
+            f"(vencimento em <strong>{data_vencimento_br}</strong>) e foram desativadas automaticamente."
+        )
+
+    bloco_dependentes = ""
+    if dependentes:
+        itens_html = "".join(
+            f'<li style="margin:4px 0; color:#334155; font-size:14px;">{dep}</li>'
+            for dep in dependentes
+        )
+        bloco_dependentes = f"""
+        <tr>
+            <td style="padding:20px 40px 0 40px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; background-color:#F8FAFC; border-radius:14px; border:1px solid #E2E8F0;">
+                    <tr>
+                        <td style="padding:18px 22px; font-family:{FONT_STACK};">
+                            <p style="margin:0 0 8px 0; font-size:11px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; color:#00577C;">
+                                Dependentes com carteira vencida
+                            </p>
+                            <ul style="margin:0; padding-left:18px;">
+                                {itens_html}
+                            </ul>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+        """
+
+    html = f"""
+    <div style="background-color:#F8FAFC; margin:0; padding:0; width:100%;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F8FAFC; width:100%;">
+            <tr>
+                <td align="center" style="padding:40px 16px;">
+                    <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%; max-width:600px; background-color:#FFFFFF; border-radius:20px; overflow:hidden; box-shadow:0 4px 24px rgba(15,23,42,0.06);">
+                        <tr>
+                            <td align="center" style="padding:40px 40px 8px 40px; background-color:#FFFFFF;">
+                                <img src="{LOGO_URL}" width="140" alt="Prefeitura Municipal de São Geraldo do Araguaia" style="display:block; width:140px; max-width:140px; height:auto; margin:0 auto; border:0;">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding:32px 40px 0 40px; font-family:{FONT_STACK};">
+                                <p style="margin:0 0 10px 0; font-size:12px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:#D97706;">
+                                    Aviso de Vencimento · Renovação Necessária
+                                </p>
+                                <h1 style="margin:0 0 16px 0; font-size:26px; line-height:1.3; font-weight:700; color:#0f172a;">
+                                    Olá, {primeiro_nome}!
+                                </h1>
+                                <p style="margin:0; font-size:15px; line-height:1.65; color:#475569;">
+                                    {texto_principal}
+                                </p>
+                            </td>
+                        </tr>
+                        {bloco_dependentes}
+                        <tr>
+                            <td style="padding:24px 40px 0 40px;">
+                                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; background-color:#FFFBEB; border-radius:14px; border:1px solid #FDE68A;">
+                                    <tr>
+                                        <td style="padding:18px 20px; font-family:{FONT_STACK}; font-size:14px; line-height:1.6; color:#92400E;">
+                                            Para continuar usufruindo dos <strong>50% de desconto</strong> na entrada do Parque Três Quedas, é necessário realizar a <strong>renovação da sua Carteira de Residente</strong> pelo portal oficial ou presencialmente na Secretaria Municipal de Turismo.
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td align="center" style="padding:28px 40px 40px 40px; font-family:{FONT_STACK};">
+                                <a href="https://www.sagatur.com.br/cadastro" target="_blank" style="display:inline-block; background-color:#00577C; color:#FFFFFF; text-decoration:none; font-weight:700; font-size:14px; padding:14px 28px; border-radius:12px;">
+                                    Acessar Portal de Turismo
+                                </a>
+                            </td>
+                        </tr>
+                    </table>
+                    <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%; max-width:600px;">
+                        <tr>
+                            <td align="center" style="padding:24px 24px 0 24px; font-family:{FONT_STACK}; font-size:12px; line-height:1.6; color:#94A3B8;">
+                                &copy; 2026 Portal Oficial de Turismo &bull; Prefeitura Municipal de São Geraldo do Araguaia
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </div>
+    """
+
+    assunto = "Sua Carteira de Residente venceu — realize a renovação"
+    return enviar_email_detalhado(
+        destinatario=email_destino,
+        assunto=assunto,
+        corpo_html=html,
+    )

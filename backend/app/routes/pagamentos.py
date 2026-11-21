@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import Optional, Dict, List
 import httpx
@@ -14,9 +14,17 @@ from datetime import datetime, timedelta
 from supabase import create_client, Client
 
 # Importação dos serviços que já tens criados
-from app.services.pdf_service import gerar_pdf_carteira, gerar_pdf_voucher
+from app.deps.auth import OperadorAutenticado, require_portal_admin
+from app.services.auditoria_service import registrar_auditoria
+from app.services.pdf_service import (
+    gerar_pdf_carteira,
+    gerar_pdf_carteira_bytes,
+    gerar_pdf_voucher,
+    nome_arquivo_carteira,
+)
 from app.services.email_service import (
-    enviar_carteiras_por_email, 
+    enviar_carteiras_por_email,
+    enviar_carteira_por_email_detalhado,
     enviar_voucher_hotel, 
     enviar_voucher_pacote, 
     enviar_voucher_passeio
@@ -624,7 +632,10 @@ async def processar_pagamento(pedido: PedidoPagamento):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/api/v1/pagamentos/carteira-gratuita")
-async def processar_carteira_gratuita(pedido: PedidoCarteiraGratuita):
+async def processar_carteira_gratuita(
+    pedido: PedidoCarteiraGratuita,
+    operador: OperadorAutenticado = Depends(require_portal_admin),
+):
     try:
         codigo_pedido = f"SAGA-FREE-{uuid.uuid4().hex[:8].upper()}"
         
@@ -641,7 +652,7 @@ async def processar_carteira_gratuita(pedido: PedidoCarteiraGratuita):
             "data_nascimento": pedido.data_nascimento,
             "foto_url": pedido.foto_url,
             "quantidade": 1,
-            "nome_item": "Emissão Gratuita - Carteira Digital de Turismo",
+            "nome_item": "Emissão 2ª Via (Presencial) - Carteira Digital" if pedido.is_reemissao else "Emissão Gratuita - Carteira Digital de Turismo",
             "item_id": pedido.token_id
         }
         
@@ -652,32 +663,63 @@ async def processar_carteira_gratuita(pedido: PedidoCarteiraGratuita):
             
         if pedido.token_id:
             titular_res = supabase.table("rd_residentes").select("*").eq("id", pedido.token_id).execute()
-            deps_res = supabase.table("rd_residentes").select("*").eq("titular_id", pedido.token_id).execute()
+
+            if pedido.is_reemissao:
+                # Na 2ª via, emite apenas o residente solicitado (não altera nem envia dependentes)
+                membros_familia = titular_res.data or []
+            else:
+                deps_res = supabase.table("rd_residentes").select("*").eq("titular_id", pedido.token_id).execute()
+                membros_familia = (titular_res.data or []) + (deps_res.data or [])
             
-            membros_familia = (titular_res.data or []) + (deps_res.data or [])
-            caminhos_pdfs = []
+            anexos_memoria = []
+            ids_processados = []
             
             if membros_familia:
                 for residente in membros_familia:
-                    supabase.table("rd_residentes").update({"status": "ativo"}).eq("id", residente["id"]).execute()
-                    
+                    if not pedido.is_reemissao or residente.get("status") != "ativo":
+                        supabase.table("rd_residentes").update({"status": "ativo"}).eq("id", residente["id"]).execute()
+
+                    token_qr = residente.get("qrcode_token") or residente["id"]
+                    nome_membro = residente.get("nome_completo") or pedido.nome_cliente
                     dados_pdf = {
-                        "nome": residente.get("nome_completo") or pedido.nome_cliente,
+                        "nome": nome_membro,
                         "cpf": residente.get("cpf") or pedido.cpf_cliente,
                         "data_nascimento": residente.get("data_nascimento") or pedido.data_nascimento or "--/--/----",
-                        "foto_url": residente.get("foto_url") or pedido.foto_url
+                        "foto_url": residente.get("foto_url") or pedido.foto_url,
+                        "data_expiracao": residente.get("data_expiracao"),
                     }
-                    caminho_pdf = gerar_pdf_carteira(dados_pdf, residente.get("qrcode_token") or residente["id"])
-                    
-                    if caminho_pdf:
-                        caminhos_pdfs.append(caminho_pdf)
+                    pdf_bytes = gerar_pdf_carteira_bytes(dados_pdf, token_qr)
+                    if pdf_bytes:
+                        anexos_memoria.append({
+                            "filename": nome_arquivo_carteira(nome_membro, token_qr),
+                            "content_bytes": pdf_bytes,
+                        })
+                        ids_processados.append(residente["id"])
                 
-                if caminhos_pdfs:
-                    try:
-                        enviar_carteiras_por_email(pedido.email_cliente, pedido.nome_cliente, caminhos_pdfs)
-                        print(f"[EMISSÃO GRATUITA] E-mail com {len(caminhos_pdfs)} carteira(s) enviado com sucesso para {pedido.email_cliente}")
-                    except Exception as err_email:
-                        print(f"[ERRO E-MAIL] Falha ao enviar carteira gratuita: {err_email}")
+                if anexos_memoria:
+                    res_email = enviar_carteira_por_email_detalhado(
+                        email_destino=pedido.email_cliente,
+                        nome_titular=pedido.nome_cliente,
+                        anexos_memoria=anexos_memoria,
+                    )
+                    for rid in ids_processados:
+                        registrar_auditoria(
+                            residente_id=rid,
+                            acao="reprocessamento_email" if pedido.is_reemissao else "envio_automatico_webhook",
+                            operador_user_id=operador.user_id,
+                            operador_email=operador.email,
+                            email_novo=pedido.email_cliente,
+                            sucesso=bool(res_email.get("ok")),
+                            resend_message_id=res_email.get("resend_id"),
+                            erro_detalhe=res_email.get("erro"),
+                            metadata={"origem": "carteira_gratuita", "codigo_pedido": codigo_pedido, "is_reemissao": bool(pedido.is_reemissao)},
+                        )
+                    if not res_email.get("ok"):
+                        raise HTTPException(
+                            status_code=502,
+                            detail=f"Carteira registrada, mas o envio por e-mail via Resend falhou: {res_email.get('erro')}",
+                        )
+                    print(f"[EMISSÃO GRATUITA] E-mail com {len(anexos_memoria)} carteira(s) enviado com sucesso para {pedido.email_cliente}")
 
         return {
             "sucesso": True,
@@ -685,6 +727,8 @@ async def processar_carteira_gratuita(pedido: PedidoCarteiraGratuita):
             "mensagem": "Carteiras aprovadas e emitidas com sucesso!"
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"Erro na emissão gratuita: {e}")
         raise HTTPException(status_code=500, detail=str(e))

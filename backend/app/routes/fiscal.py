@@ -30,12 +30,16 @@ async def validar_token_fiscal(token: str, x_fiscal_key: str = Header(None)):
 
         residente = resposta.data[0]
 
-        # 3. Formatação da Data para formato PT/BR (DD/MM/YYYY)
-        data_br = residente.get("data_nascimento")
-        if data_br and "-" in data_br:
-            partes = data_br.split('T')[0].split('-')
-            if len(partes) == 3:
-                data_br = f"{partes[2]}/{partes[1]}/{partes[0]}"
+        # 3. Formatação das Datas para formato PT/BR (DD/MM/YYYY)
+        def _fmt_br(raw_val):
+            if raw_val and "-" in str(raw_val):
+                partes = str(raw_val).split('T')[0].split('-')
+                if len(partes) == 3:
+                    return f"{partes[2]}/{partes[1]}/{partes[0]}"
+            return raw_val
+
+        data_br = _fmt_br(residente.get("data_nascimento"))
+        validade_br = _fmt_br(residente.get("data_expiracao"))
 
         # ◄── NOVA LÓGICA: Geração de URL Assinada (Passe Livre Temporário) ──►
         foto_url = residente.get("foto_url")
@@ -49,8 +53,8 @@ async def validar_token_fiscal(token: str, x_fiscal_key: str = Header(None)):
                     # Gera um link temporário válido por 5 minutos (300 segundos) para o ecrã do Fiscal
                     resposta_supabase = supabase.storage.from_("comprovantes").create_signed_url(foto_url, 300)
                     
-                    if isinstance(resposta_supabase, dict) and "signedURL" in resposta_supabase:
-                        foto_assinada = resposta_supabase["signedURL"]
+                    if isinstance(resposta_supabase, dict):
+                        foto_assinada = resposta_supabase.get("signedURL") or resposta_supabase.get("signedUrl")
                     elif isinstance(resposta_supabase, str):
                         foto_assinada = resposta_supabase
                 except Exception as e:
@@ -62,12 +66,13 @@ async def validar_token_fiscal(token: str, x_fiscal_key: str = Header(None)):
         # 4. Retorna os dados completos APENAS para o Fiscal
         return {
             "sucesso": True,
-            "status": residente.get("status"), # Ex: 'ativo' ou 'aguardando_pagamento'
+            "status": residente.get("status"), # Ex: 'ativo', 'expirado' ou 'aguardando_pagamento'
             "nome": residente.get("nome_completo"),
             "cpf": residente.get("cpf"), # ◄── CPF Completo para o Fiscal conferir a identidade!
             "data_nascimento": data_br,
+            "data_expiracao": validade_br,
             "foto_url": foto_assinada, # ◄── A FOTO agora usa o link temporário desbloqueado!
-            "mensagem": "Residente verificado com sucesso."
+            "mensagem": "Carteira expirada — renovação necessária." if residente.get("status") == "expirado" else "Residente verificado com sucesso."
         }
 
     except Exception as e:
