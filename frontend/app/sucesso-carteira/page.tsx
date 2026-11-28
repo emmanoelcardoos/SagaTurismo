@@ -11,7 +11,6 @@ import {
   AlertTriangle, User
 } from 'lucide-react';
 import { jakarta, inter } from "@/lib/fonts";
-import { supabase } from '@/lib/supabase';
 
 const formatarMoeda = (valor: any) => {
   if (!valor) return 'Sob consulta';
@@ -65,20 +64,12 @@ function SucessoCarteiraContent() {
       }
 
       try {
-        // Verifica se a string é um UUID válido para não quebrar a base de dados
-        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(idBusca);
-        const orQuery = isUUID ? `codigo_pedido.eq.${idBusca},item_id.eq.${idBusca}` : `codigo_pedido.eq.${idBusca}`;
-
-        // 1. Buscar o pedido de pagamento
-        const { data: pDataArray, error: pError } = await supabase
-          .from('pedidos') 
-          .select('*') 
-          .or(orQuery)
-          .limit(1);
-
-        if (pError) throw pError;
-
-        const pData = pDataArray?.[0];
+        // 1. Buscar o resumo do pedido via backend (a tabela 'pedidos' não é pública após o RLS)
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://sagaturismo-production.up.railway.app';
+        const resp = await fetch(`${apiUrl}/api/v1/pagamentos/carteira-resumo/${encodeURIComponent(idBusca)}`, { cache: 'no-store' });
+        if (resp.status !== 404 && !resp.ok) throw new Error('Não foi possível consultar a reserva da carteira.');
+        const resumo = resp.ok ? await resp.json() : null;
+        const pData = resumo?.pedido ? { ...resumo.pedido, email_cliente: resumo.email_mascarado } : null;
 
         if (!pData && tentativas < MAX_TENTATIVAS) {
           tentativas++;
@@ -96,19 +87,7 @@ function SucessoCarteiraContent() {
         let emailReal = emailMemoria || pData.email_cliente || pData.email;
         let nomeReal = nomeMemoria || pData.nome_cliente || pData.nome;
 
-        // Tenta ir à base de dados caso a memória falhe (ex: utilizador mudou de aba/dispositivo)
-        if (pData.item_id && (!nomeReal || !emailReal)) {
-           const { data: cidadao } = await supabase
-             .from('rd_residentes')
-             .select('nome_completo, email')
-             .eq('id', pData.item_id)
-             .maybeSingle();
-             
-           if (cidadao) {
-              if (cidadao.email && !emailReal) emailReal = cidadao.email;
-              if (cidadao.nome_completo && !nomeReal) nomeReal = cidadao.nome_completo;
-           }
-        }
+        // (O backend já complementa nome/e-mail a partir de rd_residentes quando necessário.)
 
         if (isActive) {
             // 3. Atualiza a interface com a certeza absoluta do Nome e E-mail

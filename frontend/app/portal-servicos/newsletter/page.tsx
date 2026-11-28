@@ -253,11 +253,12 @@ export default function PortalNewsletter() {
     const listaEmails = inscritos.map((i) => i.email);
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const response = await fetch(
         "https://sagaturismo-production.up.railway.app/api/v1/newsletter/disparar",
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token ?? ""}` },
           body: JSON.stringify({
             emails: listaEmails,
             assunto,

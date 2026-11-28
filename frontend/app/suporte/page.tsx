@@ -144,26 +144,44 @@ export default function SuportePage() {
       }
 
       // 2. Inserir na tabela 'suporte'
-      const { data: suporteData, error: dbError } = await supabase
-        .from('suporte')
-        .insert([
-          {
-            nome: form.nome,
-            cpf: form.cpf,
-            email: form.email,
-            whatsapp: form.whatsapp,
-            assunto: form.assunto,
-            mensagem: form.mensagem,
-            arquivo_url: arquivo_url,
-          },
-        ])
-        .select()
-        .single();
+      // Com RLS ativo o visitante pode CRIAR chamados mas não LER a tabela 'suporte'.
+      // A RPC grava e devolve apenas o protocolo. Fallback para o insert antigo
+      // enquanto o script SQL ainda não tiver sido executado.
+      let protocolo: string | null = null;
+      const { data: protocoloRpc, error: rpcError } = await supabase.rpc('abrir_chamado_suporte', {
+        p_nome: form.nome,
+        p_cpf: form.cpf,
+        p_email: form.email,
+        p_whatsapp: form.whatsapp,
+        p_assunto: form.assunto,
+        p_mensagem: form.mensagem,
+        p_arquivo_url: arquivo_url,
+      });
 
-      if (dbError) throw new Error('Erro ao guardar solicitação no banco de dados.');
+      if (!rpcError) {
+        protocolo = protocoloRpc as string;
+      } else {
+        const { data: suporteData, error: dbError } = await supabase
+          .from('suporte')
+          .insert([
+            {
+              nome: form.nome,
+              cpf: form.cpf,
+              email: form.email,
+              whatsapp: form.whatsapp,
+              assunto: form.assunto,
+              mensagem: form.mensagem,
+              arquivo_url: arquivo_url,
+            },
+          ])
+          .select('protocolo')
+          .single();
+
+        if (dbError) throw new Error('Erro ao guardar solicitação no banco de dados.');
+        protocolo = suporteData.protocolo;
+      }
 
       // 3. Disparar o e-mail via API no Railway
-      const protocolo = suporteData.protocolo;
 
       const response = await fetch(
         'https://sagaturismo-production.up.railway.app/api/v1/suporte/novo',

@@ -7,7 +7,6 @@ import {
   CreditCard, Download, MessageCircle, X 
 } from 'lucide-react';
 import { jakarta, inter } from "@/lib/fonts";
-import { supabase } from '@/lib/supabase';
 
 interface MinhaReservaModalProps {
   isOpen: boolean;
@@ -51,39 +50,23 @@ export default function MinhaReservaModal({ isOpen, onClose }: MinhaReservaModal
     setLoading(true);
 
     try {
-      const { data: pedido, error } = await supabase
-        .from('pedidos')
-        .select('*')
-        .eq('codigo_pedido', codigo)
-        .eq('cpf_cliente', cpfLimpo)
-        .single();
+      // Consulta via backend (a tabela 'pedidos' não é legível com a chave pública após o RLS).
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://sagaturismo-production.up.railway.app';
+      const res = await fetch(`${apiUrl}/api/v1/pedidos/consultar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ codigo_pedido: codigo.trim(), cpf: cpfLimpo }),
+      });
+      const data = await res.json().catch(() => null);
+      const pedido = data?.pedido;
 
-      if (error || !pedido) {
+      if (!res.ok || !pedido) {
         setErro('Reserva não encontrada. Verifique os dados.');
         setLoading(false);
         return;
       }
 
-      let fone = '';
-      let parceiroId = null;
-
-      if (pedido.tipo_item === 'hotel') {
-        const { data } = await supabase.from('hoteis').select('parceiro_id').eq('id', pedido.item_id).single();
-        parceiroId = data?.parceiro_id;
-      } else if (pedido.tipo_item === 'pacote') {
-        const { data } = await supabase.from('pacotes').select('parceiro_id').eq('id', pedido.item_id).single();
-        parceiroId = data?.parceiro_id;
-      } else if (pedido.tipo_item === 'passeio') {
-        const { data } = await supabase.from('passeios').select('parceiro_id').eq('id', pedido.item_id).single();
-        parceiroId = data?.parceiro_id;
-      }
-
-      if (parceiroId) {
-        const { data: parceiro } = await supabase.from('parceiros').select('telefone').eq('id', parceiroId).single();
-        if (parceiro?.telefone) fone = parceiro.telefone;
-      }
-
-      setTelefoneFornecedor(fone);
+      setTelefoneFornecedor(data?.telefone_fornecedor || '');
       setReserva(pedido);
       
     } catch (err) {
@@ -114,10 +97,11 @@ export default function MinhaReservaModal({ isOpen, onClose }: MinhaReservaModal
       const res = await fetch('/api/v1/pedidos/cancelar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        // O servidor obtém valor e cobrança Asaas da base de dados; aqui só provamos a titularidade.
         body: JSON.stringify({
           pedidoId: reserva.id,
-          valorReembolso: valorReembolsavel,
-          asaasPaymentId: reserva.asaas_payment_id // ◄── AQUI ESTÁ A CORREÇÃO!
+          codigoPedido: reserva.codigo_pedido,
+          cpf: cpf.replace(/\D/g, '')
         })
       });
 

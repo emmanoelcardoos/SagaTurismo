@@ -7,28 +7,41 @@ const supabaseAdmin = createClient(
   { auth: { persistSession: false } }
 );
 
+const ASAAS_API_URL = (process.env.ASAAS_API_URL || 'https://sandbox.asaas.com/api/v3').replace(/\/$/, '');
+
 export async function POST(request: Request) {
   try {
-    const { pedidoId, valorReembolso, asaasPaymentId } = await request.json();
+    const { pedidoId, codigoPedido, cpf } = await request.json();
+    const cpfLimpo = String(cpf || '').replace(/\D/g, '');
 
-    if (!pedidoId || !asaasPaymentId) {
-      return NextResponse.json({ sucesso: false, error: "Dados insuficientes (Falta ID do Pedido ou Asaas)." }, { status: 400 });
+    if (!pedidoId || !codigoPedido || cpfLimpo.length !== 11) {
+      return NextResponse.json({ sucesso: false, error: "Dados insuficientes para validar a reserva." }, { status: 400 });
     }
 
-    // Vamos garantir que o valor vai limpo, com 2 casas decimais matemáticas (ex: 134.00)
-    // Pega o valor total bruto da tabela pedidos em vez de descontar a taxa por enquanto
+    // Segurança: todos os dados do estorno vêm da BASE DE DADOS, nunca do navegador.
+    // O turista prova a titularidade com o código da reserva + CPF (mesma regra da consulta).
     const { data: pedidoAtual } = await supabaseAdmin
       .from('pedidos')
-      .select('valor_total')
+      .select('id, codigo_pedido, cpf_cliente, valor_total, status_pagamento, asaas_payment_id')
       .eq('id', pedidoId)
-      .single();
+      .maybeSingle();
 
-    const valorTotalBruto = pedidoAtual?.valor_total || valorReembolso;
-    const valorFormatado = Number(valorTotalBruto).toFixed(2);
+    const cpfPedido = String(pedidoAtual?.cpf_cliente || '').replace(/\D/g, '');
+    if (!pedidoAtual || pedidoAtual.codigo_pedido !== codigoPedido || cpfPedido !== cpfLimpo) {
+      return NextResponse.json({ sucesso: false, error: "Reserva não encontrada." }, { status: 404 });
+    }
+    if (pedidoAtual.status_pagamento !== 'pago') {
+      return NextResponse.json({ sucesso: false, error: "Apenas reservas pagas podem ser canceladas com reembolso." }, { status: 400 });
+    }
+    if (!pedidoAtual.asaas_payment_id) {
+      return NextResponse.json({ sucesso: false, error: "Esta reserva não possui cobrança Asaas associada." }, { status: 400 });
+    }
 
-    console.log(`[CANCELAMENTO] A tentar estornar o VALOR TOTAL de R$ ${valorFormatado} para a cobrança: ${asaasPaymentId}`);
+    const valorFormatado = Number(pedidoAtual.valor_total).toFixed(2);
 
-    const asaasResponse = await fetch(`https://sandbox.asaas.com/api/v3/payments/${asaasPaymentId}/refund`, {
+    console.log(`[CANCELAMENTO] A tentar estornar o VALOR TOTAL de R$ ${valorFormatado} para a cobrança: ${pedidoAtual.asaas_payment_id}`);
+
+    const asaasResponse = await fetch(`${ASAAS_API_URL}/payments/${encodeURIComponent(pedidoAtual.asaas_payment_id)}/refund`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -48,18 +61,19 @@ export async function POST(request: Request) {
        return NextResponse.json({ sucesso: false, error: mensagemErro }, { status: 400 });
     }
 
-    // Atualiza o status na Base de Dados para "cancelado"
+    // Atualiza o status na Base de Dados para "cancelado" (só se ainda estiver pago)
     const { error: updateError } = await supabaseAdmin
       .from('pedidos')
       .update({ status_pagamento: 'cancelado' })
-      .eq('id', pedidoId);
+      .eq('id', pedidoAtual.id)
+      .eq('status_pagamento', 'pago');
 
     if (updateError) throw updateError;
 
     return NextResponse.json({ sucesso: true, mensagem: "Reserva cancelada e reembolsada com sucesso." });
-    
+
   } catch (error: any) {
     console.error("Erro crítico ao cancelar reserva:", error);
-    return NextResponse.json({ sucesso: false, error: error.message || "Erro interno no servidor." }, { status: 500 });
+    return NextResponse.json({ sucesso: false, error: "Erro interno no servidor." }, { status: 500 });
   }
 }

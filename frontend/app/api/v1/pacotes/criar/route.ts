@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { requirePortalUser } from '@/lib/serverAuth';
 
 // Usamos a chave secreta para furar o RLS de forma segura do lado do servidor
 const supabaseAdmin = createClient(
@@ -9,6 +10,10 @@ const supabaseAdmin = createClient(
 );
 
 export async function POST(request: Request) {
+  // A rota usa a service_role: sem autenticação, qualquer pessoa gravaria pacotes.
+  const auth = await requirePortalUser(request);
+  if (auth.error) return auth.error;
+
   try {
     const { pacoteData, itensData } = await request.json();
 

@@ -1,6 +1,7 @@
 import { CheckCircle2, XCircle, ShieldAlert, User, FileText, AlertTriangle, ShieldCheck, CreditCard, Calendar } from 'lucide-react';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { FISCAL_COOKIE, getFiscalApiKey, sessaoFiscalValida } from '@/lib/fiscalSession';
 
 interface ValidarResponse {
   sucesso: boolean;
@@ -15,7 +16,8 @@ interface ValidarResponse {
 async function validate(token: string): Promise<ValidarResponse> {
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://sagaturismo-production.up.railway.app';
   
-  const FISCAL_KEY = process.env.FISCAL_SECRET_KEY || 'SaoGeraldo2026_Secret_Key';
+  // Componente de servidor: a chave vem apenas do ambiente do servidor (sem valor fixo no código).
+  const FISCAL_KEY = getFiscalApiKey();
 
   try {
     const res = await fetch(`${API_URL}/api/v1/fiscal/validar/${encodeURIComponent(token)}`, {
@@ -38,10 +40,10 @@ async function validate(token: string): Promise<ValidarResponse> {
 export default async function FiscalPage({ params }: { params: { token: string } }) {
   // ◄── A REGRA DE OURO DA CAMUFLAGEM ──►
   const cookieStore = cookies();
-  const authCookie = cookieStore.get('fiscal_auth');
+  const authCookie = cookieStore.get(FISCAL_COOKIE);
 
-  // Se não for o fiscal logado, envia silenciosamente para a Página Inicial
-  if (!authCookie || authCookie.value !== 'autenticado') {
+  // Se não for o fiscal logado (cookie assinado e válido), envia silenciosamente para a Página Inicial
+  if (!sessaoFiscalValida(authCookie?.value)) {
     redirect('/');
   }
   // ◄───────────────────────────────────►

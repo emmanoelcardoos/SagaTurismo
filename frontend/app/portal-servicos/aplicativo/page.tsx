@@ -229,9 +229,10 @@ export default function PortalAplicativo() {
     }));
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const response = await fetch("/api/push", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token ?? ""}` },
         body: JSON.stringify({ mensagens: mensagensPush }),
       });
       if (!response.ok) throw new Error("Falha na API");

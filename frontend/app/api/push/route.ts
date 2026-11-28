@@ -1,8 +1,16 @@
 import { NextResponse } from 'next/server';
+import { requirePortalUser } from '@/lib/serverAuth';
 
 export async function POST(request: Request) {
+  // Apenas operadores autenticados do portal (antes era um relay aberto de push).
+  const auth = await requirePortalUser(request);
+  if (auth.error) return auth.error;
+
   try {
     const { mensagens } = await request.json();
+    if (!Array.isArray(mensagens) || mensagens.length === 0 || mensagens.length > 10000) {
+      return NextResponse.json({ error: 'Lista de mensagens inválida.' }, { status: 400 });
+    }
 
     // A Expo recomenda enviar em lotes de 100 no máximo.
     const chunks = [];

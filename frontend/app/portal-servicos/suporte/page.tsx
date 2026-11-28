@@ -296,11 +296,12 @@ export default function PortalSuporte() {
       if (dbError) throw dbError;
 
       if (resposta) {
+        const { data: { session } } = await supabase.auth.getSession();
         const resp = await fetch(
           "https://sagaturismo-production.up.railway.app/api/v1/suporte/responder",
           {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token ?? ""}` },
             body: JSON.stringify({
               email: chamadoAberto.email,
               nome: chamadoAberto.nome,

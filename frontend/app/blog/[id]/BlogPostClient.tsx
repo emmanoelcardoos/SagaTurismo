@@ -70,11 +70,8 @@ export default function BlogPostClient({ post }: { post: BlogPost }) {
 
     (async () => {
       try {
-        const novasViews = (post.visualizacoes || 0) + 1;
-        await supabase
-          .from('blog')
-          .update({ visualizacoes: novasViews })
-          .eq('id', post.id);
+        // RPC com SECURITY DEFINER: só incrementa o contador (o anónimo não pode fazer UPDATE em 'blog').
+        await supabase.rpc('incrementar_visualizacao_blog', { p_id: post.id });
       } catch {
         // coluna pode não existir — ignorar
       }

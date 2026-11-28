@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
+import { requirePortalUser } from '@/lib/serverAuth';
 
 export async function POST(request: Request) {
+  // Criação de subcontas Asaas só por operador autenticado (antes era pública).
+  const auth = await requirePortalUser(request);
+  if (auth.error) return auth.error;
+
   try {
     const body = await request.json();
     const { name, email, cpfCnpj, phone, postalCode, address, addressNumber, province, birthDate } = body;

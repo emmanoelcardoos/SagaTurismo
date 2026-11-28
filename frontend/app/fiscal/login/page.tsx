@@ -10,26 +10,29 @@ export default function FiscalLogin() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setErro('');
-    
-    // Pequeno delay simulado para feedback visual e sensação de segurança
-    setTimeout(() => {
-      // ◄── SENHA DO FISCAL AQUI
-      if (senha === 'sga2026') { 
-        // Grava um cookie válido por 24 horas (86400 segundos) no telemóvel do fiscal
-        document.cookie = "fiscal_auth=autenticado; path=/; max-age=86400";
-        
-        // ◄── Redireciona o fiscal direto para a página do leitor
-        // Atenção: Se a sua pasta do scanner se chamar apenas "scanner", mude para '/fiscal/scanner'
+
+    try {
+      // A senha é validada NO SERVIDOR (FISCAL_LOGIN_PASSWORD); o servidor devolve um
+      // cookie httpOnly assinado válido por 24h. Nada sensível fica no bundle do navegador.
+      const res = await fetch('/api/fiscal/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ senha }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data?.sucesso) {
         router.push('/fiscal/scanner');
-      } else {
-        setErro('Credencial inválida. Acesso restrito a fiscais.');
-        setLoading(false);
+        return;
       }
-    }, 600);
+      setErro(data?.mensagem || 'Credencial inválida. Acesso restrito a fiscais.');
+    } catch {
+      setErro('Falha de comunicação. Verifique a sua ligação e tente novamente.');
+    }
+    setLoading(false);
   };
 
   return (
