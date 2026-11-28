@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from app.deps.auth import OperadorAutenticado, require_portal_user
 from pydantic import BaseModel
 from typing import Optional
 
@@ -28,7 +29,7 @@ async def novo_suporte(payload: SchemaNovoSuporte):
     raise HTTPException(status_code=500, detail="Erro no envio do e-mail de confirmação.")
 
 @router.post("/suporte/responder")
-async def responder_suporte(payload: SchemaRespostaSuporte):
+async def responder_suporte(payload: SchemaRespostaSuporte, operador: OperadorAutenticado = Depends(require_portal_user)):
     """Admin responde através do portal e este endpoint dispara o e-mail final para o cidadão"""
     sucesso = enviar_resposta_suporte(
         payload.email, 

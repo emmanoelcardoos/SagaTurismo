@@ -1,10 +1,20 @@
 from fastapi import APIRouter, Depends, Request, HTTPException
+from fastapi.responses import JSONResponse
 import os
+import re
 import uuid
+import httpx
 from datetime import datetime
 from supabase import create_client, Client
 
 from app.deps.auth import OperadorAutenticado, require_portal_admin
+from app.services.pix_bb_service import (
+    TXID_RE,
+    modo_verificacao,
+    para_decimal,
+    segredo_confere,
+    verificar_pagamento_bb,
+)
 from app.services.auditoria_service import apenas_digitos, formatar_cpf, registrar_auditoria
 from app.services.pdf_service import (
     gerar_pdf_carteira,
@@ -26,11 +36,51 @@ SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
+ASAAS_API_KEY = os.environ.get("ASAAS_API_KEY")
+ASAAS_API_URL = os.environ.get("ASAAS_API_URL", "https://sandbox.asaas.com/api/v3")
+_ASAAS_REF_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+_ASAAS_STATUS_PAGO = {"CONFIRMED", "RECEIVED", "RECEIVED_IN_CASH"}
+
+
+async def _verificar_pagamento_asaas(asaas_payment_id: str, pedido: dict) -> tuple:
+    """Consulta o Asaas para confirmar status/valor/referência. Devolve (confirmado: Optional[bool], motivo)."""
+    if not asaas_payment_id or not _ASAAS_REF_RE.match(str(asaas_payment_id)) or not ASAAS_API_KEY:
+        return None, "Sem payment id válido ou ASAAS_API_KEY ausente."
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.get(f"{ASAAS_API_URL}/payments/{asaas_payment_id}", headers={"access_token": ASAAS_API_KEY})
+    except Exception as e:
+        return None, f"Erro de comunicação com o Asaas: {e!r}"
+    if resp.status_code == 404:
+        return False, "Pagamento inexistente no Asaas."
+    if resp.status_code != 200:
+        return None, f"Asaas devolveu HTTP {resp.status_code}."
+    dados = resp.json()
+    if str(dados.get("status", "")).upper() not in _ASAAS_STATUS_PAGO:
+        return False, f"Status no Asaas é {dados.get('status')}."
+    ref = dados.get("externalReference")
+    if ref and pedido.get("codigo_pedido") and ref != pedido.get("codigo_pedido"):
+        return False, "externalReference não corresponde ao pedido."
+    valor_asaas = para_decimal(dados.get("value"))
+    valor_pedido = para_decimal(pedido.get("valor_total"))
+    if valor_asaas is None or (valor_pedido is not None and valor_asaas < valor_pedido):
+        return False, f"Valor no Asaas ({valor_asaas}) menor que o do pedido ({valor_pedido})."
+    return True, "Pagamento confirmado pelo Asaas."
+
+
 @router.post("/api/v1/webhooks/asaas")
 async def webhook_asaas(request: Request):
+    modo = modo_verificacao()
+    # Token configurado no painel do Asaas (Webhooks > "Token de autenticação"),
+    # enviado pelo Asaas no cabeçalho 'asaas-access-token'.
+    token_esperado = os.environ.get("ASAAS_WEBHOOK_TOKEN", "").strip()
+    if token_esperado and not segredo_confere(request.headers.get("asaas-access-token"), token_esperado):
+        print(f"[WEBHOOK ASAAS][SEGURANÇA] Token de webhook inválido/ausente (modo={modo}).")
+        if modo == "enforce":
+            raise HTTPException(status_code=401, detail="Webhook não autorizado")
     try:
         payload = await request.json()
-        print(f"--- [WEBHOOK ASAAS RECEBIDO] ---")
+        print(f"--- [WEBHOOK ASAAS RECEBIDO] (modo verificação: {modo}) ---")
         
         # O Asaas envia o tipo de evento e os dados dentro da chave "payment"
         evento = payload.get("event", "")
@@ -50,10 +100,18 @@ async def webhook_asaas(request: Request):
         if not reference_id:
             return {"status": "error", "message": "Reference ID e Payment ID ausentes no payload."}
 
+        # Bloqueia injeção de filtros PostgREST via or_() (vírgulas, parênteses, operadores)
+        if not _ASAAS_REF_RE.match(str(reference_id)) or (asaas_payment_id and not _ASAAS_REF_RE.match(str(asaas_payment_id))):
+            print("[WEBHOOK ASAAS][SEGURANÇA] Identificadores com formato inválido. Ignorado.")
+            return {"status": "ok", "message": "Identificador inválido"}
+
         # Tenta buscar pelo código SAGA-XXX ou pelo ID pay_XXX
-        res_pedido = supabase.table("pedidos").select("*").or_(f"codigo_pedido.eq.{reference_id},codigo_pedido.eq.{asaas_payment_id}").maybe_single().execute()
-        
-        if not res_pedido.data:
+        filtro_or = f"codigo_pedido.eq.{reference_id}"
+        if asaas_payment_id:
+            filtro_or += f",codigo_pedido.eq.{asaas_payment_id}"
+        res_pedido = supabase.table("pedidos").select("*").or_(filtro_or).maybe_single().execute()
+
+        if not res_pedido or not res_pedido.data:
             print(f"[WEBHOOK] AVISO: Pedido {reference_id} ignorado (não consta na base de dados).")
             return {"status": "ok", "message": "Pedido inexistente"}
             
@@ -66,12 +124,24 @@ async def webhook_asaas(request: Request):
         eventos_sucesso = ["PAYMENT_RECEIVED", "PAYMENT_CONFIRMED", "PAYMENT_DUNNING_RECEIVED"]
         
         if evento in eventos_sucesso or status_normalizado in ["CONFIRMED", "RECEIVED"]:
-            
-            # 1. Atualiza o status do pedido na tabela 'pedidos'
-            supabase.table("pedidos").update({
-                "status_pagamento": "pago"
-            }).eq("id", pedido.get("id")).execute()
-            
+
+            # 0. Confirma no Asaas (não confiar no corpo do webhook)
+            confirmado, motivo = await _verificar_pagamento_asaas(
+                asaas_payment_id or pedido.get("asaas_payment_id"), pedido
+            )
+            print(f"[WEBHOOK ASAAS][VERIFICAÇÃO] pedido={pedido.get('codigo_pedido')} confirmado={confirmado} motivo={motivo}")
+            if confirmado is not True:
+                if modo == "enforce":
+                    print(f"[WEBHOOK ASAAS][BLOQUEADO] Pedido {pedido.get('codigo_pedido')} não ativado: {motivo}")
+                    if confirmado is None:
+                        return JSONResponse(status_code=503, content={"status": "retry"})
+                    return {"status": "ok", "message": "Pagamento não confirmado"}
+                print(f"[WEBHOOK ASAAS][OBSERVE] Em modo 'enforce' seria BLOQUEADO ({motivo}). Processando por compatibilidade.")
+
+            # 1. Atualiza o status do pedido de forma atómica (evita duplicidade)
+            if not _reivindicar_pedido_pago(pedido.get("id")):
+                return {"status": "ok", "message": "Pagamento já processado anteriormente"}
+
             # 2. Atualiza os repasses financeiros para o painel dos parceiros
             supabase.table("repasses_financeiros").update({
                 "status_repasse": "pago"
@@ -263,7 +333,8 @@ async def webhook_asaas(request: Request):
 
         # Tratamento de recusas e falhas
         elif evento in ["PAYMENT_DELETED", "PAYMENT_OVERDUE", "PAYMENT_REFUNDED", "PAYMENT_CHARGEBACK_REQUESTED", "PAYMENT_REPROVED"]:
-            supabase.table("pedidos").update({"status_pagamento": "recusado"}).eq("id", pedido.get("id")).execute()
+            # Pedidos já pagos não são rebaixados por este caminho (o "pago" é tratado mais acima).
+            supabase.table("pedidos").update({"status_pagamento": "recusado"}).eq("id", pedido.get("id")).neq("status_pagamento", "pago").execute()
             print(f"[WEBHOOK] Pagamento {pedido.get('codigo_pedido')} marcado como RECUSADO/CANCELADO.")
 
         return {"status": "ok"}
@@ -272,41 +343,97 @@ async def webhook_asaas(request: Request):
         print(f"[WEBHOOK ERRO] Falha crítica: {str(e)}")
         return {"status": "ok", "error": "Internal process handled"}
 
+def _reivindicar_pedido_pago(pedido_id: str) -> bool:
+    """
+    Marca o pedido como pago de forma atómica (UPDATE ... WHERE status <> 'pago').
+    Só o primeiro processo concorrente recebe a linha de volta; os restantes (retries
+    do banco, webhooks duplicados, reprocessamento manual) não emitem novamente.
+    """
+    resp = (
+        supabase.table("pedidos")
+        .update({"status_pagamento": "pago"})
+        .eq("id", pedido_id)
+        .neq("status_pagamento", "pago")
+        .execute()
+    )
+    return bool(resp.data)
+
+
 @router.post("/api/v1/webhooks/bb")
+@router.post("/api/v1/webhooks/bb/pix")  # o BB acrescenta "/pix" ao URL registado no webhook
 async def webhook_bb(request: Request):
     try:
+        modo = modo_verificacao()
+
+        # Segredo opcional no URL registado no BB (ex.: .../webhooks/bb?secret=XYZ).
+        segredo_esperado = os.environ.get("BB_WEBHOOK_SECRET", "").strip()
+        if segredo_esperado:
+            recebido = request.query_params.get("secret") or request.headers.get("x-webhook-secret")
+            if not segredo_confere(recebido, segredo_esperado):
+                print(f"[WEBHOOK BB][SEGURANÇA] Segredo do webhook inválido/ausente (modo={modo}).")
+                if modo == "enforce":
+                    raise HTTPException(status_code=401, detail="Webhook não autorizado")
+
         payload = await request.json()
-        print("--- [WEBHOOK BANCO DO BRASIL RECEBIDO] ---")
-        
+        print(f"--- [WEBHOOK BANCO DO BRASIL RECEBIDO] (modo verificação: {modo}) ---")
+
         # O Banco do Brasil envia os pagamentos confirmados dentro de uma lista chamada "pix"
-        pagamentos_pix = payload.get("pix", [])
-        
+        pagamentos_pix = payload.get("pix", []) if isinstance(payload, dict) else []
+        houve_falha_verificacao = False
+
         for pix in pagamentos_pix:
-            txid = pix.get("txid")
-            
+            if not isinstance(pix, dict):
+                continue
+            txid = str(pix.get("txid") or "").strip()
+
             if not txid:
                 continue
-                
+            if not TXID_RE.match(txid):
+                print(f"[WEBHOOK BB][SEGURANÇA] txid com formato inválido ignorado: {txid[:40]!r}")
+                continue
+
             print(f"[WEBHOOK BB] Confirmação de Pix Recebida! TXID: {txid}")
-            
+
             # 1. Procura o pedido na base de dados pelo código SAGA (txid)
             res_pedido = supabase.table("pedidos").select("*").eq("codigo_pedido", txid).maybe_single().execute()
-            
-            if not res_pedido.data:
+
+            if not res_pedido or not res_pedido.data:
                 print(f"[WEBHOOK BB] Pedido {txid} não encontrado na base de dados.")
                 continue
-                
+
             pedido = res_pedido.data
-            
+
             # Se já estiver pago, ignora para não enviar e-mails duplicados
             if pedido.get("status_pagamento") == "pago":
                 continue
-                
-            # 2. Atualiza o status do pedido para "pago"
-            supabase.table("pedidos").update({
-                "status_pagamento": "pago"
-            }).eq("id", pedido["id"]).execute()
-            
+
+            # 2. Confirma o pagamento junto do Banco do Brasil (anti-webhook forjado / valor divergente)
+            valor_webhook = para_decimal(pix.get("valor"))
+            valor_pedido = para_decimal(pedido.get("valor_total"))
+            if valor_webhook is not None and valor_pedido is not None and valor_webhook < valor_pedido:
+                print(f"[WEBHOOK BB][SEGURANÇA] Valor no webhook ({valor_webhook}) < valor do pedido ({valor_pedido}) para {txid}.")
+
+            verif = await verificar_pagamento_bb(
+                txid=txid,
+                valor_esperado=pedido.get("valor_total"),
+                end_to_end_id=pix.get("endToEndId"),
+                criado_em=pedido.get("criado_em"),
+            )
+            print(f"[WEBHOOK BB][VERIFICAÇÃO] txid={txid} confirmado={verif.confirmado} valor_bb={verif.valor_recebido} motivo={verif.motivo}")
+
+            if verif.confirmado is not True:
+                if modo == "enforce":
+                    if verif.confirmado is None:
+                        houve_falha_verificacao = True  # BB indisponível: pede retry ao banco
+                    print(f"[WEBHOOK BB][BLOQUEADO] Pedido {txid} NÃO ativado: {verif.motivo}")
+                    continue
+                print(f"[WEBHOOK BB][OBSERVE] Em modo 'enforce' este pedido seria BLOQUEADO ({verif.motivo}). Processando por compatibilidade.")
+
+            # 3. Marca como pago de forma atómica (evita emissões duplicadas por concorrência)
+            if not _reivindicar_pedido_pago(pedido["id"]):
+                print(f"[WEBHOOK BB] Pedido {txid} já foi processado por outra requisição. Ignorando.")
+                continue
+
             print(f"[WEBHOOK BB] SUCESSO: O pedido {txid} foi marcado como pago!")
             
             # 3. Lógica de Emissão (Carteira Digital)
@@ -454,17 +581,31 @@ async def webhook_bb(request: Request):
 
                 
 
+        if houve_falha_verificacao:
+            # Não conseguimos confirmar com o banco: responde erro para o BB reenviar mais tarde.
+            # Pedidos já processados neste lote não serão duplicados (reivindicação atómica).
+            return JSONResponse(status_code=503, content={"status": "retry", "message": "Verificação indisponível"})
+
         # O Banco do Brasil exige uma resposta de HTTP 200 OK para saber que recebemos o aviso
         return {"status": "200 OK"}
 
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"[WEBHOOK BB ERRO] Falha crítica: {str(e)}")
         raise HTTPException(status_code=500, detail="Erro interno no webhook")
 
 @router.post("/api/v1/admin/processar-pendentes")
 async def processar_carteiras_pendentes(
+    forcar: bool = False,
     operador: OperadorAutenticado = Depends(require_portal_admin),
 ):
+    """
+    Reconciliação de carteiras pendentes. Por padrão só ativa pedidos cujo Pix foi
+    CONFIRMADO no Banco do Brasil (recupera webhooks perdidos). Com ?forcar=true o
+    administrador assume a responsabilidade e ativa sem confirmação bancária
+    (comportamento antigo) — fica registado em log com o e-mail do operador.
+    """
     try:
         # 1. Busca todos os pedidos de carteira que estão "aguardando"
         res_pedidos = supabase.table("pedidos").select("*").eq("tipo_item", "carteira").eq("status_pagamento", "aguardando").execute()
@@ -475,12 +616,26 @@ async def processar_carteiras_pendentes(
 
         processados = 0
         emails_enviados = 0
+        nao_confirmados = []
 
         # 2. Percorre todos os pedidos pendentes
         for pedido in pedidos_pendentes:
-            # Atualiza o pedido para pago
-            supabase.table("pedidos").update({"status_pagamento": "pago"}).eq("id", pedido["id"]).execute()
-            
+            txid = str(pedido.get("codigo_pedido") or "")
+            if forcar:
+                print(f"[RECONCILIAÇÃO][FORÇADO] {operador.email} ativou {txid} sem confirmação bancária.")
+            else:
+                if not TXID_RE.match(txid):
+                    nao_confirmados.append({"codigo_pedido": txid, "motivo": "Pedido não é um Pix BB"})
+                    continue
+                verif = await verificar_pagamento_bb(txid, pedido.get("valor_total"), criado_em=pedido.get("criado_em"))
+                if verif.confirmado is not True:
+                    nao_confirmados.append({"codigo_pedido": txid, "motivo": verif.motivo})
+                    continue
+
+            # Atualiza o pedido para pago (atómico: não reprocessa o que o webhook já tratou)
+            if not _reivindicar_pedido_pago(pedido["id"]):
+                continue
+
             token_id = pedido.get("item_id")
             residentes_encontrados = []
 
@@ -532,8 +687,10 @@ async def processar_carteiras_pendentes(
             processados += 1
 
         return {
-            "sucesso": True, 
-            "mensagem": f"Simulação concluída! {processados} pedido(s) atualizado(s) para 'pago'. {emails_enviados} e-mail(s) enviado(s) com as carteiras em anexo."
+            "sucesso": True,
+            "mensagem": f"Reconciliação concluída! {processados} pedido(s) atualizado(s) para 'pago'. {emails_enviados} e-mail(s) enviado(s). {len(nao_confirmados)} pedido(s) sem confirmação bancária ficaram pendentes.",
+            "nao_confirmados": nao_confirmados,
+            "forcado": forcar,
         }
 
     except Exception as e:

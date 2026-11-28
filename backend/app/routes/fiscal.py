@@ -1,16 +1,21 @@
+import os
+import secrets
 from fastapi import APIRouter, Header, HTTPException
 # Assumindo que o cliente supabase está importado corretamente no teu projeto
-from app.services.validacao_service import supabase 
+from app.services.validacao_service import supabase
 
 router = APIRouter()
 
 # ◄── A ÚNICA DIFERENÇA ESTÁ AQUI NA ROTA: Adicionei "/fiscal"
 @router.get("/fiscal/validar/{token}")
 async def validar_token_fiscal(token: str, x_fiscal_key: str = Header(None)):
-    # 1. Verificação de Segurança da Chave do Fiscal
-    SECRET_KEY = "SaoGeraldo2026_Secret_Key" # Deve estar no .env em produção
-    if x_fiscal_key != SECRET_KEY:
-        raise HTTPException(status_code=403, detail=f"Acesso negado. App do Fiscal não autenticada.")
+    # 1. Verificação de Segurança da Chave do Fiscal (definida APENAS no ambiente do servidor)
+    secret_key = os.environ.get("FISCAL_SECRET_KEY", "").strip()
+    if not secret_key:
+        print("[FISCAL] FISCAL_SECRET_KEY não configurada no ambiente do backend.")
+        raise HTTPException(status_code=503, detail="Validação fiscal indisponível: servidor não configurado.")
+    if not x_fiscal_key or not secrets.compare_digest(x_fiscal_key.strip(), secret_key):
+        raise HTTPException(status_code=403, detail="Acesso negado. App do Fiscal não autenticada.")
 
     # ◄── BLINDAGEM DO TOKEN: Remove espaços ou lixo que o scanner do telemóvel possa injetar
     token_clean = str(token).strip().replace("'", "").replace('"', '').replace('\n', '')

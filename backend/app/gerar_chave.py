@@ -1,8 +1,13 @@
+import os
 import requests
 
-# Substitua pelo seu Token de SANDBOX do PagBank
-TOKEN = "ba581b7d-967b-48f9-a9cd-9734f4a60e016ce5a9f7427f80e7b6344acc8ff17c984768-f9f1-41b8-806a-50abb6c3c092" 
-URL = "https://sandbox.api.pagseguro.com/public-keys"
+# Utilitário local para obter a Public Key do PagBank (sandbox).
+# O token NUNCA deve ficar no código: defina PAGBANK_TOKEN no ambiente antes de executar.
+TOKEN = os.environ.get("PAGBANK_TOKEN")
+URL = os.environ.get("PAGBANK_PUBLIC_KEYS_URL", "https://sandbox.api.pagseguro.com/public-keys")
+
+if not TOKEN:
+    raise SystemExit("Defina a variável de ambiente PAGBANK_TOKEN antes de executar este script.")
 
 headers = {
     "Authorization": f"Bearer {TOKEN}",

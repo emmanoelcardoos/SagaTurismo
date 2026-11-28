@@ -84,6 +84,34 @@ async def require_portal_admin(
     )
 
 
+async def require_portal_user(
+    authorization: Optional[str] = Header(None),
+) -> OperadorAutenticado:
+    """
+    Valida apenas que existe uma sessão Supabase Auth válida (qualquer operador do portal).
+    O cadastro público no Supabase Auth está desativado (só entram contas convidadas),
+    portanto "autenticado" == operador do portal. Use require_portal_admin para ações críticas.
+    """
+    token = _extrair_bearer_token(authorization)
+    try:
+        user_resp = _supabase_auth.auth.get_user(token)
+        user = getattr(user_resp, "user", None)
+    except Exception as e:
+        print(f"[AUTH PORTAL] Token inválido ou expirado: {e}")
+        user = None
+
+    if not user or not getattr(user, "email", None):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Sessão expirada ou inválida. Faça login novamente no portal.",
+        )
+
+    return OperadorAutenticado(
+        user_id=str(user.id) if getattr(user, "id", None) else None,
+        email=str(user.email).strip().lower(),
+    )
+
+
 async def require_cron_or_portal_admin(
     authorization: Optional[str] = Header(None),
     x_cron_secret: Optional[str] = Header(None),

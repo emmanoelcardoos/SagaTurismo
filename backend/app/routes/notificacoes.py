@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Depends, Request, HTTPException
+from app.deps.auth import OperadorAutenticado, require_portal_user
 from pydantic import BaseModel
 import os
 from supabase import create_client, Client
@@ -82,7 +83,8 @@ async def webhook_supabase_passeio_aprovado(request: Request):
 # ==========================================
 
 @router.post("/api/v1/newsletter/disparar")
-async def disparar_newsletter(payload: SchemaNewsletter):
+async def disparar_newsletter(payload: SchemaNewsletter, operador: OperadorAutenticado = Depends(require_portal_user)):
+    # Protegido: antes qualquer pessoa podia enviar HTML arbitrário para qualquer e-mail pelo domínio oficial.
     try:
         sucessos = enviar_newsletter_comercial(
             emails_destino=payload.emails,

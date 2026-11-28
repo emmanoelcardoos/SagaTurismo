@@ -7,15 +7,15 @@ import uuid
 import base64
 import qrcode
 import tempfile
-import string
-import random
+import re
 from io import BytesIO
 from datetime import datetime, timedelta
 from supabase import create_client, Client
 
 # Importação dos serviços que já tens criados
 from app.deps.auth import OperadorAutenticado, require_portal_admin
-from app.services.auditoria_service import registrar_auditoria
+from app.services.auditoria_service import apenas_digitos, registrar_auditoria
+from app.services.pix_bb_service import gerar_txid
 from app.services.pdf_service import (
     gerar_pdf_carteira,
     gerar_pdf_carteira_bytes,
@@ -223,6 +223,46 @@ class PedidoReenvio(BaseModel):
     pedido_id: str
 
 
+STATUS_PERMITE_2A_VIA = {"ativo", "expirado"}
+
+
+def _resolver_cobranca_carteira(token_id: Optional[str], is_reemissao: bool, qtd_cliente: Optional[int]):
+    """
+    Calcula NO SERVIDOR quantas carteiras serão cobradas, com a mesma regra usada pelo
+    webhook para ativar: 2ª via = só o residente indicado (já emitido); emissão nova =
+    titular (se pendente) + dependentes em 'aguardando_pagamento'.
+    Impede pagar 1 e ativar N, ou pagar a taxa de 2ª via (R$ 5) por uma carteira nova.
+    """
+    if not token_id or str(token_id).strip().lower() in ("", "none", "null", "undefined"):
+        raise HTTPException(status_code=400, detail="Cadastro do residente não identificado. Refaça o cadastro.")
+
+    res_alvo = supabase.table("rd_residentes").select("id, status, titular_id").eq("id", token_id).execute()
+    if not res_alvo.data:
+        raise HTTPException(status_code=404, detail="Cadastro do residente não localizado.")
+    alvo = res_alvo.data[0]
+
+    if is_reemissao:
+        if alvo.get("status") not in STATUS_PERMITE_2A_VIA:
+            raise HTTPException(
+                status_code=400,
+                detail="A 2ª via só pode ser emitida para carteiras já ativas ou expiradas. Para carteiras pendentes, use a emissão normal.",
+            )
+        return 1, True
+
+    qtd = 1 if alvo.get("status") == "aguardando_pagamento" else 0
+    deps = (
+        supabase.table("rd_residentes").select("id")
+        .eq("titular_id", token_id).eq("status", "aguardando_pagamento").execute()
+    )
+    qtd += len(deps.data or [])
+
+    if qtd == 0:
+        raise HTTPException(status_code=400, detail="Não há carteiras aguardando pagamento para este cadastro.")
+    if qtd_cliente and int(qtd_cliente) != qtd:
+        print(f"[COBRANÇA CARTEIRA][AVISO] Quantidade enviada pelo cliente ({qtd_cliente}) difere da calculada no servidor ({qtd}) para {token_id}. Usando {qtd}.")
+    return qtd, False
+
+
 # ==========================================
 # ROTAS ASAAS E SISTEMA GERAL
 # ==========================================
@@ -283,6 +323,8 @@ async def processar_pagamento(pedido: PedidoPagamento):
         lista_atracoes_calculadas = []
         
         if pedido.tipo_item == "carteira":
+            # Quantidade calculada no servidor (ver _resolver_cobranca_carteira)
+            pedido.quantidade, _ = _resolver_cobranca_carteira(pedido.token_id, False, pedido.quantidade)
             valor_total = 20.00 * pedido.quantidade
             nome_item_checkout = f"Taxa de Emissão - Carteira Digital ({pedido.quantidade}x)"
             item_id_db = pedido.token_id
@@ -759,8 +801,95 @@ async def verificar_status_pagamento(payment_id: str):
     except Exception as e:
         return {"success": False, "error": str(e)}
 
+_IDENT_RE = re.compile(r"^[A-Za-z0-9-]{8,64}$")
+_UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$", re.I)
+
+
+def _mascarar_email(email: Optional[str]) -> str:
+    if not email or "@" not in email:
+        return ""
+    usuario, dominio = email.split("@", 1)
+    visivel = usuario[:2] if len(usuario) > 2 else usuario[:1]
+    return f"{visivel}{'*' * max(3, len(usuario) - len(visivel))}@{dominio}"
+
+
+@router.get("/api/v1/pagamentos/carteira-resumo/{identificador}")
+async def resumo_carteira(identificador: str):
+    """
+    Substitui a leitura direta (chave anónima) de 'pedidos'/'rd_residentes' feita pela
+    página /sucesso-carteira. Devolve apenas os campos exibidos no ecrã.
+    """
+    ident = (identificador or "").strip()
+    if not _IDENT_RE.match(ident):
+        raise HTTPException(status_code=400, detail="Identificador inválido.")
+
+    filtro = f"codigo_pedido.eq.{ident},item_id.eq.{ident}" if _UUID_RE.match(ident) else f"codigo_pedido.eq.{ident}"
+    res = (
+        supabase.table("pedidos")
+        .select("codigo_pedido, nome_cliente, email_cliente, valor_total, status_pagamento, item_id")
+        .or_(filtro).order("criado_em", desc=True).limit(1).execute()
+    )
+    if not res.data:
+        raise HTTPException(status_code=404, detail="Reserva da carteira não localizada.")
+    p = res.data[0]
+
+    nome, email = p.get("nome_cliente"), p.get("email_cliente")
+    if p.get("item_id") and (not nome or not email):
+        try:
+            r = supabase.table("rd_residentes").select("nome_completo, email").eq("id", p["item_id"]).limit(1).execute()
+            if r.data:
+                nome = nome or r.data[0].get("nome_completo")
+                email = email or r.data[0].get("email")
+        except Exception as e:
+            print(f"[RESUMO CARTEIRA] Falha ao complementar dados: {e}")
+
+    return {
+        "sucesso": True,
+        "pedido": {
+            "codigo_pedido": p.get("codigo_pedido"),
+            "nome_cliente": nome,
+            "valor_total": p.get("valor_total"),
+            "status_pagamento": p.get("status_pagamento"),
+        },
+        "email_mascarado": _mascarar_email(email),
+    }
+
+
+class ConsultaReserva(BaseModel):
+    codigo_pedido: str
+    cpf: str
+
+
+@router.post("/api/v1/pedidos/consultar")
+async def consultar_reserva(payload: ConsultaReserva):
+    """
+    Consulta de reserva pelo turista (código + CPF). Substitui o SELECT direto em
+    'pedidos' com a chave anónima no componente MinhaReservaModal.
+    """
+    codigo = (payload.codigo_pedido or "").strip()
+    cpf_digitos = apenas_digitos(payload.cpf)
+    if not _IDENT_RE.match(codigo) or len(cpf_digitos) != 11:
+        raise HTTPException(status_code=400, detail="Informe o código da reserva e o CPF completo.")
+
+    res = supabase.table("pedidos").select("*").eq("codigo_pedido", codigo).limit(1).execute()
+    pedido = res.data[0] if res.data else None
+    if not pedido or apenas_digitos(pedido.get("cpf_cliente")) != cpf_digitos:
+        raise HTTPException(status_code=404, detail="Reserva não encontrada. Verifique os dados.")
+
+    telefone_fornecedor = ""
+    try:
+        if pedido.get("tipo_item") == "hotel" and pedido.get("item_id"):
+            h = supabase.table("hoteis").select("parceiro_id, whatsapp").eq("id", pedido["item_id"]).limit(1).execute()
+            if h.data:
+                telefone_fornecedor = h.data[0].get("whatsapp") or ""
+    except Exception as e:
+        print(f"[CONSULTA RESERVA] Falha ao obter contacto do fornecedor: {e}")
+
+    return {"sucesso": True, "pedido": pedido, "telefone_fornecedor": telefone_fornecedor}
+
+
 @router.post("/api/v1/parceiros/criar-carteira")
-async def criar_carteira_asaas(dados: dict):
+async def criar_carteira_asaas(dados: dict, operador: OperadorAutenticado = Depends(require_portal_admin)):
     try:
         headers = {
             "access_token": ASAAS_API_KEY,
@@ -806,6 +935,10 @@ async def reenviar_voucher(payload: PedidoReenvio):
         tipo = pedido.get("tipo_item")
         email_cliente = pedido.get("email_cliente")
         nome_cliente = pedido.get("nome_cliente")
+
+        # Voucher só para pedidos efetivamente pagos (antes era possível obter voucher de reserva não paga)
+        if pedido.get("status_pagamento") != "pago":
+            raise HTTPException(status_code=403, detail="O voucher só está disponível para reservas com pagamento confirmado.")
 
         if not email_cliente:
             raise HTTPException(status_code=400, detail="E-mail do cliente não registado neste pedido.")
@@ -922,7 +1055,7 @@ async def reenviar_voucher(payload: PedidoReenvio):
 # ROTAS BANCO DO BRASIL (mTLS e PIX) O QUE ESTAMOS USANDO NO MOMENTO PARA EMITIR AS CARTEIRAS 
 # ==========================================
 @router.get("/api/v1/pagamentos/teste-bb")
-async def testar_conexao_bb():
+async def testar_conexao_bb(operador: OperadorAutenticado = Depends(require_portal_admin)):
     pub_path, priv_path = obter_certificados_mtls()
     try:
         auth_string = f"{BB_CLIENT_ID}:{BB_CLIENT_SECRET}"
@@ -968,17 +1101,19 @@ async def testar_conexao_bb():
 async def processar_carteira_bb(pedido: PedidoCarteiraGratuita): 
     pub_path, priv_path = obter_certificados_mtls()
     try:
-        # 1. Gera um TXID rigoroso: 30 caracteres
-        caracteres_txid = string.ascii_letters + string.digits
-        txid = ''.join(random.choices(caracteres_txid, k=30))
-        
-        # --- CÁLCULO DO VALOR ---
-        # Como queres testar com 1 cêntimo por pessoa, preco_unitario = 0.01
-        # (Quando fores para produção real, muda apenas este 0.01 para 20.00)
-        # --- CÁLCULO DO VALOR ---
-        # Se for reemissão (2ª Via), cobra R$ 5.00. Se for emissão nova, cobra R$ 20.00
+        # 1. Gera um TXID imprevisível (CSPRNG): 30 caracteres
+        txid = gerar_txid(30)
+
+        # --- CÁLCULO DO VALOR (sempre no servidor) ---
+        # Quantidade e tipo (2ª via) são derivados do estado real em rd_residentes,
+        # nunca do que o navegador envia. 2ª Via = R$ 5.00; emissão nova = R$ 20.00 por pessoa.
+        qtd_cobrada, eh_reemissao = _resolver_cobranca_carteira(
+            pedido.token_id, bool(pedido.is_reemissao), pedido.quantidade
+        )
+        pedido.quantidade = qtd_cobrada
+        pedido.is_reemissao = eh_reemissao
         preco_unitario = 5.00 if pedido.is_reemissao else 20.00
-        valor_carteira = preco_unitario * (pedido.quantidade or 1)
+        valor_carteira = preco_unitario * pedido.quantidade
         
         tax_id_limpo = pedido.cpf_cliente.replace(".", "").replace("-", "")
 
@@ -1111,7 +1246,11 @@ async def processar_inscricao_evento_bb(pedido: PedidoEventoBB):
             raise HTTPException(status_code=404, detail="Evento não encontrado.")
             
         evento = res_evento.data
-        if (evento["vagas_vendidas"] + pedido.quantidade) > evento["vagas_totais"]:
+        if pedido.quantidade < 1 or pedido.quantidade > 20:
+            raise HTTPException(status_code=400, detail="Quantidade de ingressos inválida (1 a 20 por inscrição).")
+        if float(evento.get("preco_numerico") or 0) <= 0:
+            raise HTTPException(status_code=400, detail="Este evento não possui cobrança via Pix.")
+        if (int(evento.get("vagas_vendidas") or 0) + pedido.quantidade) > int(evento.get("vagas_totais") or 0):
             raise HTTPException(status_code=400, detail="Lotação esgotada para este evento.")
             
         valor_total = float(evento["preco_numerico"]) * pedido.quantidade
@@ -1130,9 +1269,8 @@ async def processar_inscricao_evento_bb(pedido: PedidoEventoBB):
         res_insc = supabase.table("inscricoes_eventos").insert(inscricao).execute()
         inscricao_id = res_insc.data[0]["id"]
 
-        # 3. Gera TXID e conecta ao BB (reaproveitando a sua lógica mTLS)
-        caracteres_txid = string.ascii_letters + string.digits
-        txid = ''.join(random.choices(caracteres_txid, k=30))
+        # 3. Gera TXID (CSPRNG) e conecta ao BB (reaproveitando a sua lógica mTLS)
+        txid = gerar_txid(30)
         
         auth_string = f"{BB_CLIENT_ID}:{BB_CLIENT_SECRET}"
         auth_b64 = base64.b64encode(auth_string.encode()).decode("utf-8")
