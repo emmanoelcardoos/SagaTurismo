@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { Loader2, MapPin, ArrowRight, ChevronDown, Menu, X, ShieldCheck } from 'lucide-react';
 import { jakarta, inter } from "@/lib/fonts";
 import { supabase } from '@/lib/supabase';
+import { optimizeHeroUrl, useHeroImageReady } from '@/hooks/useHeroReady';
 
 type Aldeia = {
   id: string;
@@ -53,6 +54,8 @@ export default function AldeiasPage() {
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const heroSrc = optimizeHeroUrl("https://images.pexels.com/photos/12434691/pexels-photo-12434691.jpeg");
+  const { imgRef: heroImgRef, isReady: isHeroReady, onLoad: onHeroLoad, onError: onHeroError } = useHeroImageReady(heroSrc);
 
   useEffect(() => {
     async function fetchAldeias() {
@@ -123,19 +126,23 @@ export default function AldeiasPage() {
         </header>
 
         {/* ── HERO ── */}
-        <section className="relative min-h-[50vh] md:min-h-screen flex flex-col items-center justify-center overflow-hidden">
+        <section className="relative min-h-[50vh] md:min-h-screen flex flex-col items-center justify-center overflow-hidden bg-[#001f2e]">
           <div className="absolute inset-0 z-0">
             <Image
-              src="https://images.pexels.com/photos/12434691/pexels-photo-12434691.jpeg"
+              ref={heroImgRef}
+              src={heroSrc}
               alt="Aldeias Indígenas do Araguaia"
               fill
-              className="object-cover object-center"
+              decoding="sync"
+              onLoad={onHeroLoad}
+              onError={onHeroError}
+              className={`object-cover object-center transition-opacity duration-300 ease-out ${isHeroReady ? 'opacity-100' : 'opacity-0'}`}
               priority
             />
             <div className="absolute inset-0 bg-gradient-to-b from-[#001f2e]/85 via-[#00577C]/70 to-[#001f2e]/95" />
           </div>
 
-          <div className="relative z-10 mx-auto max-w-5xl px-5 text-center pt-24 md:pt-32 pb-16 md:pb-24">
+          <div className={`relative z-10 mx-auto max-w-5xl px-5 text-center pt-24 md:pt-32 pb-16 md:pb-24 transition-opacity duration-300 ease-out ${isHeroReady ? 'opacity-100' : 'opacity-0'}`}>
             
 
             <h1 className={`${jakarta.className} text-4xl sm:text-6xl md:text-8xl font-black text-white leading-tight md:leading-none mb-6`}>

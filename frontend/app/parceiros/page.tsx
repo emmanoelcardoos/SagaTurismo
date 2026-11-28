@@ -7,6 +7,7 @@ import {
   Building2, HeartHandshake, Sprout, ShieldCheck, ExternalLink
 } from 'lucide-react';
 import { jakarta, inter } from "@/lib/fonts";
+import { optimizeHeroUrl, useHeroImageReady } from '@/hooks/useHeroReady';
 
 // ── MOTOR DE ANIMAÇÕES ──
 function ScrollReveal({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
@@ -35,25 +36,32 @@ function ScrollReveal({ children, className = "", delay = 0 }: { children: React
 }
 
 export default function ParceirosPage() {
+  const heroSrc = optimizeHeroUrl("https://images.pexels.com/photos/27038076/pexels-photo-27038076.jpeg?_gl=1*1c9okv6*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3ODcxNjc5NjYkbzEwNCRnMSR0MTc4NzE2ODgzNyRqMzckbDAkaDA.");
+  const { imgRef: heroImgRef, isReady: isHeroReady, onLoad: onHeroLoad, onError: onHeroError } = useHeroImageReady(heroSrc);
+
   return (
     <main className={`${inter.className} min-h-screen bg-[#FDFCF7] text-slate-900 flex flex-col overflow-x-hidden`}>
 
       {/* ══════════════════════════════════════
           HERO EDITORIAL
       ══════════════════════════════════════ */}
-      <section className="relative h-[90vh] min-h-[500px] w-full flex items-center justify-center overflow-hidden">
+      <section className="relative h-[90vh] min-h-[500px] w-full flex items-center justify-center overflow-hidden bg-slate-900">
         <div className="absolute inset-0 z-0">
           <Image 
-            src="https://images.pexels.com/photos/27038076/pexels-photo-27038076.jpeg?_gl=1*1c9okv6*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3ODcxNjc5NjYkbzEwNCRnMSR0MTc4NzE2ODgzNyRqMzckbDAkaDA." 
+            ref={heroImgRef}
+            src={heroSrc} 
             alt="Parceiros do Turismo em São Geraldo do Araguaia" 
             fill 
-            className="object-cover"
+            decoding="sync"
+            onLoad={onHeroLoad}
+            onError={onHeroError}
+            className={`object-cover transition-opacity duration-300 ease-out ${isHeroReady ? 'opacity-100' : 'opacity-0'}`}
             priority 
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
         </div>
 
-        <div className="relative z-10 flex flex-col items-center text-center px-6 mt-16 max-w-5xl mx-auto">
+        <div className={`relative z-10 flex flex-col items-center text-center px-6 mt-16 max-w-5xl mx-auto transition-opacity duration-300 ease-out ${isHeroReady ? 'opacity-100' : 'opacity-0'}`}>
           <h1 className={`${jakarta.className} text-[3rem] sm:text-[4.5rem] md:text-[6rem] lg:text-[8rem] font-black uppercase tracking-tighter text-white drop-shadow-2xl leading-none`}>
             Parceiros
           </h1>

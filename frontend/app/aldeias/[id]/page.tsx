@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { jakarta, playfair, lora } from "@/lib/fonts";
 import { supabase } from '@/lib/supabase';
+import { optimizeHeroUrl, useHeroImageReady } from '@/hooks/useHeroReady';
 
 type Aldeia = {
   id: string;
@@ -74,6 +75,8 @@ export default function AldeiaDetalhePage({ params }: { params: { id: string } }
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const heroSrc = aldeia?.imagem_capa ? optimizeHeroUrl(aldeia.imagem_capa) : null;
+  const { imgRef: heroImgRef, isReady: isHeroReady, onLoad: onHeroLoad, onError: onHeroError } = useHeroImageReady(heroSrc);
 
   useEffect(() => {
     async function fetchAldeia() {
@@ -175,19 +178,23 @@ export default function AldeiaDetalhePage({ params }: { params: { id: string } }
       </header>
 
       {/* ── HERO ── */}
-      <div className="relative w-full h-[60vh] md:h-[80vh] overflow-hidden mt-[0px] md:mt-[1px]">
+      <div className="relative w-full h-[60vh] md:h-[80vh] overflow-hidden mt-[0px] md:mt-[1px] bg-[#001020]">
         <Image
-          src={aldeia.imagem_capa}
+          ref={heroImgRef}
+          src={heroSrc || aldeia.imagem_capa}
           alt={aldeia.nome}
           fill
-          className="object-cover object-center"
+          decoding="sync"
+          onLoad={onHeroLoad}
+          onError={onHeroError}
+          className={`object-cover object-center transition-opacity duration-300 ease-out ${isHeroReady ? 'opacity-100' : 'opacity-0'}`}
           priority
         />
         {/* Gradiente dramático */}
         <div className="absolute inset-0 bg-gradient-to-t from-[#001020]/95 via-[#001020]/30 to-transparent" />
 
         {/* Conteúdo do hero */}
-        <div className="absolute bottom-0 left-0 right-0 px-5 pb-8 md:pb-10 pt-20 text-left">
+        <div className={`absolute bottom-0 left-0 right-0 px-5 pb-8 md:pb-10 pt-20 text-left transition-opacity duration-300 ease-out ${isHeroReady ? 'opacity-100' : 'opacity-0'}`}>
           <div className="mx-auto max-w-5xl">
             <span className="inline-block bg-[#009640] text-white px-3 md:px-4 py-1.5 rounded text-[9px] md:text-[10px] font-black uppercase tracking-[0.25em] mb-4 md:mb-5 shadow">
               Povo {aldeia.povo}

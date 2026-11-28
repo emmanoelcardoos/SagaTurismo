@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin, Bed, ArrowRight } from 'lucide-react';
 import { jakarta, inter } from "@/lib/fonts";
+import { optimizeHeroUrl, useHeroImageReady } from '@/hooks/useHeroReady';
 
 export type Hotel = {
   id: string;
@@ -41,23 +42,30 @@ const FALLBACK_IMAGE = "https://images.pexels.com/photos/10781952/pexels-photo-1
 const HERO_IMAGE = "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/herosections/herohoteis.jpg";
 
 export default function HoteisClient({ hoteis }: { hoteis: Hotel[] }) {
+  const heroSrc = optimizeHeroUrl(HERO_IMAGE);
+  const { imgRef: heroImgRef, isReady: isHeroReady, onLoad: onHeroLoad, onError: onHeroError } = useHeroImageReady(heroSrc);
+
   return (
     <div className={`${inter.className} min-h-screen bg-[#FDFCF7] text-slate-900 overflow-x-hidden flex flex-col`}>
 
       {/* ── HERO EDITORIAL ── */}
-      <section className="relative h-[90vh] min-h-[500px] w-full flex items-center justify-center overflow-hidden">
+      <section className="relative h-[90vh] min-h-[500px] w-full flex items-center justify-center overflow-hidden bg-slate-900">
         <div className="absolute inset-0 z-0">
           <Image
-            src={HERO_IMAGE}
+            ref={heroImgRef}
+            src={heroSrc}
             alt="Pousadas e hotéis em São Geraldo do Araguaia — Serra das Andorinhas, Pará"
             fill
-            className="object-cover"
+            decoding="sync"
+            onLoad={onHeroLoad}
+            onError={onHeroError}
+            className={`object-cover transition-opacity duration-300 ease-out ${isHeroReady ? 'opacity-100' : 'opacity-0'}`}
             priority
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
         </div>
 
-        <div className="relative z-10 flex flex-col items-center text-center px-6 mt-16 max-w-5xl mx-auto">
+        <div className={`relative z-10 flex flex-col items-center text-center px-6 mt-16 max-w-5xl mx-auto transition-opacity duration-300 ease-out ${isHeroReady ? 'opacity-100' : 'opacity-0'}`}>
           <h1 className={`${jakarta.className} text-[3rem] sm:text-[4.5rem] md:text-[6rem] lg:text-[8rem] font-black uppercase tracking-tighter text-white drop-shadow-2xl leading-none`}>
             Hospedagem
           </h1>

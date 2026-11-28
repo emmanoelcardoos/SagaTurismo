@@ -12,6 +12,7 @@ import {
 import { jakarta } from "@/lib/fonts";
 import { supabase } from '@/lib/supabase';
 import { useParams } from 'next/navigation';
+import { optimizeHeroUrl, useHeroImageReady } from '@/hooks/useHeroReady';
 
 // ── FONTS ──
 
@@ -157,6 +158,8 @@ export default function RestaurantePage() {
   const [lastScrollY, setLastScrollY] = useState(0);
   const [scrolled, setScrolled] = useState(false);
   const [activeMenuItem, setActiveMenuItem] = useState<number | null>(null);
+  const heroSrc = optimizeHeroUrl(restaurante?.imagem_capa || restaurante?.imagem_url);
+  const { imgRef: heroImgRef, isReady: isHeroReady, onLoad: onHeroLoad, onError: onHeroError } = useHeroImageReady(heroSrc);
 
   useEffect(() => {
     async function fetchRestaurante() {
@@ -290,12 +293,16 @@ export default function RestaurantePage() {
 
       {/* ── HERO REDUZIDO (COM IMAGEM CAPA HORIZONTAL) ── */}
             {/* ── HERO FULLSCREEN (COM IMAGEM_CAPA E BOTÃO VOLTAR) ── */}
-      <section className="relative w-full h-[75vh] min-h-[600px]">
+      <section className="relative w-full h-[75vh] min-h-[600px] bg-slate-900">
         <Image
-          src={restaurante.imagem_capa || restaurante.imagem_url}
+          ref={heroImgRef}
+          src={heroSrc}
           alt={restaurante.titulo}
           fill
-          className="object-cover"
+          decoding="sync"
+          onLoad={onHeroLoad}
+          onError={onHeroError}
+          className={`object-cover transition-opacity duration-300 ease-out ${isHeroReady ? 'opacity-100' : 'opacity-0'}`}
           priority
         />
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-900/30 to-transparent" />
@@ -311,7 +318,7 @@ export default function RestaurantePage() {
         </div>
 
         {/* Hero text — bottom */}
-        <div className="absolute bottom-0 left-0 right-0 px-6 md:px-14 pb-14 md:pb-20">
+        <div className={`absolute bottom-0 left-0 right-0 px-6 md:px-14 pb-14 md:pb-20 transition-opacity duration-300 ease-out ${isHeroReady ? 'opacity-100' : 'opacity-0'}`}>
           <Reveal animation="fade-up" delay={100}>
             <h1 className={`${jakarta.className} text-5xl sm:text-6xl md:text-8xl font-black text-white leading-[1.0] drop-shadow-xl mb-6 max-w-4xl`}>
               {restaurante.titulo}

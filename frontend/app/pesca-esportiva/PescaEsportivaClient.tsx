@@ -8,6 +8,7 @@ import {
   Camera, X, ChevronLeft, ChevronRight, Sun, MapPin, Anchor
 } from 'lucide-react';
 import { jakarta, inter } from "@/lib/fonts";
+import { optimizeHeroUrl, useHeroImageReady } from '@/hooks/useHeroReady';
 
 // ── FOTOS DO TORPESAGA ──
 const FOTOS_TORPESAGA = [
@@ -171,6 +172,8 @@ function Lightbox({
 export default function PescaEsportivaPage() {
   const [lightboxTucunare, setLightboxTucunare] = useState<number | null>(null);
   const [lightboxTorpesaga, setLightboxTorpesaga] = useState<number | null>(null);
+  const heroSrc = optimizeHeroUrl(FOTOS_TORPESAGA[0]);
+  const { imgRef: heroImgRef, isReady: isHeroReady, onLoad: onHeroLoad, onError: onHeroError } = useHeroImageReady(heroSrc);
 
   const nextImg = (
     lista: string[],
@@ -217,20 +220,24 @@ export default function PescaEsportivaPage() {
         {/* ══════════════════════════════════════
             HERO — LIMPO
         ══════════════════════════════════════ */}
-        <section className="relative h-[80vh] sm:h-[85vh] md:h-[90vh] min-h-[500px] w-full flex items-center justify-center overflow-hidden">
+        <section className="relative h-[80vh] sm:h-[85vh] md:h-[90vh] min-h-[500px] w-full flex items-center justify-center overflow-hidden bg-slate-900">
           <div className="absolute inset-0 z-0">
             <Image
-              src={FOTOS_TORPESAGA[0]}
+              ref={heroImgRef}
+              src={heroSrc}
               alt="Pesca esportiva no Rio Araguaia"
               fill
               sizes="100vw"
-              className="object-cover"
+              decoding="sync"
+              onLoad={onHeroLoad}
+              onError={onHeroError}
+              className={`object-cover transition-opacity duration-300 ease-out ${isHeroReady ? 'opacity-100' : 'opacity-0'}`}
               priority
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/25 to-transparent" />
           </div>
 
-          <div className="relative z-10 flex flex-col items-center text-center px-4 sm:px-6 mt-16 max-w-5xl mx-auto">
+          <div className={`relative z-10 flex flex-col items-center text-center px-4 sm:px-6 mt-16 max-w-5xl mx-auto transition-opacity duration-300 ease-out ${isHeroReady ? 'opacity-100' : 'opacity-0'}`}>
             <h1
               className={`${jakarta.className} text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-black uppercase tracking-tighter text-white drop-shadow-2xl leading-[0.95]`}
             >

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { jakarta, inter } from "@/lib/fonts";
 import { supabase } from '@/lib/supabase';
+import { optimizeHeroUrl, useHeroImageReady } from '@/hooks/useHeroReady';
 
 type Evento = {
   id: string;
@@ -92,6 +93,9 @@ export default function EventosPage() {
     fetchEventos();
   }, [dataHojeISO]);
 
+  const heroSrc = optimizeHeroUrl("https://images.pexels.com/photos/37834641/pexels-photo-37834641.jpeg?_gl=1*1effz5v*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3ODcxNjc5NjYkbzEwNCRnMSR0MTc4NzE3MDEzOSRqMzkkbDAkaDA.");
+  const { imgRef: heroImgRef, isReady: isHeroReady, onLoad: onHeroLoad, onError: onHeroError } = useHeroImageReady(heroSrc);
+
   return (
     <main className={`${inter.className} min-h-screen bg-[#FDFCF7] text-slate-900 overflow-x-hidden flex flex-col`}>
       <div className="flex-1">
@@ -99,19 +103,23 @@ export default function EventosPage() {
         {/* ══════════════════════════════════════
             HERO EDITORIAL
         ══════════════════════════════════════ */}
-        <section className="relative h-[90vh] min-h-[500px] w-full flex items-center justify-center overflow-hidden">
+        <section className="relative h-[90vh] min-h-[500px] w-full flex items-center justify-center overflow-hidden bg-slate-900">
           <div className="absolute inset-0 z-0">
             <Image 
-              src="https://images.pexels.com/photos/37834641/pexels-photo-37834641.jpeg?_gl=1*1effz5v*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3ODcxNjc5NjYkbzEwNCRnMSR0MTc4NzE3MDEzOSRqMzkkbDAkaDA." 
+              ref={heroImgRef}
+              src={heroSrc} 
               alt="Agenda Cultural de São Geraldo do Araguaia" 
               fill 
-              className="object-cover"
+              decoding="sync"
+              onLoad={onHeroLoad}
+              onError={onHeroError}
+              className={`object-cover transition-opacity duration-300 ease-out ${isHeroReady ? 'opacity-100' : 'opacity-0'}`}
               priority 
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
           </div>
 
-          <div className="relative z-10 flex flex-col items-center text-center px-6 mt-16 max-w-5xl mx-auto">
+          <div className={`relative z-10 flex flex-col items-center text-center px-6 mt-16 max-w-5xl mx-auto transition-opacity duration-300 ease-out ${isHeroReady ? 'opacity-100' : 'opacity-0'}`}>
             <h1 className={`${jakarta.className} text-[3rem] sm:text-[4.5rem] md:text-[6rem] lg:text-[8rem] font-black uppercase tracking-tighter text-white drop-shadow-2xl leading-none`}>
               Eventos
             </h1>

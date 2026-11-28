@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { jakarta, inter } from "@/lib/fonts";
 import { supabase } from '@/lib/supabase';
+import { optimizeHeroUrl, useHeroImageReady } from '@/hooks/useHeroReady';
 
 // ── FONTES ──
 
@@ -304,6 +305,9 @@ export default function RoteiroDetailPage() {
   const [notFound, setNotFound] = useState(false);
 
   const [lightbox, setLightbox] = useState<{ lista: string[]; idx: number } | null>(null);
+  const genericImage = 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09';
+  const heroSrc = rota ? optimizeHeroUrl(rota.imagem_url || genericImage) : null;
+  const { imgRef: heroImgRef, isReady: isHeroReady, onLoad: onHeroLoad, onError: onHeroError } = useHeroImageReady(heroSrc);
 
   useEffect(() => {
     async function fetchData() {
@@ -379,7 +383,6 @@ export default function RoteiroDetailPage() {
     );
 
   // ── DADOS DERIVADOS ──
-  const genericImage = 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09';
   let galeriaImagens = parseGaleria(rota.galeria).filter(Boolean);
   if (galeriaImagens.length === 0 && rota.imagem_url) {
     galeriaImagens = [rota.imagem_url];
@@ -402,20 +405,24 @@ export default function RoteiroDetailPage() {
       {/* ══════════════════════════════════════
           HERO EDITORIAL (MOBILE-FIRST)
       ══════════════════════════════════════ */}
-      <section className="relative h-[75vh] sm:h-[80vh] md:h-[90vh] min-h-[450px] w-full flex items-center justify-center overflow-hidden">
+      <section className="relative h-[75vh] sm:h-[80vh] md:h-[90vh] min-h-[450px] w-full flex items-center justify-center overflow-hidden bg-slate-900">
         <div className="absolute inset-0 z-0">
           <Image
-            src={rota.imagem_url || genericImage}
+            ref={heroImgRef}
+            src={heroSrc || genericImage}
             alt={rota.titulo}
             fill
             sizes="100vw"
-            className="object-cover"
+            decoding="sync"
+            onLoad={onHeroLoad}
+            onError={onHeroError}
+            className={`object-cover transition-opacity duration-300 ease-out ${isHeroReady ? 'opacity-100' : 'opacity-0'}`}
             priority
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
         </div>
 
-        <div className="relative z-10 flex flex-col items-center text-center px-4 sm:px-6 mt-16 max-w-5xl mx-auto">
+        <div className={`relative z-10 flex flex-col items-center text-center px-4 sm:px-6 mt-16 max-w-5xl mx-auto transition-opacity duration-300 ease-out ${isHeroReady ? 'opacity-100' : 'opacity-0'}`}>
           <h1 className={`${jakarta.className} text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black uppercase tracking-tighter text-white drop-shadow-2xl leading-none`}>
             {rota.titulo}
           </h1>

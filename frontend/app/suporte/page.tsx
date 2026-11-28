@@ -8,6 +8,7 @@ import {
   User, Mail, Phone, FileText, UploadCloud, ArrowRight,
   CheckCircle2, AlertCircle, ShieldCheck,
 } from 'lucide-react';
+import { optimizeHeroUrl, useHeroImageReady } from '@/hooks/useHeroReady';
 
 const jakarta = { className: "font-['Plus_Jakarta_Sans',sans-serif]" };
 const inter = { className: "font-['Inter',sans-serif]" };
@@ -84,6 +85,8 @@ export default function SuportePage() {
   const [loading, setLoading] = useState(false);
   const [sucesso, setSucesso] = useState(false);
   const [erroValidacao, setErroValidacao] = useState('');
+  const heroSrc = optimizeHeroUrl("https://images.pexels.com/photos/9214628/pexels-photo-9214628.jpeg");
+  const { imgRef: heroImgRef, isReady: isHeroReady, onLoad: onHeroLoad, onError: onHeroError } = useHeroImageReady(heroSrc);
 
   const mascaraCPF = (valor: string) => {
     return valor
@@ -248,19 +251,23 @@ export default function SuportePage() {
   return (
     <main className={`${inter.className} min-h-screen flex flex-col bg-[#FDFCF7] text-slate-900`}>
       {/* ── HERO EDITORIAL ── */}
-      <section className="relative h-[90vh] min-h-[500px] w-full flex items-center justify-center overflow-hidden">
+      <section className="relative h-[90vh] min-h-[500px] w-full flex items-center justify-center overflow-hidden bg-slate-900">
         <div className="absolute inset-0 z-0">
           <Image
-            src="https://images.pexels.com/photos/9214628/pexels-photo-9214628.jpeg"
+            ref={heroImgRef}
+            src={heroSrc}
             alt="Atendimento ao Cidadão"
             fill
-            className="object-cover"
+            decoding="sync"
+            onLoad={onHeroLoad}
+            onError={onHeroError}
+            className={`object-cover transition-opacity duration-300 ease-out ${isHeroReady ? 'opacity-100' : 'opacity-0'}`}
             priority
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
         </div>
 
-        <div className="relative z-10 flex flex-col items-center text-center px-6 max-w-5xl mx-auto">
+        <div className={`relative z-10 flex flex-col items-center text-center px-6 max-w-5xl mx-auto transition-opacity duration-300 ease-out ${isHeroReady ? 'opacity-100' : 'opacity-0'}`}>
           <Reveal anim="zoom">
             <h1
               className={`${jakarta.className} text-[3rem] sm:text-[4.5rem] md:text-[6rem] lg:text-[7rem] font-black uppercase tracking-tighter text-white drop-shadow-2xl leading-none`}

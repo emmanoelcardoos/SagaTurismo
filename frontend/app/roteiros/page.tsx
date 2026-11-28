@@ -6,6 +6,7 @@ import { useEffect, useState, useRef, ReactNode } from 'react';
 import { ArrowRight, Loader2, Compass, Clock, MapPin, Signal } from 'lucide-react';
 import { jakarta, inter } from "@/lib/fonts";
 import { supabase } from '@/lib/supabase';
+import { optimizeHeroUrl, useHeroImageReady } from '@/hooks/useHeroReady';
 
 // ── TIPAGEM ──
 type Roteiro = {
@@ -98,6 +99,8 @@ export default function RoteirosPage() {
   }, []);
 
   const genericImage = 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09';
+  const heroSrc = optimizeHeroUrl("https://images.pexels.com/photos/27627209/pexels-photo-27627209.jpeg?_gl=1*14pgmxz*_gcl_au*NDU0NDkxNDc2LjE3ODczNjc3NjI.*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3OTA5ODk4MTIkbzE2MiRnMSR0MTc5MDk4OTk0MiRqNTkkbDAkaDA.");
+  const { imgRef: heroImgRef, isReady: isHeroReady, onLoad: onHeroLoad, onError: onHeroError } = useHeroImageReady(heroSrc);
 
   return (
     <main className={`${inter.className} bg-[#FDFCF7] text-slate-900 overflow-x-hidden min-h-screen flex flex-col`}>
@@ -105,20 +108,24 @@ export default function RoteirosPage() {
       {/* ══════════════════════════════════════
           HERO EDITORIAL
       ══════════════════════════════════════ */}
-      <section className="relative h-[90vh] min-h-[500px] w-full flex items-center justify-center overflow-hidden">
+      <section className="relative h-[90vh] min-h-[500px] w-full flex items-center justify-center overflow-hidden bg-slate-900">
         <div className="absolute inset-0 z-0">
           <Image
-            src="https://images.pexels.com/photos/27627209/pexels-photo-27627209.jpeg?_gl=1*14pgmxz*_gcl_au*NDU0NDkxNDc2LjE3ODczNjc3NjI.*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3OTA5ODk4MTIkbzE2MiRnMSR0MTc5MDk4OTk0MiRqNTkkbDAkaDA."
+            ref={heroImgRef}
+            src={heroSrc}
             alt="Roteiros Turísticos de São Geraldo do Araguaia"
             fill
             sizes="100vw"
-            className="object-cover"
+            decoding="sync"
+            onLoad={onHeroLoad}
+            onError={onHeroError}
+            className={`object-cover transition-opacity duration-300 ease-out ${isHeroReady ? 'opacity-100' : 'opacity-0'}`}
             priority
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
         </div>
 
-        <div className="relative z-10 flex flex-col items-center text-center px-6 mt-16 max-w-5xl mx-auto">
+        <div className={`relative z-10 flex flex-col items-center text-center px-6 mt-16 max-w-5xl mx-auto transition-opacity duration-300 ease-out ${isHeroReady ? 'opacity-100' : 'opacity-0'}`}>
           <h1 className={`${jakarta.className} text-[3rem] sm:text-[4.5rem] md:text-[6rem] lg:text-[8rem] font-black uppercase tracking-tighter text-white drop-shadow-2xl leading-none`}>
             Roteiros
           </h1>

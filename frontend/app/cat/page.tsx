@@ -4,28 +4,34 @@ import React from 'react';
 import Image from 'next/image';
 import { jakarta, inter } from "@/lib/fonts";
 import { MapPin, Phone, Mail, Clock, Info } from 'lucide-react';
+import { optimizeHeroUrl, useHeroImageReady } from '@/hooks/useHeroReady';
 
 export default function CatPage() {
   // URL de imagem de exemplo para o CAT
-  const HERO_IMAGE = "https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galerias/WhatsApp%20Image%202026-08-16%20at%2001.59.16-2.jpeg";
+  const HERO_IMAGE = optimizeHeroUrl("https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/galerias/WhatsApp%20Image%202026-08-16%20at%2001.59.16-2.jpeg");
+  const { imgRef: heroImgRef, isReady: isHeroReady, onLoad: onHeroLoad, onError: onHeroError } = useHeroImageReady(HERO_IMAGE);
 
   return (
     <main className={`${inter.className} bg-[#FDFCF7] min-h-screen text-slate-900 overflow-x-hidden`}>
 
       {/* ── HERO SECTION PADRÃO ── */}
-      <section className="relative h-[90vh] min-h-[500px] w-full flex items-center justify-center overflow-hidden">
+      <section className="relative h-[90vh] min-h-[500px] w-full flex items-center justify-center overflow-hidden bg-slate-900">
         <div className="absolute inset-0 z-0">
           <Image 
+            ref={heroImgRef}
             src={HERO_IMAGE} 
             alt="CAT São Geraldo do Araguaia" 
             fill 
-            className="object-cover" 
+            decoding="sync"
+            onLoad={onHeroLoad}
+            onError={onHeroError}
+            className={`object-cover transition-opacity duration-300 ease-out ${isHeroReady ? 'opacity-100' : 'opacity-0'}`} 
             priority 
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
         </div>
 
-        <div className="relative z-10 flex flex-col items-center text-center px-6 mt-16 max-w-5xl mx-auto">
+        <div className={`relative z-10 flex flex-col items-center text-center px-6 mt-16 max-w-5xl mx-auto transition-opacity duration-300 ease-out ${isHeroReady ? 'opacity-100' : 'opacity-0'}`}>
           <h1 className={`${jakarta.className} text-[3rem] sm:text-[4.5rem] md:text-[6rem] lg:text-[8rem] font-black uppercase tracking-tighter text-white drop-shadow-2xl leading-none`}>
             CAT
           </h1>

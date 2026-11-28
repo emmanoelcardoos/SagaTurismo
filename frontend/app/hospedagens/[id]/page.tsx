@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { jakarta, inter } from "@/lib/fonts";
 import { supabase } from '@/lib/supabase';
+import { optimizeHeroUrl, useHeroImageReady } from '@/hooks/useHeroReady';
 
 // ── ÍCONE PERSONALIZADO DO INSTAGRAM (SVG inline) ──
 const InstagramIcon = ({ size = 16 }: { size?: number }) => (
@@ -98,6 +99,8 @@ function HotelDetalheContent() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
+  const heroSrc = optimizeHeroUrl(hotel?.imagem_url);
+  const { imgRef: heroImgRef, isReady: isHeroReady, onLoad: onHeroLoad, onError: onHeroError } = useHeroImageReady(heroSrc);
 
   useEffect(() => {
     setMounted(true);
@@ -235,7 +238,17 @@ function HotelDetalheContent() {
 
             {/* ── HERO SECTION ORIGINAL (COM BOTÃO VOLTAR VISÍVEL) ── */}
             <div className="w-full h-[60vh] md:h-[70vh] relative bg-[#002f40]">
-              <Image src={hotel.imagem_url} alt={hotel.nome} fill className="object-cover opacity-90" priority />
+              <Image
+                ref={heroImgRef}
+                src={heroSrc}
+                alt={hotel.nome}
+                fill
+                decoding="sync"
+                onLoad={onHeroLoad}
+                onError={onHeroError}
+                className={`object-cover transition-opacity duration-300 ease-out ${isHeroReady ? 'opacity-90' : 'opacity-0'}`}
+                priority
+              />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
               
               {/* Botão Voltar (corrigido com z-index elevado e fundo sólido) */}
@@ -248,7 +261,7 @@ function HotelDetalheContent() {
                 </Link>
               </div>
 
-              <div className="absolute bottom-6 md:bottom-10 left-5 md:left-16 z-20 text-left pr-5">
+              <div className={`absolute bottom-6 md:bottom-10 left-5 md:left-16 z-20 text-left pr-5 transition-opacity duration-300 ease-out ${isHeroReady ? 'opacity-100' : 'opacity-0'}`}>
                 <div className="flex items-center gap-2 mb-2 md:mb-3">
                   <span className="bg-[#F9C400] text-[#00577C] px-2 md:px-3 py-1 md:py-1.5 rounded-lg text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-md">{hotel.tipo}</span>
                   <div className="flex gap-0.5 md:gap-1">

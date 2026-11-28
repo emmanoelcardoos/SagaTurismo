@@ -12,6 +12,7 @@ import {
 import { jakarta, inter } from "@/lib/fonts";
 import { supabase } from '@/lib/supabase';
 import MinhaReservaModal from '@/components/MinhaReservaModal';
+import { useHeroVideoReady } from '@/hooks/useHeroReady';
 
 // ── FONTES ──
 
@@ -353,21 +354,26 @@ export default function HomePage() {
   // ◄── ESTADO DO MODAL DE RESERVAS ──►
   const [isReservaModalOpen, setIsReservaModalOpen] = useState(false);
 
-  // ── REF PARA O VÍDEO ──
-  const videoRef = useRef<HTMLVideoElement>(null);
+  // ── REF E SINCRONIZAÇÃO PARA O VÍDEO ──
+  const {
+    videoRef,
+    isReady: isHeroReady,
+    onLoadedData: onHeroVideoLoaded,
+    onError: onHeroVideoError,
+  } = useHeroVideoReady();
 
   // ── EFECTO PARA CONTROLAR A VELOCIDADE DO VÍDEO ──
   useEffect(() => {
     if (videoRef.current) {
       videoRef.current.playbackRate = 1.00;
     }
-  }, []);
+  }, [videoRef]);
 
   return (
     <main className={`${inter.className} bg-[#FDFCF7] text-slate-900 overflow-x-hidden`}>
 
       {/* ── VISÃO GERAL DA CIDADE (HERO MODERNO & CLEAN) ── */}
-      <section className="relative h-[100dvh] min-h-[600px] w-full flex items-center justify-center overflow-hidden">
+      <section className="relative h-[100dvh] min-h-[600px] w-full flex items-center justify-center overflow-hidden bg-slate-900">
   
         <div className="absolute inset-0 z-0">
           <video
@@ -377,13 +383,16 @@ export default function HomePage() {
             muted
             playsInline
             preload="auto"
-            className="object-cover w-full h-full"
+            onLoadedData={onHeroVideoLoaded}
+            onCanPlay={onHeroVideoLoaded}
+            onError={onHeroVideoError}
+            className={`object-cover w-full h-full transition-opacity duration-300 ease-out ${isHeroReady ? 'opacity-100' : 'opacity-0'}`}
             src="/turismo1.mp4"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-slate-900/40 via-slate-900/20 to-slate-900/60" />
         </div>
 
-        <div className="relative z-10 flex flex-col items-center text-center px-6 mt-16 max-w-4xl mx-auto">
+        <div className={`relative z-10 flex flex-col items-center text-center px-6 mt-16 max-w-4xl mx-auto transition-opacity duration-300 ease-out ${isHeroReady ? 'opacity-100' : 'opacity-0'}`}>
           
           <AnimatedSection animation="fade-up" className="flex flex-col items-center w-full">
             

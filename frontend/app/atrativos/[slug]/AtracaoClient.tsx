@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useEffect, useState, useRef, ReactNode } from 'react';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { jakarta, inter } from "@/lib/fonts";
+import { optimizeHeroUrl, useHeroImageReady } from '@/hooks/useHeroReady';
 
 export type Atracao = {
   id: string;
@@ -162,6 +163,8 @@ export default function AtracaoClient({
 }) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const heroSrc = optimizeHeroUrl(atracao.imagem_url);
+  const { imgRef: heroImgRef, isReady: isHeroReady, onLoad: onHeroLoad, onError: onHeroError } = useHeroImageReady(heroSrc);
 
   const formatInstagramUrl = (instagram: string) => {
     let username = instagram.trim();
@@ -195,20 +198,24 @@ export default function AtracaoClient({
       <main className={`${inter.className} relative text-slate-900 bg-[#FDFCF7] flex flex-col min-h-screen w-full`}>
 
         {/* HERO */}
-        <section className="relative h-[90vh] min-h-[500px] w-full flex items-center justify-center overflow-hidden">
+        <section className="relative h-[90vh] min-h-[500px] w-full flex items-center justify-center overflow-hidden bg-slate-900">
           <div className="absolute inset-0 z-0">
             <Image
-              src={atracao.imagem_url}
+              ref={heroImgRef}
+              src={heroSrc}
               alt={`${atracao.nome} — ${atracao.tipo ?? 'São Geraldo do Araguaia'}`}
               fill
-              className="object-cover"
+              decoding="sync"
+              onLoad={onHeroLoad}
+              onError={onHeroError}
+              className={`object-cover transition-opacity duration-300 ease-out ${isHeroReady ? 'opacity-100' : 'opacity-0'}`}
               priority
               sizes="100vw"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
           </div>
 
-          <div className="relative z-10 flex flex-col items-center text-center px-6 mt-16 max-w-5xl mx-auto">
+          <div className={`relative z-10 flex flex-col items-center text-center px-6 mt-16 max-w-5xl mx-auto transition-opacity duration-300 ease-out ${isHeroReady ? 'opacity-100' : 'opacity-0'}`}>
             <h1 className={`${jakarta.className} text-[3.5rem] sm:text-[4.5rem] md:text-[5rem] lg:text-[6rem] font-black uppercase tracking-tighter text-white drop-shadow-2xl leading-none`}>
               {atracao.nome}
             </h1>

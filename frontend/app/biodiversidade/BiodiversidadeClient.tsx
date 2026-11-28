@@ -7,6 +7,7 @@ import {
   ArrowRight, Leaf, Mountain, Droplets
 } from 'lucide-react';
 import { jakarta, inter, playfair } from "@/lib/fonts";
+import { optimizeHeroUrl, useHeroImageReady } from '@/hooks/useHeroReady';
 
 // ==========================================
 // MOTOR DE ANIMAÇÕES DE SCROLL
@@ -120,6 +121,9 @@ const cachoeiras = [
 // ==========================================
 function HeroBiodiversidade() {
   const [scrollY, setScrollY] = useState(0);
+  const heroSrc = optimizeHeroUrl("https://images.pexels.com/photos/18064280/pexels-photo-18064280.jpeg?_gl=1*1at0h8g*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzk1MDQ0MjUkbzUyJGcxJHQxNzc5NTA0ODIxJGo1OSRsMCRoMA..");
+  const { imgRef: heroImgRef, isReady: isHeroReady, onLoad: onHeroLoad, onError: onHeroError } = useHeroImageReady(heroSrc);
+
   useEffect(() => {
     const h = () => setScrollY(window.scrollY);
     window.addEventListener('scroll', h, { passive: true });
@@ -131,16 +135,22 @@ function HeroBiodiversidade() {
       
       <div className="absolute inset-0 z-0" style={{ transform: `translateY(${scrollY * 0.3}px)` }}>
         <Image
-          src="https://images.pexels.com/photos/18064280/pexels-photo-18064280.jpeg?_gl=1*1at0h8g*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3Nzk1MDQ0MjUkbzUyJGcxJHQxNzc5NTA0ODIxJGo1OSRsMCRoMA.."
+          ref={heroImgRef}
+          src={heroSrc}
           alt="Serra das Andorinhas - Fauna"
-          fill className="object-cover" priority
+          fill
+          decoding="sync"
+          onLoad={onHeroLoad}
+          onError={onHeroError}
+          className={`object-cover transition-opacity duration-300 ease-out ${isHeroReady ? 'opacity-100' : 'opacity-0'}`}
+          priority
         />
       </div>
 
       <div className="absolute inset-0 bg-gradient-to-t from-[#021a0d] via-[#021a0d]/40 to-transparent z-0" />
       <div className="absolute inset-0 bg-gradient-to-r from-[#021a0d]/90 via-[#021a0d]/20 to-transparent z-0" />
 
-      <div className="relative z-10 max-w-[1400px] w-full mx-auto">
+      <div className={`relative z-10 max-w-[1400px] w-full mx-auto transition-opacity duration-300 ease-out ${isHeroReady ? 'opacity-100' : 'opacity-0'}`}>
         <Reveal anim="up">
           <div className="flex flex-col items-start drop-shadow-2xl max-w-5xl">
             <span className="text-[#F9C400] text-sm md:text-xl font-black uppercase tracking-[0.3em] mb-2">
@@ -156,7 +166,7 @@ function HeroBiodiversidade() {
         </Reveal>
       </div>
 
-      <div className="absolute bottom-10 right-8 md:right-12 z-10 hidden md:flex gap-8 md:gap-12">
+      <div className={`absolute bottom-10 right-8 md:right-12 z-10 hidden md:flex gap-8 md:gap-12 transition-opacity duration-300 ease-out ${isHeroReady ? 'opacity-100' : 'opacity-0'}`}>
         {[
           { n: "+50", label: "Cachoeiras" },
           { n: "2", label: "Biomas" },

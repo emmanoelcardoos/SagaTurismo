@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState, useRef, ReactNode } from 'react';
 import { jakarta, inter } from "@/lib/fonts";
+import { optimizeHeroUrl, useHeroImageReady } from '@/hooks/useHeroReady';
 
 // ── MOTOR DE ANIMAÇÕES ──
 function useScrollAnimation(threshold = 0.08) {
@@ -39,23 +40,30 @@ function Reveal({ children, className = "", anim = "up", delay = 0 }: { children
 
 // ── PÁGINA SEMTUR ──
 export default function SemturPage() {
+  const heroSrc = optimizeHeroUrl("https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/herosections/heroquemsomos.jpg");
+  const { imgRef: heroImgRef, isReady: isHeroReady, onLoad: onHeroLoad, onError: onHeroError } = useHeroImageReady(heroSrc);
+
   return (
     <main className={`${inter.className} min-h-screen flex flex-col bg-[#FDFCF7] text-slate-900`}>
 
       {/* ── HERO EDITORIAL ── */}
-      <section className="relative h-[90vh] min-h-[500px] w-full flex items-center justify-center overflow-hidden">
+      <section className="relative h-[90vh] min-h-[500px] w-full flex items-center justify-center overflow-hidden bg-slate-900">
         <div className="absolute inset-0 z-0">
           <Image
-            src="https://uaancbywueikvvhhzjop.supabase.co/storage/v1/object/public/herosections/heroquemsomos.jpg"
+            ref={heroImgRef}
+            src={heroSrc}
             alt="Secretaria Municipal de Turismo - São Geraldo do Araguaia"
             fill
-            className="object-cover"
+            decoding="sync"
+            onLoad={onHeroLoad}
+            onError={onHeroError}
+            className={`object-cover transition-opacity duration-300 ease-out ${isHeroReady ? 'opacity-100' : 'opacity-0'}`}
             priority
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
         </div>
 
-        <div className="relative z-10 flex flex-col items-center text-center px-6 max-w-5xl mx-auto">
+        <div className={`relative z-10 flex flex-col items-center text-center px-6 max-w-5xl mx-auto transition-opacity duration-300 ease-out ${isHeroReady ? 'opacity-100' : 'opacity-0'}`}>
           <h1 className={`${jakarta.className} text-[3rem] sm:text-[4.5rem] md:text-[6rem] lg:text-[7rem] font-black uppercase tracking-tighter text-white drop-shadow-2xl leading-none`}>
             SEMTUR
           </h1>

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { jakarta, inter } from "@/lib/fonts";
 import { supabase } from '@/lib/supabase';
+import { optimizeHeroUrl, useHeroImageReady } from '@/hooks/useHeroReady';
 
 // ── TIPAGEM ──
 type BlogPost = {
@@ -78,6 +79,8 @@ export default function BlogPage() {
 
   // Notícias em destaque para o carrossel (5 primeiras com imagem)
   const noticiasDestaque = posts.filter(p => p.imagem_url).slice(0, 5);
+  const firstHeroSrc = noticiasDestaque[0]?.imagem_url ? optimizeHeroUrl(noticiasDestaque[0].imagem_url) : null;
+  const { imgRef: heroImgRef, isReady: isHeroReady, onLoad: onHeroLoad, onError: onHeroError } = useHeroImageReady(firstHeroSrc);
 
   // Autoplay do carrossel
   useEffect(() => {
@@ -124,12 +127,16 @@ export default function BlogPage() {
             {noticiasDestaque.map((post, idx) => (
               <div 
                 key={post.id} 
-                className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${idx === slideAtual ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
+                className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${idx === slideAtual ? (idx === 0 && !isHeroReady ? 'opacity-0 z-10' : 'opacity-100 z-10') : 'opacity-0 z-0'}`}
               >
                 <Image 
-                  src={post.imagem_url} 
+                  ref={idx === 0 ? heroImgRef : undefined}
+                  src={optimizeHeroUrl(post.imagem_url)} 
                   alt={post.titulo} 
                   fill 
+                  decoding={idx === 0 ? 'sync' : 'async'}
+                  onLoad={idx === 0 ? onHeroLoad : undefined}
+                  onError={idx === 0 ? onHeroError : undefined}
                   className={`object-cover transition-transform duration-[10000ms] ${idx === slideAtual ? 'scale-105' : 'scale-100'}`}
                   priority={idx === 0} 
                 />

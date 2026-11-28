@@ -26,6 +26,7 @@ import { jakarta, inter } from "@/lib/fonts";
 import CPFInput from '@/components/ui/CPFInput';
 import FileUploader from '@/components/ui/FileUploader';
 import { cadastrarResidente, type CadastroResponse } from '@/lib/api';
+import { optimizeHeroUrl, useHeroImageReady } from '@/hooks/useHeroReady';
 
 type DependenteData = {
   id: string;
@@ -151,6 +152,8 @@ export default function CadastroPage() {
   const [apiError, setApiError] = useState<string | null>(null);
   const [rejeicaoIA, setRejeicaoIA] = useState<{ mensagem: string } | null>(null);
   const [sucessoSemToken, setSucessoSemToken] = useState<{ mensagem: string } | null>(null);
+  const heroSrc = optimizeHeroUrl("https://images.pexels.com/photos/38049813/pexels-photo-38049813.jpeg?_gl=1*1ysrytv*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3ODcxNjc5NjYkbzEwNCRnMSR0MTc4NzE2OTEwOCRqNTkkbDAkaDA.");
+  const { imgRef: heroImgRef, isReady: isHeroReady, onLoad: onHeroLoad, onError: onHeroError } = useHeroImageReady(heroSrc);
 
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 110 }, (_, i) => currentYear - i);
@@ -489,19 +492,23 @@ export default function CadastroPage() {
       )}
 
       {/* ── HERO EDITORIAL ── */}
-      <section className="relative h-[90vh] min-h-[500px] w-full flex items-center justify-center overflow-hidden">
+      <section className="relative h-[90vh] min-h-[500px] w-full flex items-center justify-center overflow-hidden bg-slate-900">
         <div className="absolute inset-0 z-0">
           <Image
-            src="https://images.pexels.com/photos/38049813/pexels-photo-38049813.jpeg?_gl=1*1ysrytv*_ga*MTY5OTc2MjU5NS4xNzc0NzM1NjE2*_ga_8JE65Q40S6*czE3ODcxNjc5NjYkbzEwNCRnMSR0MTc4NzE2OTEwOCRqNTkkbDAkaDA."
+            ref={heroImgRef}
+            src={heroSrc}
             alt="Cartão Residente São Geraldo do Araguaia"
             fill
-            className="object-cover"
+            decoding="sync"
+            onLoad={onHeroLoad}
+            onError={onHeroError}
+            className={`object-cover transition-opacity duration-300 ease-out ${isHeroReady ? 'opacity-100' : 'opacity-0'}`}
             priority
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
         </div>
 
-        <div className="relative z-10 flex flex-col items-center text-center px-6 mt-16 max-w-5xl mx-auto">
+        <div className={`relative z-10 flex flex-col items-center text-center px-6 mt-16 max-w-5xl mx-auto transition-opacity duration-300 ease-out ${isHeroReady ? 'opacity-100' : 'opacity-0'}`}>
           <h1 className={`${jakarta.className} text-[3rem] sm:text-[4.5rem] md:text-[5.5rem] lg:text-[7rem] font-black uppercase tracking-tighter text-white drop-shadow-2xl leading-none`}>
             Residente
           </h1>
